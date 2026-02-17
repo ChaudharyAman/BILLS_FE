@@ -106,66 +106,66 @@ const Signup = () => {
       </div>
 
       {/* Right Side - Form */}
-      <div className="w-full lg:w-[40%] bg-white flex flex-col justify-center items-center p-8 md:p-16 overflow-y-auto">
+      <div className="w-full lg:w-[40%] bg-white flex flex-col justify-center items-center p-4 md:p-8 overflow-hidden h-screen">
         <div className="w-full max-w-md">
-          <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold text-slate-900">Create an account</h1>
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-slate-900">Create an account</h1>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl flex items-center gap-3">
-              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl flex items-center gap-2">
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Username</label>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-700">Username</label>
               <input
                 type="text"
                 name="username"
                 required
-                className="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm"
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm text-sm"
                 placeholder="Choose a username"
                 value={formData.username}
                 onChange={handleChange}
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Email Address</label>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-700">Email Address</label>
               <input
                 type="email"
                 name="email"
                 required
-                className="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm"
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm text-sm"
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Password</label>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-700">Password</label>
               <input
                 type="password"
                 name="password"
                 required
-                className="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm"
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm text-sm"
                 placeholder="Create a password"
                 value={formData.password}
                 onChange={handleChange}
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Confirm Password</label>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-700">Confirm Password</label>
               <input
                 type="password"
                 name="confirmPassword"
                 required
-                className="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm"
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm text-sm"
                 placeholder="Confirm your password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
@@ -175,7 +175,7 @@ const Signup = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.99] mt-2"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.99] mt-2 text-sm"
             >
               {loading ? 'Creating account...' : 'Sign up'}
             </button>
@@ -183,7 +183,7 @@ const Signup = () => {
 
 
 
-          <p className="mt-8 text-center text-slate-600">
+          <p className="mt-6 text-center text-slate-600 text-sm">
             Already have an account?{' '}
             <Link to="/login" className="font-semibold text-teal-600 hover:text-teal-700">Log in</Link>
           </p>
