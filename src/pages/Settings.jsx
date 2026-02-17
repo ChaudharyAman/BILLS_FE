@@ -90,7 +90,7 @@ const Settings = () => {
             Object.keys(formData.address).forEach(addrKey => {
                 data.append(`address[${addrKey}]`, formData.address[addrKey]);
             });
-        } else if (key !== 'logoFile' && key !== 'logoUrl' && key !== '_id' && key !== 'createdAt' && key !== 'updatedAt' && key !== '__v') {
+        } else if (key !== 'logoFile' && key !== 'logoUrl' && key !== '_id' && key !== 'createdAt' && key !== 'updatedAt' && key !== '__v' && key !== 'user') {
             data.append(key, formData[key]);
         }
       });

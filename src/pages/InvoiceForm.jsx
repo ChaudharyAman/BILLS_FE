@@ -205,6 +205,13 @@ const InvoiceForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate Client
+    if (!formData.clientRef || formData.clientRef === '_CREATE_NEW_') {
+        alert('Please select a valid client.');
+        return;
+    }
+
     setLoading(true);
     
     // Map Top-level PO to transport object for backend compatibility
@@ -269,10 +276,17 @@ const InvoiceForm = () => {
                         <select 
                             className="w-full bg-white border border-gray-200 rounded py-2 px-3 text-sm focus:outline-none focus:border-blue-500"
                             value={formData.clientRef}
-                            onChange={(e) => setFormData({...formData, clientRef: e.target.value})}
+                            onChange={(e) => {
+                                if (e.target.value === '_CREATE_NEW_') {
+                                    setIsClientModalOpen(true);
+                                } else {
+                                    setFormData({...formData, clientRef: e.target.value});
+                                }
+                            }}
                         >
                             <option value="">Select Client</option>
                             {clients.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                            <option value="_CREATE_NEW_" className="font-bold text-blue-600">+ Create New Client</option>
                         </select>
                          <button
                             type="button"
@@ -491,17 +505,38 @@ const InvoiceForm = () => {
                                 value={item.discount}
                                 onChange={(e) => updateItem(index, 'discount', e.target.value)}
                             />
-                             <select 
-                                className="flex-1 border border-gray-300 rounded px-2 py-2 text-sm focus:border-blue-500 outline-none text-gray-500"
-                                value={item.taxRate}
-                                onChange={(e) => updateItem(index, 'taxRate', e.target.value)}
-                             >
-                                 <option value="0">0% Tax</option>
-                                 <option value="5">5% GST</option>
-                                 <option value="12">12% GST</option>
-                                 <option value="18">18% GST</option>
-                                 <option value="28">28% GST</option>
-                             </select>
+                             {/* Hybrid Tax Input: Select for standard, Input for custom */}
+                             {[0, 5, 12, 18, 28].includes(Number(item.taxRate)) ? (
+                                 <select 
+                                    className="flex-1 border border-gray-300 rounded px-2 py-2 text-sm focus:border-blue-500 outline-none text-gray-500"
+                                    value={item.taxRate}
+                                    onChange={(e) => {
+                                        if (e.target.value === 'custom') {
+                                            updateItem(index, 'taxRate', ''); // Clear to trigger input mode
+                                        } else {
+                                            updateItem(index, 'taxRate', e.target.value);
+                                        }
+                                    }}
+                                 >
+                                     <option value="0">0% Tax</option>
+                                     <option value="5">5% GST</option>
+                                     <option value="12">12% GST</option>
+                                     <option value="18">18% GST</option>
+                                     <option value="28">28% GST</option>
+                                     <option value="custom">Custom Tax</option>
+                                 </select>
+                             ) : (
+                                 <input 
+                                    type="number"
+                                    min="0"
+                                    placeholder="Tax %"
+                                    autoFocus
+                                    className="w-full border border-blue-500 rounded px-2 py-2 text-sm focus:border-blue-500 outline-none text-gray-700 bg-blue-50"
+                                    value={item.taxRate}
+                                    onChange={(e) => updateItem(index, 'taxRate', e.target.value)}
+                                    title="Enter custom tax percentage"
+                                 />
+                             )}
                         </div>
 
                         <div className="col-span-1 text-right pt-2 font-medium text-gray-800">
