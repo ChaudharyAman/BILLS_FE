@@ -15,8 +15,10 @@ const InvoiceList = () => {
   }, []);
 
   const fetchInvoices = async () => {
+    console.log('Fetching invoices...'); // DEBUG LOG
     try {
       const response = await api.get('/invoices');
+      console.log('Invoices response:', response.data); // DEBUG LOG
       setInvoices(response.data);
       setLoading(false);
     } catch (error) {
