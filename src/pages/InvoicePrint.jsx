@@ -179,24 +179,8 @@ const InvoicePrint = () => {
             <div className="flex flex-col md:flex-row justify-between gap-8">
                 
                 {/* Left Side: Bank Details & Terms */}
+                {/* Left Side: Bank Details Removed as per request */}
                 <div className="flex-1">
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <h4 className="font-bold text-gray-700 text-sm mb-2 uppercase">Bank Details</h4>
-                        <div className="text-sm text-gray-600 space-y-1">
-                            <div className="flex gap-2">
-                                <span className="w-24 font-medium text-gray-500">Bank Name:</span>
-                                <span>{invoice.bankDetails?.bankName}</span>
-                            </div>
-                            <div className="flex gap-2">
-                                <span className="w-24 font-medium text-gray-500">Account No:</span>
-                                <span>{invoice.bankDetails?.accountNumber}</span>
-                            </div>
-                            <div className="flex gap-2">
-                                <span className="w-24 font-medium text-gray-500">IFSC Code:</span>
-                                <span>{invoice.bankDetails?.ifscCode}</span>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Right Side: Totals */}
