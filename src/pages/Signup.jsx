@@ -134,6 +134,19 @@ const Signup = () => {
             </div>
 
             <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">Email Address</label>
+              <input
+                type="email"
+                name="email"
+                required
+                className="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm"
+                placeholder="Enter your email"
+                value={formData.email}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">Password</label>
               <input
                 type="password"

@@ -17,6 +17,8 @@ const Settings = () => {
     phone: '',
     website: '',
     logoUrl: '',
+    username: '', // Account Username
+    loginEmail: '', // Account Email
   });
 
   useEffect(() => {
@@ -30,7 +32,9 @@ const Settings = () => {
         setFormData(prev => ({
            ...prev,
            ...response.data,
-           address: { ...prev.address, ...(response.data.address || {}) }
+           address: { ...prev.address, ...(response.data.address || {}) },
+           username: response.data.user?.username || '',
+           loginEmail: response.data.user?.email || ''
         }));
       }
     } catch (error) {
