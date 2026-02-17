@@ -6,6 +6,7 @@ const Signup = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
+    email: '',
     password: '',
     confirmPassword: ''
   });
@@ -30,6 +31,7 @@ const Signup = () => {
     try {
       const response = await api.post('/auth/register', {
         username: formData.username,
+        email: formData.email,
         password: formData.password
       });
 
