@@ -1,41 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import api from '../api/axios';
-import { Plus, Trash2, Save, Calendar, Truck } from 'lucide-react';
+import { Plus, Trash2, Calendar, ChevronDown } from 'lucide-react';
 import Modal from '../components/Modal';
 import ClientForm from './ClientForm';
 
+const INVOICE_TYPES = ['Invoice', 'Retail Invoice', 'Tax Invoice', 'Excise Invoice'];
+
+const TAX_TYPES = {
+  'Invoice': false,
+  'Retail Invoice': false,
+  'Tax Invoice': true,
+  'Excise Invoice': true,
+};
+
+const SHOW_HSN = {
+  'Invoice': false,
+  'Retail Invoice': false,
+  'Tax Invoice': true,
+  'Excise Invoice': true,
+};
+
+const SHOW_EXCISE = {
+  'Invoice': false,
+  'Retail Invoice': false,
+  'Tax Invoice': false,
+  'Excise Invoice': true,
+};
+
+const emptyItem = () => ({
+  name: '', description: '', hsnCode: '', unit: 'pcs',
+  qty: 1, rate: 0, discount: 0, taxRate: 0,
+  bedPercent: 0, sedPercent: 0, cessPercent: 0,
+  amount: 0, isCustom: false,
+});
+
 const InvoiceForm = () => {
   const navigate = useNavigate();
-  const { id } = useParams(); // Get ID from URL
+  const { id } = useParams();
+  const location = useLocation();
+  const queryType = new URLSearchParams(location.search).get('type') || 'Tax Invoice';
   const [clients, setClients] = useState([]);
-  const [items, setItems] = useState([]);
+  const [itemsList, setItemsList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
 
-  // Toggle States for Extras
   const [showShipping, setShowShipping] = useState(false);
   const [showDiscountTotal, setShowDiscountTotal] = useState(false);
   const [showDiscountToAll, setShowDiscountToAll] = useState(false);
   const [discountToAll, setDiscountToAll] = useState('');
   const [showCustomAmount, setShowCustomAmount] = useState(false);
   const [showAdvance, setShowAdvance] = useState(false);
-  const [showTransport, setShowTransport] = useState(false);
-  
-  // Transport Dropdown State
   const [showTransportDropdown, setTransportDropdown] = useState(false);
   const [transportSearch, setTransportSearch] = useState('');
 
-  const toggleTransportDropdown = () => {
-    setTransportDropdown(!showTransportDropdown);
-    if (!showTransportDropdown) {
-        setTransportSearch('');
-    }
-  };
-
   const [formData, setFormData] = useState({
+    invoiceType: queryType,
     clientRef: '',
-    invoiceNo: 'Auto-generated', 
+    invoiceNo: 'Auto-generated',
     poNumber: '',
     date: new Date().toISOString().split('T')[0],
     poDate: '',
@@ -43,785 +65,702 @@ const InvoiceForm = () => {
     paymentMode: '',
     paymentTerms: 'On Receipt',
     status: 'DRAFT',
-    
-    // Arrays / Objects
-    items: [
-      {
-        name: '',
-        description: '',
-        unit: 'pcs',
-        qty: 1,
-        rate: 0,
-        discount: 0, 
-        taxRate: 0,
-        amount: 0
-      },
-    ],
-    
+    placeOfSupply: '',
+    reverseCharge: false,
+    items: [emptyItem()],
     shippingCharges: 0,
-    packagingCharges: 0, 
+    packagingCharges: 0,
     customChargeLabel: 'Custom Amount',
     discountTotal: 0,
     advancePaid: 0,
-    
     notes: '',
     terms: '',
-    
-    // Hidden / Background fields (still needed for backend)
-    transport: {
-        mode: 'Road', // Default
-        vehicleNumber: '',
-        eWayBillNo: '',
-        // poNumber mapped to top level
-    },
-     shippingAddress: {
-      line1: '',
-      city: '',
-      state: '',
-      zip: '',
+    transport: { mode: 'Road', vehicleNumber: '', eWayBillNo: '' },
+    shippingAddress: { line1: '', city: '', state: '', zip: '' },
+    exciseDuty: {
+      bedPercent: 0, sedPercent: 0, cessPercent: 0,
+      manufacturerName: '', manufacturerAddress: '', rangeCode: '',
     },
   });
-  
+
+  const invoiceType = formData.invoiceType;
+  const hasTax = TAX_TYPES[invoiceType];
+  const hasHSN = SHOW_HSN[invoiceType];
+  const hasExcise = SHOW_EXCISE[invoiceType];
+
   useEffect(() => {
     fetchDependencies();
-    if (id) {
-        fetchInvoice(id);
-    }
+    if (id) fetchInvoice(id);
   }, [id]);
 
   const fetchDependencies = async () => {
     try {
-      const [clientsRes, itemsRes] = await Promise.all([
-        api.get('/clients'),
-        api.get('/items'),
-      ]);
-      setClients(clientsRes.data);
-      setItems(itemsRes.data);
-    } catch (error) {
-      console.error('Error fetching dependencies:', error);
-    }
+      const [cr, ir] = await Promise.all([api.get('/clients'), api.get('/items')]);
+      setClients(cr.data);
+      setItemsList(ir.data);
+    } catch (e) { console.error(e); }
   };
 
   const fetchInvoice = async (invoiceId) => {
-      try {
-          setLoading(true);
-          const response = await api.get(`/invoices/${invoiceId}`);
-          const invoice = response.data;
-          
-          // Format Dates for Input
-          const formatDate = (d) => d ? new Date(d).toISOString().split('T')[0] : '';
-
-          setFormData({
-              ...invoice,
-              clientRef: invoice.client?.clientRef || invoice.clientRef, // Handle snapshot structure or direct ref
-              date: formatDate(invoice.date),
-              dueDate: formatDate(invoice.dueDate),
-              poDate: formatDate(invoice.poDate || invoice.transport?.poDate),
-              poNumber: invoice.poNumber || invoice.transport?.poNumber || '',
-              status: invoice.status || 'DRAFT',
-              // Ensure objects exist
-              transport: invoice.transport || { mode: 'Road' },
-              shippingAddress: invoice.shippingAddress || {},
-              items: invoice.items || [],
-          });
-
-          // Set Toggle States based on values
-          if (invoice.shippingCharges > 0) setShowShipping(true);
-          if (invoice.packagingCharges > 0) setShowCustomAmount(true);
-          if (invoice.discountTotal > 0) setShowDiscountTotal(true);
-          if (invoice.advancePaid > 0) setShowAdvance(true);
-
-      } catch (error) {
-          console.error('Error fetching invoice:', error);
-          alert('Failed to load invoice details');
-          navigate('/invoices');
-      } finally {
-          setLoading(false);
-      }
+    try {
+      setLoading(true);
+      const res = await api.get(`/invoices/${invoiceId}`);
+      const inv = res.data;
+      const fmt = (d) => d ? new Date(d).toISOString().split('T')[0] : '';
+      setFormData({
+        ...inv,
+        clientRef: inv.client?.clientRef || inv.clientRef,
+        date: fmt(inv.date),
+        dueDate: fmt(inv.dueDate),
+        poDate: fmt(inv.poDate || inv.transport?.poDate),
+        poNumber: inv.poNumber || inv.transport?.poNumber || '',
+        status: inv.status || 'DRAFT',
+        transport: inv.transport || { mode: 'Road' },
+        shippingAddress: inv.shippingAddress || {},
+        exciseDuty: inv.exciseDuty || { bedPercent: 0, sedPercent: 0, cessPercent: 0 },
+        items: (inv.items || []).map(i => ({ ...emptyItem(), ...i })),
+      });
+      if (inv.shippingCharges > 0) setShowShipping(true);
+      if (inv.packagingCharges > 0) setShowCustomAmount(true);
+      if (inv.discountTotal > 0) setShowDiscountTotal(true);
+      if (inv.advancePaid > 0) setShowAdvance(true);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to load invoice');
+      navigate('/invoices');
+    } finally { setLoading(false); }
   };
 
-  // Calculations
-  const calculateRowTotal = (item) => {
+  // ── Calculations ──────────────────────────────────────────────
+  const calcRow = (item) => {
     const qty = Number(item.qty) || 0;
     const rate = Number(item.rate) || 0;
-    const descPercent = Number(item.discount) || 0;
-    
-    const baseVal = qty * rate;
-    const discVal = baseVal * (descPercent / 100);
-    const taxable = baseVal - discVal;
-    
-    const taxVal = taxable * (Number(item.taxRate) / 100);
-    
-    return taxable + taxVal;
-  };
-
-  const updateItem = (index, field, value) => {
-    const newItems = [...formData.items];
-    newItems[index][field] = value;
-
-    if (field === 'name') {
-         const selectedItem = items.find(i => i.name === value);
-         if (selectedItem) {
-             newItems[index].description = selectedItem.description || '';
-             newItems[index].rate = selectedItem.rate || 0;
-             newItems[index].unit = selectedItem.unit || 'pcs';
-             newItems[index].taxRate = selectedItem.defaultTaxRate || 0;
-             newItems[index].itemRef = selectedItem._id;
-         }
+    const disc = Number(item.discount) || 0;
+    const taxable = qty * rate * (1 - disc / 100);
+    const gst = hasTax ? taxable * (Number(item.taxRate) / 100) : 0;
+    let excise = 0;
+    if (hasExcise) {
+      const bed = taxable * (Number(item.bedPercent) / 100);
+      const sed = taxable * (Number(item.sedPercent) / 100);
+      const cess = (bed + sed) * (Number(item.cessPercent) / 100);
+      excise = bed + sed + cess;
     }
-    
-    setFormData({ ...formData, items: newItems });
+    return taxable + gst + excise;
   };
 
-  const addItemRow = () => {
-    setFormData({
-      ...formData,
-      items: [
-        ...formData.items,
-        { name: '', description: '', unit: 'pcs', qty: 1, rate: 0, discount: 0, taxRate: 0, amount: 0 },
-      ],
-    });
-  };
-  
-  const removeItemRow = (index) => {
-      if (formData.items.length > 1) {
-          const newItems = formData.items.filter((_, i) => i !== index);
-          setFormData({ ...formData, items: newItems });
-      }
-  };
-
-  const getSubTotal = () => {
-    return formData.items.reduce((acc, item) => acc + calculateRowTotal(item), 0);
-  };
+  const getSubTotal = () => formData.items.reduce((a, i) => a + calcRow(i), 0);
 
   const getGrandTotal = () => {
     const sub = getSubTotal();
     const ship = Number(formData.shippingCharges) || 0;
-    const custom = Number(formData.packagingCharges) || 0; // "Custom Amount"
+    const custom = Number(formData.packagingCharges) || 0;
     const disc = Number(formData.discountTotal) || 0;
-    
     return sub + ship + custom - disc;
   };
 
+  const getTaxBreakdown = () => {
+    let cgst = 0, sgst = 0, igst = 0;
+    if (!hasTax) return { cgst, sgst, igst };
+    formData.items.forEach(item => {
+      const qty = Number(item.qty) || 0;
+      const rate = Number(item.rate) || 0;
+      const disc = Number(item.discount) || 0;
+      const taxable = qty * rate * (1 - disc / 100);
+      const tax = taxable * (Number(item.taxRate) / 100);
+      // Assume IGST if place of supply differs — simplified: always CGST+SGST for now
+      cgst += tax / 2;
+      sgst += tax / 2;
+    });
+    return { cgst, sgst, igst };
+  };
+
+  // ── Item helpers ──────────────────────────────────────────────
+  const updateItem = (index, field, value) => {
+    const newItems = [...formData.items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    if (field === 'name') {
+      const found = itemsList.find(i => i.name === value);
+      if (found) {
+        newItems[index].description = found.description || '';
+        newItems[index].rate = found.salesInfo?.price || found.rate || 0;
+        newItems[index].unit = found.unit || 'pcs';
+        newItems[index].taxRate = found.defaultTaxRate || 0;
+        newItems[index].hsnCode = found.hsnCode || '';
+        newItems[index].itemRef = found._id;
+      }
+    }
+    setFormData({ ...formData, items: newItems });
+  };
+
+  const addItemRow = () => setFormData({ ...formData, items: [...formData.items, emptyItem()] });
+  const removeItemRow = (i) => {
+    if (formData.items.length > 1)
+      setFormData({ ...formData, items: formData.items.filter((_, idx) => idx !== i) });
+  };
+
+  // ── Submit ────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate Client
     if (!formData.clientRef || formData.clientRef === '_CREATE_NEW_') {
-        alert('Please select a valid client.');
-        return;
+      alert('Please select a valid client.');
+      return;
     }
-
     setLoading(true);
-    
-    // Map Top-level PO to transport object for backend compatibility
-    const submissionData = {
-        ...formData,
-        transport: {
-            ...formData.transport,
-            poNumber: formData.poNumber,
-            poDate: formData.poDate
-        }
+    const payload = {
+      ...formData,
+      transport: { ...formData.transport, poNumber: formData.poNumber, poDate: formData.poDate },
     };
-
     try {
       if (id) {
-          await api.put(`/invoices/${id}`, submissionData);
-          alert('Invoice updated successfully');
+        await api.put(`/invoices/${id}`, payload);
+        alert('Invoice updated successfully');
       } else {
-          await api.post('/invoices', submissionData);
-          alert('Invoice created successfully');
+        await api.post('/invoices', payload);
+        alert('Invoice created successfully');
       }
       navigate('/invoices');
-    } catch (error) {
-      console.error('Error saving invoice:', error.response?.data?.message || error.message);
+    } catch (err) {
+      console.error(err.response?.data?.message || err.message);
       alert('Failed to save invoice');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
+
+  // ── Shared input style ────────────────────────────────────────
+  const inp = 'w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white';
+  const lbl = 'block text-xs font-medium text-gray-500 mb-1';
+
+  const { cgst, sgst } = getTaxBreakdown();
 
   return (
     <div className="bg-white min-h-screen pb-20">
-      {/* Top Header */}
-      <div className="border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 bg-white z-10">
-        <h1 className="text-xl font-bold text-blue-900">{id ? 'Edit Invoice' : 'Add New Invoice'}</h1>
-        <div className="space-x-4">
-             <button
-              onClick={() => navigate('/')}
-              className="px-4 py-2 border border-blue-200 text-blue-600 rounded hover:bg-blue-50 text-sm font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
-            >
-              {loading ? 'Saving...' : 'Save Invoice'}
-            </button>
+
+      {/* ── Sticky Header ── */}
+      <div className="border-b border-gray-200 px-8 py-3 flex justify-between items-center sticky top-0 bg-white z-20 shadow-sm">
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-bold text-blue-900">{id ? 'Edit Invoice' : 'New Invoice'}</h1>
+          {/* Invoice Type Tabs */}
+          <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+            {INVOICE_TYPES.map(type => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setFormData({ ...formData, invoiceType: type })}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  invoiceType === type
+                    ? 'bg-white text-blue-700 shadow-sm border border-blue-100'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={() => navigate('/invoices')} className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-medium">
+            Cancel
+          </button>
+          <button onClick={handleSubmit} disabled={loading} className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold disabled:opacity-60">
+            {loading ? 'Saving...' : 'Save Invoice'}
+          </button>
         </div>
       </div>
 
       <div className="px-8 py-6 max-w-[1600px] mx-auto">
-        
-        {/* Main Grid: Client & Details */}
-        <div className="grid grid-cols-12 gap-8 mb-8">
-            
-            {/* Left: Client Selection */}
-            <div className="col-span-4 space-y-4">
-                <div className="flex bg-gray-50 p-1 rounded-md items-center">
-                    <label className="w-24 text-sm font-medium text-gray-700 pl-3">Client name</label>
-                    <div className="flex-1 relative">
-                        <select 
-                            className="w-full bg-white border border-gray-200 rounded py-2 px-3 text-sm focus:outline-none focus:border-blue-500"
-                            value={formData.clientRef}
-                            onChange={(e) => {
-                                if (e.target.value === '_CREATE_NEW_') {
-                                    setIsClientModalOpen(true);
-                                } else {
-                                    setFormData({...formData, clientRef: e.target.value});
-                                }
-                            }}
-                        >
-                            <option value="">Select Client</option>
-                            {clients.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                            <option value="_CREATE_NEW_" className="font-bold text-blue-600">+ Create New Client</option>
-                        </select>
-                         <button
-                            type="button"
-                            onClick={() => setIsClientModalOpen(true)}
-                            className="absolute right-8 top-2 text-blue-600 hover:text-blue-800"
-                            title="Add Client"
-                        >
-                            <Plus size={16} />
-                        </button>
-                    </div>
-                </div>
+
+        {/* ── Section 1: Client + Invoice Meta ── */}
+        <div className="grid grid-cols-12 gap-6 mb-6">
+
+          {/* Client */}
+          <div className="col-span-4 space-y-3">
+            <div>
+              <label className={lbl}>Client Name *</label>
+              <div className="relative">
+                <select
+                  className={inp}
+                  value={formData.clientRef}
+                  onChange={(e) => {
+                    if (e.target.value === '_CREATE_NEW_') setIsClientModalOpen(true);
+                    else setFormData({ ...formData, clientRef: e.target.value });
+                  }}
+                >
+                  <option value="">Select Client</option>
+                  {clients.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  <option value="_CREATE_NEW_" className="font-bold text-blue-600">+ Create New Client</option>
+                </select>
+              </div>
             </div>
 
-            {/* Right: Invoice Meta Data */}
-            <div className="col-span-8 grid grid-cols-3 gap-x-4 gap-y-4">
-                
-                {/* Row 1 */}
-                <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-gray-500">Invoice no</label>
-                    <div className="flex gap-1">
-                         <input 
-                            type="text" 
-                            disabled 
-                            value="INV" 
-                            className="w-12 bg-gray-100 border border-gray-200 rounded px-2 py-1.5 text-xs text-center" 
-                         />
-                         <input 
-                            type="text" 
-                            value={formData.invoiceNo.replace('INV-', '')} 
-                            disabled 
-                            className="flex-1 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm font-medium" 
-                         />
-                    </div>
-                </div>
+            {/* Place of Supply — only for Tax/Excise */}
+            {(invoiceType === 'Tax Invoice' || invoiceType === 'Excise Invoice') && (
+              <div>
+                <label className={lbl}>Place of Supply</label>
+                <input className={inp} placeholder="e.g. Delhi" value={formData.placeOfSupply}
+                  onChange={(e) => setFormData({ ...formData, placeOfSupply: e.target.value })} />
+              </div>
+            )}
 
-                <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-gray-500">Invoice date</label>
-                    <div className="relative">
-                        <input 
-                            type="date" 
-                            className="w-full border border-gray-200 rounded pl-8 pr-2 py-1.5 text-sm focus:border-blue-500 outline-none"
-                            value={formData.date}
-                            onChange={(e) => setFormData({...formData, date: e.target.value})}
-                        />
-                         <Calendar className="absolute left-2 top-2 text-gray-400" size={14} />
-                    </div>
-                </div>
+            {/* Reverse Charge — only for Tax/Excise */}
+            {(invoiceType === 'Tax Invoice' || invoiceType === 'Excise Invoice') && (
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="rc" checked={formData.reverseCharge}
+                  onChange={(e) => setFormData({ ...formData, reverseCharge: e.target.checked })}
+                  className="w-4 h-4 accent-blue-600" />
+                <label htmlFor="rc" className="text-sm text-gray-600 cursor-pointer">Reverse Charge Applicable</label>
+              </div>
+            )}
+          </div>
 
-                <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-gray-500">Due date</label>
-                     <div className="relative">
-                        <input 
-                            type="date" 
-                            className="w-full border border-gray-200 rounded pl-8 pr-2 py-1.5 text-sm focus:border-blue-500 outline-none"
-                            value={formData.dueDate}
-                            onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
-                        />
-                        <Calendar className="absolute left-2 top-2 text-gray-400" size={14} />
-                    </div>
-                </div>
-
-                {/* Row 2 */}
-                <div className="flex flex-col gap-1">
-                     <label className="text-xs font-medium text-gray-500">PO no</label>
-                     <input 
-                        type="text" 
-                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"
-                        value={formData.poNumber}
-                        onChange={(e) => setFormData({...formData, poNumber: e.target.value})}
-                     />
-                </div>
-
-                 <div className="flex flex-col gap-1">
-                     <label className="text-xs font-medium text-gray-500">Status</label>
-                     <select 
-                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white font-medium"
-                        value={formData.status}
-                        onChange={(e) => setFormData({...formData, status: e.target.value})}
-                     >
-                        <option value="DRAFT">Draft</option>
-                        <option value="SENT">Sent</option>
-                        <option value="PAID">Paid</option>
-                        <option value="PARTIAL">Partial</option>
-                        <option value="UNPAID">Unpaid</option>
-                     </select>
-                </div>
-
-                 <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-gray-500">PO date</label>
-                    <div className="relative">
-                        <input 
-                            type="date" 
-                            className="w-full border border-gray-200 rounded pl-8 pr-2 py-1.5 text-sm focus:border-blue-500 outline-none"
-                            value={formData.poDate}
-                            onChange={(e) => setFormData({...formData, poDate: e.target.value})}
-                        />
-                         <Calendar className="absolute left-2 top-2 text-gray-400" size={14} />
-                    </div>
-                </div>
-
-                 <div className="flex flex-col gap-1">
-                     <label className="text-xs font-medium text-gray-500">Payment Mode</label>
-                     <select 
-                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white"
-                        value={formData.paymentMode}
-                        onChange={(e) => setFormData({...formData, paymentMode: e.target.value})}
-                     >
-                        <option value="">Select</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Cheque">Cheque</option>
-                        <option value="Bank Transfer">Bank Transfer</option>
-                        <option value="UPI">UPI</option>
-                     </select>
-                </div>
-                
-                 {/* Row 3 */}
-                 <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-gray-500">Payment terms</label>
-                    <select 
-                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white"
-                        value={formData.paymentTerms}
-                        onChange={(e) => setFormData({...formData, paymentTerms: e.target.value})}
-                    >
-                        <option value="On Receipt">On Receipt</option>
-                        <option value="Net 15">Net 15</option>
-                        <option value="Net 30">Net 30</option>
-                        <option value="Net 45">Net 45</option>
-                        <option value="Net 60">Net 60</option>
-                    </select>
-                 </div>
+          {/* Invoice Meta */}
+          <div className="col-span-8 grid grid-cols-3 gap-x-4 gap-y-3">
+            <div>
+              <label className={lbl}>Invoice No.</label>
+              <input className={`${inp} bg-gray-50 text-gray-400`} value={formData.invoiceNo} disabled />
             </div>
+            <div>
+              <label className={lbl}>Invoice Date</label>
+              <div className="relative">
+                <input type="date" className={inp} value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
+                <Calendar className="absolute right-2 top-2 text-gray-400 pointer-events-none" size={14} />
+              </div>
+            </div>
+            <div>
+              <label className={lbl}>Due Date</label>
+              <div className="relative">
+                <input type="date" className={inp} value={formData.dueDate}
+                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} />
+                <Calendar className="absolute right-2 top-2 text-gray-400 pointer-events-none" size={14} />
+              </div>
+            </div>
+            <div>
+              <label className={lbl}>PO No.</label>
+              <input className={inp} value={formData.poNumber}
+                onChange={(e) => setFormData({ ...formData, poNumber: e.target.value })} />
+            </div>
+            <div>
+              <label className={lbl}>PO Date</label>
+              <div className="relative">
+                <input type="date" className={inp} value={formData.poDate}
+                  onChange={(e) => setFormData({ ...formData, poDate: e.target.value })} />
+                <Calendar className="absolute right-2 top-2 text-gray-400 pointer-events-none" size={14} />
+              </div>
+            </div>
+            <div>
+              <label className={lbl}>Status</label>
+              <select className={inp} value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+                <option value="DRAFT">Draft</option>
+                <option value="SENT">Sent</option>
+                <option value="PAID">Paid</option>
+                <option value="PARTIAL">Partial</option>
+                <option value="UNPAID">Unpaid</option>
+              </select>
+            </div>
+            <div>
+              <label className={lbl}>Payment Mode</label>
+              <select className={inp} value={formData.paymentMode}
+                onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}>
+                <option value="">Select</option>
+                <option>Cash</option>
+                <option>Cheque</option>
+                <option>Bank Transfer</option>
+                <option>UPI</option>
+              </select>
+            </div>
+            <div>
+              <label className={lbl}>Payment Terms</label>
+              <select className={inp} value={formData.paymentTerms}
+                onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })}>
+                <option>On Receipt</option>
+                <option>Net 15</option>
+                <option>Net 30</option>
+                <option>Net 45</option>
+                <option>Net 60</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <div className="my-6">
-            <h3 className="text-sm font-bold text-gray-800 mb-2">Invoice</h3>
-            
-            {/* Items Table Header */}
-            <div className="bg-[#E8EFF5] border border-gray-200 border-b-0 rounded-t-md grid grid-cols-12 gap-4 px-4 py-2 text-xs font-bold text-gray-600">
-                <div className="col-span-1">No</div>
-                <div className="col-span-3">Item Name</div>
-                <div className="col-span-2">Description</div>
-                <div className="col-span-1">Unit</div>
-                <div className="col-span-1">QTY</div>
-                <div className="col-span-1">Price</div>
-                <div className="col-span-2">Discount (%)</div>
-                <div className="col-span-1 text-right">Total</div>
+        {/* ── Excise Invoice: Manufacturer Details ── */}
+        {hasExcise && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <h3 className="text-sm font-bold text-amber-800 mb-3">Manufacturer / Excise Details</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className={lbl}>Manufacturer Name</label>
+                <input className={inp} value={formData.exciseDuty.manufacturerName}
+                  onChange={(e) => setFormData({ ...formData, exciseDuty: { ...formData.exciseDuty, manufacturerName: e.target.value } })} />
+              </div>
+              <div>
+                <label className={lbl}>Manufacturer Address</label>
+                <input className={inp} value={formData.exciseDuty.manufacturerAddress}
+                  onChange={(e) => setFormData({ ...formData, exciseDuty: { ...formData.exciseDuty, manufacturerAddress: e.target.value } })} />
+              </div>
+              <div>
+                <label className={lbl}>Range Code</label>
+                <input className={inp} value={formData.exciseDuty.rangeCode}
+                  onChange={(e) => setFormData({ ...formData, exciseDuty: { ...formData.exciseDuty, rangeCode: e.target.value } })} />
+              </div>
             </div>
+          </div>
+        )}
 
-            {/* Items Rows */}
-            <div className="border border-gray-200 rounded-b-md bg-white">
-                {formData.items.map((item, index) => (
-                    <div key={index} className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-gray-100 items-start hover:bg-gray-50">
-                        <div className="col-span-1 pt-2 text-gray-500 text-sm">{index + 1}</div>
-                        
-                        <div className="col-span-3">
-                            <input 
-                                list={`item-options-${index}`}
-                                placeholder="Select Item"
-                                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
-                                value={item.name}
-                                onChange={(e) => updateItem(index, 'name', e.target.value)}
-                            />
-                            <datalist id={`item-options-${index}`}>
-                                {items.map(i => <option key={i._id} value={i.name} />)}
-                            </datalist>
-                        </div>
+        {/* ── Items Table ── */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-bold text-gray-700">{invoiceType}</h3>
+          </div>
 
-                        <div className="col-span-2">
-                             <input 
-                                placeholder="Description"
-                                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none text-gray-500"
-                                value={item.description}
-                                onChange={(e) => updateItem(index, 'description', e.target.value)}
-                            />
-                        </div>
+          {/* Table Header */}
+          <div className={`bg-[#E8EFF5] border border-gray-200 border-b-0 rounded-t-lg px-3 py-2 text-xs font-bold text-gray-600 grid gap-2 items-center`}
+            style={{ gridTemplateColumns: buildGridCols(hasHSN, hasTax, hasExcise) }}>
+            <div>#</div>
+            <div>Item Name</div>
+            <div>Description</div>
+            {hasHSN && <div>HSN/SAC</div>}
+            <div>Unit</div>
+            <div className="text-right">Qty</div>
+            <div className="text-right">Price</div>
+            <div className="text-right">Disc%</div>
+            {hasTax && <div className="text-right">Tax%</div>}
+            {hasExcise && <><div className="text-right">BED%</div><div className="text-right">SED%</div><div className="text-right">Cess%</div></>}
+            <div className="text-right">Total</div>
+            <div></div>
+          </div>
 
-                        <div className="col-span-1">
-                              <select 
-                                className="w-full border border-gray-300 rounded px-2 py-2 text-sm focus:border-blue-500 outline-none bg-white"
-                                value={item.unit}
-                                onChange={(e) => updateItem(index, 'unit', e.target.value)}
-                              >
-                                  <option value="pcs">pcs</option>
-                                  <option value="box">box</option>
-                                  <option value="kg">kg</option>
-                                  <option value="ft">ft</option>
-                              </select>
-                        </div>
+          {/* Table Body */}
+          <div className="border border-gray-200 rounded-b-lg bg-white divide-y divide-gray-100">
+            {formData.items.map((item, index) => (
+              <div key={index} className="px-3 py-2.5 grid gap-2 items-start hover:bg-gray-50"
+                style={{ gridTemplateColumns: buildGridCols(hasHSN, hasTax, hasExcise) }}>
 
-                        <div className="col-span-1">
-                             <input 
-                                type="number"
-                                min="1"
-                                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none text-right"
-                                value={item.qty}
-                                onChange={(e) => updateItem(index, 'qty', e.target.value)}
-                            />
-                        </div>
+                <div className="text-gray-400 text-sm pt-2">{index + 1}</div>
 
-                         <div className="col-span-1">
-                             <input 
-                                type="number"
-                                min="0"
-                                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none text-right"
-                                value={item.rate}
-                                onChange={(e) => updateItem(index, 'rate', e.target.value)}
-                            />
-                        </div>
-
-                        <div className="col-span-2 flex gap-2">
-                             <input 
-                                type="number"
-                                placeholder="%"
-                                min="0"
-                                className="w-20 border border-gray-300 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none text-right"
-                                value={item.discount}
-                                onChange={(e) => updateItem(index, 'discount', e.target.value)}
-                            />
-                             {/* Hybrid Tax Input: Select for standard, Input for custom */}
-                             {[0, 5, 12, 18, 28].includes(Number(item.taxRate)) ? (
-                                 <select 
-                                    className="flex-1 border border-gray-300 rounded px-2 py-2 text-sm focus:border-blue-500 outline-none text-gray-500"
-                                    value={item.taxRate}
-                                    onChange={(e) => {
-                                        if (e.target.value === 'custom') {
-                                            updateItem(index, 'taxRate', ''); // Clear to trigger input mode
-                                        } else {
-                                            updateItem(index, 'taxRate', e.target.value);
-                                        }
-                                    }}
-                                 >
-                                     <option value="0">0% Tax</option>
-                                     <option value="5">5% GST</option>
-                                     <option value="12">12% GST</option>
-                                     <option value="18">18% GST</option>
-                                     <option value="28">28% GST</option>
-                                     <option value="custom">Custom Tax</option>
-                                 </select>
-                             ) : (
-                                 <input 
-                                    type="number"
-                                    min="0"
-                                    placeholder="Tax %"
-                                    autoFocus
-                                    className="w-full border border-blue-500 rounded px-2 py-2 text-sm focus:border-blue-500 outline-none text-gray-700 bg-blue-50"
-                                    value={item.taxRate}
-                                    onChange={(e) => updateItem(index, 'taxRate', e.target.value)}
-                                    title="Enter custom tax percentage"
-                                 />
-                             )}
-                        </div>
-
-                        <div className="col-span-1 text-right pt-2 font-medium text-gray-800">
-                             {calculateRowTotal(item).toFixed(2)}
-                             <button onClick={() => removeItemRow(index)} className="ml-2 text-red-400 hover:text-red-600 float-right mt-1">
-                                 <Trash2 size={14} />
-                             </button>
-                        </div>
-                    </div>
-                ))}
-
-                <div className="p-4 bg-white rounded-b-md">
-                     <button
-                        type="button"
-                        onClick={addItemRow}
-                        className="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded flex items-center gap-1 transition-colors"
-                    >
-                        <Plus size={16} /> Add line
-                    </button>
+                {/* Item Name */}
+                <div>
+                  <input list={`items-${index}`} placeholder="Select item"
+                    className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"
+                    value={item.name} onChange={(e) => updateItem(index, 'name', e.target.value)} />
+                  <datalist id={`items-${index}`}>
+                    {itemsList.map(i => <option key={i._id} value={i.name} />)}
+                  </datalist>
                 </div>
-            </div>
-            <div className="text-right text-xs text-gray-400 mt-1">1000 characters left</div>
-        </div>
 
-        {/* Bottom Section */}
-        <div className="grid grid-cols-12 gap-8">
-            
-            {/* Left Options - Specific Grid Layout from Screenshot */}
-            <div className="col-span-7 space-y-6">
-                 
-                 {/* Shipping */}
-                 <div className="grid grid-cols-12 gap-4 items-center">
-                     <div className="col-span-12 flex items-center mb-1">
-                        <input 
-                            type="checkbox" 
-                            id="check-shipping" 
-                            checked={showShipping}
-                            onChange={(e) => setShowShipping(e.target.checked)}
-                            className="w-5 h-5 text-emerald-500 rounded focus:ring-emerald-500 border-gray-300 cursor-pointer accent-emerald-500" 
-                        />
-                        <label htmlFor="check-shipping" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">Add shipping charges</label>
-                     </div>
-                     {showShipping && (
-                        <div className="col-span-12 flex items-center gap-4 pl-8">
-                             {/* Custom Searchable Dropdown for Transport Mode */}
-                             <div className="relative w-48">
-                                <div 
-                                    className="px-3 py-2 border border-blue-300 rounded text-sm bg-white cursor-pointer flex justify-between items-center text-gray-700 font-medium"
-                                    onClick={() => toggleTransportDropdown()}
-                                >
-                                    {formData.transport.mode || 'Road'}
-                                    <span className="text-xs text-blue-400">▲</span>
-                                </div>
-                                
-                                {showTransportDropdown && (
-                                    <div className="absolute z-10 mt-1 w-full bg-white border border-blue-300 rounded shadow-lg p-2">
-                                        <input 
-                                            type="text" 
-                                            placeholder="Type to search" 
-                                            className="w-full border border-blue-200 rounded px-2 py-1 text-xs mb-2 focus:outline-none focus:border-blue-400"
-                                            autoFocus
-                                            value={transportSearch}
-                                            onChange={(e) => setTransportSearch(e.target.value)}
-                                        />
-                                        <div className="max-h-32 overflow-y-auto space-y-1">
-                                            {['Road', 'Rail', 'Air', 'Ship/Road cum Ship']
-                                                .filter(opt => opt.toLowerCase().includes(transportSearch.toLowerCase()))
-                                                .map(opt => (
-                                                    <div 
-                                                        key={opt}
-                                                        className={`px-2 py-1 text-sm rounded cursor-pointer ${formData.transport.mode === opt ? 'bg-gray-500 text-white' : 'hover:bg-blue-50 text-gray-700'}`}
-                                                        onClick={() => {
-                                                            setFormData({...formData, transport: {...formData.transport, mode: opt}});
-                                                            setTransportDropdown(false);
-                                                            setTransportSearch('');
-                                                        }}
-                                                    >
-                                                        {opt}
-                                                    </div>
-                                                ))
-                                            }
-                                        </div>
-                                    </div>
-                                )}
-                             </div>
+                {/* Description */}
+                <div>
+                  <input placeholder="Description"
+                    className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none text-gray-500"
+                    value={item.description} onChange={(e) => updateItem(index, 'description', e.target.value)} />
+                </div>
 
-                             <input 
-                                type="number" 
-                                className="px-3 py-2 border border-gray-300 rounded w-48 text-sm focus:outline-none focus:border-emerald-500"
-                                placeholder="Shipping Amount"
-                                value={formData.shippingCharges}
-                                onChange={(e) => setFormData({...formData, shippingCharges: e.target.value})}
-                             />
-                        </div>
-                     )}
-                 </div>
-
-                 {/* Discount On Total */}
-                  <div className="grid grid-cols-12 gap-4 items-center">
-                     <div className="col-span-12 flex items-center mb-1">
-                        <input 
-                            type="checkbox" 
-                            id="check-discount"
-                            checked={showDiscountTotal}
-                            onChange={(e) => setShowDiscountTotal(e.target.checked)}
-                            className="w-5 h-5 text-emerald-500 rounded focus:ring-emerald-500 border-gray-300 cursor-pointer accent-emerald-500" 
-                        />
-                        <label htmlFor="check-discount" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">Add Discount On Total</label>
-                     </div>
-                     {showDiscountTotal && (
-                        <div className="col-span-12 pl-8">
-                            <input 
-                                type="number" 
-                                className="px-3 py-2 border border-blue-300 rounded w-48 text-sm focus:outline-none focus:border-emerald-500"
-                                placeholder="0"
-                                value={formData.discountTotal}
-                                onChange={(e) => setFormData({...formData, discountTotal: e.target.value})}
-                             />
-                             <p className="text-[10px] text-gray-400 mt-1">By enabling this feature gstr1 report does not match with invoices report</p>
-                        </div>
-                     )}
-                 </div>
-
-                 {/* Discount to All */}
-                  <div className="grid grid-cols-12 gap-4 items-center">
-                     <div className="col-span-12 flex items-center mb-1">
-                        <input 
-                            type="checkbox" 
-                            id="check-disc-all"
-                            checked={showDiscountToAll}
-                            onChange={(e) => setShowDiscountToAll(e.target.checked)}
-                            className="w-5 h-5 text-emerald-500 rounded focus:ring-emerald-500 border-gray-300 cursor-pointer accent-emerald-500" 
-                        />
-                        <label htmlFor="check-disc-all" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">Add discount to all</label>
-                     </div>
-                     {showDiscountToAll && (
-                         <div className="col-span-12 pl-8 flex items-center gap-2">
-                             <input 
-                                type="number" 
-                                className="px-3 py-2 border border-gray-300 rounded w-32 text-sm focus:outline-none focus:border-emerald-500"
-                                placeholder=""
-                                value={discountToAll}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setDiscountToAll(val);
-                                    // Apply to all items
-                                    const newItems = formData.items.map(item => ({...item, discount: val}));
-                                    setFormData({...formData, items: newItems});
-                                }}
-                             />
-                             <div className="relative">
-                                  <select className="px-3 py-2 border border-gray-300 rounded w-20 text-sm focus:outline-none focus:border-emerald-500 text-gray-600 bg-white appearance-none">
-                                     <option>%</option>
-                                 </select>
-                                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                                  </div>
-                             </div>
-                         </div>
-                     )}
-                 </div>
-
-                   {/* Custom Amount */}
-                  <div className="grid grid-cols-12 gap-4 items-center">
-                     <div className="col-span-12 flex items-center mb-1">
-                        <input 
-                            type="checkbox" 
-                            id="check-custom"
-                            checked={showCustomAmount}
-                            onChange={(e) => setShowCustomAmount(e.target.checked)}
-                            className="w-5 h-5 text-emerald-500 rounded focus:ring-emerald-500 border-gray-300 cursor-pointer accent-emerald-500" 
-                        />
-                        <label htmlFor="check-custom" className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">Add Custom Amount</label>
-                     </div>
-                      {showCustomAmount && (
-                         <div className="col-span-12 pl-8 flex items-center gap-4">
-                             <input 
-                                type="text"
-                                className="px-3 py-2 border border-gray-300 rounded w-48 text-sm focus:outline-none focus:border-emerald-500 text-gray-500 placeholder-gray-400"
-                                placeholder="Custom Amount Label"
-                                value={formData.customChargeLabel}
-                                onChange={(e) => setFormData({...formData, customChargeLabel: e.target.value})}
-                             />
-                             <input 
-                                type="number" 
-                                className="px-3 py-2 border border-gray-300 rounded w-48 text-sm focus:outline-none focus:border-emerald-500 placeholder-gray-400"
-                                placeholder="Custom Amount"
-                                value={formData.packagingCharges}
-                                onChange={(e) => setFormData({...formData, packagingCharges: e.target.value})}
-                             />
-                         </div>
-                     )}
-                 </div>
-
-                 {/* Advance and Transport removed for now to match screenshot focus, or kept separate? 
-                     Screenshot finishes at Custom Amount. I will keep Advance/Transport but maybe below or minimize them if user didn't ask to remove. 
-                     The user said "make it like this", implying the "Extra Charges" area. I'll keep others but styled consistently if needed.
-                 */}
-                  <div className="pt-4 border-t border-gray-100">
-                     <button 
-                        type="button" 
-                        onClick={() => setShowAdvance(!showAdvance)}
-                        className="text-blue-500 text-sm font-medium flex items-center gap-1 hover:text-blue-700"
-                     >
-                         <Plus size={14} /> Add advance payment
-                     </button>
-                      {showAdvance && (
-                         <div className="mt-2 flex items-center gap-2 pl-6">
-                              <label className="text-xs text-gray-500">Amount Paid:</label>
-                              <input 
-                                type="number" 
-                                className="w-32 border border-blue-200 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none bg-blue-50"
-                                value={formData.advancePaid}
-                                onChange={(e) => setFormData({...formData, advancePaid: e.target.value})}
-                             />
-                         </div>
-                     )}
+                {/* HSN */}
+                {hasHSN && (
+                  <div>
+                    <input placeholder="HSN"
+                      className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"
+                      value={item.hsnCode} onChange={(e) => updateItem(index, 'hsnCode', e.target.value)} />
                   </div>
+                )}
+
+                {/* Unit */}
+                <div>
+                  <select className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white"
+                    value={item.unit} onChange={(e) => updateItem(index, 'unit', e.target.value)}>
+                    {['pcs','box','kg','g','lt','ml','ft','m','sqft','sqm','nos','set','pair','dz','bag','roll','sheet','unit'].map(u =>
+                      <option key={u}>{u}</option>)}
+                  </select>
+                </div>
+
+                {/* Qty */}
+                <div>
+                  <input type="number" min="0" className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                    value={item.qty} onChange={(e) => updateItem(index, 'qty', e.target.value)} />
+                </div>
+
+                {/* Price */}
+                <div>
+                  <input type="number" min="0" className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                    value={item.rate} onChange={(e) => updateItem(index, 'rate', e.target.value)} />
+                </div>
+
+                {/* Discount */}
+                <div>
+                  <input type="number" min="0" max="100" placeholder="0"
+                    className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                    value={item.discount} onChange={(e) => updateItem(index, 'discount', e.target.value)} />
+                </div>
+
+                {/* Tax % — Tax Invoice / Excise Invoice */}
+                {hasTax && (
+                  <div>
+                    {!item.isCustom ? (
+                      <select className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white"
+                        value={item.taxRate}
+                        onChange={(e) => {
+                          if (e.target.value === 'custom') {
+                            const ni = [...formData.items];
+                            ni[index] = { ...ni[index], isCustom: true, taxRate: '' };
+                            setFormData({ ...formData, items: ni });
+                          } else updateItem(index, 'taxRate', e.target.value);
+                        }}>
+                        <option value="0">0%</option>
+                        <option value="5">5% GST</option>
+                        <option value="12">12% GST</option>
+                        <option value="18">18% GST</option>
+                        <option value="28">28% GST</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                    ) : (
+                      <div className="relative">
+                        <input type="number" min="0" autoFocus placeholder="Tax %"
+                          className="w-full border border-blue-400 rounded px-2 py-1.5 text-sm bg-blue-50 outline-none pr-6"
+                          value={item.taxRate} onChange={(e) => updateItem(index, 'taxRate', e.target.value)} />
+                        <button onClick={() => { const ni = [...formData.items]; ni[index] = { ...ni[index], isCustom: false, taxRate: 0 }; setFormData({ ...formData, items: ni }); }}
+                          className="absolute right-1 top-2 text-gray-400 hover:text-red-500">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Excise columns */}
+                {hasExcise && (
+                  <>
+                    <div>
+                      <input type="number" min="0" placeholder="0"
+                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                        value={item.bedPercent} onChange={(e) => updateItem(index, 'bedPercent', e.target.value)} />
+                    </div>
+                    <div>
+                      <input type="number" min="0" placeholder="0"
+                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                        value={item.sedPercent} onChange={(e) => updateItem(index, 'sedPercent', e.target.value)} />
+                    </div>
+                    <div>
+                      <input type="number" min="0" placeholder="0"
+                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                        value={item.cessPercent} onChange={(e) => updateItem(index, 'cessPercent', e.target.value)} />
+                    </div>
+                  </>
+                )}
+
+                {/* Row Total */}
+                <div className="text-right pt-2 font-semibold text-gray-800 text-sm">
+                  {calcRow(item).toFixed(2)}
+                </div>
+
+                {/* Delete */}
+                <div className="pt-2 text-center">
+                  <button onClick={() => removeItemRow(index)} className="text-red-300 hover:text-red-600 transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {/* Add Line */}
+            <div className="px-3 py-3">
+              <button type="button" onClick={addItemRow}
+                className="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1 transition-colors">
+                <Plus size={14} /> Add Line
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Bottom: Extras + Totals ── */}
+        <div className="grid grid-cols-12 gap-8">
+
+          {/* Left: Extra Charges */}
+          <div className="col-span-7 space-y-4">
+
+            {/* Shipping */}
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={showShipping} onChange={(e) => setShowShipping(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-500" />
+                <span className="text-sm font-medium text-gray-700">Add Shipping Charges</span>
+              </label>
+              {showShipping && (
+                <div className="mt-2 pl-6 flex gap-3">
+                  <div className="relative w-44">
+                    <div className="border border-gray-200 rounded px-3 py-1.5 text-sm bg-white cursor-pointer flex justify-between items-center"
+                      onClick={() => setTransportDropdown(!showTransportDropdown)}>
+                      {formData.transport.mode || 'Road'}
+                      <ChevronDown size={14} className="text-gray-400" />
+                    </div>
+                    {showTransportDropdown && (
+                      <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg p-2">
+                        <input type="text" placeholder="Search..." autoFocus
+                          className="w-full border border-gray-200 rounded px-2 py-1 text-xs mb-2 outline-none"
+                          value={transportSearch} onChange={(e) => setTransportSearch(e.target.value)} />
+                        {['Road','Rail','Air','Ship'].filter(o => o.toLowerCase().includes(transportSearch.toLowerCase())).map(o => (
+                          <div key={o} className={`px-2 py-1 text-sm rounded cursor-pointer ${formData.transport.mode === o ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`}
+                            onClick={() => { setFormData({ ...formData, transport: { ...formData.transport, mode: o } }); setTransportDropdown(false); }}>
+                            {o}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <input type="number" placeholder="Amount" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500"
+                    value={formData.shippingCharges} onChange={(e) => setFormData({ ...formData, shippingCharges: e.target.value })} />
+                </div>
+              )}
             </div>
 
-            {/* Right Totals - Matched to Screenshot */}
-            <div className="col-span-5 relative">
-                 <div className="bg-white p-4 space-y-2">
-                     <div className="flex justify-between text-sm font-bold text-gray-800">
-                         <span>Subtotal:</span>
-                         <span>₹ {getSubTotal().toFixed(2)}</span>
-                     </div>
-                     
-                     <div className="flex justify-between text-sm font-bold text-gray-800">
-                         <span>Shipping & Packaging charges:</span>
-                         <span>₹ {(Number(formData.shippingCharges) + Number(formData.packagingCharges)).toFixed(2)}</span>
-                     </div>
-                     
-                     <div className="flex justify-between text-sm font-bold text-gray-800">
-                         <span>Discount On Total</span>
-                         <div className="text-right">
-                             <span className="text-gray-500 mr-1">(-)</span>
-                             <span>₹ {Number(formData.discountTotal).toFixed(2)}</span>
-                         </div>
-                     </div>
-                     
-                     {/* Placeholder for Round off if needed, screenshot shows 0.00 above total */}
-                      <div className="flex justify-between text-sm font-bold text-gray-800">
-                         <span></span>
-                         <span>₹ 0.00</span>
-                     </div>
+            {/* Discount on Total */}
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={showDiscountTotal} onChange={(e) => setShowDiscountTotal(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-500" />
+                <span className="text-sm font-medium text-gray-700">Add Discount on Total</span>
+              </label>
+              {showDiscountTotal && (
+                <div className="mt-2 pl-6">
+                  <input type="number" placeholder="0" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500"
+                    value={formData.discountTotal} onChange={(e) => setFormData({ ...formData, discountTotal: e.target.value })} />
+                  <p className="text-[10px] text-gray-400 mt-1">Note: Enabling this may affect GSTR-1 report accuracy.</p>
+                </div>
+              )}
+            </div>
 
-                     <div className="border border-green-100 bg-green-50 rounded px-4 py-2 mt-4 flex justify-between items-center">
-                         <span className="text-green-600 font-bold text-lg">Total:</span>
-                         <span className="text-green-600 font-bold text-lg">₹ {getGrandTotal().toFixed(2)}</span>
-                     </div>
-                 </div>
-            </div>
-        </div>
-        
-        {/* Footer Text Areas */}
-        <div className="grid grid-cols-2 gap-8 mt-8 border-t border-gray-100 pt-6">
+            {/* Discount to All */}
             <div>
-                <label className="block text-xs font-bold text-gray-600 mb-2">Terms & Conditions</label>
-                <textarea 
-                    className="w-full border border-gray-200 rounded p-2 text-sm focus:border-blue-500 outline-none h-24 resize-none"
-                    placeholder="Enter terms and conditions..."
-                    value={formData.terms}
-                    onChange={(e) => setFormData({...formData, terms: e.target.value})}
-                ></textarea>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={showDiscountToAll} onChange={(e) => setShowDiscountToAll(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-500" />
+                <span className="text-sm font-medium text-gray-700">Apply Discount to All Items</span>
+              </label>
+              {showDiscountToAll && (
+                <div className="mt-2 pl-6 flex items-center gap-2">
+                  <input type="number" placeholder="%" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-28 outline-none focus:border-blue-500"
+                    value={discountToAll}
+                    onChange={(e) => {
+                      setDiscountToAll(e.target.value);
+                      setFormData({ ...formData, items: formData.items.map(i => ({ ...i, discount: e.target.value })) });
+                    }} />
+                  <span className="text-sm text-gray-500">%</span>
+                </div>
+              )}
             </div>
+
+            {/* Custom Amount */}
             <div>
-                 <label className="block text-xs font-bold text-gray-600 mb-2">Private notes (not shown to client)</label>
-                <textarea 
-                    className="w-full border border-gray-200 rounded p-2 text-sm focus:border-blue-500 outline-none h-24 resize-none"
-                    placeholder="Enter private notes..."
-                    value={formData.notes}
-                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                ></textarea>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={showCustomAmount} onChange={(e) => setShowCustomAmount(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-500" />
+                <span className="text-sm font-medium text-gray-700">Add Custom Amount</span>
+              </label>
+              {showCustomAmount && (
+                <div className="mt-2 pl-6 flex gap-3">
+                  <input type="text" placeholder="Label" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-44 outline-none focus:border-blue-500"
+                    value={formData.customChargeLabel} onChange={(e) => setFormData({ ...formData, customChargeLabel: e.target.value })} />
+                  <input type="number" placeholder="Amount" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500"
+                    value={formData.packagingCharges} onChange={(e) => setFormData({ ...formData, packagingCharges: e.target.value })} />
+                </div>
+              )}
             </div>
+
+            {/* Advance */}
+            <div>
+              <button type="button" onClick={() => setShowAdvance(!showAdvance)}
+                className="text-blue-500 text-sm font-medium flex items-center gap-1 hover:text-blue-700">
+                <Plus size={14} /> Add Advance Payment
+              </button>
+              {showAdvance && (
+                <div className="mt-2 pl-6 flex items-center gap-2">
+                  <label className="text-xs text-gray-500">Amount Paid:</label>
+                  <input type="number" className="border border-blue-200 rounded px-2 py-1.5 text-sm w-36 outline-none bg-blue-50 focus:border-blue-500"
+                    value={formData.advancePaid} onChange={(e) => setFormData({ ...formData, advancePaid: e.target.value })} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Totals */}
+          <div className="col-span-5">
+            <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 space-y-2">
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>Subtotal</span>
+                <span className="font-semibold">₹ {getSubTotal().toFixed(2)}</span>
+              </div>
+
+              {hasTax && (
+                <>
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>CGST</span>
+                    <span>₹ {cgst.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>SGST</span>
+                    <span>₹ {sgst.toFixed(2)}</span>
+                  </div>
+                </>
+              )}
+
+              {showShipping && Number(formData.shippingCharges) > 0 && (
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Shipping</span>
+                  <span>₹ {Number(formData.shippingCharges).toFixed(2)}</span>
+                </div>
+              )}
+              {showCustomAmount && Number(formData.packagingCharges) > 0 && (
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>{formData.customChargeLabel}</span>
+                  <span>₹ {Number(formData.packagingCharges).toFixed(2)}</span>
+                </div>
+              )}
+              {showDiscountTotal && Number(formData.discountTotal) > 0 && (
+                <div className="flex justify-between text-sm text-red-500">
+                  <span>Discount on Total</span>
+                  <span>- ₹ {Number(formData.discountTotal).toFixed(2)}</span>
+                </div>
+              )}
+
+              <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
+                <span className="text-base font-bold text-gray-800">Grand Total</span>
+                <span className="text-lg font-bold text-blue-700">₹ {getGrandTotal().toFixed(2)}</span>
+              </div>
+
+              {showAdvance && Number(formData.advancePaid) > 0 && (
+                <>
+                  <div className="flex justify-between text-sm text-emerald-600">
+                    <span>Advance Paid</span>
+                    <span>- ₹ {Number(formData.advancePaid).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold text-gray-800 border-t border-gray-200 pt-2">
+                    <span>Balance Due</span>
+                    <span>₹ {Math.max(0, getGrandTotal() - Number(formData.advancePaid)).toFixed(2)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
-        
+
+        {/* ── Notes & Terms ── */}
+        <div className="grid grid-cols-2 gap-6 mt-8 border-t border-gray-100 pt-6">
+          <div>
+            <label className="block text-xs font-bold text-gray-600 mb-2">Terms &amp; Conditions</label>
+            <textarea className="w-full border border-gray-200 rounded p-2 text-sm focus:border-blue-500 outline-none h-24 resize-none"
+              placeholder="Enter terms and conditions..."
+              value={formData.terms} onChange={(e) => setFormData({ ...formData, terms: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-600 mb-2">Private Notes (not shown to client)</label>
+            <textarea className="w-full border border-gray-200 rounded p-2 text-sm focus:border-blue-500 outline-none h-24 resize-none"
+              placeholder="Enter private notes..."
+              value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} />
+          </div>
+        </div>
       </div>
-      
-       <Modal
-        isOpen={isClientModalOpen}
-        onClose={() => setIsClientModalOpen(false)}
-        title="Create New Client"
-      >
-        <ClientForm 
+
+      {/* Client Modal */}
+      <Modal isOpen={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} title="Create New Client">
+        <ClientForm
           onSuccess={(newClient) => {
             setClients([newClient, ...clients]);
             setFormData({ ...formData, clientRef: newClient._id });
@@ -833,5 +772,27 @@ const InvoiceForm = () => {
     </div>
   );
 };
+
+// Helper: build CSS grid-template-columns string based on active columns
+function buildGridCols(hasHSN, hasTax, hasExcise) {
+  // #, Name, Desc, [HSN], Unit, Qty, Price, Disc, [Tax], [BED, SED, Cess], Total, Del
+  const cols = [
+    '28px',       // #
+    '1.5fr',      // Name
+    '1fr',        // Description
+    hasHSN ? '70px' : null,  // HSN
+    '70px',       // Unit
+    '60px',       // Qty
+    '80px',       // Price
+    '60px',       // Disc%
+    hasTax ? '90px' : null,  // Tax%
+    hasExcise ? '60px' : null, // BED%
+    hasExcise ? '60px' : null, // SED%
+    hasExcise ? '60px' : null, // Cess%
+    '80px',       // Total
+    '28px',       // Delete
+  ].filter(Boolean).join(' ');
+  return cols;
+}
 
 export default InvoiceForm;

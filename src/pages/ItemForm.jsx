@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
 import UnitSelector from '../components/UnitSelector';
 import TaxRateSelector from '../components/TaxRateSelector';
@@ -7,6 +7,7 @@ import { Save, ArrowLeft } from 'lucide-react';
 
 const ItemForm = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('Goods'); // 'Goods' (Product) or 'Service'
 
@@ -32,6 +33,27 @@ const ItemForm = () => {
       cessAmount: 0,
     }
   });
+
+  useEffect(() => {
+    if (id) {
+      fetchItem();
+    }
+  }, [id]);
+
+  const fetchItem = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get(`/items/${id}`);
+      const item = response.data;
+      setFormData(item);
+      setActiveTab(item.type || 'Goods');
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching item:', error);
+      alert('Failed to fetch item details');
+      navigate('/items');
+    }
+  };
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -60,7 +82,11 @@ const ItemForm = () => {
     try {
       // Map flat tax rate to sales/purchase if needed, or backend handles it.
       // For now sending as is.
-      await api.post('/items', formData);
+      if (id) {
+        await api.put(`/items/${id}`, formData);
+      } else {
+        await api.post('/items', formData);
+      }
       navigate('/items');
     } catch (error) {
       console.error('Error saving item:', error);
@@ -80,7 +106,7 @@ const ItemForm = () => {
           >
             <ArrowLeft size={24} />
           </button>
-          <h1 className="text-2xl font-bold text-gray-800">New Item</h1>
+          <h1 className="text-2xl font-bold text-gray-800">{id ? 'Edit Item' : 'New Item'}</h1>
         </div>
         
         {/* Tabs */}

@@ -1,273 +1,343 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Printer } from 'lucide-react';
+import { Printer, ArrowLeft } from 'lucide-react';
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function numberToWords(num) {
+  if (!num && num !== 0) return '';
+  const a = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten',
+    'Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const b = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  const inWords = (n) => {
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n/10)] + (n % 10 ? ' ' + a[n % 10] : '');
+    if (n < 1000) return a[Math.floor(n/100)] + ' Hundred' + (n % 100 ? ' ' + inWords(n % 100) : '');
+    if (n < 100000) return inWords(Math.floor(n/1000)) + ' Thousand' + (n % 1000 ? ' ' + inWords(n % 1000) : '');
+    if (n < 10000000) return inWords(Math.floor(n/100000)) + ' Lakh' + (n % 100000 ? ' ' + inWords(n % 100000) : '');
+    return inWords(Math.floor(n/10000000)) + ' Crore' + (n % 10000000 ? ' ' + inWords(n % 10000000) : '');
+  };
+  return (inWords(Math.floor(num)) + ' Only').trim();
+}
+
+const fmt = (v) => (Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+// ── Style constants ────────────────────────────────────────────────────────────
+const NAVY = '#1e3a5f';
+const BORDER = '#d1d5db';
+const AMBER = '#92400e';
+const AMBER_BG = '#fffbeb';
+
+const thStyle = (align = 'left') => ({
+  padding: '8px 10px', fontSize: '9px', fontWeight: 700,
+  letterSpacing: '0.07em', textTransform: 'uppercase',
+  color: '#fff', background: NAVY, textAlign: align,
+  borderRight: '1px solid rgba(255,255,255,0.15)',
+  whiteSpace: 'nowrap',
+});
+
+const tdStyle = (align = 'left') => ({
+  padding: '8px 10px', fontSize: '11px', color: '#374151',
+  borderBottom: `1px solid ${BORDER}`, textAlign: align,
+  verticalAlign: 'top',
+});
+
+// ── Main Component ─────────────────────────────────────────────────────────────
 const InvoicePrint = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [invoice, setInvoice] = useState(null);
   const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchInvoice = async () => {
+    const load = async () => {
       try {
-        const response = await api.get(`/invoices/${id}`);
-        setInvoice(response.data);
-      } catch (error) {
-        console.error('Error fetching invoice:', error);
-      }
+        const [invRes, settRes] = await Promise.allSettled([
+          api.get(`/invoices/${id}`),
+          api.get('/settings'),
+        ]);
+        if (invRes.status === 'fulfilled') setInvoice(invRes.value.data);
+        if (settRes.status === 'fulfilled') setSettings(settRes.value.data);
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
     };
-
-    const fetchSettings = async () => {
-        try {
-            const response = await api.get('/settings');
-            setSettings(response.data);
-        } catch (error) {
-            console.error('Error fetching settings:', error);
-        }
-    };
-
-    fetchInvoice();
-    fetchSettings();
+    load();
   }, [id]);
 
-  if (!invoice) return <div className="p-10">Loading invoice...</div>;
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading invoice…</div>;
+  if (!invoice) return <div style={{ padding: 40, textAlign: 'center', color: '#ef4444' }}>Invoice not found.</div>;
+
+  const invType = invoice.invoiceType || 'Tax Invoice';
+  const hasTax = invType === 'Tax Invoice' || invType === 'Excise Invoice';
+  const hasHSN = invType === 'Tax Invoice' || invType === 'Excise Invoice';
+  const hasExcise = invType === 'Excise Invoice';
+  const isIntraState = !invoice.totalIGST || invoice.totalIGST === 0;
+
+  const company = settings || {};
+  const client = invoice.client || {};
+  const items = invoice.items || [];
+  const exciseDuty = invoice.exciseDuty || {};
+
+  const grandTotal = Number(invoice.grandTotal) || 0;
+  const balanceDue = Number(invoice.balanceDue) || 0;
+  const advancePaid = Number(invoice.advancePaid) || 0;
 
   return (
-    <div className="bg-gray-100 min-h-screen p-8 print:p-0 print:bg-white">
-      <div className="max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none print:max-w-none print:mx-0">
-        
-        {/* Top Header Color Stripe */}
-        <div className="h-4 bg-blue-600 print:bg-blue-600"></div>
+    <div style={{ background: '#f3f4f6', minHeight: '100vh', padding: '20px 0' }}>
 
-        <div className="p-8">
-            {/* Header Section */}
-            <div className="flex justify-between items-start mb-8">
-            <div>
-                <h1 className="text-4xl font-extrabold text-blue-800 tracking-tight">INVOICE</h1>
-                <p className="text-gray-500 mt-1 font-medium">#{invoice.invoiceNo}</p>
-                {invoice.status && invoice.status !== 'DRAFT' && (
-                     <div className={`mt-4 inline-block px-4 py-1 border-2 rounded transform -rotate-6 font-bold text-lg uppercase opacity-80
-                        ${invoice.status === 'PAID' ? 'text-green-600 border-green-600' : 
-                          invoice.status === 'UNPAID' ? 'text-red-600 border-red-600' : 
-                          invoice.status === 'PARTIAL' ? 'text-orange-500 border-orange-500' : 
-                          'text-blue-600 border-blue-600'}`}
-                     >
-                        {invoice.status}
-                     </div>
-                )}
-                {invoice.transport?.poNumber && (
-                    <p className="text-sm text-gray-600 mt-2">
-                        <span className="font-semibold">PO No:</span> {invoice.transport.poNumber}
-                    </p>
-                )}
-            </div>
-            <div className="text-right">
-                {settings?.logoUrl && (
-                    <img src={settings.logoUrl} alt="Logo" className="h-16 mb-2 ml-auto object-contain" />
-                )}
-                <h2 className="font-bold text-xl text-gray-900">{settings?.companyName || 'MyBill Company'}</h2>
-                <p className="text-gray-600 text-sm whitespace-pre-line">{settings?.address?.line1}</p>
-                <p className="text-gray-600 text-sm">
-                    {settings?.address?.city} {settings?.address?.state && `, ${settings.address.state}`} {settings?.address?.zip}
-                </p>
-                {settings?.gstin && <p className="text-gray-600 text-sm font-semibold">GSTIN: {settings.gstin}</p>}
-                {settings?.email && <p className="text-gray-600 text-sm">{settings.email}</p>}
-                {settings?.phone && <p className="text-gray-600 text-sm">{settings.phone}</p>}
-            </div>
-            </div>
-
-            {/* Bill To / Ship To / Invoice Details */}
-            <div className="grid grid-cols-3 gap-8 mb-8 border-t border-b border-gray-100 py-6">
-                
-                {/* Bill To */}
-                <div>
-                    <h3 className="text-gray-500 font-bold mb-2 uppercase text-xs tracking-wider">Bill To</h3>
-                    <p className="font-bold text-gray-900">{invoice.client?.name}</p>
-                    <p className="text-gray-600 text-sm whitespace-pre-line">{invoice.client?.address?.line1}</p>
-                    <p className="text-gray-600 text-sm">
-                    {invoice.client?.address?.city}, {invoice.client?.address?.state} {invoice.client?.address?.zip}
-                    </p>
-                    {invoice.client?.gstin && (
-                        <p className="text-gray-800 text-sm mt-1 font-medium">GSTIN: {invoice.client.gstin}</p>
-                    )}
-                </div>
-
-                {/* Ship To (Show only if exists and different) */}
-                <div>
-                     {invoice.shippingAddress?.line1 && (
-                        <>
-                            <h3 className="text-gray-500 font-bold mb-2 uppercase text-xs tracking-wider">Ship To</h3>
-                            <p className="font-bold text-gray-900">{invoice.client?.name}</p>
-                            <p className="text-gray-600 text-sm whitespace-pre-line">{invoice.shippingAddress.line1}</p>
-                            <p className="text-gray-600 text-sm">
-                            {invoice.shippingAddress.city}, {invoice.shippingAddress.state} {invoice.shippingAddress.zip}
-                            </p>
-                        </>
-                    )}
-                </div>
-
-                {/* Details */}
-                <div className="text-right space-y-2">
-                    <div className="flex justify-between">
-                        <span className="text-gray-500 text-sm">Invoice Date:</span>
-                        <span className="font-medium text-gray-900">{new Date(invoice.date).toLocaleDateString()}</span>
-                    </div>
-                    {invoice.dueDate && (
-                    <div className="flex justify-between">
-                        <span className="text-gray-500 text-sm">Due Date:</span>
-                        <span className="font-medium text-gray-900">{new Date(invoice.dueDate).toLocaleDateString()}</span>
-                    </div>
-                    )}
-                    <div className="flex justify-between">
-                        <span className="text-gray-500 text-sm">Place of Supply:</span>
-                        <span className="font-medium text-gray-900">{invoice.placeOfSupply || 'N/A'}</span>
-                    </div>
-                     {invoice.transport?.vehicleNumber && (
-                        <div className="flex justify-between">
-                            <span className="text-gray-500 text-sm">Vehicle No:</span>
-                            <span className="font-medium text-gray-900">{invoice.transport.vehicleNumber}</span>
-                        </div>
-                    )}
-                     <div className="flex justify-between">
-                        <span className="text-gray-500 text-sm">Payment Mode:</span>
-                        <span className="font-medium text-gray-900">{invoice.paymentMode || '-'}</span>
-                    </div>
-                     {invoice.paymentTerms && (
-                        <div className="flex justify-between">
-                            <span className="text-gray-500 text-sm">Terms:</span>
-                            <span className="font-medium text-gray-900">{invoice.paymentTerms}</span>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Items Table */}
-            <table className="w-full mb-8 border-collapse">
-            <thead>
-                <tr className="bg-blue-600 text-white">
-                <th className="text-left p-3 text-xs font-semibold uppercase tracking-wider rounded-tl-lg">Item</th>
-                <th className="text-left p-3 text-xs font-semibold uppercase tracking-wider">HSN</th>
-                <th className="text-center p-3 text-xs font-semibold uppercase tracking-wider">Qty</th>
-                <th className="text-right p-3 text-xs font-semibold uppercase tracking-wider">Rate</th>
-                {/* Conditional Columns for GST could go here if we want detailed columns, but usually Amount is taxable value */}
-                <th className="text-right p-3 text-xs font-semibold uppercase tracking-wider">Tax amount</th> 
-                <th className="text-right p-3 text-xs font-semibold uppercase tracking-wider rounded-tr-lg">Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                {invoice.items.map((item, index) => (
-                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="p-3">
-                    <p className="font-medium text-gray-900 text-sm">{item.name}</p>
-                    {item.description && <p className="text-xs text-gray-500">{item.description}</p>}
-                    </td>
-                    <td className="p-3 text-sm text-gray-600">{item.hsnCode}</td>
-                    <td className="p-3 text-center text-sm">{item.qty} {item.unit}</td>
-                    <td className="p-3 text-right text-sm">₹{item.rate.toFixed(2)}</td>
-                    <td className="p-3 text-right text-sm">
-                        ₹{item.taxAmount.toFixed(2)}
-                        <div className="text-[10px] text-gray-400">({item.taxRate}%)</div>
-                    </td>
-                    <td className="p-3 text-right font-medium text-gray-900">₹{item.amount.toFixed(2)}</td>
-                </tr>
-                ))}
-            </tbody>
-            </table>
-
-            {/* Footer Section: Bank Details + Totals */}
-            <div className="flex flex-col md:flex-row justify-between gap-8">
-                
-                {/* Left Side: Bank Details & Terms */}
-                {/* Left Side: Bank Details Removed as per request */}
-                <div className="flex-1">
-                </div>
-
-                {/* Right Side: Totals */}
-                <div className="w-80">
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-gray-600 text-sm">
-                            <span>Subtotal (Taxable):</span>
-                            <span>₹{invoice.subTotal.toFixed(2)}</span>
-                        </div>
-                        
-                        {/* Tax Breakdown */}
-                        {invoice.totalIGST > 0 ? (
-                             <div className="flex justify-between text-gray-600 text-sm">
-                                <span>IGST:</span>
-                                <span>₹{invoice.totalIGST.toFixed(2)}</span>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="flex justify-between text-gray-600 text-sm">
-                                    <span>CGST:</span>
-                                    <span>₹{invoice.totalCGST.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between text-gray-600 text-sm">
-                                    <span>SGST:</span>
-                                    <span>₹{invoice.totalSGST.toFixed(2)}</span>
-                                </div>
-                            </>
-                        )}
-                        
-                        {invoice.shippingCharges > 0 && (
-                             <div className="flex justify-between text-gray-600 text-sm">
-                                <span>Shipping:</span>
-                                <span>₹{invoice.shippingCharges.toFixed(2)}</span>
-                            </div>
-                        )}
-                        
-                        {invoice.packagingCharges > 0 && (
-                             <div className="flex justify-between text-gray-600 text-sm">
-                                <span>{invoice.customChargeLabel || 'Extra Charges'}:</span>
-                                <span>₹{invoice.packagingCharges.toFixed(2)}</span>
-                            </div>
-                        )}
-
-                        {invoice.discountTotal > 0 && (
-                             <div className="flex justify-between text-red-500 text-sm">
-                                <span>Discount:</span>
-                                <span>- ₹{invoice.discountTotal.toFixed(2)}</span>
-                            </div>
-                        )}
-
-                        <div className="flex justify-between text-2xl font-bold bg-blue-600 text-white p-3 rounded-lg mt-3">
-                            <span>Total:</span>
-                            <span>₹{invoice.grandTotal.toFixed(2)}</span>
-                        </div>
-
-                         {invoice.advancePaid > 0 && (
-                             <>
-                                <div className="flex justify-between text-green-600 text-sm font-medium pt-2">
-                                    <span>Advance Paid:</span>
-                                    <span>- ₹{invoice.advancePaid.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between text-gray-800 text-md font-bold border-t border-gray-200 pt-1">
-                                    <span>Balance Due:</span>
-                                    <span>₹{invoice.balanceDue.toFixed(2)}</span>
-                                </div>
-                             </>
-                        )}
-                    </div>
-                     <div className="mt-8 text-right">
-                        <p className="text-sm font-bold text-gray-900">For {settings?.companyName || 'MyBill Company'}</p>
-                        <div className="h-16"></div> {/* Space for signature */}
-                        <p className="text-xs text-gray-500 uppercase">Authorized Signatory</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div className="mt-8 print:hidden text-center flex justify-center gap-4">
-                 <button 
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold shadow-lg flex items-center gap-2" 
-                  onClick={() => window.print()}
-                 >
-                    <div className="w-5 h-5"><Printer size={20}/></div>
-                    Print / Save as PDF
-                 </button>
-            </div>
+      {/* ── Screen-only toolbar ── */}
+      <div style={{ maxWidth: 900, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+        className="print:hidden">
+        <button onClick={() => navigate('/invoices')}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: `1px solid ${BORDER}`, borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, color: '#374151' }}>
+          <ArrowLeft size={15} /> Back
+        </button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: '#6b7280', background: '#fff', padding: '4px 12px', borderRadius: 20, border: `1px solid ${BORDER}` }}>
+            {invType}
+          </span>
+          <button onClick={() => window.print()}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', background: NAVY, color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+            <Printer size={15} /> Print / Download
+          </button>
         </div>
       </div>
+
+      {/* ── A4 Paper ── */}
+      <div id="invoice-print" style={{
+        maxWidth: 900, margin: '0 auto', background: '#fff',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.10)', fontFamily: "'Segoe UI', Arial, sans-serif",
+        padding: '36px 40px', color: '#1f2937',
+      }}>
+
+        {/* ── Top accent bar ── */}
+        <div style={{ height: 5, background: `linear-gradient(90deg, ${NAVY}, #2563eb)`, marginBottom: 28, borderRadius: 3 }} />
+
+        {/* ── Header: Company + Invoice Title ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+          <div>
+            {company.logo && (
+              <img src={company.logo} alt="logo" style={{ height: 52, marginBottom: 8, objectFit: 'contain' }} />
+            )}
+            <div style={{ fontSize: 20, fontWeight: 800, color: NAVY, letterSpacing: '-0.3px' }}>
+              {company.companyName || 'Your Company'}
+            </div>
+            {company.address && (
+              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
+                {typeof company.address === 'string'
+                  ? company.address
+                  : [company.address.line1, company.address.city, company.address.state, company.address.zip].filter(Boolean).join(', ')}
+              </div>
+            )}
+            {company.gstin && <div style={{ fontSize: 11, color: '#6b7280' }}>GSTIN: {company.gstin}</div>}
+            {company.phone && <div style={{ fontSize: 11, color: '#6b7280' }}>Ph: {company.phone}</div>}
+            {company.email && <div style={{ fontSize: 11, color: '#6b7280' }}>{company.email}</div>}
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 26, fontWeight: 800, color: NAVY, letterSpacing: '-0.5px', textTransform: 'uppercase' }}>
+              {invType}
+            </div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>
+              {invoice.reverseCharge && <span style={{ fontSize: 10, background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: 10, marginRight: 6 }}>Reverse Charge</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Meta Band ── */}
+        <div style={{ background: '#f8fafc', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 16px', marginBottom: 20, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px 16px' }}>
+          {[
+            ['Invoice No.', invoice.invoiceNo],
+            ['Invoice Date', fmtDate(invoice.date)],
+            ['Due Date', fmtDate(invoice.dueDate)],
+            ['Status', invoice.status || 'DRAFT'],
+            invoice.transport?.poNumber ? ['PO Number', invoice.transport.poNumber] : null,
+            invoice.transport?.poDate ? ['PO Date', fmtDate(invoice.transport.poDate)] : null,
+            hasTax && invoice.placeOfSupply ? ['Place of Supply', invoice.placeOfSupply] : null,
+            invoice.paymentMode ? ['Payment Mode', invoice.paymentMode] : null,
+          ].filter(Boolean).map(([label, val]) => (
+            <div key={label}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>{label}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#111827' }}>{val}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Excise: Manufacturer Details ── */}
+        {hasExcise && (exciseDuty.manufacturerName || exciseDuty.rangeCode) && (
+          <div style={{ background: AMBER_BG, border: `1px solid #fcd34d`, borderRadius: 8, padding: '10px 16px', marginBottom: 20 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: AMBER, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Manufacturer / Excise Details</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px 16px', fontSize: 11, color: '#374151' }}>
+              {exciseDuty.manufacturerName && <div><span style={{ color: '#9ca3af', fontSize: 9 }}>MANUFACTURER</span><br />{exciseDuty.manufacturerName}</div>}
+              {exciseDuty.manufacturerAddress && <div><span style={{ color: '#9ca3af', fontSize: 9 }}>ADDRESS</span><br />{exciseDuty.manufacturerAddress}</div>}
+              {exciseDuty.rangeCode && <div><span style={{ color: '#9ca3af', fontSize: 9 }}>RANGE CODE</span><br />{exciseDuty.rangeCode}</div>}
+            </div>
+          </div>
+        )}
+
+        {/* ── Bill To / Ship To ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+          <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 16px' }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Bill To</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 3 }}>{client.name}</div>
+            {client.address?.line1 && <div style={{ fontSize: 11, color: '#6b7280' }}>{client.address.line1}</div>}
+            {(client.address?.city || client.address?.state) && (
+              <div style={{ fontSize: 11, color: '#6b7280' }}>{[client.address.city, client.address.state, client.address.zip].filter(Boolean).join(', ')}</div>
+            )}
+            {client.gstin && <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>GSTIN: <strong>{client.gstin}</strong></div>}
+          </div>
+          <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 16px' }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ship To</div>
+            {invoice.shippingAddress?.line1 ? (
+              <>
+                <div style={{ fontSize: 11, color: '#374151' }}>{invoice.shippingAddress.line1}</div>
+                <div style={{ fontSize: 11, color: '#6b7280' }}>{[invoice.shippingAddress.city, invoice.shippingAddress.state, invoice.shippingAddress.zip].filter(Boolean).join(', ')}</div>
+              </>
+            ) : (
+              <div style={{ fontSize: 11, color: '#9ca3af', fontStyle: 'italic' }}>Same as billing address</div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Items Table ── */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 24, border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden' }}>
+          <thead>
+            <tr>
+              <th style={thStyle('center')}>#</th>
+              <th style={thStyle()}>Item / Description</th>
+              {hasHSN && <th style={thStyle('center')}>HSN/SAC</th>}
+              <th style={thStyle('center')}>Unit</th>
+              <th style={thStyle('right')}>Qty</th>
+              <th style={thStyle('right')}>Price</th>
+              <th style={thStyle('right')}>Disc%</th>
+              {hasTax && <th style={thStyle('right')}>Taxable</th>}
+              {hasTax && isIntraState && <th style={thStyle('right')}>CGST</th>}
+              {hasTax && isIntraState && <th style={thStyle('right')}>SGST</th>}
+              {hasTax && !isIntraState && <th style={thStyle('right')}>IGST</th>}
+              {hasExcise && <th style={thStyle('right')}>Excise</th>}
+              <th style={thStyle('right')}>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, i) => {
+              const qty = Number(item.qty) || 0;
+              const rate = Number(item.rate) || 0;
+              const discPct = Number(item.discount) || 0;
+              const taxable = qty * rate * (1 - discPct / 100);
+              return (
+                <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f9fafb' }}>
+                  <td style={tdStyle('center')}>{i + 1}</td>
+                  <td style={tdStyle()}>
+                    <div style={{ fontWeight: 600, color: '#111827' }}>{item.name}</div>
+                    {item.description && <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}>{item.description}</div>}
+                  </td>
+                  {hasHSN && <td style={tdStyle('center')}>{item.hsnCode || '—'}</td>}
+                  <td style={tdStyle('center')}>{item.unit || 'pcs'}</td>
+                  <td style={tdStyle('right')}>{qty}</td>
+                  <td style={tdStyle('right')}>₹{fmt(rate)}</td>
+                  <td style={tdStyle('right')}>{discPct > 0 ? `${discPct}%` : '—'}</td>
+                  {hasTax && <td style={tdStyle('right')}>₹{fmt(taxable)}</td>}
+                  {hasTax && isIntraState && <td style={tdStyle('right')}>₹{fmt(item.cgst)}<br /><span style={{ fontSize: 9, color: '#9ca3af' }}>{item.taxRate ? item.taxRate/2 : 0}%</span></td>}
+                  {hasTax && isIntraState && <td style={tdStyle('right')}>₹{fmt(item.sgst)}<br /><span style={{ fontSize: 9, color: '#9ca3af' }}>{item.taxRate ? item.taxRate/2 : 0}%</span></td>}
+                  {hasTax && !isIntraState && <td style={tdStyle('right')}>₹{fmt(item.igst)}<br /><span style={{ fontSize: 9, color: '#9ca3af' }}>{item.taxRate || 0}%</span></td>}
+                  {hasExcise && <td style={tdStyle('right')}>₹{fmt(item.exciseAmount)}<br /><span style={{ fontSize: 9, color: '#9ca3af' }}>BED {item.bedPercent}%</span></td>}
+                  <td style={{ ...tdStyle('right'), fontWeight: 600 }}>₹{fmt(item.amount)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* ── Footer: Amount in Words + Totals ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20, marginBottom: 24 }}>
+
+          {/* Amount in Words */}
+          <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '14px 16px' }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Amount in Words</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', fontStyle: 'italic' }}>
+              Rupees {numberToWords(Math.round(grandTotal))}
+            </div>
+            {invoice.terms && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Terms &amp; Conditions</div>
+                <div style={{ fontSize: 10, color: '#6b7280', whiteSpace: 'pre-wrap' }}>{invoice.terms}</div>
+              </div>
+            )}
+          </div>
+
+          {/* Totals */}
+          <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '14px 16px' }}>
+            {[
+              ['Subtotal', invoice.subTotal],
+              hasTax && isIntraState && invoice.totalCGST > 0 ? ['CGST', invoice.totalCGST] : null,
+              hasTax && isIntraState && invoice.totalSGST > 0 ? ['SGST', invoice.totalSGST] : null,
+              hasTax && !isIntraState && invoice.totalIGST > 0 ? ['IGST', invoice.totalIGST] : null,
+              hasExcise && exciseDuty.totalExcise > 0 ? ['Excise Duty', exciseDuty.totalExcise] : null,
+              invoice.shippingCharges > 0 ? ['Shipping', invoice.shippingCharges] : null,
+              invoice.packagingCharges > 0 ? [invoice.customChargeLabel || 'Custom', invoice.packagingCharges] : null,
+              invoice.discountTotal > 0 ? ['Discount', -invoice.discountTotal] : null,
+            ].filter(Boolean).map(([label, val]) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6b7280', marginBottom: 6 }}>
+                <span>{label}</span>
+                <span style={{ color: Number(val) < 0 ? '#ef4444' : '#374151' }}>
+                  {Number(val) < 0 ? '-' : ''}₹{fmt(Math.abs(Number(val)))}
+                </span>
+              </div>
+            ))}
+
+            <div style={{ borderTop: `2px solid ${NAVY}`, marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: NAVY }}>Grand Total</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: NAVY }}>₹{fmt(grandTotal)}</span>
+            </div>
+
+            {advancePaid > 0 && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#059669', marginTop: 6 }}>
+                  <span>Advance Paid</span><span>- ₹{fmt(advancePaid)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: '#dc2626', marginTop: 4 }}>
+                  <span>Balance Due</span><span>₹{fmt(balanceDue)}</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ── Bank Details + Signature ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+          {(company.bankName || company.accountNumber) && (
+            <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 16px' }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Bank Details</div>
+              {company.bankName && <div style={{ fontSize: 11, color: '#374151' }}>Bank: <strong>{company.bankName}</strong></div>}
+              {company.accountName && <div style={{ fontSize: 11, color: '#374151' }}>A/C Name: {company.accountName}</div>}
+              {company.accountNumber && <div style={{ fontSize: 11, color: '#374151' }}>A/C No.: {company.accountNumber}</div>}
+              {company.ifscCode && <div style={{ fontSize: 11, color: '#374151' }}>IFSC: {company.ifscCode}</div>}
+            </div>
+          )}
+          <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 16px', textAlign: 'right' }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>For {company.companyName || 'Company'}</div>
+            <div style={{ height: 44 }} />
+            <div style={{ borderTop: `1px dashed ${BORDER}`, paddingTop: 6, fontSize: 10, color: '#6b7280' }}>Authorised Signatory</div>
+          </div>
+        </div>
+
+        {/* ── Bottom accent ── */}
+        <div style={{ height: 4, background: `linear-gradient(90deg, ${NAVY}, #2563eb)`, borderRadius: 3 }} />
+        <div style={{ textAlign: 'center', fontSize: 9, color: '#9ca3af', marginTop: 8 }}>
+          This is a computer-generated {invType}. No signature required.
+        </div>
+      </div>
+
+      {/* ── Print CSS ── */}
+      <style>{`
+        @media print {
+          body { margin: 0; background: #fff; }
+          .print\\:hidden { display: none !important; }
+          #invoice-print { box-shadow: none !important; max-width: 100% !important; padding: 20px !important; }
+          @page { size: A4; margin: 10mm; }
+        }
+      `}</style>
     </div>
   );
 };

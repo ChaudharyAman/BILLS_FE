@@ -1,17 +1,32 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
-import { Save, ArrowLeft } from 'lucide-react';
+import { Save, ArrowLeft, Plus, Trash2, User } from 'lucide-react';
 
 const ClientForm = ({ onSuccess, onCancel }) => {
   const navigate = useNavigate();
+  const { id } = useParams();
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('address'); // address, other, notes, balance
+  const [showShipping, setShowShipping] = useState(false);
+
   const [formData, setFormData] = useState({
     name: '',
-    gstin: '',
-    email: '',
     phone: '',
-    address: {
+    email: '',
+    gstTreatment: 'Registered Business',
+    gstin: '',
+    pan: '',
+    tan: '',
+    tin: '',
+    vat: '',
+    website: '',
+    currency: 'INR',
+    isVendor: false,
+    clientWiseItemPrice: false,
+    
+    // Addresses
+    billingAddress: {
       line1: '',
       line2: '',
       city: '',
@@ -19,10 +34,74 @@ const ClientForm = ({ onSuccess, onCancel }) => {
       zip: '',
       country: 'India',
     },
+    shippingAddress: {
+      line1: '',
+      line2: '',
+      city: '',
+      state: '',
+      zip: '',
+      country: 'India',
+    },
+    placeOfSupply: '',
+
+    // Contacts Array
+    contacts: [],
+
+    // Other Info
+    facebook: '',
+    lst: '',
+    cst: '',
+    dlNo: '',
+
+    // Notes
+    notes: '',
+
+    // Opening Balance
+    openingBalance: 0,
+    pendingPayment: 0,
   });
 
+  // For adding a new contact person
+  const [newContact, setNewContact] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+  });
+
+  useEffect(() => {
+    if (id && !onSuccess) { 
+      fetchClient();
+    }
+  }, [id, onSuccess]);
+
+  const fetchClient = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get(`/clients/${id}`);
+      // Merge with default state to ensure structure exists
+      const data = response.data;
+      
+      // Handle legacy address structure if exists
+      if (data.address && !data.billingAddress) {
+        data.billingAddress = data.address;
+      }
+      
+      setFormData(prev => ({ ...prev, ...data }));
+      if (data.shippingAddress && (data.shippingAddress.line1 || data.shippingAddress.city)) {
+        setShowShipping(true);
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching client:', error);
+      alert('Failed to fetch client details');
+      navigate('/clients');
+    }
+  };
+
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
       setFormData((prev) => ({
@@ -30,15 +109,122 @@ const ClientForm = ({ onSuccess, onCancel }) => {
         [parent]: { ...prev[parent], [child]: value },
       }));
     } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ 
+        ...prev, 
+        [name]: type === 'checkbox' ? checked : value 
+      }));
     }
+  };
+
+  // Contacts Logic
+  const handleContactChange = (e) => {
+    const { name, value } = e.target;
+    setNewContact(prev => ({ ...prev, [name]: value }));
+  };
+
+  const addContact = () => {
+    if (!newContact.firstName) {
+        alert('Please enter at least a First Name to add a contact.');
+        return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      contacts: [...prev.contacts, newContact]
+    }));
+    setNewContact({ firstName: '', lastName: '', email: '', phone: '' });
+  };
+
+  const removeContact = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      contacts: prev.contacts.filter((_, i) => i !== index)
+    }));
+  };
+
+  // GST State Code Mapping
+  const gstStateMap = {
+    '01': 'Jammu & Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab', '04': 'Chandigarh', 
+    '05': 'Uttarakhand', '06': 'Haryana', '07': 'Delhi', '08': 'Rajasthan', '09': 'Uttar Pradesh',
+    '10': 'Bihar', '11': 'Sikkim', '12': 'Arunachal Pradesh', '13': 'Nagaland', '14': 'Manipur',
+    '15': 'Mizoram', '16': 'Tripura', '17': 'Meghalaya', '18': 'Assam', '19': 'West Bengal',
+    '20': 'Jharkhand', '21': 'Odisha', '22': 'Chhattisgarh', '23': 'Madhya Pradesh', '24': 'Gujarat',
+    '25': 'Daman & Diu', '26': 'Dadra & Nagar Haveli', '27': 'Maharashtra', '28': 'Andhra Pradesh',
+    '29': 'Karnataka', '30': 'Goa', '31': 'Lakshadweep', '32': 'Kerala', '33': 'Tamil Nadu',
+    '34': 'Puducherry', '35': 'Andaman & Nicobar Islands', '36': 'Telangana', '37': 'Andhra Pradesh',
+    '38': 'Ladakh', '97': 'Other Territory', '99': 'Centre Jurisdiction'
+  };
+
+  const fetchGstDetails = async () => {
+    if (!formData.gstin || formData.gstin.length !== 15) {
+      alert('Please enter a valid 15-character GSTIN');
+      return;
+    }
+
+    setLoading(true);
+
+    // Simulate API call delay
+    setTimeout(() => {
+      // 1. Extract PAN (chars 3-12)
+      const extractedPan = formData.gstin.substring(2, 12);
+      
+      // 2. Extract State Code (chars 0-2)
+      const stateCode = formData.gstin.substring(0, 2);
+      const stateName = gstStateMap[stateCode] || '';
+
+      // 3. Determine Place of Supply
+      const placeOfSupply = stateName || formData.placeOfSupply;
+
+      setFormData(prev => ({
+        ...prev,
+        pan: extractedPan,
+        billingAddress: {
+          ...prev.billingAddress,
+          state: stateName,
+          country: 'India',
+          // Auto-fill zip if possible? No, requires API.
+        },
+        shippingAddress: {
+             ...prev.shippingAddress,
+             state: stateName,
+             country: 'India'
+        },
+        placeOfSupply: placeOfSupply
+      }));
+
+      setLoading(false);
+      
+      if (stateName) {
+         alert(`GST Details Parsed:\n- PAN: ${extractedPan}\n- State: ${stateName}\n\nNote: Legal Name & Street Address cannot be fetched without an external API subscription.`);
+      } else {
+         alert(`GST Details Parsed:\n- PAN: ${extractedPan}\n- State Code '${stateCode}' not found.\n\nNote: Legal Name & Address extraction requires external API.`);
+      }
+
+    }, 800);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await api.post('/clients', formData);
+      const payload = { ...formData };
+      
+      // Auto-save unsaved contact if first name is present
+      if (newContact.firstName) {
+          payload.contacts = [...payload.contacts, newContact];
+      }
+
+      // Ensure place of supply is set if empty (legacy)
+      // Ensure place of supply is set if empty (legacy)
+      if (!payload.placeOfSupply && payload.billingAddress.state) {
+          payload.placeOfSupply = payload.billingAddress.state;
+      }
+
+      const apiCall = id 
+        ? api.put(`/clients/${id}`, payload)
+        : api.post('/clients', payload);
+
+      const response = await apiCall;
+
       if (onSuccess) {
         onSuccess(response.data);
       } else {
@@ -55,153 +241,307 @@ const ClientForm = ({ onSuccess, onCancel }) => {
   const isModal = !!onSuccess;
 
   return (
-    <div className={`container mx-auto ${isModal ? '' : 'p-6 max-w-4xl'}`}>
+    <div className={`container mx-auto ${isModal ? '' : 'p-6 max-w-7xl'}`}>
       {!isModal && (
-        <div className="mb-6 flex items-center gap-4">
-          <button 
-            onClick={() => navigate('/clients')}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <ArrowLeft size={24} />
-          </button>
-          <h1 className="text-2xl font-bold text-gray-800">Add New Client</h1>
+        <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+            <button 
+                onClick={() => navigate('/clients')}
+                className="text-slate-500 hover:text-slate-700 transition-colors"
+            >
+                <ArrowLeft size={24} />
+            </button>
+            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
+                {id ? 'Edit Client / Customer' : 'Add New Client / Customer'}
+            </h1>
+            </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className={`bg-white rounded-xl overflow-hidden px-8 py-8 ${isModal ? '' : 'shadow-lg border border-gray-100'}`}>
+      <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-6">
         
-        {/* Basic Info */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">Basic Details</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Company / Client Name *</label>
-              <input
-                type="text"
-                name="name"
-                required
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
-                value={formData.name}
-                onChange={handleChange}
-              />
+        {/* LEFT COLUMN - BASIC INFO */}
+        <div className="w-full lg:w-1/3 space-y-4">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Company Name *</label>
+                        <input type="text" name="name" required value={formData.name} onChange={handleChange}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Phone</label>
+                        <input type="text" name="phone" value={formData.phone} onChange={handleChange}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Email</label>
+                        <input type="email" name="email" value={formData.email} onChange={handleChange}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                    </div>
+                     <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">GST Treatment</label>
+                         <select name="gstTreatment" value={formData.gstTreatment} onChange={handleChange} 
+                             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all">
+                             <option value="Registered Business">Registered Business</option>
+                             <option value="Consumer">Consumer</option>
+                             <option value="Overseas">Overseas</option>
+                             <option value="SEZ">SEZ</option>
+                         </select>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                        <div className="col-span-2">
+                            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">GSTIN</label>
+                            <input type="text" name="gstin" value={formData.gstin} onChange={handleChange} placeholder="ex: 29ABC..."
+                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all uppercase" />
+                        </div>
+                        <div className="flex items-end">
+                            <button type="button" onClick={fetchGstDetails} disabled={loading} className="w-full py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg border border-slate-200 hover:bg-slate-200 transition-colors disabled:opacity-50">
+                                {loading ? 'Fetching...' : 'Fetch'}
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">PAN</label>
+                        <input type="text" name="pan" value={formData.pan} onChange={handleChange}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all uppercase" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">TAN</label>
+                        <input type="text" name="tan" value={formData.tan} onChange={handleChange}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all uppercase" />
+                    </div>
+                </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">GSTIN</label>
-              <input
-                type="text"
-                name="gstin"
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border uppercase"
-                placeholder="e.g. 29ABCDE1234F1Z5"
-                value={formData.gstin}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
         </div>
 
-        {/* Contact Info */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">Contact Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-              <input
-                type="email"
-                name="email"
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-              <input
-                type="tel"
-                name="phone"
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
-                value={formData.phone}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-        </div>
+        {/* RIGHT COLUMN - TABS & CONTENT */}
+        <div className="w-full lg:w-2/3 flex flex-col gap-6">
+            
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[500px] flex flex-col">
+                {/* Tabs Header */}
+                <div className="flex border-b border-slate-100 bg-slate-50/50">
+                    {['address', 'other', 'notes', 'balance'].map((tab) => (
+                        <button
+                            key={tab}
+                            type="button"
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-6 py-4 text-sm font-medium transition-colors relative ${
+                                activeTab === tab 
+                                ? 'text-teal-700 bg-white' 
+                                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                            }`}
+                        >
+                            {tab === 'address' && 'Address'}
+                            {tab === 'other' && 'Other Info'}
+                            {tab === 'notes' && 'Notes'}
+                            {tab === 'balance' && 'Opening Balance'}
+                            {activeTab === tab && (
+                                <div className="absolute top-0 left-0 w-full h-0.5 bg-teal-500" />
+                            )}
+                        </button>
+                    ))}
+                </div>
 
-        {/* Address */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">Billing Address</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
-              <input
-                type="text"
-                name="address.line1"
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
-                value={formData.address.line1}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 2 (Optional)</label>
-              <input
-                type="text"
-                name="address.line2"
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
-                value={formData.address.line2}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-              <input
-                type="text"
-                name="address.city"
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
-                value={formData.address.city}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-              <input
-                type="text"
-                name="address.state"
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
-                placeholder="Enter State"
-                value={formData.address.state}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ZIP / Pin Code</label>
-              <input
-                type="text"
-                name="address.zip"
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"
-                value={formData.address.zip}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-        </div>
+                {/* Tab Content */}
+                <div className="p-8 flex-1">
+                    
+                    {/* ADDRESS TAB */}
+                    {activeTab === 'address' && (
+                        <div className="space-y-8 animate-fadeIn">
+                             {/* Billing Address */}
+                             <div>
+                                <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wide">Billing Address</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <div className="md:col-span-2">
+                                        <label className="block text-xs text-slate-500 mb-1">Address Line 1</label>
+                                        <input type="text" name="billingAddress.line1" value={formData.billingAddress.line1} onChange={handleChange}
+                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                     </div>
+                                      <div className="md:col-span-2">
+                                        <label className="block text-xs text-slate-500 mb-1">Address Line 2</label>
+                                        <input type="text" name="billingAddress.line2" value={formData.billingAddress.line2} onChange={handleChange}
+                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                     </div>
+                                     <div>
+                                        <label className="block text-xs text-slate-500 mb-1">City</label>
+                                        <input type="text" name="billingAddress.city" value={formData.billingAddress.city} onChange={handleChange}
+                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                     </div>
+                                      <div>
+                                        <label className="block text-xs text-slate-500 mb-1">State</label>
+                                        <input type="text" name="billingAddress.state" value={formData.billingAddress.state} onChange={handleChange}
+                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                     </div>
+                                      <div>
+                                        <label className="block text-xs text-slate-500 mb-1">ZIP Code</label>
+                                        <input type="text" name="billingAddress.zip" value={formData.billingAddress.zip} onChange={handleChange}
+                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                     </div>
+                                       <div>
+                                        <label className="block text-xs text-slate-500 mb-1">Country</label>
+                                        <input type="text" name="billingAddress.country" value={formData.billingAddress.country} onChange={handleChange}
+                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                     </div>
+                                </div>
+                             </div>
 
-        <div className="flex justify-end gap-4 mt-8 pt-6 border-t">
-          <button
-            type="button"
-            onClick={onCancel ? onCancel : () => navigate('/clients')}
-            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 shadow-lg shadow-blue-200"
-          >
-            <Save size={18} />
-            {loading ? 'Saving...' : 'Save Client'}
-          </button>
-        </div>
+                             {/* Shipping Address Logic */}
+                             <div>
+                                {!showShipping ? (
+                                    <button type="button" onClick={() => setShowShipping(true)} className="flex items-center gap-2 text-teal-600 text-sm font-medium hover:text-teal-700">
+                                        <Plus size={16} /> Add Shipping Address
+                                    </button>
+                                ) : (
+                                    <div className="animate-fadeIn">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Shipping Address</h3>
+                                            <button type="button" onClick={() => setShowShipping(false)} className="text-xs text-red-500 hover:text-red-700">Remove</button>
+                                        </div>
+                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                             <div className="md:col-span-2">
+                                                <label className="block text-xs text-slate-500 mb-1">Address Line 1</label>
+                                                <input type="text" name="shippingAddress.line1" value={formData.shippingAddress.line1} onChange={handleChange}
+                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                             </div>
+                                              <div className="md:col-span-2">
+                                                <label className="block text-xs text-slate-500 mb-1">Address Line 2</label>
+                                                <input type="text" name="shippingAddress.line2" value={formData.shippingAddress.line2} onChange={handleChange}
+                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                             </div>
+                                             <div>
+                                                <label className="block text-xs text-slate-500 mb-1">City</label>
+                                                <input type="text" name="shippingAddress.city" value={formData.shippingAddress.city} onChange={handleChange}
+                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                             </div>
+                                              <div>
+                                                <label className="block text-xs text-slate-500 mb-1">State</label>
+                                                <input type="text" name="shippingAddress.state" value={formData.shippingAddress.state} onChange={handleChange}
+                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                             </div>
+                                              <div>
+                                                <label className="block text-xs text-slate-500 mb-1">ZIP Code</label>
+                                                <input type="text" name="shippingAddress.zip" value={formData.shippingAddress.zip} onChange={handleChange}
+                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                             </div>
+                                               <div>
+                                                <label className="block text-xs text-slate-500 mb-1">Country</label>
+                                                <input type="text" name="shippingAddress.country" value={formData.shippingAddress.country} onChange={handleChange}
+                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                             </div>
+                                        </div>
+                                    </div>
+                                )}
+                             </div>
+                        </div>
+                    )}
 
+                    {/* OTHER INFO TAB */}
+                    {activeTab === 'other' && (
+                        <div className="space-y-6 animate-fadeIn">
+                            <div className="grid grid-cols-1 gap-6">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Facebook</label>
+                                    <input type="text" name="facebook" value={formData.facebook} onChange={handleChange} 
+                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">LST</label>
+                                    <input type="text" name="lst" value={formData.lst} onChange={handleChange} 
+                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">CST</label>
+                                    <input type="text" name="cst" value={formData.cst} onChange={handleChange} 
+                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                </div>
+                                 <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">D.L No.</label>
+                                    <input type="text" name="dlNo" value={formData.dlNo} onChange={handleChange} 
+                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* NOTES TAB */}
+                    {activeTab === 'notes' && (
+                        <div className="animate-fadeIn h-full">
+                            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Notes</label>
+                            <textarea name="notes" value={formData.notes} onChange={handleChange}
+                                className="w-full h-48 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all resize-none"
+                            ></textarea>
+                        </div>
+                    )}
+
+                    {/* BALANCE TAB */}
+                    {activeTab === 'balance' && (
+                         <div className="space-y-6 animate-fadeIn">
+                             <div>
+                                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Opening Balance</label>
+                                <input type="number" name="openingBalance" value={formData.openingBalance} onChange={handleChange}
+                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                             </div>
+                             <div>
+                                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Pending Payment</label>
+                                <input type="number" name="pendingPayment" value={formData.pendingPayment} readOnly
+                                    className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-500 cursor-not-allowed" />
+                             </div>
+                         </div>
+                    )}
+                </div>
+            </div>
+
+            {/* CONTACT PERSONS SECTION */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wide flex items-center gap-2">
+                    <User size={16} /> Contact Persons
+                </h3>
+                
+                <div className="space-y-4">
+                    {/* List Existing Contacts */}
+                    {formData.contacts.map((contact, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                             <div className="text-sm">
+                                 <span className="font-semibold text-slate-700">{contact.firstName} {contact.lastName}</span>
+                                 <div className="text-xs text-slate-500">{contact.email} • {contact.phone}</div>
+                             </div>
+                             <button type="button" onClick={() => removeContact(index)} className="text-slate-400 hover:text-red-500">
+                                 <Trash2 size={16} />
+                             </button>
+                        </div>
+                    ))}
+
+                    {/* Add New Contact Form */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                        <input type="text" name="firstName" placeholder="First Name" value={newContact.firstName} onChange={handleContactChange}
+                             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                        <input type="text" name="lastName" placeholder="Last Name" value={newContact.lastName} onChange={handleContactChange}
+                             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                        <input type="text" name="phone" placeholder="Phone" value={newContact.phone} onChange={handleContactChange}
+                             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                        <input type="email" name="email" placeholder="Email" value={newContact.email} onChange={handleContactChange}
+                             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                    </div>
+                    <button type="button" onClick={addContact} className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-4">
+                        <Plus size={16} /> Add New Contact
+                    </button>
+                </div>
+            </div>
+
+            {/* ACTION BUTTONS */}
+            <div className="flex justify-end gap-3 pt-4 pb-8">
+                 <button type="button" onClick={onCancel ? onCancel : () => navigate('/clients')}
+                    className="px-6 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors shadow-sm">
+                     Cancel
+                 </button>
+                 <button type="submit" disabled={loading}
+                    className="px-6 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors shadow-md hover:shadow-lg flex items-center gap-2">
+                     <Save size={18} />
+                     {loading ? 'Saving...' : 'Save Client'}
+                 </button>
+            </div>
+        </div>
       </form>
     </div>
   );

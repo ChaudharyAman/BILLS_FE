@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Plus, Search, MapPin, Phone, Mail } from 'lucide-react';
+import { Plus, Search, ChevronDown, ArrowUpDown } from 'lucide-react';
 
 const ClientList = () => {
+  const navigate = useNavigate();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedClients, setSelectedClients] = useState([]);
 
   useEffect(() => {
     fetchClients();
@@ -25,88 +27,187 @@ const ClientList = () => {
 
   const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.gstin?.toLowerCase().includes(searchTerm.toLowerCase())
+    client.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const toggleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedClients(filteredClients.map(c => c._id));
+    } else {
+      setSelectedClients([]);
+    }
+  };
+
+  const toggleSelectClient = (id) => {
+    if (selectedClients.includes(id)) {
+      setSelectedClients(selectedClients.filter(c => c !== id));
+    } else {
+      setSelectedClients([...selectedClients, id]);
+    }
+  };
+
+  // Helper to get display name for contact
+  const getContactName = (client) => {
+    if (client.contacts && client.contacts.length > 0) {
+      return `${client.contacts[0].firstName || ''} ${client.contacts[0].lastName || ''}`.trim();
+    }
+    // Fallback if needed
+    return '-';
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2
+    }).format(amount || 0);
+  };
+
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Clients</h1>
-        <Link
-          to="/clients/new"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-        >
-          <Plus size={20} />
-          Add Client
-        </Link>
-      </div>
-
-      {/* Search Bar */}
-      <div className="mb-6 relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-gray-400" />
-        </div>
-        <input
-          type="text"
-          placeholder="Search by name or GSTIN..."
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
-      {loading ? (
-        <div className="text-center py-10">Loading clients...</div>
-      ) : filteredClients.length === 0 ? (
-        <div className="text-center py-10 text-gray-500">
-          No clients found. Add one to get started!
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClients.map((client) => (
-            <div key={client._id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-100">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-semibold text-gray-800">{client.name}</h3>
-                {client.gstin && (
-                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded font-mono">
-                    {client.gstin}
-                  </span> 
-                )}
-              </div>
-              
-              <div className="space-y-2 text-sm text-gray-600">
-                {client.address && (client.address.city || client.address.state) && (
-                  <div className="flex items-start gap-2">
-                    <MapPin size={16} className="mt-0.5" />
-                    <span>
-                      {client.address.line1 && <>{client.address.line1}, <br/></>}
-                      {client.address.city}, {client.address.state} {client.address.zip}
-                    </span>
-                  </div>
-                )}
-                
-                {client.email && (
-                  <div className="flex items-center gap-2">
-                    <Mail size={16} />
-                    <a href={`mailto:${client.email}`} className="hover:text-blue-600">
-                      {client.email}
-                    </a>
-                  </div>
-                )}
-
-                {client.phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone size={16} />
-                    <a href={`tel:${client.phone}`} className="hover:text-blue-600">
-                      {client.phone}
-                    </a>
-                  </div>
-                )}
-              </div>
+    <div className="container mx-auto p-6 max-w-[1600px]"> {/* Detailed table needs more width */}
+      
+      {/* Header Bar */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+        
+        {/* Left Side: Filter & Search */}
+        <div className="flex items-center gap-3 w-full md:w-auto">
+             {/* Filter Dropdown Mock */}
+            <div className="relative">
+                <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-100 font-medium whitespace-nowrap">
+                   Filter Clients / Customers 
+                   <ChevronDown size={14} className="text-slate-400" />
+                </button>
             </div>
-          ))}
+
+            {/* Search Input */}
+            <div className="relative w-full md:w-80">
+                <input
+                    type="text"
+                    placeholder="Search"
+                    className="w-full pl-4 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <Search className="absolute right-3 top-2.5 text-slate-400 h-4 w-4" />
+            </div>
         </div>
-      )}
+
+        {/* Right Side: Actions */}
+        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+             <Link
+              to="/clients/new"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-semibold shadow-sm"
+            >
+              <Plus size={18} />
+              New
+            </Link>
+             <button className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors border border-slate-200">
+                Export
+            </button>
+             <button className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors border border-slate-200">
+                Import
+            </button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        {loading ? (
+             <div className="text-center py-12 text-slate-500">Loading...</div>
+        ) : (
+             <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-[#f8f9fa] border-b border-gray-200">
+                        <tr>
+                            <th className="px-4 py-3 w-10">
+                                <input 
+                                    type="checkbox" 
+                                    className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                    onChange={toggleSelectAll}
+                                    checked={filteredClients.length > 0 && selectedClients.length === filteredClients.length}
+                                />
+                            </th>
+                            <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide cursor-pointer group select-none">
+                                <div className="flex items-center gap-1">
+                                    Company name 
+                                    <ArrowUpDown size={12} className="text-slate-400 opacity-0 group-hover:opacity-100" />
+                                </div>
+                            </th>
+                            <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">
+                                Contact name
+                            </th>
+                            <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">
+                                Balance
+                            </th>
+                             <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">
+                                City
+                            </th>
+                             <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide cursor-pointer group select-none">
+                                 <div className="flex items-center gap-1">
+                                    Email
+                                    <ArrowUpDown size={12} className="text-slate-400 opacity-0 group-hover:opacity-100" />
+                                </div>
+                            </th>
+                             <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">
+                                Phone
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {filteredClients.map((client) => (
+                            <tr key={client._id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-4 py-4">
+                                    <input 
+                                        type="checkbox" 
+                                        className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                        checked={selectedClients.includes(client._id)}
+                                        onChange={() => toggleSelectClient(client._id)}
+                                    />
+                                </td>
+                                <td className="px-4 py-4">
+                                    <Link to={`/clients/edit/${client._id}`} className="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                        {client.name}
+                                    </Link>
+                                </td>
+                                <td className="px-4 py-4 text-sm text-slate-500">
+                                    {getContactName(client)}
+                                </td>
+                                <td className="px-4 py-4 text-sm text-slate-600">
+                                     {formatCurrency(client.openingBalance)}
+                                </td>
+                                <td className="px-4 py-4 text-sm text-slate-600">
+                                     {client.billingAddress?.city || client.address?.city || '-'}
+                                </td>
+                                <td className="px-4 py-4 text-sm text-blue-500 hover:underline">
+                                     {client.email ? <a href={`mailto:${client.email}`}>{client.email}</a> : '-'}
+                                </td>
+                                 <td className="px-4 py-4 text-sm text-slate-600">
+                                     {client.phone || '-'}
+                                </td>
+                            </tr>
+                        ))}
+                         {filteredClients.length === 0 && (
+                            <tr>
+                                <td colSpan="7" className="text-center py-8 text-slate-500 text-sm">
+                                    No clients found matching your search.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+             </div>
+        )}
+        
+        {/* Pagination Footer */}
+        <div className="flex justify-end p-4 border-t border-slate-200 bg-white">
+            <div className="relative">
+                 <button className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded text-sm text-slate-600 hover:bg-slate-50">
+                    10 per page
+                    <ChevronDown size={14} />
+                 </button>
+            </div>
+        </div>
+      </div>
     </div>
   );
 };

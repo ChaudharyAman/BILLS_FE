@@ -37,9 +37,11 @@ function App() {
                 
                 <Route path="/clients" element={<ClientList />} />
                 <Route path="/clients/new" element={<ClientForm />} />
+                <Route path="/clients/edit/:id" element={<ClientForm />} />
                 
                 <Route path="/items" element={<ItemList />} />
                 <Route path="/items/new" element={<ItemForm />} />
+                <Route path="/items/edit/:id" element={<ItemForm />} />
                 
                 <Route path="/settings" element={<Settings />} />
               </Routes>

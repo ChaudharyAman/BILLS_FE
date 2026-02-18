@@ -1,9 +1,26 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Plus, Download, CheckSquare, Square, Edit, Trash2 } from 'lucide-react';
+import { Plus, Download, CheckSquare, Square, Edit, Trash2, Eye, ChevronDown } from 'lucide-react';
+
+const INVOICE_TYPES = [
+  { label: 'Invoice',         desc: 'Simple invoice without GST' },
+  { label: 'Retail Invoice',  desc: 'For retail / B2C sales' },
+  { label: 'Tax Invoice',     desc: 'GST invoice with CGST/SGST/IGST' },
+  { label: 'Excise Invoice',  desc: 'Tax invoice with excise duty' },
+];
 
 const InvoiceList = () => {
+  const navigate = useNavigate();
+  const [typeMenuOpen, setTypeMenuOpen] = useState(false);
+  const typeMenuRef = useRef(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => { if (typeMenuRef.current && !typeMenuRef.current.contains(e.target)) setTypeMenuOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -97,13 +114,43 @@ const InvoiceList = () => {
                   <Download size={16} /> Export Selected
               </button>
            )}
-          <Link
-            to="/invoices/new"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm"
-          >
-            <Plus size={16} />
-            Create Invoice
-          </Link>
+
+          {/* Create Invoice split button with type dropdown */}
+          <div className="relative" ref={typeMenuRef}>
+            <div className="flex">
+              <button
+                onClick={() => navigate('/invoices/new?type=Tax+Invoice')}
+                className="bg-blue-600 hover:bg-blue-700 text-white pl-4 pr-3 py-2 rounded-l-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm border-r border-blue-500"
+              >
+                <Plus size={16} /> Create Invoice
+              </button>
+              <button
+                onClick={() => setTypeMenuOpen(o => !o)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-2 rounded-r-lg shadow-sm transition-all"
+                title="Choose invoice type"
+              >
+                <ChevronDown size={16} />
+              </button>
+            </div>
+
+            {typeMenuOpen && (
+              <div className="absolute right-0 mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                <div className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                  Choose Invoice Type
+                </div>
+                {INVOICE_TYPES.map(({ label, desc }) => (
+                  <button
+                    key={label}
+                    onClick={() => { navigate(`/invoices/new?type=${encodeURIComponent(label)}`); setTypeMenuOpen(false); }}
+                    className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors group"
+                  >
+                    <div className="text-sm font-semibold text-gray-800 group-hover:text-blue-700">{label}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{desc}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       
@@ -139,6 +186,7 @@ const InvoiceList = () => {
                   </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Invoice</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
@@ -166,6 +214,12 @@ const InvoiceList = () => {
                         <Link to={`/invoices/${inv._id}/print`} className="text-blue-600 font-medium hover:text-blue-800 hover:underline">
                             {inv.invoiceNo}
                         </Link>
+                    </td>
+                    {/* Type */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                            {inv.invoiceType || 'Tax Invoice'}
+                        </span>
                     </td>
                     
                     {/* Client */}
@@ -200,6 +254,9 @@ const InvoiceList = () => {
                     {/* Actions */}
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                         <div className="flex justify-center gap-3">
+                            <Link to={`/invoices/${inv._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View">
+                                <Eye size={18} />
+                            </Link>
                             <Link to={`/invoices/edit/${inv._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit">
                                 <Edit size={18} />
                             </Link>
