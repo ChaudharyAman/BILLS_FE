@@ -3,11 +3,23 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { Plus, Download, CheckSquare, Square, Edit, Trash2, Eye, ChevronDown } from 'lucide-react';
 
-const INVOICE_TYPES = [
-  { label: 'Invoice',         desc: 'Simple invoice without GST' },
-  { label: 'Retail Invoice',  desc: 'For retail / B2C sales' },
-  { label: 'Tax Invoice',     desc: 'GST invoice with CGST/SGST/IGST' },
-  { label: 'Excise Invoice',  desc: 'Tax invoice with excise duty' },
+const DOC_TYPES = [
+  {
+    section: 'Invoices',
+    items: [
+      { label: 'Tax Invoice',     desc: 'GST invoice with CGST/SGST/IGST',  path: '/invoices/new?type=Tax+Invoice' },
+      { label: 'Invoice',         desc: 'Simple invoice without GST',         path: '/invoices/new?type=Invoice' },
+      { label: 'Retail Invoice',  desc: 'For retail / B2C sales',             path: '/invoices/new?type=Retail+Invoice' },
+      { label: 'Excise Invoice',  desc: 'Tax invoice with excise duty',        path: '/invoices/new?type=Excise+Invoice' },
+    ],
+  },
+  {
+    section: 'Estimates',
+    items: [
+      { label: 'Quotation',         desc: 'Send a price quote to your client', path: '/quotes/new' },
+      { label: 'Proforma Invoice',  desc: 'Advance invoice before final bill',  path: '/proformas/new' },
+    ],
+  },
 ];
 
 const InvoiceList = () => {
@@ -115,38 +127,42 @@ const InvoiceList = () => {
               </button>
            )}
 
-          {/* Create Invoice split button with type dropdown */}
+          {/* Unified New Document button */}
           <div className="relative" ref={typeMenuRef}>
             <div className="flex">
               <button
                 onClick={() => navigate('/invoices/new?type=Tax+Invoice')}
                 className="bg-blue-600 hover:bg-blue-700 text-white pl-4 pr-3 py-2 rounded-l-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm border-r border-blue-500"
               >
-                <Plus size={16} /> Create Invoice
+                <Plus size={16} /> New Document
               </button>
               <button
                 onClick={() => setTypeMenuOpen(o => !o)}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-2 rounded-r-lg shadow-sm transition-all"
-                title="Choose invoice type"
+                title="Choose document type"
               >
                 <ChevronDown size={16} />
               </button>
             </div>
 
             {typeMenuOpen && (
-              <div className="absolute right-0 mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
-                <div className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                  Choose Invoice Type
-                </div>
-                {INVOICE_TYPES.map(({ label, desc }) => (
-                  <button
-                    key={label}
-                    onClick={() => { navigate(`/invoices/new?type=${encodeURIComponent(label)}`); setTypeMenuOpen(false); }}
-                    className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors group"
-                  >
-                    <div className="text-sm font-semibold text-gray-800 group-hover:text-blue-700">{label}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">{desc}</div>
-                  </button>
+              <div className="absolute right-0 mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                {DOC_TYPES.map(({ section, items }) => (
+                  <div key={section}>
+                    <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-gray-100">
+                      {section}
+                    </div>
+                    {items.map(({ label, desc, path }) => (
+                      <button
+                        key={label}
+                        onClick={() => { navigate(path); setTypeMenuOpen(false); }}
+                        className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors group border-b border-gray-50 last:border-0"
+                      >
+                        <div className="text-sm font-semibold text-gray-800 group-hover:text-blue-700">{label}</div>
+                        <div className="text-xs text-gray-400 mt-0.5">{desc}</div>
+                      </button>
+                    ))}
+                  </div>
                 ))}
               </div>
             )}

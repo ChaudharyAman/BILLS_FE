@@ -1,74 +1,133 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, Package, Menu, X, Settings as SettingsIcon, LogOut } from 'lucide-react';
+import {
+  LayoutDashboard, Users, Package, FileText,
+  ClipboardList, Settings as SettingsIcon, LogOut,
+  ChevronDown, ChevronRight, Minus,
+} from 'lucide-react';
+
+const NAV = [
+  { label: 'Dashboard',          icon: LayoutDashboard, path: '/dashboard' },
+  { label: 'Clients / Customers',icon: Users,           path: '/clients' },
+  { label: 'Items',              icon: Package,         path: '/items' },
+  {
+    label: 'Invoices', icon: FileText, path: '/invoices',
+  },
+  {
+    label: 'Quotes & Proformas', icon: ClipboardList,
+    children: [
+      { label: 'Quotes',    path: '/quotes' },
+      { label: 'Proformas', path: '/proformas' },
+    ],
+  },
+  { label: 'Settings',           icon: SettingsIcon,    path: '/settings' },
+];
+
+const ICON_SIZE = 18;
 
 const Layout = ({ children }) => {
   const location = useLocation();
 
-  const isActive = (path) => {
-    return location.pathname.startsWith(path)
-      ? 'bg-blue-50 text-blue-600'
-      : 'text-gray-600 hover:bg-gray-50';
-  };
+  const isActive = (path) => location.pathname.startsWith(path);
+
+  const isSalesActive = ['/invoices', '/quotes', '/proformas'].some(p =>
+    location.pathname.startsWith(p)
+  );
+  const [quotesOpen, setQuotesOpen] = useState(
+    location.pathname.startsWith('/quotes') || location.pathname.startsWith('/proformas')
+  );
+
+  const linkCls = (path) =>
+    `flex items-center gap-3 px-5 py-2.5 text-sm font-medium transition-colors cursor-pointer w-full text-left
+    ${isActive(path)
+      ? 'bg-white/10 text-white border-l-2 border-blue-400'
+      : 'text-slate-300 hover:bg-white/5 hover:text-white border-l-2 border-transparent'}`;
+
+  const subLinkCls = (path) =>
+    `flex items-center gap-2 pl-10 pr-5 py-2 text-sm transition-colors w-full text-left
+    ${isActive(path)
+      ? 'text-white font-semibold'
+      : 'text-slate-400 hover:text-white'}`;
 
   return (
     <div className="flex min-h-screen bg-gray-100 font-sans">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-md flex-shrink-0 hidden md:block">
-        <div className="p-6 border-b">
-          <h1 className="text-2xl font-bold text-blue-600 flex items-center gap-2">
-            <LayoutDashboard /> MyBill
+
+      {/* ── Sidebar ── */}
+      <aside className="w-56 flex-shrink-0 hidden md:flex flex-col"
+        style={{ background: '#1a2e44' }}>
+
+        {/* Logo */}
+        <div className="px-5 py-5 border-b border-white/10">
+          <h1 className="text-lg font-bold text-white flex items-center gap-2 tracking-wide">
+            <LayoutDashboard size={20} className="text-blue-400" />
+            MyBill
           </h1>
         </div>
-        <nav className="p-4 space-y-2">
-          <Link
-            to="/invoices"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${isActive(
-              '/invoices'
-            )}`}
-          >
-            <FileText size={20} />
-            Invoices
+
+        {/* Nav */}
+        <nav className="flex-1 py-3 overflow-y-auto">
+
+          {/* Clients */}
+          <Link to="/clients" className={linkCls('/clients')}>
+            <Users size={ICON_SIZE} /> Clients / Customers
           </Link>
-          <Link
-            to="/clients"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${isActive(
-              '/clients'
-            )}`}
-          >
-            <Users size={20} />
-            Clients
+
+          {/* Items */}
+          <Link to="/items" className={linkCls('/items')}>
+            <Package size={ICON_SIZE} /> Items
           </Link>
-          <Link
-            to="/items"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${isActive(
-              '/items'
-            )}`}
-          >
-            <Package size={20} />
-            Items
+
+          {/* Invoices */}
+          <Link to="/invoices" className={linkCls('/invoices')}>
+            <FileText size={ICON_SIZE} /> Invoices
           </Link>
-          <Link
-            to="/settings"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${isActive(
-              '/settings'
-            )}`}
+
+          {/* Quotes & Proformas (collapsible) */}
+          <button
+            onClick={() => setQuotesOpen(o => !o)}
+            className={`flex items-center justify-between px-5 py-2.5 text-sm font-medium transition-colors w-full border-l-2
+              ${(isActive('/quotes') || isActive('/proformas'))
+                ? 'bg-white/10 text-white border-blue-400'
+                : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
           >
-            <SettingsIcon size={20} />
-            Settings
+            <span className="flex items-center gap-3">
+              <ClipboardList size={ICON_SIZE} /> Quotes &amp; Proformas
+            </span>
+            {quotesOpen
+              ? <ChevronDown size={14} className="text-slate-400" />
+              : <ChevronRight size={14} className="text-slate-400" />}
+          </button>
+
+          {quotesOpen && (
+            <div className="bg-black/10">
+              <Link to="/quotes" className={subLinkCls('/quotes')}>
+                <Minus size={12} className="text-slate-500" /> Quotes
+              </Link>
+              <Link to="/proformas" className={subLinkCls('/proformas')}>
+                <Minus size={12} className="text-slate-500" /> Proformas
+              </Link>
+            </div>
+          )}
+
+          {/* Settings */}
+          <Link to="/settings" className={linkCls('/settings')}>
+            <SettingsIcon size={ICON_SIZE} /> Settings
           </Link>
+        </nav>
+
+        {/* Logout */}
+        <div className="border-t border-white/10 p-3">
           <button
             onClick={() => {
               localStorage.removeItem('token');
               localStorage.removeItem('user');
               window.location.href = '/login';
             }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-red-600 hover:bg-red-50 transition-colors mt-auto"
+            className="flex items-center gap-3 px-4 py-2.5 rounded text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors w-full"
           >
-            <LogOut size={20} />
-            Logout
+            <LogOut size={ICON_SIZE} /> Logout
           </button>
-        </nav>
+        </div>
       </aside>
 
       {/* Main Content */}
