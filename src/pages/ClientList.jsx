@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { FaPlus, FaSearch, FaChevronDown, FaSort } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaChevronDown, FaSort, FaTrash, FaPencilAlt } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 
 const ClientList = () => {
@@ -23,6 +23,19 @@ const ClientList = () => {
     } catch (error) {
       console.error('Error fetching clients:', error);
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this client?')) {
+      try {
+        await api.delete(`/clients/${id}`);
+        setClients(prev => prev.filter(c => c._id !== id));
+        setSelectedClients(prev => prev.filter(c => c !== id));
+      } catch (error) {
+        console.error('Error deleting client:', error);
+        alert('Failed to delete client');
+      }
     }
   };
 
@@ -125,6 +138,7 @@ const ClientList = () => {
                              <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">City</th>
                              <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">Email</th>
                              <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">Phone</th>
+                             <th className="px-4 py-3 w-10"></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -137,6 +151,7 @@ const ClientList = () => {
                                 <td className="px-4 py-4"><Skeleton width="100px" height="20px" /></td>
                                 <td className="px-4 py-4"><Skeleton width="160px" height="20px" /></td>
                                 <td className="px-4 py-4"><Skeleton width="100px" height="20px" /></td>
+                                <td className="px-4 py-4"><Skeleton width="20px" height="20px" /></td>
                             </tr>
                         ))}
                     </tbody>
@@ -179,6 +194,7 @@ const ClientList = () => {
                              <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">
                                 Phone
                             </th>
+                            <th className="px-4 py-3 w-10"></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -211,6 +227,20 @@ const ClientList = () => {
                                 </td>
                                  <td className="px-4 py-4 text-sm text-slate-600">
                                      {client.phone || '-'}
+                                </td>
+                                <td className="px-4 py-4 text-center">
+                                    <div className="flex items-center justify-center gap-3">
+                                      <Link to={`/clients/edit/${client._id}`} className="text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+                                        <FaPencilAlt size={14} />
+                                      </Link>
+                                      <button 
+                                          onClick={() => handleDelete(client._id)} 
+                                          className="text-slate-300 hover:text-red-500 transition-colors"
+                                          title="Delete"
+                                      >
+                                          <FaTrash size={14} />
+                                      </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

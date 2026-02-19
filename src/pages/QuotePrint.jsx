@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { FaPrint, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import Skeleton from '../components/Skeleton';
 
 // docType: 'quote' | 'proforma'
 const QuotePrint = ({ docType = 'quote' }) => {

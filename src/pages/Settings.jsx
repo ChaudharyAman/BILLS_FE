@@ -23,6 +23,7 @@ const Settings = () => {
     phone: '',
     website: '',
     logoUrl: '',
+    signatureUrl: '',
   });
 
   // ── Software / Account Settings ───────────────────────────────────────────
@@ -77,6 +78,16 @@ const Settings = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleSignatureUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { alert('File too large (max 5MB)'); return; }
+    setFormData(prev => ({ ...prev, signatureFile: file }));
+    const reader = new FileReader();
+    reader.onloadend = () => setFormData(prev => ({ ...prev, signatureUrl: reader.result }));
+    reader.readAsDataURL(file);
+  };
+
   const handleCompanySubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -85,7 +96,7 @@ const Settings = () => {
       Object.keys(formData).forEach(key => {
         if (key === 'address') {
           Object.keys(formData.address).forEach(k => data.append(`address[${k}]`, formData.address[k]));
-        } else if (!['logoFile', 'logoUrl', '_id', 'createdAt', 'updatedAt', '__v', 'user'].includes(key)) {
+        } else if (!['logoFile', 'logoUrl', 'signatureFile', 'signatureUrl', '_id', 'createdAt', 'updatedAt', '__v', 'user'].includes(key)) {
           data.append(key, formData[key]);
         }
       });
@@ -94,8 +105,13 @@ const Settings = () => {
       } else if (formData.logoUrl && !formData.logoUrl.startsWith('data:')) {
         data.append('logoUrl', formData.logoUrl);
       }
+      if (formData.signatureFile) {
+        data.append('signature', formData.signatureFile);
+      } else if (formData.signatureUrl && !formData.signatureUrl.startsWith('data:')) {
+        data.append('signatureUrl', formData.signatureUrl);
+      }
       const res = await api.put('/settings', data, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setFormData(prev => ({ ...prev, ...res.data, logoFile: null }));
+      setFormData(prev => ({ ...prev, ...res.data, logoFile: null, signatureFile: null }));
       alert('Company settings saved!');
     } catch (e) {
       alert(e.response?.data?.message || 'Failed to save.');
@@ -218,6 +234,35 @@ const Settings = () => {
                     onChange={handleLogoUpload} />
                 </div>
                 <p className="text-xs text-gray-500 mt-2 text-center">Appears on your invoices.</p>
+              </div>
+
+               {/* Signature */}
+               <div className="w-full md:w-1/3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Digital Signature</label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center min-h-[160px] bg-gray-50 hover:bg-gray-100 transition-colors relative">
+                  {formData.signatureUrl ? (
+                    <div className="relative w-full flex justify-center">
+                      <img src={formData.signatureUrl} alt="Signature" className="max-h-32 object-contain" />
+                      <button type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, signatureUrl: '', signatureFile: null }))}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600">
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-400">
+                      <div className="mx-auto w-12 h-12 mb-2 bg-gray-200 rounded-full flex items-center justify-center">
+                        <FaUpload size={20} />
+                      </div>
+                      <span className="text-xs">Upload Signature</span>
+                      <span className="block text-[10px] mt-1">(Max 5MB)</span>
+                    </div>
+                  )}
+                  <input type="file" accept="image/*"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChange={handleSignatureUpload} />
+                </div>
+                <p className="text-xs text-gray-500 mt-2 text-center">Appears on invoice print views.</p>
               </div>
 
               {/* Fields */}

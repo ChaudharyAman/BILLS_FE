@@ -381,9 +381,13 @@ const InvoicePrint = () => {
               {company.ifscCode && <div style={{ fontSize: 11, color: '#374151' }}>IFSC: {company.ifscCode}</div>}
             </div>
           )}
-          <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 16px', textAlign: 'right' }}>
+          <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 16px', textAlign: 'right', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>For {company.companyName || 'Company'}</div>
-            <div style={{ height: 44 }} />
+            <div style={{ height: 60, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end' }}>
+                {company.signatureUrl && (
+                    <img src={company.signatureUrl} alt="Signature" style={{ maxHeight: 60, maxWidth: 150, objectFit: 'contain' }} />
+                )}
+            </div>
             <div style={{ borderTop: `1px dashed ${BORDER}`, paddingTop: 6, fontSize: 10, color: '#6b7280' }}>Authorised Signatory</div>
           </div>
         </div>
