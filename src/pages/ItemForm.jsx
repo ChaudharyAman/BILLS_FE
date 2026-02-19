@@ -6,9 +6,10 @@ import TaxRateSelector from '../components/TaxRateSelector';
 import { FaSave, FaArrowLeft } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 
-const ItemForm = () => {
+const ItemForm = ({ isModal, onSuccess }) => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id: routeId } = useParams();
+  const id = isModal ? null : routeId;
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('Goods'); // 'Goods' (Product) or 'Service'
 
@@ -36,10 +37,10 @@ const ItemForm = () => {
   });
 
   useEffect(() => {
-    if (id) {
+    if (id && !isModal) {
       fetchItem();
     }
-  }, [id]);
+  }, [id, isModal]);
 
   const fetchItem = async () => {
     try {
@@ -81,14 +82,19 @@ const ItemForm = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      let response;
       // Map flat tax rate to sales/purchase if needed, or backend handles it.
       // For now sending as is.
       if (id) {
-        await api.put(`/items/${id}`, formData);
+        response = await api.put(`/items/${id}`, formData);
       } else {
-        await api.post('/items', formData);
+        response = await api.post('/items', formData);
       }
-      navigate('/items');
+      if (isModal && onSuccess) {
+        onSuccess(response.data); // Return new item data
+      } else {
+        navigate('/items');
+      }
     } catch (error) {
       console.error('Error saving item:', error);
       alert('Failed to save item');
@@ -134,7 +140,8 @@ const ItemForm = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-5xl">
+    <div className={isModal ? "" : "container mx-auto p-6 max-w-5xl"}>
+      {!isModal && (
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button 
@@ -170,8 +177,22 @@ const ItemForm = () => {
           </button>
         </div>
       </div>
+      )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-8">
+      {isModal && (
+        <div className="mb-4 bg-gray-50 rounded-lg p-1 flex justify-center border">
+          <button type="button" onClick={() => handleTabChange('Goods')}
+            className={`flex-1 py-1.5 rounded-md text-xs font-bold uppercase transition-colors ${activeTab === 'Goods' ? 'bg-white text-blue-600 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}>
+            Product
+          </button>
+          <button type="button" onClick={() => handleTabChange('Service')}
+            className={`flex-1 py-1.5 rounded-md text-xs font-bold uppercase transition-colors ${activeTab === 'Service' ? 'bg-white text-blue-600 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}>
+            Service
+          </button>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className={`${isModal ? "" : "bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-8"}`}>
         
         {/* General Info Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 mb-8">
@@ -371,6 +392,7 @@ const ItemForm = () => {
             <FaSave size={18} />
             {loading ? 'Saving...' : 'Save'}
           </button>
+           {!isModal && (
            <button
             type="button"
             onClick={() => navigate('/items')}
@@ -378,6 +400,7 @@ const ItemForm = () => {
           >
             Cancel
           </button>
+           )}
         </div>
 
       </form>

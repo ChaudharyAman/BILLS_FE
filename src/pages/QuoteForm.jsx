@@ -4,6 +4,7 @@ import api from '../api/axios';
 import { FaTrash, FaPlus } from 'react-icons/fa';
 import Modal from '../components/Modal';
 import ClientForm from './ClientForm';
+import ItemForm from './ItemForm';
 import Skeleton from '../components/Skeleton';
 
 // docType: 'quote' | 'proforma'
@@ -25,6 +26,8 @@ const QuoteForm = ({ docType = 'quote' }) => {
   const [itemsList, setItemsList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [isItemModalOpen, setIsItemModalOpen] = useState(false);
+  const [pendingItemIndex, setPendingItemIndex] = useState(null);
   const [clientPending, setClientPending] = useState(null);
 
   // Optional add-ons
@@ -376,9 +379,18 @@ const QuoteForm = ({ docType = 'quote' }) => {
                     <td className="px-3 py-2 text-sm text-gray-400 align-top pt-3">{idx + 1}</td>
                     <td className="px-2 py-2 align-top">
                       <select className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full mb-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                        onChange={e => selectItem(idx, e.target.value)} value="">
+                        onChange={e => {
+                            if (e.target.value === '_CREATE_NEW_') {
+                                setPendingItemIndex(idx);
+                                setIsItemModalOpen(true);
+                            } else {
+                                selectItem(idx, e.target.value);
+                            }
+                        }} 
+                        value={item._id || ""}>
                         <option value="">Select Item</option>
                         {itemsList.map(i => <option key={i._id} value={i._id}>{i.name}</option>)}
+                        <option value="_CREATE_NEW_" className="font-bold text-blue-600">+ Create New Item</option>
                       </select>
                       <input placeholder="Item name" value={item.name}
                         onChange={e => updateItem(idx, 'name', e.target.value)}
@@ -624,6 +636,17 @@ const QuoteForm = ({ docType = 'quote' }) => {
           setClients(prev => [...prev, newClient]);
           setFormData(f => ({ ...f, clientRef: newClient._id }));
           setIsClientModalOpen(false);
+        }} />
+      </Modal>
+      {/* New Item Modal */}
+      <Modal isOpen={isItemModalOpen} onClose={() => setIsItemModalOpen(false)} title="Add New Item">
+        <ItemForm isModal onSuccess={(newItem) => {
+            setItemsList(prev => [...prev, newItem]);
+             if (pendingItemIndex !== null) {
+                selectItem(pendingItemIndex, newItem._id);
+            }
+            setIsItemModalOpen(false);
+            setPendingItemIndex(null);
         }} />
       </Modal>
     </div>

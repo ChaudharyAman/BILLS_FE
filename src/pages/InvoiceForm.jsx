@@ -4,6 +4,7 @@ import api from '../api/axios';
 import { FaPlus, FaTrash, FaChevronDown } from 'react-icons/fa';
 import Modal from '../components/Modal';
 import ClientForm from './ClientForm';
+import ItemForm from './ItemForm';
 import Skeleton from '../components/Skeleton';
 
 const INVOICE_TYPES = ['Invoice', 'Retail Invoice', 'Tax Invoice', 'Excise Invoice'];
@@ -45,6 +46,8 @@ const InvoiceForm = () => {
   const [itemsList, setItemsList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [isItemModalOpen, setIsItemModalOpen] = useState(false);
+  const [pendingItemIndex, setPendingItemIndex] = useState(null);
 
   const [showShipping, setShowShipping] = useState(false);
   const [showDiscountTotal, setShowDiscountTotal] = useState(false);
@@ -472,9 +475,15 @@ const InvoiceForm = () => {
 
                 {/* Item Name */}
                 <div>
-                  <input list={`items-${index}`} placeholder="Select item"
-                    className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"
-                    value={item.name} onChange={(e) => updateItem(index, 'name', e.target.value)} />
+                  <div className="flex gap-1">
+                     <input list={`items-${index}`} placeholder="Select item"
+                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"
+                        value={item.name} onChange={(e) => updateItem(index, 'name', e.target.value)} />
+                     <button type="button" onClick={() => { setPendingItemIndex(index); setIsItemModalOpen(true); }}
+                        className="px-2 bg-blue-50 text-blue-600 rounded border border-blue-100 hover:bg-blue-100 transition-colors" title="Add New Item">
+                        <FaPlus size={10} />
+                     </button>
+                  </div>
                   <datalist id={`items-${index}`}>
                     {itemsList.map(i => <option key={i._id} value={i.name} />)}
                   </datalist>
@@ -801,6 +810,17 @@ const InvoiceForm = () => {
           }}
           onCancel={() => setIsClientModalOpen(false)}
         />
+      </Modal>
+      {/* New Item Modal */}
+      <Modal isOpen={isItemModalOpen} onClose={() => setIsItemModalOpen(false)} title="Add New Item">
+        <ItemForm isModal onSuccess={(newItem) => {
+            setItemsList(prev => [...prev, newItem]);
+            if (pendingItemIndex !== null) {
+                updateItem(pendingItemIndex, 'name', newItem.name);
+            }
+            setIsItemModalOpen(false);
+            setPendingItemIndex(null);
+        }} />
       </Modal>
     </div>
   );
