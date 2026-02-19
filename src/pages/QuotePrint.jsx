@@ -155,10 +155,14 @@ const QuotePrint = ({ docType = 'quote' }) => {
           <div style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Bill To</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 3 }}>{client.name}</div>
           {client.address?.line1 && <div style={{ fontSize: 11, color: '#6b7280' }}>{client.address.line1}</div>}
+          {client.address?.line2 && <div style={{ fontSize: 11, color: '#6b7280' }}>{client.address.line2}</div>}
           {(client.address?.city || client.address?.state) && (
             <div style={{ fontSize: 11, color: '#6b7280' }}>{[client.address.city, client.address.state, client.address.zip].filter(Boolean).join(', ')}</div>
           )}
+          {client.address?.country && <div style={{ fontSize: 11, color: '#6b7280' }}>{client.address.country}</div>}
           {client.gstin && <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>GSTIN: <strong>{client.gstin}</strong></div>}
+          {client.phone && <div style={{ fontSize: 11, color: '#6b7280' }}>Ph: {client.phone}</div>}
+          {client.email && <div style={{ fontSize: 11, color: '#6b7280' }}>{client.email}</div>}
         </div>
 
         {/* Items Table */}

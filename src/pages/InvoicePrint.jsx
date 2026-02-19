@@ -182,17 +182,23 @@ const InvoicePrint = () => {
             <div style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Bill To</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 3 }}>{client.name}</div>
             {client.address?.line1 && <div style={{ fontSize: 11, color: '#6b7280' }}>{client.address.line1}</div>}
+            {client.address?.line2 && <div style={{ fontSize: 11, color: '#6b7280' }}>{client.address.line2}</div>}
             {(client.address?.city || client.address?.state) && (
               <div style={{ fontSize: 11, color: '#6b7280' }}>{[client.address.city, client.address.state, client.address.zip].filter(Boolean).join(', ')}</div>
             )}
+            {client.address?.country && <div style={{ fontSize: 11, color: '#6b7280' }}>{client.address.country}</div>}
             {client.gstin && <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>GSTIN: <strong>{client.gstin}</strong></div>}
+            {client.phone && <div style={{ fontSize: 11, color: '#6b7280' }}>Ph: {client.phone}</div>}
+            {client.email && <div style={{ fontSize: 11, color: '#6b7280' }}>{client.email}</div>}
           </div>
           <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '12px 16px' }}>
             <div style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ship To</div>
             {invoice.shippingAddress?.line1 ? (
               <>
                 <div style={{ fontSize: 11, color: '#374151' }}>{invoice.shippingAddress.line1}</div>
+                {invoice.shippingAddress?.line2 && <div style={{ fontSize: 11, color: '#6b7280' }}>{invoice.shippingAddress.line2}</div>}
                 <div style={{ fontSize: 11, color: '#6b7280' }}>{[invoice.shippingAddress.city, invoice.shippingAddress.state, invoice.shippingAddress.zip].filter(Boolean).join(', ')}</div>
+                {invoice.shippingAddress?.country && <div style={{ fontSize: 11, color: '#6b7280' }}>{invoice.shippingAddress.country}</div>}
               </>
             ) : (
               <div style={{ fontSize: 11, color: '#9ca3af', fontStyle: 'italic' }}>Same as billing address</div>

@@ -35,7 +35,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
 
   const emptyItem = () => ({
     name: '', description: '', hsnCode: '', unit: 'pcs',
-    qty: 1, rate: 0, discount: 0, taxRate: 0, amount: 0,
+    qty: 1, rate: 0, discount: 0, taxRate: 0, taxSelect: '0', customTaxRate: '', amount: 0,
   });
 
   const [formData, setFormData] = useState({
@@ -90,7 +90,10 @@ const QuoteForm = ({ docType = 'quote' }) => {
           name: it.name, description: it.description || '',
           hsnCode: it.hsnCode || '', unit: it.unit || 'pcs',
           qty: it.qty, rate: it.rate, discount: it.discount || 0,
-          taxRate: it.taxRate || 0, amount: it.amount,
+          taxRate: it.taxRate || 0,
+          taxSelect: [0,5,12,18,28].includes(it.taxRate) ? String(it.taxRate) : (it.taxRate > 0 ? 'custom' : '0'),
+          customTaxRate: [0,5,12,18,28].includes(it.taxRate) ? '' : String(it.taxRate || ''),
+          amount: it.amount,
         })) : [emptyItem()],
         shippingCharges: d.shippingCharges || 0,
         packagingCharges: d.packagingCharges || 0,
@@ -349,11 +352,41 @@ const QuoteForm = ({ docType = 'quote' }) => {
                     </td>
                     {hasTax && (
                       <td className="px-2 py-2 align-top">
-                        <select value={item.taxRate} onChange={e => updateItem(idx, 'taxRate', e.target.value)}
+                        <select
+                          value={item.taxSelect ?? String(item.taxRate)}
+                          onChange={e => {
+                            const val = e.target.value;
+                            const items = [...formData.items];
+                            items[idx] = {
+                              ...items[idx],
+                              taxSelect: val,
+                              taxRate: val === 'custom' ? (Number(items[idx].customTaxRate) || 0) : Number(val),
+                            };
+                            items[idx].amount = calcRow(items[idx]);
+                            setFormData(f => ({ ...f, items }));
+                          }}
                           className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400">
                           <option value="">Select Tax</option>
                           {[0, 5, 12, 18, 28].map(r => <option key={r} value={r}>GST {r}%</option>)}
+                          <option value="custom">Custom %</option>
                         </select>
+                        {item.taxSelect === 'custom' && (
+                          <input
+                            type="number" min="0" max="100" placeholder="Rate %"
+                            value={item.customTaxRate ?? ''}
+                            onChange={e => {
+                              const items = [...formData.items];
+                              items[idx] = {
+                                ...items[idx],
+                                customTaxRate: e.target.value,
+                                taxRate: Number(e.target.value) || 0,
+                              };
+                              items[idx].amount = calcRow(items[idx]);
+                              setFormData(f => ({ ...f, items }));
+                            }}
+                            className="mt-1 border border-blue-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400"
+                          />
+                        )}
                       </td>
                     )}
                     <td className="px-3 py-2 text-right text-sm font-semibold text-gray-800 align-top pt-3">
