@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Plus, Check, X } from 'lucide-react';
+import { FaChevronDown, FaPlus, FaCheck, FaTimes } from 'react-icons/fa';
 
 const GST_UNITS = [
   { code: 'BAG', name: 'Bags' },
@@ -156,7 +156,7 @@ const UnitSelector = ({ value, onChange }) => {
         <span className={`block truncate ${!value ? 'text-gray-400' : 'text-gray-900'}`}>
           {getDisplayValue() || 'Select Unit'}
         </span>
-        <ChevronDown size={16} className="text-gray-400" />
+        <FaChevronDown size={16} className="text-gray-400" />
       </div>
 
       {isOpen && (
@@ -189,7 +189,7 @@ const UnitSelector = ({ value, onChange }) => {
                       </span>
                       {value === unit.code && (
                         <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-teal-600">
-                          <Check size={16} />
+                          <FaCheck size={16} />
                         </span>
                       )}
                     </div>
@@ -205,7 +205,7 @@ const UnitSelector = ({ value, onChange }) => {
                 className="bg-gray-50 p-2 border-t cursor-pointer hover:bg-gray-100 text-teal-600 font-medium flex items-center gap-2"
                 onClick={startAdding}
               >
-                <Plus size={16} />
+                <FaPlus size={16} />
                 Add new unit
               </div>
             </>

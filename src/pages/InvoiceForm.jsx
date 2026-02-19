@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import api from '../api/axios';
-import { Plus, Trash2, Calendar, ChevronDown } from 'lucide-react';
+import { FaPlus, FaTrash, FaChevronDown } from 'react-icons/fa';
 import Modal from '../components/Modal';
 import ClientForm from './ClientForm';
 import Skeleton from '../components/Skeleton';
@@ -358,7 +358,6 @@ const InvoiceForm = () => {
               <div className="relative">
                 <input type="date" className={inp} value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
-                <Calendar className="absolute right-2 top-2 text-gray-400 pointer-events-none" size={14} />
               </div>
             </div>
             <div>
@@ -366,7 +365,6 @@ const InvoiceForm = () => {
               <div className="relative">
                 <input type="date" className={inp} value={formData.dueDate}
                   onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} />
-                <Calendar className="absolute right-2 top-2 text-gray-400 pointer-events-none" size={14} />
               </div>
             </div>
             <div>
@@ -379,7 +377,6 @@ const InvoiceForm = () => {
               <div className="relative">
                 <input type="date" className={inp} value={formData.poDate}
                   onChange={(e) => setFormData({ ...formData, poDate: e.target.value })} />
-                <Calendar className="absolute right-2 top-2 text-gray-400 pointer-events-none" size={14} />
               </div>
             </div>
             <div>
@@ -554,7 +551,7 @@ const InvoiceForm = () => {
                           value={item.taxRate} onChange={(e) => updateItem(index, 'taxRate', e.target.value)} />
                         <button onClick={() => { const ni = [...formData.items]; ni[index] = { ...ni[index], isCustom: false, taxRate: 0 }; setFormData({ ...formData, items: ni }); }}
                           className="absolute right-1 top-2 text-gray-400 hover:text-red-500">
-                          <Trash2 size={12} />
+                          <FaTrash size={12} />
                         </button>
                       </div>
                     )}
@@ -590,7 +587,7 @@ const InvoiceForm = () => {
                 {/* Delete */}
                 <div className="pt-2 text-center">
                   <button onClick={() => removeItemRow(index)} className="text-red-300 hover:text-red-600 transition-colors">
-                    <Trash2 size={14} />
+                    <FaTrash size={14} />
                   </button>
                 </div>
               </div>
@@ -600,7 +597,7 @@ const InvoiceForm = () => {
             <div className="px-3 py-3">
               <button type="button" onClick={addItemRow}
                 className="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1 transition-colors">
-                <Plus size={14} /> Add Line
+                <FaPlus size={14} /> Add Line
               </button>
             </div>
           </div>
@@ -625,7 +622,7 @@ const InvoiceForm = () => {
                     <div className="border border-gray-200 rounded px-3 py-1.5 text-sm bg-white cursor-pointer flex justify-between items-center"
                       onClick={() => setTransportDropdown(!showTransportDropdown)}>
                       {formData.transport.mode || 'Road'}
-                      <ChevronDown size={14} className="text-gray-400" />
+                      <FaChevronDown size={14} className="text-gray-400" />
                     </div>
                     {showTransportDropdown && (
                       <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg p-2">
@@ -704,7 +701,7 @@ const InvoiceForm = () => {
             <div>
               <button type="button" onClick={() => setShowAdvance(!showAdvance)}
                 className="text-blue-500 text-sm font-medium flex items-center gap-1 hover:text-blue-700">
-                <Plus size={14} /> Add Advance Payment
+                <FaPlus size={14} /> Add Advance Payment
               </button>
               {showAdvance && (
                 <div className="mt-2 pl-6 flex items-center gap-2">

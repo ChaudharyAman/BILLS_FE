@@ -1,26 +1,26 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, Package, FileText,
-  ClipboardList, Settings as SettingsIcon, LogOut,
-  ChevronDown, ChevronRight, Minus,
-} from 'lucide-react';
+  FaThLarge, FaUsers, FaBox, FaFileInvoice,
+  FaClipboardList, FaCog, FaSignOutAlt,
+  FaChevronDown, FaChevronRight, FaMinus,
+} from 'react-icons/fa';
 
 const NAV = [
-  { label: 'Dashboard',          icon: LayoutDashboard, path: '/dashboard' },
-  { label: 'Clients / Customers',icon: Users,           path: '/clients' },
-  { label: 'Items',              icon: Package,         path: '/items' },
+  { label: 'Dashboard',          icon: FaThLarge,       path: '/dashboard' },
+  { label: 'Clients / Customers',icon: FaUsers,           path: '/clients' },
+  { label: 'Items',              icon: FaBox,         path: '/items' },
   {
-    label: 'Invoices', icon: FileText, path: '/invoices',
+    label: 'Invoices', icon: FaFileInvoice, path: '/invoices',
   },
   {
-    label: 'Quotes & Proformas', icon: ClipboardList,
+    label: 'Quotes & Proformas', icon: FaClipboardList,
     children: [
       { label: 'Quotes',    path: '/quotes' },
       { label: 'Proformas', path: '/proformas' },
     ],
   },
-  { label: 'Settings',           icon: SettingsIcon,    path: '/settings' },
+  { label: 'Settings',           icon: FaCog,    path: '/settings' },
 ];
 
 const ICON_SIZE = 18;
@@ -59,7 +59,7 @@ const Layout = ({ children }) => {
         {/* Logo */}
         <div className="px-5 py-5 border-b border-white/10">
           <h1 className="text-lg font-bold text-white flex items-center gap-2 tracking-wide">
-            <LayoutDashboard size={20} className="text-blue-400" />
+            <FaThLarge size={20} className="text-blue-400" />
             MyBill
           </h1>
         </div>
@@ -69,17 +69,17 @@ const Layout = ({ children }) => {
 
           {/* Clients */}
           <Link to="/clients" className={linkCls('/clients')}>
-            <Users size={ICON_SIZE} /> Clients / Customers
+            <FaUsers size={ICON_SIZE} /> Clients / Customers
           </Link>
 
           {/* Items */}
           <Link to="/items" className={linkCls('/items')}>
-            <Package size={ICON_SIZE} /> Items
+            <FaBox size={ICON_SIZE} /> Items
           </Link>
 
           {/* Invoices */}
           <Link to="/invoices" className={linkCls('/invoices')}>
-            <FileText size={ICON_SIZE} /> Invoices
+            <FaFileInvoice size={ICON_SIZE} /> Invoices
           </Link>
 
           {/* Quotes & Proformas (collapsible) */}
@@ -91,27 +91,27 @@ const Layout = ({ children }) => {
                 : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
           >
             <span className="flex items-center gap-3">
-              <ClipboardList size={ICON_SIZE} /> Quotes &amp; Proformas
+              <FaClipboardList size={ICON_SIZE} /> Quotes &amp; Proformas
             </span>
             {quotesOpen
-              ? <ChevronDown size={14} className="text-slate-400" />
-              : <ChevronRight size={14} className="text-slate-400" />}
+              ? <FaChevronDown size={14} className="text-slate-400" />
+              : <FaChevronRight size={14} className="text-slate-400" />}
           </button>
 
           {quotesOpen && (
             <div className="bg-black/10">
               <Link to="/quotes" className={subLinkCls('/quotes')}>
-                <Minus size={12} className="text-slate-500" /> Quotes
+                <FaMinus size={12} className="text-slate-500" /> Quotes
               </Link>
               <Link to="/proformas" className={subLinkCls('/proformas')}>
-                <Minus size={12} className="text-slate-500" /> Proformas
+                <FaMinus size={12} className="text-slate-500" /> Proformas
               </Link>
             </div>
           )}
 
           {/* Settings */}
           <Link to="/settings" className={linkCls('/settings')}>
-            <SettingsIcon size={ICON_SIZE} /> Settings
+            <FaCog size={ICON_SIZE} /> Settings
           </Link>
         </nav>
 
@@ -125,7 +125,7 @@ const Layout = ({ children }) => {
             }}
             className="flex items-center gap-3 px-4 py-2.5 rounded text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors w-full"
           >
-            <LogOut size={ICON_SIZE} /> Logout
+            <FaSignOutAlt size={ICON_SIZE} /> Logout
           </button>
         </div>
       </aside>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
-import { Eye, EyeOff } from 'lucide-react';
+import { FaEye, FaEyeSlash, FaExclamationCircle } from 'react-icons/fa';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -41,17 +41,8 @@ const Login = () => {
       <div className="hidden lg:flex w-[60%] bg-[#0F3D3E] relative items-center justify-center overflow-hidden p-12">
         
         {/* Abstract Invoice/Receipt Pattern Background */}
-        <div className="absolute inset-0 opacity-20">
-            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                <pattern id="invoice-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                    {/* Tiny document icons */}
-                    <path d="M5,5 L15,5 L15,15 L5,15 Z" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-teal-400"/>
-                    <line x1="7" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="0.5" className="text-teal-400"/>
-                    <line x1="7" y1="10" x2="13" y2="10" stroke="currentColor" strokeWidth="0.5" className="text-teal-400"/>
-                    <line x1="7" y1="12" x2="11" y2="12" stroke="currentColor" strokeWidth="0.5" className="text-teal-400"/>
-                </pattern>
-                <rect width="100%" height="100%" fill="url(#invoice-pattern)" />
-            </svg>
+        <div className="absolute inset-0 opacity-20 flex items-center justify-center">
+            {/* Pattern removed as per request to remove SVGs */}
         </div>
 
         {/* Ambient Glows */}
@@ -104,7 +95,7 @@ const Login = () => {
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl flex items-center gap-3">
-              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <FaExclamationCircle className="w-5 h-5 flex-shrink-0" />
               <span>{error}</span>
             </div>
           )}
@@ -137,7 +128,7 @@ const Login = () => {
                 />
                 <button type="button" onClick={() => setShowPassword(o => !o)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
                 </button>
               </div>
             </div>

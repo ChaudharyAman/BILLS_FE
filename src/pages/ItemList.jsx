@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Plus, Search, Package, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { FaPlus, FaSearch, FaBox, FaChevronLeft, FaChevronRight, FaPencilAlt } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 
 const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50];
@@ -87,13 +87,13 @@ const ItemList = () => {
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
           />
-          <Search className="absolute right-3 top-2.5 text-slate-400 h-4 w-4" />
+          <FaSearch className="absolute right-3 top-2.5 text-slate-400 h-4 w-4" />
         </div>
         <Link
           to="/items/new"
           className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
         >
-          <Plus size={16} /> New Item
+          <FaPlus size={16} /> New Item
         </Link>
       </div>
 
@@ -133,11 +133,11 @@ const ItemList = () => {
             </table>
           </div>
         ) : filteredItems.length === 0 ? (          <div className="text-center py-16">
-            <Package size={40} className="mx-auto text-slate-300 mb-3" />
+            <FaBox size={40} className="mx-auto text-slate-300 mb-3" />
             <p className="text-slate-500 font-medium">No items found</p>
             <p className="text-slate-400 text-sm mt-1">Create your first item to get started</p>
             <Link to="/items/new" className="mt-4 inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-              <Plus size={16} /> New Item
+              <FaPlus size={16} /> New Item
             </Link>
           </div>
         ) : (
@@ -219,7 +219,7 @@ const ItemList = () => {
                           className="text-slate-400 hover:text-teal-600 transition-colors"
                           title="Edit"
                         >
-                          <Pencil size={14} />
+                          <FaPencilAlt size={14} />
                         </button>
                         <button
                           onClick={() => handleDelete(item._id)}
@@ -256,7 +256,7 @@ const ItemList = () => {
                     disabled={currentPage === 1}
                     className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
-                    <ChevronLeft size={14} />
+                    <FaChevronLeft size={14} />
                   </button>
                   <span className="px-2">Page {currentPage} of {totalPages || 1}</span>
                   <button
@@ -264,7 +264,7 @@ const ItemList = () => {
                     disabled={currentPage === totalPages || totalPages === 0}
                     className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
-                    <ChevronRight size={14} />
+                    <FaChevronRight size={14} />
                   </button>
                 </div>
               </div>

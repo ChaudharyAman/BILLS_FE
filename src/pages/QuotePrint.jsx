@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Printer, ArrowLeft, ArrowRight } from 'lucide-react';
+import { FaPrint, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
 
 // docType: 'quote' | 'proforma'
 const QuotePrint = ({ docType = 'quote' }) => {
@@ -137,18 +137,18 @@ const QuotePrint = ({ docType = 'quote' }) => {
         className="print:hidden">
         <button onClick={() => navigate(listPath)}
           style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: `1px solid ${BORDER}`, borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, color: '#374151' }}>
-          <ArrowLeft size={15} /> Back
+          <FaArrowLeft size={15} /> Back
         </button>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           {doc.status !== 'CONVERTED' && (
             <button onClick={handleConvert} disabled={converting}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-              <ArrowRight size={15} /> Convert to Invoice
+              <FaArrowRight size={15} /> Convert to Invoice
             </button>
           )}
           <button onClick={() => window.print()}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', background: docColor, color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-            <Printer size={15} /> Print / Download
+            <FaPrint size={15} /> Print / Download
           </button>
         </div>
       </div>

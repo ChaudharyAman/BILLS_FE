@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Plus, Check } from 'lucide-react';
+import { FaChevronDown, FaPlus, FaCheck } from 'react-icons/fa';
 
 const STANDARD_RATES = [
   { value: 0, label: '0% (Nil)' },
@@ -130,7 +130,7 @@ const TaxRateSelector = ({ value, onChange }) => {
         <span className="block truncate text-gray-900">
           {getDisplayValue()}
         </span>
-        <ChevronDown size={16} className="text-gray-400" />
+        <FaChevronDown size={16} className="text-gray-400" />
       </div>
 
       {isOpen && (
@@ -163,7 +163,7 @@ const TaxRateSelector = ({ value, onChange }) => {
                       </span>
                       {Number(value) === rate.value && (
                         <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-teal-600">
-                          <Check size={16} />
+                          <FaCheck size={16} />
                         </span>
                       )}
                     </div>
@@ -179,7 +179,7 @@ const TaxRateSelector = ({ value, onChange }) => {
                 className="bg-gray-50 p-2 border-t cursor-pointer hover:bg-gray-100 text-teal-600 font-medium flex items-center gap-2"
                 onClick={startAdding}
               >
-                <Plus size={16} />
+                <FaPlus size={16} />
                 Add custom rate
               </div>
             </>

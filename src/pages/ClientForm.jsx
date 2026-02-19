@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
-import { Save, ArrowLeft, Plus, Trash2, User } from 'lucide-react';
+import { FaSave, FaArrowLeft, FaPlus, FaTrash, FaUser } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 
 const ClientForm = ({ onSuccess, onCancel }) => {
@@ -285,7 +285,7 @@ const ClientForm = ({ onSuccess, onCancel }) => {
                 onClick={() => navigate('/clients')}
                 className="text-slate-500 hover:text-slate-700 transition-colors"
             >
-                <ArrowLeft size={24} />
+                <FaArrowLeft size={24} />
             </button>
             <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
                 {id ? 'Edit Client / Customer' : 'Add New Client / Customer'}
@@ -426,7 +426,7 @@ const ClientForm = ({ onSuccess, onCancel }) => {
                              <div>
                                 {!showShipping ? (
                                     <button type="button" onClick={() => setShowShipping(true)} className="flex items-center gap-2 text-teal-600 text-sm font-medium hover:text-teal-700">
-                                        <Plus size={16} /> Add Shipping Address
+                                        <FaPlus size={16} /> Add Shipping Address
                                     </button>
                                 ) : (
                                     <div className="animate-fadeIn">
@@ -531,7 +531,7 @@ const ClientForm = ({ onSuccess, onCancel }) => {
             {/* CONTACT PERSONS SECTION */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                 <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wide flex items-center gap-2">
-                    <User size={16} /> Contact Persons
+                    <FaUser size={16} /> Contact Persons
                 </h3>
                 
                 <div className="space-y-4">
@@ -543,7 +543,7 @@ const ClientForm = ({ onSuccess, onCancel }) => {
                                  <div className="text-xs text-slate-500">{contact.email} • {contact.phone}</div>
                              </div>
                              <button type="button" onClick={() => removeContact(index)} className="text-slate-400 hover:text-red-500">
-                                 <Trash2 size={16} />
+                                 <FaTrash size={16} />
                              </button>
                         </div>
                     ))}
@@ -560,7 +560,7 @@ const ClientForm = ({ onSuccess, onCancel }) => {
                              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
                     </div>
                     <button type="button" onClick={addContact} className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-4">
-                        <Plus size={16} /> Add New Contact
+                        <FaPlus size={16} /> Add New Contact
                     </button>
                 </div>
             </div>
@@ -573,7 +573,7 @@ const ClientForm = ({ onSuccess, onCancel }) => {
                  </button>
                  <button type="submit" disabled={loading}
                     className="px-6 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors shadow-md hover:shadow-lg flex items-center gap-2">
-                     <Save size={18} />
+                     <FaSave size={18} />
                      {loading ? 'Saving...' : 'Save Client'}
                  </button>
             </div>

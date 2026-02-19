@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Plus, CheckSquare, Square, Edit, Trash2, Eye, ArrowRight } from 'lucide-react';
+import { FaPlus, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaArrowRight } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 
 const ProformaList = () => {
@@ -67,7 +67,7 @@ const ProformaList = () => {
         </div>
         <Link to="/proformas/new"
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm">
-          <Plus size={16} /> New Proforma
+          <FaPlus size={16} /> New Proforma
         </Link>
       </div>
 
@@ -85,7 +85,7 @@ const ProformaList = () => {
               <tr>
                 <th className="px-6 py-3 w-12 text-center">
                   <button onClick={toggleAll} className="text-gray-400 hover:text-gray-600">
-                    {selectedIds.length === proformas.length && proformas.length > 0 ? <CheckSquare size={18} /> : <Square size={18} />}
+                    {selectedIds.length === proformas.length && proformas.length > 0 ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
                   </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Proforma No.</th>
@@ -117,7 +117,7 @@ const ProformaList = () => {
                 <tr key={p._id} className="hover:bg-blue-50/50 transition-colors">
                   <td className="px-6 py-4 text-center">
                     <button onClick={() => toggleSelect(p._id)} className={selectedIds.includes(p._id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}>
-                      {selectedIds.includes(p._id) ? <CheckSquare size={18} /> : <Square size={18} />}
+                      {selectedIds.includes(p._id) ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
                     </button>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -141,14 +141,14 @@ const ProformaList = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <div className="flex justify-center gap-2 items-center">
-                      <Link to={`/proformas/${p._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View"><Eye size={17} /></Link>
-                      <Link to={`/proformas/edit/${p._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><Edit size={17} /></Link>
+                      <Link to={`/proformas/${p._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View"><FaEye size={17} /></Link>
+                      <Link to={`/proformas/edit/${p._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={17} /></Link>
                       {p.status !== 'CONVERTED' && (
                         <button onClick={() => handleConvert(p._id)} className="text-gray-400 hover:text-purple-600 transition-colors" title="Convert to Invoice">
-                          <ArrowRight size={17} />
+                          <FaArrowRight size={17} />
                         </button>
                       )}
-                      <button onClick={() => handleDelete(p._id)} className="text-gray-400 hover:text-red-600 transition-colors" title="Delete"><Trash2 size={17} /></button>
+                      <button onClick={() => handleDelete(p._id)} className="text-gray-400 hover:text-red-600 transition-colors" title="Delete"><FaTrash size={17} /></button>
                     </div>
                   </td>
                 </tr>

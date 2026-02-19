@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Save, Upload, Building, Settings as SettingsIcon, Eye, EyeOff } from 'lucide-react';
+import { FaSave, FaUpload, FaBuilding, FaCog, FaEye, FaEyeSlash } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 
 const inputCls = 'w-full border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 text-sm';
@@ -142,8 +142,8 @@ const Settings = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           {tab === 'company'
-            ? <Building className="text-teal-600" size={26} />
-            : <SettingsIcon className="text-teal-600" size={26} />}
+            ? <FaBuilding className="text-teal-600" size={26} />
+            : <FaCog className="text-teal-600" size={26} />}
           <h1 className="text-2xl font-bold text-gray-800">
             {tab === 'company' ? 'Company Settings' : 'Software Settings'}
           </h1>
@@ -207,7 +207,7 @@ const Settings = () => {
                   ) : (
                     <div className="text-center text-gray-400">
                       <div className="mx-auto w-12 h-12 mb-2 bg-gray-200 rounded-full flex items-center justify-center">
-                        <Upload size={20} />
+                        <FaUpload size={20} />
                       </div>
                       <span className="text-xs">Click to upload logo</span>
                       <span className="block text-[10px] mt-1">(Max 5MB)</span>
@@ -280,7 +280,7 @@ const Settings = () => {
             <div className="flex justify-end pt-4 border-t border-gray-100">
               <button type="submit" disabled={loading}
                 className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-colors disabled:opacity-50">
-                <Save size={18} /> {loading ? 'Saving…' : 'Save Settings'}
+                <FaSave size={18} /> {loading ? 'Saving…' : 'Save Settings'}
               </button>
             </div>
           </form>
@@ -332,7 +332,7 @@ const Settings = () => {
                       className={inputCls} placeholder="Enter current password" />
                     <button type="button" onClick={() => setShowCurrent(o => !o)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                      {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+                      {showCurrent ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
                     </button>
                   </div>
                 </div>
@@ -345,7 +345,7 @@ const Settings = () => {
                         className={inputCls} placeholder="New password" />
                       <button type="button" onClick={() => setShowNew(o => !o)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                        {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showNew ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
                       </button>
                     </div>
                   </div>
@@ -358,7 +358,7 @@ const Settings = () => {
                         placeholder="Confirm new password" />
                       <button type="button" onClick={() => setShowConfirm(o => !o)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                        {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showConfirm ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
                       </button>
                     </div>
                     {softData.confirmPassword && softData.newPassword !== softData.confirmPassword && (
@@ -372,7 +372,7 @@ const Settings = () => {
             <div className="flex justify-end pt-4 border-t border-gray-100">
               <button type="submit" disabled={softLoading}
                 className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-colors disabled:opacity-50">
-                <Save size={18} /> {softLoading ? 'Saving…' : 'Save Account Settings'}
+                <FaSave size={18} /> {softLoading ? 'Saving…' : 'Save Account Settings'}
               </button>
             </div>
           </form>

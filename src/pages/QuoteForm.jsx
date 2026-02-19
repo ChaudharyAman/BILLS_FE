@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
-import { Trash2, Plus } from 'lucide-react';
+import { FaTrash, FaPlus } from 'react-icons/fa';
 import Modal from '../components/Modal';
 import ClientForm from './ClientForm';
 import Skeleton from '../components/Skeleton';
@@ -457,7 +457,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
                       {formData.items.length > 1 && (
                         <button type="button" onClick={() => removeItem(idx)}
                           className="text-gray-300 hover:text-red-500 transition-colors">
-                          <Trash2 size={15} />
+                          <FaTrash size={15} />
                         </button>
                       )}
                     </td>
@@ -471,7 +471,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
           <div className="flex justify-end mt-2">
             <button type="button" onClick={addItem}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-medium flex items-center gap-1.5 transition-colors">
-              <Plus size={14} /> Add line
+              <FaPlus size={14} /> Add line
             </button>
           </div>
         </div>

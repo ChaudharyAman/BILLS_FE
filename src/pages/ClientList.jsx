@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Plus, Search, ChevronDown, ArrowUpDown } from 'lucide-react';
+import { FaPlus, FaSearch, FaChevronDown, FaSort } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 
 const ClientList = () => {
@@ -76,7 +76,7 @@ const ClientList = () => {
             <div className="relative">
                 <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-100 font-medium whitespace-nowrap">
                    Filter Clients / Customers 
-                   <ChevronDown size={14} className="text-slate-400" />
+                   <FaChevronDown size={14} className="text-slate-400" />
                 </button>
             </div>
 
@@ -89,7 +89,7 @@ const ClientList = () => {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <Search className="absolute right-3 top-2.5 text-slate-400 h-4 w-4" />
+                <FaSearch className="absolute right-3 top-2.5 text-slate-400 h-4 w-4" />
             </div>
         </div>
 
@@ -99,7 +99,7 @@ const ClientList = () => {
               to="/clients/new"
               className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-semibold shadow-sm"
             >
-              <Plus size={18} />
+              <FaPlus size={18} />
               New
             </Link>
              <button className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors border border-slate-200">
@@ -158,7 +158,7 @@ const ClientList = () => {
                             <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide cursor-pointer group select-none">
                                 <div className="flex items-center gap-1">
                                     Company name 
-                                    <ArrowUpDown size={12} className="text-slate-400 opacity-0 group-hover:opacity-100" />
+                                    <FaSort size={12} className="text-slate-400 opacity-0 group-hover:opacity-100" />
                                 </div>
                             </th>
                             <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">
@@ -173,7 +173,7 @@ const ClientList = () => {
                              <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide cursor-pointer group select-none">
                                  <div className="flex items-center gap-1">
                                     Email
-                                    <ArrowUpDown size={12} className="text-slate-400 opacity-0 group-hover:opacity-100" />
+                                    <FaSort size={12} className="text-slate-400 opacity-0 group-hover:opacity-100" />
                                 </div>
                             </th>
                              <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">
@@ -231,7 +231,7 @@ const ClientList = () => {
             <div className="relative">
                  <button className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded text-sm text-slate-600 hover:bg-slate-50">
                     10 per page
-                    <ChevronDown size={14} />
+                    <FaChevronDown size={14} />
                  </button>
             </div>
         </div>

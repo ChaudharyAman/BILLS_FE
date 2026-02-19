@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Plus, Download, CheckSquare, Square, Edit, Trash2, Eye, ChevronDown } from 'lucide-react';
+import { FaPlus, FaDownload, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaChevronDown } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 
 const DOC_TYPES = [
@@ -124,7 +124,7 @@ const InvoiceList = () => {
         <div className="flex gap-3">
            {selectedInvoices.length > 0 && (
               <button className="bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 border border-gray-300 shadow-sm transition-all text-sm font-medium">
-                  <Download size={16} /> Export Selected
+                  <FaDownload size={16} /> Export Selected
               </button>
            )}
 
@@ -135,14 +135,14 @@ const InvoiceList = () => {
                 onClick={() => navigate('/invoices/new?type=Tax+Invoice')}
                 className="bg-blue-600 hover:bg-blue-700 text-white pl-4 pr-3 py-2 rounded-l-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm border-r border-blue-500"
               >
-                <Plus size={16} /> New Document
+                <FaPlus size={16} /> New Document
               </button>
               <button
                 onClick={() => setTypeMenuOpen(o => !o)}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-2 rounded-r-lg shadow-sm transition-all"
                 title="Choose document type"
               >
-                <ChevronDown size={16} />
+                <FaChevronDown size={16} />
               </button>
             </div>
 
@@ -199,7 +199,7 @@ const InvoiceList = () => {
               <tr>
                 <th className="px-6 py-3 w-12 text-center">
                   <button onClick={toggleSelectAll} className="text-gray-400 hover:text-gray-600 transition-colors">
-                    {selectedInvoices.length === invoices.length && invoices.length > 0 ? <CheckSquare size={18} /> : <Square size={18} />}
+                    {selectedInvoices.length === invoices.length && invoices.length > 0 ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
                   </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Invoice</th>
@@ -237,7 +237,7 @@ const InvoiceList = () => {
                   <tr key={inv._id} className="hover:bg-blue-50/50 transition-colors group">
                     <td className="px-6 py-4 text-center">
                       <button onClick={() => toggleSelect(inv._id)} className={`${selectedInvoices.includes(inv._id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}`}>
-                         {selectedInvoices.includes(inv._id) ? <CheckSquare size={18} /> : <Square size={18} />}
+                         {selectedInvoices.includes(inv._id) ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
                       </button>
                     </td>
                     
@@ -287,10 +287,10 @@ const InvoiceList = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                         <div className="flex justify-center gap-3">
                             <Link to={`/invoices/${inv._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View">
-                                <Eye size={18} />
+                                <FaEye size={18} />
                             </Link>
                             <Link to={`/invoices/edit/${inv._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit">
-                                <Edit size={18} />
+                                <FaEdit size={18} />
                             </Link>
                             <button 
                                 onClick={async () => {
@@ -306,7 +306,7 @@ const InvoiceList = () => {
                                 className="text-gray-400 hover:text-red-600 transition-colors"
                                 title="Delete"
                             >
-                                <Trash2 size={18} />
+                                <FaTrash size={18} />
                             </button>
                         </div>
                     </td>

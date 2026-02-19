@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
 import UnitSelector from '../components/UnitSelector';
 import TaxRateSelector from '../components/TaxRateSelector';
-import { Save, ArrowLeft } from 'lucide-react';
+import { FaSave, FaArrowLeft } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 
 const ItemForm = () => {
@@ -141,7 +141,7 @@ const ItemForm = () => {
             onClick={() => navigate('/items')}
             className="text-gray-500 hover:text-gray-700"
           >
-            <ArrowLeft size={24} />
+            <FaArrowLeft size={24} />
           </button>
           <h1 className="text-2xl font-bold text-gray-800">{id ? 'Edit Item' : 'New Item'}</h1>
         </div>
@@ -368,7 +368,7 @@ const ItemForm = () => {
             disabled={loading}
             className="px-8 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 flex items-center gap-2 shadow-sm font-medium"
           >
-            <Save size={18} />
+            <FaSave size={18} />
             {loading ? 'Saving...' : 'Save'}
           </button>
            <button

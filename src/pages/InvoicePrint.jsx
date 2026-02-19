@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Printer, ArrowLeft } from 'lucide-react';
+import { FaPrint, FaArrowLeft } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -152,7 +152,7 @@ const InvoicePrint = () => {
         className="print:hidden">
         <button onClick={() => navigate('/invoices')}
           style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: `1px solid ${BORDER}`, borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, color: '#374151' }}>
-          <ArrowLeft size={15} /> Back
+          <FaArrowLeft size={15} /> Back
         </button>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#6b7280', background: '#fff', padding: '4px 12px', borderRadius: 20, border: `1px solid ${BORDER}` }}>
@@ -160,7 +160,7 @@ const InvoicePrint = () => {
           </span>
           <button onClick={() => window.print()}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', background: NAVY, color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-            <Printer size={15} /> Print / Download
+            <FaPrint size={15} /> Print / Download
           </button>
         </div>
       </div>

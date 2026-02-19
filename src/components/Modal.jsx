@@ -1,5 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { FaTimes } from 'react-icons/fa';
 
 const Modal = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
@@ -31,7 +31,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
                 onClick={onClose}
                 className="bg-white rounded-full p-1 hover:bg-gray-100 focus:outline-none"
               >
-                <X size={24} className="text-gray-500" />
+                <FaTimes size={24} className="text-gray-500" />
               </button>
             </div>
           </div>
