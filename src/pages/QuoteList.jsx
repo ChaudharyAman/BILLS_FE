@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { Plus, CheckSquare, Square, Edit, Trash2, Eye, ChevronDown, FileText, ArrowRight } from 'lucide-react';
+import Skeleton from '../components/Skeleton';
 
 const QuoteList = () => {
   const navigate = useNavigate();
@@ -101,7 +102,18 @@ const QuoteList = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
-                <tr><td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">Loading quotes...</td></tr>
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} className="bg-white border-b border-gray-100">
+                    <td className="px-6 py-4 text-center"><Skeleton width="18px" height="18px" className="mx-auto" /></td>
+                    <td className="px-6 py-4"><Skeleton width="100px" height="20px" /></td>
+                    <td className="px-6 py-4"><Skeleton width="140px" height="20px" /></td>
+                    <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
+                    <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
+                    <td className="px-6 py-4"><Skeleton width="80px" height="24px" className="rounded-full" /></td>
+                    <td className="px-6 py-4 text-right"><Skeleton width="80px" height="20px" className="ml-auto" /></td>
+                    <td className="px-6 py-4 text-center"><Skeleton width="100px" height="20px" className="mx-auto" /></td>
+                  </tr>
+                ))
               ) : displayed.length === 0 ? (
                 <tr><td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">No quotes found.</td></tr>
               ) : displayed.map(q => (

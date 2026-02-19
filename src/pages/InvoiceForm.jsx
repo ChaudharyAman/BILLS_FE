@@ -4,6 +4,7 @@ import api from '../api/axios';
 import { Plus, Trash2, Calendar, ChevronDown } from 'lucide-react';
 import Modal from '../components/Modal';
 import ClientForm from './ClientForm';
+import Skeleton from '../components/Skeleton';
 
 const INVOICE_TYPES = ['Invoice', 'Retail Invoice', 'Tax Invoice', 'Excise Invoice'];
 
@@ -230,6 +231,41 @@ const InvoiceForm = () => {
   const lbl = 'block text-xs font-medium text-gray-500 mb-1';
 
   const { cgst, sgst } = getTaxBreakdown();
+  
+  if (loading && id) {
+      return (
+        <div className="bg-white min-h-screen pb-20">
+            <div className="border-b border-gray-200 px-8 py-3 flex justify-between items-center sticky top-0 bg-white z-20 shadow-sm">
+                <div className="flex items-center gap-4"><Skeleton width="150px" height="28px" /></div>
+                <div className="flex gap-3">
+                    <Skeleton width="80px" height="36px" className="rounded-lg" />
+                    <Skeleton width="120px" height="36px" className="rounded-lg" />
+                </div>
+            </div>
+            <div className="px-8 py-6 max-w-[1600px] mx-auto">
+                <div className="grid grid-cols-12 gap-6 mb-6">
+                    <div className="col-span-4 space-y-3">
+                        <div><Skeleton width="100px" height="16px" className="mb-2" /><Skeleton width="100%" height="40px" /></div>
+                        <div><Skeleton width="100px" height="16px" className="mb-2" /><Skeleton width="100%" height="40px" /></div>
+                    </div>
+                    <div className="col-span-8 grid grid-cols-3 gap-x-4 gap-y-3">
+                        {[...Array(6)].map((_, i) => (
+                            <div key={i}><Skeleton width="80px" height="16px" className="mb-2" /><Skeleton width="100%" height="40px" /></div>
+                        ))}
+                    </div>
+                </div>
+                <div className="mb-6"><Skeleton width="100%" height="200px" className="rounded-lg" /></div>
+                <div className="grid grid-cols-12 gap-8">
+                     <div className="col-span-7 space-y-4">
+                        <Skeleton width="60%" height="40px" />
+                        <Skeleton width="60%" height="40px" />
+                     </div>
+                     <div className="col-span-5"><Skeleton width="100%" height="150px" className="rounded-xl" /></div>
+                </div>
+            </div>
+        </div>
+      );
+  }
 
   return (
     <div className="bg-white min-h-screen pb-20">

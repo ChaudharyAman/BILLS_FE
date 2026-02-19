@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
 import { Save, ArrowLeft, Plus, Trash2, User } from 'lucide-react';
+import Skeleton from '../components/Skeleton';
 
 const ClientForm = ({ onSuccess, onCancel }) => {
   const navigate = useNavigate();
@@ -239,6 +240,41 @@ const ClientForm = ({ onSuccess, onCancel }) => {
   };
 
   const isModal = !!onSuccess;
+  
+  if(loading && id && !isModal) {
+      return (
+         <div className="container mx-auto p-6 max-w-7xl">
+            <div className="mb-6 flex items-center justify-between">
+                <div className="flex items-center gap-4"><Skeleton width="200px" height="32px" /></div>
+            </div>
+            <div className="flex flex-col lg:flex-row gap-6">
+                 <div className="w-full lg:w-1/3 space-y-4">
+                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                         <div className="space-y-4">
+                            {[...Array(5)].map((_,i) => (
+                                <div key={i}><Skeleton width="100px" height="16px" className="mb-2" /><Skeleton width="100%" height="40px" /></div>
+                            ))}
+                         </div>
+                     </div>
+                 </div>
+                 <div className="w-full lg:w-2/3 flex flex-col gap-6">
+                      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[500px] flex flex-col">
+                           <div className="flex border-b border-slate-100 bg-slate-50/50 p-2 gap-2">
+                               <Skeleton width="80px" height="30px" />
+                               <Skeleton width="80px" height="30px" />
+                               <Skeleton width="80px" height="30px" />
+                           </div>
+                           <div className="p-8 flex-1 space-y-6">
+                               <div className="grid grid-cols-2 gap-4">
+                                   {[...Array(4)].map((_,i) => <div key={i}><Skeleton width="100px" height="16px" className="mb-2" /><Skeleton width="100%" height="40px" /></div>)}
+                               </div>
+                           </div>
+                      </div>
+                 </div>
+            </div>
+         </div>
+      );
+  }
 
   return (
     <div className={`container mx-auto ${isModal ? '' : 'p-6 max-w-7xl'}`}>

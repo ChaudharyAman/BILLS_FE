@@ -4,6 +4,7 @@ import api from '../api/axios';
 import UnitSelector from '../components/UnitSelector';
 import TaxRateSelector from '../components/TaxRateSelector';
 import { Save, ArrowLeft } from 'lucide-react';
+import Skeleton from '../components/Skeleton';
 
 const ItemForm = () => {
   const navigate = useNavigate();
@@ -95,6 +96,42 @@ const ItemForm = () => {
       setLoading(false);
     }
   };
+
+  if (loading && id) {
+      return (
+        <div className="container mx-auto p-6 max-w-5xl">
+            <div className="mb-6 flex items-center justify-between">
+                <div className="flex items-center gap-4"><Skeleton width="150px" height="32px" /></div>
+                <div className="bg-white rounded-lg border p-1 flex gap-1">
+                    <Skeleton width="100px" height="36px" />
+                    <Skeleton width="100px" height="36px" />
+                </div>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 mb-8">
+                    {[...Array(6)].map((_, i) => (
+                        <div key={i} className="col-span-1">
+                             <Skeleton width="100px" height="16px" className="mb-1" />
+                             <Skeleton width="100%" height="40px" />
+                        </div>
+                    ))}
+                </div>
+                <div className="mb-8">
+                    <Skeleton width="100px" height="24px" className="mb-4" />
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg">
+                        {[...Array(4)].map((_, i) => <div key={i}><Skeleton width="80px" height="16px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>)}
+                    </div>
+                </div>
+                <div className="mb-8">
+                    <Skeleton width="120px" height="24px" className="mb-4" />
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg">
+                        {[...Array(4)].map((_, i) => <div key={i}><Skeleton width="80px" height="16px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>)}
+                    </div>
+                </div>
+            </div>
+        </div>
+      );
+  }
 
   return (
     <div className="container mx-auto p-6 max-w-5xl">

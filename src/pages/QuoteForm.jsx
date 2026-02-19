@@ -4,6 +4,7 @@ import api from '../api/axios';
 import { Trash2, Plus } from 'lucide-react';
 import Modal from '../components/Modal';
 import ClientForm from './ClientForm';
+import Skeleton from '../components/Skeleton';
 
 // docType: 'quote' | 'proforma'
 const QuoteForm = ({ docType = 'quote' }) => {
@@ -210,6 +211,66 @@ const QuoteForm = ({ docType = 'quote' }) => {
   // ── Styles ───────────────────────────────────────────────────────────────────
   const inp = 'border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white w-full';
   const th = 'px-3 py-2.5 text-left text-xs font-semibold text-gray-600 bg-gray-100 border-b border-gray-200 whitespace-nowrap';
+  
+  if (loading && id) {
+      return (
+        <div className="min-h-screen bg-white font-sans text-gray-800">
+            <div className="px-6 pt-5 pb-3 border-b border-gray-200"><Skeleton width="200px" height="28px" /></div>
+            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                          <Skeleton width="100px" height="20px" />
+                          <Skeleton width="220px" height="36px" className="flex-1" />
+                      </div>
+                  </div>
+                  <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                          <Skeleton width="100px" height="20px" />
+                          <Skeleton width="80px" height="36px" />
+                          <Skeleton width="60px" height="36px" />
+                          <Skeleton width="100px" height="20px" />
+                          <Skeleton width="120px" height="36px" className="flex-1" />
+                      </div>
+                      <div className="flex items-center gap-3">
+                           <Skeleton width="140px" height="36px" />
+                           <Skeleton width="120px" height="36px" />
+                           <Skeleton width="100px" height="20px" />
+                           <Skeleton width="120px" height="36px" className="flex-1" />
+                      </div>
+                  </div>
+               </div>
+            </div>
+            <div className="px-6 py-4">
+                <Skeleton width="150px" height="24px" className="mb-3" />
+                <div className="border border-gray-200 rounded overflow-hidden">
+                    <div className="bg-gray-100 p-3 flex gap-2">
+                        {[...Array(9)].map((_,i) => <Skeleton key={i} width="80px" height="20px" />)}
+                    </div>
+                    <div className="p-3 space-y-3">
+                        {[...Array(3)].map((_,i) => (
+                             <div key={i} className="flex gap-2">
+                                {[...Array(9)].map((_,j) => <Skeleton key={j} width="80px" height="36px" />)}
+                             </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+             <div className="px-6 pb-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3 pt-2">
+                    <Skeleton width="200px" height="24px" />
+                    <Skeleton width="200px" height="24px" />
+                    <Skeleton width="200px" height="24px" />
+                </div>
+                 <div className="flex flex-col items-end justify-start pt-2 space-y-2">
+                      <Skeleton width="250px" height="24px" />
+                      <Skeleton width="250px" height="24px" />
+                      <Skeleton width="250px" height="32px" className="mt-2" />
+                 </div>
+             </div>
+        </div>
+      );
+  }
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-800">

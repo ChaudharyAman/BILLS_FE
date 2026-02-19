@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { Save, Upload, Building, Settings as SettingsIcon, Eye, EyeOff } from 'lucide-react';
+import Skeleton from '../components/Skeleton';
 
 const inputCls = 'w-full border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 text-sm';
 
 const Settings = () => {
   const [tab, setTab] = useState('company'); // 'company' | 'software'
+  const [pageLoading, setPageLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [softLoading, setSoftLoading] = useState(false);
   const [showCurrent, setShowCurrent] = useState(false);
@@ -52,6 +54,7 @@ const Settings = () => {
         }));
       }
     } catch (e) { console.error(e); }
+    finally { setPageLoading(false); }
   };
 
   const handleChange = (e) => {
@@ -156,7 +159,33 @@ const Settings = () => {
       </div>
 
       {/* ── COMPANY SETTINGS ── */}
-      {tab === 'company' && (
+      {pageLoading ? (
+        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+           <div className="flex flex-col md:flex-row gap-8 items-start border-b border-gray-100 pb-6 mb-6">
+              <div className="w-full md:w-1/3">
+                 <Skeleton width="100px" height="20px" className="mb-2" />
+                 <Skeleton width="100%" height="160px" className="rounded-lg" />
+              </div>
+              <div className="w-full md:w-2/3 space-y-4">
+                 <div><Skeleton width="120px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+                 <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+                    <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+                 </div>
+              </div>
+           </div>
+           <div className="space-y-4">
+               <div><Skeleton width="150px" height="24px" className="mb-4" /></div>
+               <div><Skeleton width="120px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+               <div className="grid grid-cols-3 gap-3">
+                   <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+                   <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+                   <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+               </div>
+           </div>
+        </div>
+      ) : tab === 'company' && (
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
           <form onSubmit={handleCompanySubmit} className="space-y-6">
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { Printer, ArrowLeft } from 'lucide-react';
+import Skeleton from '../components/Skeleton';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function numberToWords(num) {
@@ -66,7 +67,66 @@ const InvoicePrint = () => {
     load();
   }, [id]);
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading invoice…</div>;
+  if (loading) {
+      return (
+        <div style={{ background: '#f3f4f6', minHeight: '100vh', padding: '20px 0' }}>
+            <div style={{ maxWidth: 900, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between' }}>
+                <Skeleton width="80px" height="36px" />
+                <div style={{ display: 'flex', gap: 10 }}>
+                    <Skeleton width="100px" height="30px" />
+                    <Skeleton width="160px" height="36px" />
+                </div>
+            </div>
+            <div style={{ maxWidth: 900, margin: '0 auto', background: '#fff', padding: '36px 40px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)' }}>
+                <Skeleton width="100%" height="6px" className="mb-6 rounded" />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
+                    <div>
+                        <Skeleton width="60px" height="60px" className="mb-2" />
+                        <Skeleton width="200px" height="24px" className="mb-1" />
+                        <Skeleton width="150px" height="14px" className="mb-1" />
+                        <Skeleton width="100px" height="14px" />
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <Skeleton width="180px" height="32px" className="mb-1 ml-auto" />
+                        <Skeleton width="100px" height="16px" className="ml-auto" />
+                    </div>
+                </div>
+                <div style={{ height: 80, background: '#f8fafc', borderRadius: 8, padding: 16, marginBottom: 20 }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        {[...Array(4)].map((_,i) => <div key={i}><Skeleton width="60px" height="10px" className="mb-1" /><Skeleton width="80px" height="14px" /></div>)}
+                     </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+                     <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 16 }}>
+                         <Skeleton width="60px" height="10px" className="mb-2" />
+                         <Skeleton width="120px" height="16px" className="mb-1" />
+                         <Skeleton width="180px" height="14px" className="mb-1" />
+                         <Skeleton width="100px" height="14px" />
+                     </div>
+                     <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 16 }}>
+                         <Skeleton width="60px" height="10px" className="mb-2" />
+                         <Skeleton width="120px" height="16px" className="mb-1" />
+                         <Skeleton width="180px" height="14px" className="mb-1" />
+                         <Skeleton width="100px" height="14px" />
+                     </div>
+                </div>
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden', marginBottom: 24 }}>
+                    <div style={{ background: '#1e3a5f', height: 32 }}></div>
+                    <div style={{ padding: 10 }}>
+                         {[...Array(5)].map((_,i) => <Skeleton key={i} width="100%" height="24px" className="mb-2" />)}
+                    </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                     <div style={{ width: 300, border: '1px solid #e5e7eb', borderRadius: 8, padding: 16 }}>
+                         {[...Array(4)].map((_,i) => <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}><Skeleton width="80px" height="14px" /><Skeleton width="60px" height="14px" /></div>)}
+                         <Skeleton width="100%" height="2px" className="my-2" />
+                         <div style={{ display: 'flex', justifyContent: 'space-between' }}><Skeleton width="100px" height="18px" /><Skeleton width="80px" height="18px" /></div>
+                     </div>
+                </div>
+            </div>
+        </div>
+      );
+  }
   if (!invoice) return <div style={{ padding: 40, textAlign: 'center', color: '#ef4444' }}>Invoice not found.</div>;
 
   const invType = invoice.invoiceType || 'Tax Invoice';

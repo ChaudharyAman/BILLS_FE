@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { Plus, Search, ChevronDown, ArrowUpDown } from 'lucide-react';
+import Skeleton from '../components/Skeleton';
 
 const ClientList = () => {
   const navigate = useNavigate();
@@ -113,7 +114,34 @@ const ClientList = () => {
       {/* Table */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
         {loading ? (
-             <div className="text-center py-12 text-slate-500">Loading...</div>
+             <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-[#f8f9fa] border-b border-gray-200">
+                        <tr>
+                            <th className="px-4 py-3 w-10"><Skeleton width="16px" height="16px" /></th>
+                            <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">Company name</th>
+                            <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">Contact name</th>
+                            <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">Balance</th>
+                             <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">City</th>
+                             <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">Email</th>
+                             <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">Phone</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {[...Array(5)].map((_, i) => (
+                            <tr key={i} className="bg-white">
+                                <td className="px-4 py-4"><Skeleton width="16px" height="16px" /></td>
+                                <td className="px-4 py-4"><Skeleton width="140px" height="20px" /></td>
+                                <td className="px-4 py-4"><Skeleton width="120px" height="20px" /></td>
+                                <td className="px-4 py-4"><Skeleton width="80px" height="20px" /></td>
+                                <td className="px-4 py-4"><Skeleton width="100px" height="20px" /></td>
+                                <td className="px-4 py-4"><Skeleton width="160px" height="20px" /></td>
+                                <td className="px-4 py-4"><Skeleton width="100px" height="20px" /></td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+             </div>
         ) : (
              <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">

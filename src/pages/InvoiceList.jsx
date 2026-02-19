@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { Plus, Download, CheckSquare, Square, Edit, Trash2, Eye, ChevronDown } from 'lucide-react';
+import Skeleton from '../components/Skeleton';
 
 const DOC_TYPES = [
   {
@@ -213,7 +214,22 @@ const InvoiceList = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
-                <tr><td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">Loading invoices...</td></tr>
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} className="bg-white border-b border-gray-100">
+                     <td className="px-6 py-4 text-center"><Skeleton width="20px" height="20px" className="mx-auto" /></td>
+                     <td className="px-6 py-4"><Skeleton width="100px" height="20px" /></td>
+                     <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
+                     <td className="px-6 py-4">
+                        <Skeleton width="120px" height="20px" className="mb-1" />
+                        <Skeleton width="80px" height="15px" />
+                     </td>
+                     <td className="px-6 py-4"><Skeleton width="100px" height="20px" /></td>
+                     <td className="px-6 py-4"><Skeleton width="60px" height="24px" className="rounded-full" /></td>
+                     <td className="px-6 py-4"><Skeleton width="80px" height="20px" className="ml-auto" /></td>
+                     <td className="px-6 py-4"><Skeleton width="80px" height="20px" className="ml-auto" /></td>
+                     <td className="px-6 py-4 text-center"><Skeleton width="80px" height="20px" className="mx-auto" /></td>
+                  </tr>
+                ))
               ) : displayedInvoices.length === 0 ? (
                 <tr><td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">No invoices found.</td></tr>
               ) : (

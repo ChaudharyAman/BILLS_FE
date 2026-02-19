@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { Plus, Search, Package, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import Skeleton from '../components/Skeleton';
 
 const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50];
 
@@ -99,9 +100,39 @@ const ItemList = () => {
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {loading ? (
-          <div className="text-center py-16 text-slate-400 text-sm">Loading items...</div>
-        ) : filteredItems.length === 0 ? (
-          <div className="text-center py-16">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                   <th className="px-4 py-3 w-10"><Skeleton width="16px" height="16px" /></th>
+                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Name</th>
+                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Description</th>
+                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">SKU</th>
+                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Type</th>
+                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Price</th>
+                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Unit</th>
+                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider text-right">Quantity</th>
+                   <th className="px-4 py-3 w-8"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {[...Array(5)].map((_, i) => (
+                  <tr key={i} className="bg-white">
+                    <td className="px-4 py-3"><Skeleton width="16px" height="16px" /></td>
+                    <td className="px-4 py-3"><Skeleton width="120px" height="20px" /></td>
+                    <td className="px-4 py-3"><Skeleton width="180px" height="20px" /></td>
+                    <td className="px-4 py-3"><Skeleton width="60px" height="20px" /></td>
+                    <td className="px-4 py-3"><Skeleton width="60px" height="20px" /></td>
+                    <td className="px-4 py-3"><Skeleton width="80px" height="20px" /></td>
+                    <td className="px-4 py-3"><Skeleton width="40px" height="20px" /></td>
+                    <td className="px-4 py-3"><Skeleton width="40px" height="20px" className="ml-auto" /></td>
+                    <td className="px-4 py-3"><Skeleton width="20px" height="20px" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : filteredItems.length === 0 ? (          <div className="text-center py-16">
             <Package size={40} className="mx-auto text-slate-300 mb-3" />
             <p className="text-slate-500 font-medium">No items found</p>
             <p className="text-slate-400 text-sm mt-1">Create your first item to get started</p>
