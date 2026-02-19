@@ -118,8 +118,8 @@ const InvoicePrint = () => {
         {/* ── Header: Company + Invoice Title ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           <div>
-            {company.logo && (
-              <img src={company.logo} alt="logo" style={{ height: 52, marginBottom: 8, objectFit: 'contain' }} />
+            {(company.logoUrl || company.logo) && (
+              <img src={company.logoUrl || company.logo} alt="logo" style={{ height: 52, marginBottom: 8, objectFit: 'contain' }} />
             )}
             <div style={{ fontSize: 20, fontWeight: 800, color: NAVY, letterSpacing: '-0.3px' }}>
               {company.companyName || 'Your Company'}
