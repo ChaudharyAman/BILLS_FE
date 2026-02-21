@@ -19,6 +19,7 @@ const ClientForm = lazy(() => import('./pages/ClientForm'));
 const ItemList = lazy(() => import('./pages/ItemList'));
 const ItemForm = lazy(() => import('./pages/ItemForm'));
 const Settings = lazy(() => import('./pages/Settings'));
+const Subscription = lazy(() => import('./pages/Subscription'));
 
 
 function App() {
@@ -66,6 +67,7 @@ function App() {
                   <Route path="/items/new" element={<ItemForm />} />
                   <Route path="/items/edit/:id" element={<ItemForm />} />
 
+                  <Route path="/subscription" element={<Subscription />} />
                   <Route path="/settings" element={<Settings />} />
                 </Routes>
               </Layout>

@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   FaThLarge, FaUsers, FaBox, FaFileInvoice,
   FaClipboardList, FaCog, FaSignOutAlt,
-  FaChevronDown, FaChevronRight, FaMinus,
+  FaChevronDown, FaChevronRight, FaMinus, FaStar,
 } from 'react-icons/fa';
 
 const NAV = [
@@ -108,6 +108,13 @@ const Layout = ({ children }) => {
               </Link>
             </div>
           )}
+
+          {/* Subscription */}
+          <Link to="/subscription" className={linkCls('/subscription')}>
+            <div className="flex items-center gap-3 text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 font-bold tracking-wide">
+              <FaStar size={ICON_SIZE} className="text-amber-400" /> Upgrade
+            </div>
+          </Link>
 
           {/* Settings */}
           <Link to="/settings" className={linkCls('/settings')}>

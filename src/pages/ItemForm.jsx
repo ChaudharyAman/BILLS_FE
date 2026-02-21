@@ -266,6 +266,7 @@ const ItemForm = ({ isModal, onSuccess }) => {
             <input
               type="text"
               name="sku"
+              placeholder="Auto-generated if left blank"
               className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border"
               value={formData.sku}
               onChange={handleChange}

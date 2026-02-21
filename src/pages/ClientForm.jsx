@@ -12,6 +12,7 @@ const ClientForm = ({ onSuccess, onCancel }) => {
   const [showShipping, setShowShipping] = useState(false);
 
   const [formData, setFormData] = useState({
+    clientType: 'Company',
     name: '',
     phone: '',
     email: '',
@@ -300,8 +301,23 @@ const ClientForm = ({ onSuccess, onCancel }) => {
         <div className="w-full lg:w-1/3 space-y-4">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <div className="space-y-4">
+                    
+                    {/* Client Type Toggle */}
+                    <div className="flex gap-4 p-1 bg-slate-100/50 rounded-lg w-max mb-6 border border-slate-200/60">
+                         <label className={`px-4 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wide cursor-pointer transition-all ${formData.clientType === 'Company' ? 'bg-white text-teal-700 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                             <input type="radio" name="clientType" value="Company" checked={formData.clientType === 'Company'} onChange={handleChange} className="hidden" />
+                             Company
+                         </label>
+                         <label className={`px-4 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wide cursor-pointer transition-all ${formData.clientType === 'Individual' ? 'bg-white text-teal-700 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                             <input type="radio" name="clientType" value="Individual" checked={formData.clientType === 'Individual'} onChange={handleChange} className="hidden" />
+                             Individual
+                         </label>
+                     </div>
+
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Company Name *</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">
+                            {formData.clientType === 'Company' ? 'Company Name *' : 'Customer Name *'}
+                        </label>
                         <input type="text" name="name" required value={formData.name} onChange={handleChange}
                             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                     </div>
