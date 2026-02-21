@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { FaPlus, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaChevronDown, FaFileAlt, FaArrowRight } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
+import ExportDropdown from '../components/ExportDropdown';
+import Modal from '../components/Modal';
+import CsvUploader from '../components/CsvUploader';
 
 const QuoteList = () => {
   const navigate = useNavigate();
@@ -11,6 +14,8 @@ const QuoteList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => { fetchQuotes(); }, []);
 
@@ -42,6 +47,61 @@ const QuoteList = () => {
   const toggleAll = () =>
     setSelectedIds(selectedIds.length === quotes.length ? [] : quotes.map(q => q._id));
 
+  const handleCsvParsed = async (data) => {
+    setIsImporting(true);
+    try {
+      const grouped = {};
+      data.forEach(row => {
+        const id = row['Quote No'] || row['Draft No'] || row.ID || Math.random().toString();
+        if (!grouped[id]) {
+          grouped[id] = {
+            clientName: row['Client Name'] || row.Client || '',
+            clientEmail: row['Client Email'] || '',
+            clientPhone: row['Client Phone'] || '',
+            clientState: row['Client State'] || row['Place of Supply'] || '',
+            placeOfSupply: row['Client State'] || row['Place of Supply'] || '',
+            invoiceType: row['Invoice Type'] || row.Type || 'Tax Invoice',
+            date: row['Date'] || row['Quote Date'] || undefined,
+            validUntil: row['Valid Until'] || undefined,
+            shippingCharges: Number(row['Shipping Charges']) || 0,
+            packagingCharges: Number(row['Packaging Charges']) || 0,
+            discountTotal: Number(row['Discount Total'] || row.Discount) || 0,
+            items: []
+          };
+        }
+        if (row['Item Name'] || row.Item) {
+           grouped[id].items.push({
+             name: row['Item Name'] || row.Item,
+             description: row['Item Description'] || '',
+             qty: Number(row.Qty || row.QTY || row.Quantity) || 1,
+             rate: Number(row.Rate || row.Price) || 0,
+             taxRate: Number(row['Tax Rate'] || row.Tax) || 0,
+             discount: Number(row['Item Discount']) || 0 
+           });
+        }
+      });
+
+      const formattedQuotes = Object.values(grouped).filter(q => q.clientName);
+
+      if (formattedQuotes.length === 0) {
+        alert('No valid quotes found. Ensure the "Client Name" column exists.');
+        setIsImporting(false);
+        return;
+      }
+
+      await api.post('/quotes/bulk', { quotes: formattedQuotes });
+      alert(`Successfully imported \${formattedQuotes.length} quotes!`);
+      setIsCsvModalOpen(false);
+      setLoading(true);
+      fetchQuotes();
+    } catch (error) {
+      console.error('Bulk import error:', error);
+      alert('Failed to import quotes: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const filtered = quotes.filter(q =>
     q.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     q.quoteNo?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -67,10 +127,30 @@ const QuoteList = () => {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Quotes</h1>
           <p className="text-gray-500 mt-1">Create and manage quotations for your clients</p>
         </div>
-        <Link to="/quotes/new"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm">
-          <FaPlus size={16} /> New Quote
-        </Link>
+        <div className="flex gap-3">
+          <ExportDropdown 
+              data={selectedIds.length > 0 ? quotes.filter(q => selectedIds.includes(q._id)) : filtered}
+              filename="MyBill_Quotes"
+              columns={[
+                 { header: 'Quote No', key: 'quoteNo' },
+                 { header: 'Client Name', key: 'client.name' },
+                 { header: 'Date', key: 'date' },
+                 { header: 'Valid Until', key: 'validUntil' },
+                 { header: 'Status', key: 'status' },
+                 { header: 'Grand Total', key: 'grandTotal' }
+              ]}
+          />
+          <button
+             onClick={() => setIsCsvModalOpen(true)}
+             className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+           >
+             <FaFileAlt size={16} /> Bulk Import
+           </button>
+          <Link to="/quotes/new"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm">
+            <FaPlus size={16} /> New Quote
+          </Link>
+        </div>
       </div>
 
       {/* Table */}
@@ -177,6 +257,27 @@ const QuoteList = () => {
           </div>
         </div>
       </div>
+
+      {/* Bulk Upload CSV Modal */}
+      <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Quotes to Database">
+        <CsvUploader 
+          onDataParsed={handleCsvParsed} 
+          isLoading={isImporting}
+          title="Upload Quotes CSV"
+          subtitle="Group rows by 'Quote No' or 'ID'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
+        />
+        <div className="mt-4 flex justify-end">
+          <button 
+            type="button" 
+            onClick={() => setIsCsvModalOpen(false)} 
+            disabled={isImporting}
+            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
+
     </div>
   );
 };

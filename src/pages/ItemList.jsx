@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { FaPlus, FaSearch, FaBox, FaChevronLeft, FaChevronRight, FaPencilAlt } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaBox, FaChevronLeft, FaChevronRight, FaPencilAlt, FaUpload } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
+import Modal from '../components/Modal';
+import CsvUploader from '../components/CsvUploader';
+import ExportDropdown from '../components/ExportDropdown';
 
 const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50];
 
@@ -14,6 +17,8 @@ const ItemList = () => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
     fetchItems();
@@ -27,6 +32,41 @@ const ItemList = () => {
       console.error('Error fetching items:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCsvParsed = async (data) => {
+    setIsImporting(true);
+    try {
+      const formattedItems = data.map(row => ({
+        name: row['Item Name'] || row.Name || row.name || row.Item || row.item,
+        description: row.Description || row.description || row.Desc || row.desc || '',
+        sku: row.SKU || row.sku || '',
+        hsnCode: row.HSNCode || row.hsnCode || row.HSN || row.hsn || '',
+        type: (row.Type || row.type || '').toLowerCase() === 'service' ? 'Service' : 'Product',
+        unit: row.Unit || row.unit || 'pcs',
+        salesInfo: { price: Number(row.Price || row.price || row.Rate || row.rate) || 0 },
+        purchaseInfo: { price: Number(row.PurchasePrice || row.purchasePrice) || 0 },
+        defaultTaxRate: Number(row.TaxRate || row.taxRate || row.Tax || row.tax) || 0,
+        openingQuantity: Number(row.QTY || row.Qty || row.qty || row.Quantity || row.quantity) || 0,
+      })).filter(item => item.name); // ensure a name exists
+
+      if (formattedItems.length === 0) {
+        alert('No valid items found in the CSV. Please ensure the "Name" column exists.');
+        setIsImporting(false);
+        return;
+      }
+
+      await api.post('/items/bulk', { items: formattedItems });
+      alert(`Successfully imported \${formattedItems.length} items!`);
+      setIsCsvModalOpen(false);
+      setLoading(true);
+      fetchItems();
+    } catch (error) {
+      console.error('Bulk import error:', error);
+      alert('Failed to import items: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -89,12 +129,35 @@ const ItemList = () => {
           />
           <FaSearch className="absolute right-3 top-2.5 text-slate-400 h-4 w-4" />
         </div>
-        <Link
-          to="/items/new"
-          className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
-        >
-          <FaPlus size={16} /> New Item
-        </Link>
+        <div className="flex gap-3">
+          <ExportDropdown 
+              data={filteredItems} 
+              filename="MyBill_Items_Master" 
+              columns={[
+                 { header: 'Name', key: 'name' },
+                 { header: 'Description', key: 'description' },
+                 { header: 'SKU', key: 'sku' },
+                 { header: 'HSN Code', key: 'hsnCode' },
+                 { header: 'Type', key: 'type' },
+                 { header: 'Unit', key: 'unit' },
+                 { header: 'Sales Price', key: 'salesInfo.price' },
+                 { header: 'Opening Qty', key: 'openingQuantity' },
+                 { header: 'Default Tax Rate', key: 'defaultTaxRate' }
+              ]}
+          />
+          <button
+            onClick={() => setIsCsvModalOpen(true)}
+            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <FaUpload size={16} /> Bulk Import Info
+          </button>
+          <Link
+            to="/items/new"
+            className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <FaPlus size={16} /> New Item
+          </Link>
+        </div>
       </div>
 
       {/* Table */}
@@ -272,6 +335,26 @@ const ItemList = () => {
           </>
         )}
       </div>
+
+      {/* Bulk Upload CSV Modal */}
+      <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Items to Database">
+        <CsvUploader 
+          onDataParsed={handleCsvParsed} 
+          isLoading={isImporting}
+          title="Upload Items Master List"
+          subtitle="Upload a CSV with columns like Name, Description, SKU, Price, Tax Rate."
+        />
+        <div className="mt-4 flex justify-end">
+          <button 
+            type="button" 
+            onClick={() => setIsCsvModalOpen(false)} 
+            disabled={isImporting}
+            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };

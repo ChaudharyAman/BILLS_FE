@@ -67,6 +67,13 @@ const InvoicePrint = () => {
     load();
   }, [id]);
 
+  useEffect(() => {
+    if (invoice) {
+      document.title = `\${invoice.invoiceNo} - \${invoice.client?.name || 'Invoice'}`;
+    }
+    return () => { document.title = 'MyBill'; };
+  }, [invoice]);
+
   if (loading) {
       return (
         <div style={{ background: '#f3f4f6', minHeight: '100vh', padding: '20px 0' }}>

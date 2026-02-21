@@ -33,7 +33,15 @@ const QuotePrint = ({ docType = 'quote' }) => {
       finally { setLoading(false); }
     };
     load();
-  }, [id]);
+  }, [id, apiBase]);
+
+  useEffect(() => {
+    if (doc) {
+      const docNo = isProforma ? doc.proformaNo : doc.quoteNo;
+      document.title = `\${docNo || 'Document'} - \${doc.client?.name || 'Client'}`;
+    }
+    return () => { document.title = 'MyBill'; };
+  }, [doc, isProforma]);
 
   const handleConvert = async () => {
     if (!window.confirm(`Convert this ${isProforma ? 'Proforma' : 'Quote'} to an Invoice?`)) return;

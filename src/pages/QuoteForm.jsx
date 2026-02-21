@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
-import { FaTrash, FaPlus } from 'react-icons/fa';
+import { FaTrash, FaPlus, FaUpload } from 'react-icons/fa';
 import Modal from '../components/Modal';
 import ClientForm from './ClientForm';
 import ItemForm from './ItemForm';
 import Skeleton from '../components/Skeleton';
+import CsvUploader from '../components/CsvUploader';
 
 // docType: 'quote' | 'proforma'
 const QuoteForm = ({ docType = 'quote' }) => {
@@ -27,6 +28,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
   const [loading, setLoading] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [pendingItemIndex, setPendingItemIndex] = useState(null);
   const [clientPending, setClientPending] = useState(null);
 
@@ -144,6 +146,36 @@ const QuoteForm = ({ docType = 'quote' }) => {
     };
     items[idx].amount = calcRow(items[idx]);
     setFormData(f => ({ ...f, items }));
+  };
+
+  // CSV Bulk Upload handler
+  const handleCsvParsed = (data) => {
+    let currentItems = [...formData.items];
+    if (currentItems.length === 1 && !currentItems[0].name) {
+      currentItems = []; // Clear the empty default row if it's unused
+    }
+    
+    const parsedItems = data.map(row => {
+      const it = emptyItem();
+      it.name = row.Name || row.name || row.Item || row.item || 'Unnamed Item';
+      it.description = row.Description || row.description || row.Desc || row.desc || '';
+      it.hsnCode = row.HSNCode || row.hsnCode || row.HSN || row.hsn || '';
+      it.unit = row.Unit || row.unit || 'pcs';
+      it.qty = Number(row.QTY || row.Qty || row.qty || row.Quantity || row.quantity) || 1;
+      it.rate = Number(row.Price || row.price || row.Rate || row.rate) || 0;
+      it.discount = Number(row.Discount || row.discount || row.Disc || row.disc) || 0;
+      
+      const taxParam = Number(row.TaxRate || row.taxRate || row.Tax || row.tax) || 0;
+      it.taxRate = taxParam;
+      it.taxSelect = [0,5,12,18,28].includes(taxParam) ? String(taxParam) : (taxParam > 0 ? 'custom' : '0');
+      it.customTaxRate = [0,5,12,18,28].includes(taxParam) ? '' : String(taxParam || '');
+      
+      it.amount = calcRow(it);
+      return it;
+    });
+
+    setFormData(f => ({ ...f, items: [...currentItems, ...parsedItems] }));
+    setIsCsvModalOpen(false);
   };
 
   // Apply discount to all items
@@ -479,8 +511,12 @@ const QuoteForm = ({ docType = 'quote' }) => {
             </table>
           </div>
 
-          {/* Add line button */}
-          <div className="flex justify-end mt-2">
+          {/* Add line / Bulk Add buttons */}
+          <div className="flex justify-end gap-3 mt-2">
+            <button type="button" onClick={() => setIsCsvModalOpen(true)}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-1.5 rounded text-sm font-medium flex items-center gap-1.5 transition-colors">
+              <FaUpload size={14} /> Bulk Add CSV
+            </button>
             <button type="button" onClick={addItem}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-medium flex items-center gap-1.5 transition-colors">
               <FaPlus size={14} /> Add line
@@ -648,6 +684,18 @@ const QuoteForm = ({ docType = 'quote' }) => {
             setIsItemModalOpen(false);
             setPendingItemIndex(null);
         }} />
+      </Modal>
+
+      {/* Bulk Upload CSV Modal */}
+      <Modal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} title="Bulk Import Items from CSV">
+        <CsvUploader 
+          onDataParsed={handleCsvParsed} 
+          title="Upload Line Items"
+          subtitle="Ensure columns like Name, Qty, Rate, Tax are present."
+        />
+        <div className="mt-4 flex justify-end">
+          <button type="button" onClick={() => setIsCsvModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg">Cancel</button>
+        </div>
       </Modal>
     </div>
   );

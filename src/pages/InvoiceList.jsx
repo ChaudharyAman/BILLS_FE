@@ -3,6 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { FaPlus, FaDownload, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaChevronDown } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
+import ExportDropdown from '../components/ExportDropdown';
+import Modal from '../components/Modal';
+import CsvUploader from '../components/CsvUploader';
+import { FaFileAlt } from 'react-icons/fa';
 
 const DOC_TYPES = [
   {
@@ -39,6 +43,8 @@ const InvoiceList = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
     fetchInvoices();
@@ -68,6 +74,62 @@ const InvoiceList = () => {
       setSelectedInvoices(selectedInvoices.filter(i => i !== id));
     } else {
       setSelectedInvoices([...selectedInvoices, id]);
+    }
+  };
+
+  const handleCsvParsed = async (data) => {
+    setIsImporting(true);
+    try {
+      const grouped = {};
+      data.forEach(row => {
+        const id = row['Invoice No'] || row['Draft No'] || row.ID || Math.random().toString();
+        if (!grouped[id]) {
+          grouped[id] = {
+            clientName: row['Client Name'] || row.Client || '',
+            clientEmail: row['Client Email'] || '',
+            clientPhone: row['Client Phone'] || '',
+            clientState: row['Client State'] || row['Place of Supply'] || '',
+            placeOfSupply: row['Client State'] || row['Place of Supply'] || '',
+            invoiceType: row['Invoice Type'] || row.Type || 'Tax Invoice',
+            date: row['Date'] || row['Invoice Date'] || undefined,
+            dueDate: row['Due Date'] || undefined,
+            shippingCharges: Number(row['Shipping Charges']) || 0,
+            packagingCharges: Number(row['Packaging Charges']) || 0,
+            discountTotal: Number(row['Discount Total'] || row.Discount) || 0,
+            advancePaid: Number(row['Advance Paid']) || 0,
+            items: []
+          };
+        }
+        if (row['Item Name'] || row.Item) {
+           grouped[id].items.push({
+             name: row['Item Name'] || row.Item,
+             description: row['Item Description'] || '',
+             qty: Number(row.Qty || row.QTY || row.Quantity) || 1,
+             rate: Number(row.Rate || row.Price) || 0,
+             taxRate: Number(row['Tax Rate'] || row.Tax) || 0,
+             discount: Number(row['Item Discount']) || 0 
+           });
+        }
+      });
+
+      const formattedInvoices = Object.values(grouped).filter(inv => inv.clientName);
+
+      if (formattedInvoices.length === 0) {
+        alert('No valid invoices found. Ensure the "Client Name" column exists.');
+        setIsImporting(false);
+        return;
+      }
+
+      await api.post('/invoices/bulk', { invoices: formattedInvoices });
+      alert(`Successfully imported \${formattedInvoices.length} invoices!`);
+      setIsCsvModalOpen(false);
+      setLoading(true);
+      fetchInvoices();
+    } catch (error) {
+      console.error('Bulk import error:', error);
+      alert('Failed to import invoices: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -120,11 +182,28 @@ const InvoiceList = () => {
             <p className="text-gray-500 mt-1">Manage and track your invoice history</p>
         </div>
         <div className="flex gap-3">
-           {selectedInvoices.length > 0 && (
-              <button className="bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 border border-gray-300 shadow-sm transition-all text-sm font-medium">
-                  <FaDownload size={16} /> Export Selected
-              </button>
-           )}
+           <ExportDropdown 
+              data={selectedInvoices.length > 0 ? invoices.filter(i => selectedInvoices.includes(i._id)) : filteredInvoices}
+              filename="MyBill_Invoices"
+              columns={[
+                 { header: 'Invoice No', key: 'invoiceNo' },
+                 { header: 'Type', key: 'invoiceType' },
+                 { header: 'Client Name', key: 'client.name' },
+                 { header: 'Client GSTIN', key: 'client.gstin' },
+                 { header: 'Date', key: 'date' },
+                 { header: 'Due Date', key: 'dueDate' },
+                 { header: 'Status', key: 'status' },
+                 { header: 'Grand Total', key: 'grandTotal' },
+                 { header: 'Balance Due', key: 'balanceDue' }
+              ]}
+           />
+           
+           <button
+             onClick={() => setIsCsvModalOpen(true)}
+             className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+           >
+             <FaFileAlt size={16} /> Bulk Import
+           </button>
 
           {/* Unified New Document button */}
           <div className="relative" ref={typeMenuRef}>
@@ -335,6 +414,27 @@ const InvoiceList = () => {
            </div>
          </div>
       </div>
+
+      {/* Bulk Upload CSV Modal */}
+      <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Invoices to Database">
+        <CsvUploader 
+          onDataParsed={handleCsvParsed} 
+          isLoading={isImporting}
+          title="Upload Invoices CSV"
+          subtitle="Group rows by 'Invoice No' or 'ID'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
+        />
+        <div className="mt-4 flex justify-end">
+          <button 
+            type="button" 
+            onClick={() => setIsCsvModalOpen(false)} 
+            disabled={isImporting}
+            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
+
     </div>
   );
 };

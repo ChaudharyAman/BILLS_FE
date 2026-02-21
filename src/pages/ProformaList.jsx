@@ -3,6 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { FaPlus, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaArrowRight } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
+import ExportDropdown from '../components/ExportDropdown';
+import Modal from '../components/Modal';
+import CsvUploader from '../components/CsvUploader';
+import { FaFileAlt } from 'react-icons/fa';
 
 const ProformaList = () => {
   const navigate = useNavigate();
@@ -11,6 +15,8 @@ const ProformaList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => { fetchProformas(); }, []);
 
@@ -42,6 +48,61 @@ const ProformaList = () => {
   const toggleAll = () =>
     setSelectedIds(selectedIds.length === proformas.length ? [] : proformas.map(p => p._id));
 
+  const handleCsvParsed = async (data) => {
+    setIsImporting(true);
+    try {
+      const grouped = {};
+      data.forEach(row => {
+        const id = row['Proforma No'] || row['Draft No'] || row.ID || Math.random().toString();
+        if (!grouped[id]) {
+          grouped[id] = {
+            clientName: row['Client Name'] || row.Client || '',
+            clientEmail: row['Client Email'] || '',
+            clientPhone: row['Client Phone'] || '',
+            clientState: row['Client State'] || row['Place of Supply'] || '',
+            placeOfSupply: row['Client State'] || row['Place of Supply'] || '',
+            invoiceType: row['Invoice Type'] || row.Type || 'Tax Invoice',
+            date: row['Date'] || row['Proforma Date'] || undefined,
+            validUntil: row['Valid Until'] || undefined,
+            shippingCharges: Number(row['Shipping Charges']) || 0,
+            packagingCharges: Number(row['Packaging Charges']) || 0,
+            discountTotal: Number(row['Discount Total'] || row.Discount) || 0,
+            items: []
+          };
+        }
+        if (row['Item Name'] || row.Item) {
+           grouped[id].items.push({
+             name: row['Item Name'] || row.Item,
+             description: row['Item Description'] || '',
+             qty: Number(row.Qty || row.QTY || row.Quantity) || 1,
+             rate: Number(row.Rate || row.Price) || 0,
+             taxRate: Number(row['Tax Rate'] || row.Tax) || 0,
+             discount: Number(row['Item Discount']) || 0 
+           });
+        }
+      });
+
+      const formattedProformas = Object.values(grouped).filter(p => p.clientName);
+
+      if (formattedProformas.length === 0) {
+        alert('No valid proformas found. Ensure the "Client Name" column exists.');
+        setIsImporting(false);
+        return;
+      }
+
+      await api.post('/proformas/bulk', { proformas: formattedProformas });
+      alert(`Successfully imported \${formattedProformas.length} proformas!`);
+      setIsCsvModalOpen(false);
+      setLoading(true);
+      fetchProformas();
+    } catch (error) {
+      console.error('Bulk import error:', error);
+      alert('Failed to import proformas: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const filtered = proformas.filter(p =>
     p.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.proformaNo?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -65,10 +126,30 @@ const ProformaList = () => {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Proforma Invoices</h1>
           <p className="text-gray-500 mt-1">Advance invoices before final billing</p>
         </div>
-        <Link to="/proformas/new"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm">
-          <FaPlus size={16} /> New Proforma
-        </Link>
+        <div className="flex gap-3">
+          <ExportDropdown 
+              data={selectedIds.length > 0 ? proformas.filter(p => selectedIds.includes(p._id)) : filtered}
+              filename="MyBill_Proformas"
+              columns={[
+                 { header: 'Proforma No', key: 'proformaNo' },
+                 { header: 'Client Name', key: 'client.name' },
+                 { header: 'Date', key: 'date' },
+                 { header: 'Valid Until', key: 'validUntil' },
+                 { header: 'Status', key: 'status' },
+                 { header: 'Grand Total', key: 'grandTotal' }
+              ]}
+          />
+          <button
+             onClick={() => setIsCsvModalOpen(true)}
+             className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+           >
+             <FaFileAlt size={16} /> Bulk Import
+           </button>
+          <Link to="/proformas/new"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm">
+            <FaPlus size={16} /> New Proforma
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
@@ -168,6 +249,27 @@ const ProformaList = () => {
           </div>
         </div>
       </div>
+
+      {/* Bulk Upload CSV Modal */}
+      <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Proformas to Database">
+        <CsvUploader 
+          onDataParsed={handleCsvParsed} 
+          isLoading={isImporting}
+          title="Upload Proformas CSV"
+          subtitle="Group rows by 'Proforma No' or 'ID'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
+        />
+        <div className="mt-4 flex justify-end">
+          <button 
+            type="button" 
+            onClick={() => setIsCsvModalOpen(false)} 
+            disabled={isImporting}
+            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
+
     </div>
   );
 };
