@@ -43,7 +43,7 @@ const ItemList = () => {
         description: row.Description || row.description || row.Desc || row.desc || '',
         sku: row.SKU || row.sku || '',
         hsnCode: row.HSNCode || row.hsnCode || row.HSN || row.hsn || '',
-        type: (row.Type || row.type || '').toLowerCase() === 'service' ? 'Service' : 'Product',
+        type: (row.Type || row.type || '').toLowerCase() === 'service' ? 'Service' : 'Goods',
         unit: row.Unit || row.unit || 'pcs',
         salesInfo: { price: Number(row.Price || row.price || row.Rate || row.rate) || 0 },
         purchaseInfo: { price: Number(row.PurchasePrice || row.purchasePrice) || 0 },
