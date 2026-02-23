@@ -1,29 +1,130 @@
-import React, { useState } from 'react';
-import { FaCheck as Check, FaStar as Star, FaBolt as Zap, FaShieldAlt as Shield, FaQuestionCircle as HelpCircle, FaTimes as X } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaCheck as Check, FaStar as Star, FaBolt as Zap, FaShieldAlt as Shield, FaQuestionCircle as HelpCircle, FaTimes as X, FaSpinner } from 'react-icons/fa';
+import api from '../api/axios';
 
 const Subscription = () => {
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'yearly'
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Dynamically load Razorpay script
+    const loadRazorpayScript = () => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+    };
+    loadRazorpayScript();
+  }, []);
+
+  const handlePayment = async () => {
+    setLoading(true);
+    try {
+      // 1. Create order on backend
+      const { data: order } = await api.post('/subscriptions/create-order', {
+        plan: 'pro',
+        billingCycle: billingCycle
+      });
+
+      // 2. Initialize Razorpay options
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr).user : null;
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'dummy_key_id', // Fallback for testing UI without key
+        amount: order.amount,
+        currency: order.currency,
+        name: 'MyBill',
+        description: `Pro Plan - ${billingCycle.charAt(0).toUpperCase() + billingCycle.slice(1)}`,
+        order_id: order.id,
+        handler: async function (response) {
+          // 3. Verify payment on success
+          try {
+            const verifyRes = await api.post('/subscriptions/verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              plan: 'pro',
+              billingCycle: billingCycle
+            });
+            alert('Payment Successful! You are now a Pro member.');
+            // Optionally redirect or update local user state
+          } catch (verifyError) {
+            console.error('Verification failed', verifyError);
+            alert('Payment verification failed. Please contact support.');
+          }
+        },
+        prefill: {
+          name: user?.username || '',
+          email: user?.email || '',
+          contact: user?.phone || ''
+        },
+        theme: {
+          color: '#4F46E5' // Indigo-600
+        },
+        config: {
+          display: {
+            blocks: {
+              upi: {
+                name: "Pay via UPI",
+                instruments: [
+                  { method: "upi" }
+                ]
+              },
+              other: {
+                name: "Other Payment modes",
+                instruments: [
+                  { method: "card" },
+                  { method: "netbanking" },
+                  { method: "wallet" }
+                ]
+              }
+            },
+            sequence: ["block.upi", "block.other"],
+            preferences: {
+              show_default_blocks: true
+            }
+          }
+        }
+      };
+
+      const rzp1 = new window.Razorpay(options);
+      
+      rzp1.on('payment.failed', function (response){
+        console.error('Payment failed', response.error);
+        alert(`Payment failed: ${response.error.description}`);
+      });
+
+      rzp1.open();
+
+    } catch (error) {
+      console.error('Error initiating payment:', error);
+      alert('Failed to initiate payment. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const featuresFree = [
-    { text: 'Up to 50 Invoices/Month', included: true },
-    { text: 'Basic Quotes & Proformas', included: true },
+    { text: 'Up to 15 Invoices/Month', included: true },
+    { text: 'Up to 15 Quotes & Proformas/Month', included: true },
     { text: 'Client Management', included: true },
     { text: 'Community Support', included: true },
-    { text: 'Custom Branding', included: false },
-    { text: 'Advanced Analytics', included: false },
-    { text: 'Automated Reminders', included: false },
-    { text: 'Priority Email Support', included: false },
+    { text: 'Custom Branding (watermarked)', included: true },
+    { text: 'GST Reports', included: false },
+    { text: 'Client-wise Revenue Reports', included: false },
+    { text: 'Account Statements & Payment Collection', included: false },
   ];
 
   const featuresPro = [
-    { text: 'Unlimited Invoices', included: true },
-    { text: 'Advanced Quotes & Proformas', included: true },
+    { text: 'Unlimited Invoices & Quotes', included: true },
     { text: 'Unlimited Client Management', included: true },
-    { text: 'Priority 24/7 Support', included: true },
+    { text: 'GST Reports', included: true },
+    { text: 'Client-wise Revenue Reports', included: true },
+    { text: 'Payment Collection', included: true },
+    { text: 'Account Statements', included: true },
     { text: 'Custom Branding & Logos', included: true },
-    { text: 'Advanced Financial Analytics', included: true },
-    { text: 'Automated Payment Reminders', included: true },
-    { text: 'Export to Tally/Accounting', included: true },
+    { text: 'Priority 24/7 Support', included: true },
   ];
 
   return (
@@ -145,10 +246,17 @@ const Subscription = () => {
             )}
           </div>
 
-          <button className="relative w-full group overflow-hidden py-3.5 px-4 rounded-xl font-bold text-white shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white">
+          <button 
+            onClick={handlePayment}
+            disabled={loading}
+            className={`relative w-full group overflow-hidden py-3.5 px-4 rounded-xl font-bold text-white shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}>
             <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 bg-[length:200%_auto] group-hover:bg-[100%_auto] transition-all duration-500"></span>
             <span className="relative flex items-center justify-center gap-2">
-              Upgrade to Pro <Zap className="w-4 h-4 fill-current" />
+              {loading ? (
+                <>Processing... <FaSpinner className="w-4 h-4 animate-spin" /></>
+              ) : (
+                <>Upgrade to Pro <Zap className="w-4 h-4 fill-current" /></>
+              )}
             </span>
           </button>
 

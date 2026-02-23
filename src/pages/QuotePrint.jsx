@@ -38,7 +38,7 @@ const QuotePrint = ({ docType = 'quote' }) => {
   useEffect(() => {
     if (doc) {
       const docNo = isProforma ? doc.proformaNo : doc.quoteNo;
-      document.title = `\${docNo || 'Document'} - \${doc.client?.name || 'Client'}`;
+      document.title = `${docNo || 'Document'} - ${doc.client?.name || 'Client'}`;
     }
     return () => { document.title = 'MyBill'; };
   }, [doc, isProforma]);
@@ -121,6 +121,10 @@ const QuotePrint = ({ docType = 'quote' }) => {
   const hasTax = ['Tax Invoice', 'Excise Invoice'].includes(doc.invoiceType);
   const isIntraState = !doc.totalIGST || doc.totalIGST === 0;
   const BORDER = '#d1d5db';
+
+  const userStr = localStorage.getItem('user');
+  const userObj = userStr ? JSON.parse(userStr).user : null;
+  const isFreePlan = !userObj || !userObj.subscription || userObj.subscription.plan !== 'pro';
 
   const thStyle = (align = 'left') => ({
     padding: '8px 10px', fontSize: '9px', fontWeight: 700,
@@ -321,8 +325,15 @@ const QuotePrint = ({ docType = 'quote' }) => {
 
         {/* Bottom accent */}
         <div style={{ height: 4, background: `linear-gradient(90deg, ${docColor}, #2563eb)`, borderRadius: 3 }} />
-        <div style={{ textAlign: 'center', fontSize: 9, color: '#9ca3af', marginTop: 8 }}>
-          This is a computer-generated {docLabel}. {isProforma ? 'This is not a tax invoice.' : 'Subject to acceptance.'}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+          <div style={{ fontSize: 9, color: '#9ca3af' }}>
+            This is a computer-generated {docLabel}. {isProforma ? 'This is not a tax invoice.' : 'Subject to acceptance.'}
+          </div>
+          {isFreePlan && (
+            <div style={{ fontSize: 9, color: '#9ca3af', fontWeight: 600 }}>
+              Prepared by <span style={{ color: docColor }}>Ilumaa Ventures</span>
+            </div>
+          )}
         </div>
       </div>
 

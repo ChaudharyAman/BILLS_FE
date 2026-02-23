@@ -5,7 +5,8 @@ import { FaPlus, FaDownload, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye,
 import Skeleton from '../components/Skeleton';
 import ExportDropdown from '../components/ExportDropdown';
 import Modal from '../components/Modal';
-import CsvUploader from '../components/CsvUploader';
+import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
+import QuotaIndicator from '../components/QuotaIndicator';
 import { FaFileAlt } from 'react-icons/fa';
 
 const DOC_TYPES = [
@@ -82,32 +83,43 @@ const InvoiceList = () => {
     try {
       const grouped = {};
       data.forEach(row => {
-        const id = row['Invoice No'] || row['Draft No'] || row.ID || Math.random().toString();
+        const getVal = (keys) => {
+           for (const key of keys) {
+             if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+               return row[key];
+             }
+           }
+           return undefined;
+        };
+
+        const id = getVal(['Invoice No', 'Draft No', 'ID', 'Id', 'id', 'Invoice Number']) || Math.random().toString();
         if (!grouped[id]) {
           grouped[id] = {
-            clientName: row['Client Name'] || row.Client || '',
-            clientEmail: row['Client Email'] || '',
-            clientPhone: row['Client Phone'] || '',
-            clientState: row['Client State'] || row['Place of Supply'] || '',
-            placeOfSupply: row['Client State'] || row['Place of Supply'] || '',
-            invoiceType: row['Invoice Type'] || row.Type || 'Tax Invoice',
-            date: row['Date'] || row['Invoice Date'] || undefined,
-            dueDate: row['Due Date'] || undefined,
-            shippingCharges: Number(row['Shipping Charges']) || 0,
-            packagingCharges: Number(row['Packaging Charges']) || 0,
-            discountTotal: Number(row['Discount Total'] || row.Discount) || 0,
-            advancePaid: Number(row['Advance Paid']) || 0,
+            clientName: getVal(['Client Name', 'Client', 'Customer Name', 'Customer']),
+            clientEmail: getVal(['Client Email', 'Email', 'Customer Email']) || '',
+            clientPhone: getVal(['Client Phone', 'Phone', 'Customer Phone', 'Contact']) || '',
+            clientState: getVal(['Client State', 'State', 'Place of Supply']) || '',
+            placeOfSupply: getVal(['Place of Supply', 'Client State', 'State']) || '',
+            invoiceType: getVal(['Invoice Type', 'Type', 'Document Type']) || 'Tax Invoice',
+            date: getVal(['Date', 'Invoice Date', 'Issue Date']) || undefined,
+            dueDate: getVal(['Due Date']) || undefined,
+            shippingCharges: Number(getVal(['Shipping Charges', 'Shipping', 'Freight'])) || 0,
+            packagingCharges: Number(getVal(['Packaging Charges', 'Packaging'])) || 0,
+            discountTotal: Number(getVal(['Discount Total', 'Discount'])) || 0,
+            advancePaid: Number(getVal(['Advance Paid', 'Advance', 'Paid Amount'])) || 0,
             items: []
           };
         }
-        if (row['Item Name'] || row.Item) {
+        
+        const itemName = getVal(['Item Name', 'Item', 'Product Name', 'Product', 'Description']);
+        if (itemName) {
            grouped[id].items.push({
-             name: row['Item Name'] || row.Item,
-             description: row['Item Description'] || '',
-             qty: Number(row.Qty || row.QTY || row.Quantity) || 1,
-             rate: Number(row.Rate || row.Price) || 0,
-             taxRate: Number(row['Tax Rate'] || row.Tax) || 0,
-             discount: Number(row['Item Discount']) || 0 
+             name: itemName,
+             description: getVal(['Item Description', 'Desc', 'Details']) || '',
+             qty: Number(getVal(['Qty', 'QTY', 'Quantity', 'Quantity '])) || 1,
+             rate: Number(getVal(['Rate', 'Price', 'Unit Price'])) || 0,
+             taxRate: Number(getVal(['Tax Rate', 'Tax', 'Tax %', 'GST', 'IGST'])) || 0,
+             discount: Number(getVal(['Item Discount', 'Disc'])) || 0 
            });
         }
       });
@@ -121,7 +133,7 @@ const InvoiceList = () => {
       }
 
       await api.post('/invoices/bulk', { invoices: formattedInvoices });
-      alert(`Successfully imported \${formattedInvoices.length} invoices!`);
+      alert(`Successfully imported ${formattedInvoices.length} invoices!`);
       setIsCsvModalOpen(false);
       setLoading(true);
       fetchInvoices();
@@ -248,7 +260,8 @@ const InvoiceList = () => {
         </div>
       </div>
       
-
+      {/* Quota Indicator for Free Tier */}
+      <QuotaIndicator type="invoices" />
 
       {/* Modern Table Section */}
       <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
@@ -417,11 +430,11 @@ const InvoiceList = () => {
 
       {/* Bulk Upload CSV Modal */}
       <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Invoices to Database">
-        <CsvUploader 
+        <CsvAndExcelUploader 
           onDataParsed={handleCsvParsed} 
           isLoading={isImporting}
-          title="Upload Invoices CSV"
-          subtitle="Group rows by 'Invoice No' or 'ID'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
+          title="Upload Invoices File"
+          subtitle="Group rows by 'Invoice No'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
         />
         <div className="mt-4 flex justify-end">
           <button 

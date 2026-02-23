@@ -4,7 +4,7 @@ import api from '../api/axios';
 import { FaPlus, FaSearch, FaBox, FaChevronLeft, FaChevronRight, FaPencilAlt, FaUpload } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 import Modal from '../components/Modal';
-import CsvUploader from '../components/CsvUploader';
+import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
 import ExportDropdown from '../components/ExportDropdown';
 
 const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50];
@@ -38,27 +38,54 @@ const ItemList = () => {
   const handleCsvParsed = async (data) => {
     setIsImporting(true);
     try {
-      const formattedItems = data.map(row => ({
-        name: row['Item Name'] || row.Name || row.name || row.Item || row.item,
-        description: row.Description || row.description || row.Desc || row.desc || '',
-        sku: row.SKU || row.sku || '',
-        hsnCode: row.HSNCode || row.hsnCode || row.HSN || row.hsn || '',
-        type: (row.Type || row.type || '').toLowerCase() === 'service' ? 'Service' : 'Goods',
-        unit: row.Unit || row.unit || 'pcs',
-        salesInfo: { price: Number(row.Price || row.price || row.Rate || row.rate) || 0 },
-        purchaseInfo: { price: Number(row.PurchasePrice || row.purchasePrice) || 0 },
-        defaultTaxRate: Number(row.TaxRate || row.taxRate || row.Tax || row.tax) || 0,
-        openingQuantity: Number(row.QTY || row.Qty || row.qty || row.Quantity || row.quantity) || 0,
-      })).filter(item => item.name); // ensure a name exists
+      const formattedItems = data.map(row => {
+        // Helper function to find a value by checking multiple possible keys
+        const getVal = (keys) => {
+           for (const key of keys) {
+             if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+               return row[key];
+             }
+           }
+           return undefined;
+        };
+
+        const typeStr = (getVal(['Type', 'type', 'Item Type']) || '').toString().toLowerCase();
+        const isService = typeStr === 'service';
+
+        const cessPercent = Number(getVal(['CESS (%)', 'Cess (%)', 'cess (%)', 'CESS Rate', 'Cess Rate'])) || 0;
+        const cessAmt = Number(getVal(['CESS', 'Cess', 'cess', 'CESS Amount', 'Cess Amount'])) || 0;
+
+        return {
+          name: getVal(['Product Name', 'Item Name', 'Name', 'name', 'Item', 'item']),
+          description: getVal(['Description', 'description', 'Desc', 'desc']) || '',
+          sku: getVal(['SKU', 'sku', 'Item Code']) || '',
+          hsnCode: getVal(['HSN/SAC', 'HSN/SAC Code', 'HSNCode', 'hsnCode', 'HSN', 'hsn', 'SAC']) || '',
+          type: isService ? 'Service' : 'Goods',
+          unit: getVal(['UoM', 'UOM', 'Unit', 'unit']) || 'pcs',
+          salesInfo: { 
+            price: Number(getVal(['Unit Price', 'Price', 'price', 'Rate', 'rate'])) || 0,
+            currency: getVal(['Unit Price C', 'Currency', 'currency']) || 'INR',
+            cessPercent: cessPercent,
+            cessAmount: cessAmt
+          },
+          purchaseInfo: { 
+            price: Number(getVal(['Purchase Rate', 'Purchase R', 'Purchase Price', 'purchasePrice'])) || 0,
+            cessPercent: cessPercent,
+            cessAmount: cessAmt
+          },
+          defaultTaxRate: Number(getVal(['Tax (%)', 'TaxRate', 'taxRate', 'Tax', 'tax', 'GST', 'IGST'])) || 0,
+          openingQuantity: Number(getVal(['Quantity', 'QTY', 'Qty', 'qty', 'quantity'])) || 0,
+        };
+      }).filter(item => item.name); // ensure a name exists
 
       if (formattedItems.length === 0) {
-        alert('No valid items found in the CSV. Please ensure the "Name" column exists.');
+        alert('No valid items found in the file. Please ensure the "Name" column exists.');
         setIsImporting(false);
         return;
       }
 
       await api.post('/items/bulk', { items: formattedItems });
-      alert(`Successfully imported \${formattedItems.length} items!`);
+      alert(`Successfully imported ${formattedItems.length} items!`);
       setIsCsvModalOpen(false);
       setLoading(true);
       fetchItems();
@@ -338,11 +365,11 @@ const ItemList = () => {
 
       {/* Bulk Upload CSV Modal */}
       <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Items to Database">
-        <CsvUploader 
+        <CsvAndExcelUploader 
           onDataParsed={handleCsvParsed} 
           isLoading={isImporting}
           title="Upload Items Master List"
-          subtitle="Upload a CSV with columns like Name, Description, SKU, Price, Tax Rate."
+          subtitle="Upload a CSV, .xlsx, or .xls file with columns like Name, Description, SKU, Price, Tax Rate."
         />
         <div className="mt-4 flex justify-end">
           <button 

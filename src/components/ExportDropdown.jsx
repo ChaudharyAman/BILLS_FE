@@ -69,7 +69,7 @@ const ExportDropdown = ({ data, filename = 'export', columns = null }) => {
     
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `\${filename}.csv`);
+    link.setAttribute('download', `${filename}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -89,7 +89,7 @@ const ExportDropdown = ({ data, filename = 'export', columns = null }) => {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
     
     // Generate file and trigger download
-    XLSX.writeFile(workbook, `\${filename}.xlsx`);
+    XLSX.writeFile(workbook, `${filename}.xlsx`);
     
     setIsOpen(false);
   };
@@ -102,7 +102,7 @@ const ExportDropdown = ({ data, filename = 'export', columns = null }) => {
       >
         <FaDownload size={14} className="text-slate-400" /> 
         Export
-        <FaChevronDown size={12} className={`text-slate-400 transition-transform \${isOpen ? 'rotate-180' : ''}`} />
+        <FaChevronDown size={12} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (

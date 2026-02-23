@@ -69,7 +69,7 @@ const InvoicePrint = () => {
 
   useEffect(() => {
     if (invoice) {
-      document.title = `\${invoice.invoiceNo} - \${invoice.client?.name || 'Invoice'}`;
+      document.title = `${invoice.invoiceNo} - ${invoice.client?.name || 'Invoice'}`;
     }
     return () => { document.title = 'MyBill'; };
   }, [invoice]);
@@ -141,6 +141,10 @@ const InvoicePrint = () => {
   const hasHSN = invType === 'Tax Invoice' || invType === 'Excise Invoice';
   const hasExcise = invType === 'Excise Invoice';
   const isIntraState = !invoice.totalIGST || invoice.totalIGST === 0;
+
+  const userStr = localStorage.getItem('user');
+  const userObj = userStr ? JSON.parse(userStr).user : null;
+  const isFreePlan = !userObj || !userObj.subscription || userObj.subscription.plan !== 'pro';
 
   const company = settings || {};
   const client = invoice.client || {};
@@ -401,8 +405,15 @@ const InvoicePrint = () => {
 
         {/* ── Bottom accent ── */}
         <div style={{ height: 4, background: `linear-gradient(90deg, ${NAVY}, #2563eb)`, borderRadius: 3 }} />
-        <div style={{ textAlign: 'center', fontSize: 9, color: '#9ca3af', marginTop: 8 }}>
-          This is a computer-generated {invType}. No signature required.
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+          <div style={{ fontSize: 9, color: '#9ca3af' }}>
+            This is a computer-generated {invType}. No signature required.
+          </div>
+          {isFreePlan && (
+            <div style={{ fontSize: 9, color: '#9ca3af', fontWeight: 600 }}>
+              Prepared by <span style={{ color: NAVY }}>Ilumaa Ventures</span>
+            </div>
+          )}
         </div>
       </div>
 

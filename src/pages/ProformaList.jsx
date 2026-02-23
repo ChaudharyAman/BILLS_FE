@@ -5,7 +5,8 @@ import { FaPlus, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaArrowRigh
 import Skeleton from '../components/Skeleton';
 import ExportDropdown from '../components/ExportDropdown';
 import Modal from '../components/Modal';
-import CsvUploader from '../components/CsvUploader';
+import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
+import QuotaIndicator from '../components/QuotaIndicator';
 import { FaFileAlt } from 'react-icons/fa';
 
 const ProformaList = () => {
@@ -53,31 +54,42 @@ const ProformaList = () => {
     try {
       const grouped = {};
       data.forEach(row => {
-        const id = row['Proforma No'] || row['Draft No'] || row.ID || Math.random().toString();
+        const getVal = (keys) => {
+           for (const key of keys) {
+             if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+               return row[key];
+             }
+           }
+           return undefined;
+        };
+
+        const id = getVal(['Proforma No', 'Draft No', 'ID', 'Id', 'id', 'Proforma Number']) || Math.random().toString();
         if (!grouped[id]) {
           grouped[id] = {
-            clientName: row['Client Name'] || row.Client || '',
-            clientEmail: row['Client Email'] || '',
-            clientPhone: row['Client Phone'] || '',
-            clientState: row['Client State'] || row['Place of Supply'] || '',
-            placeOfSupply: row['Client State'] || row['Place of Supply'] || '',
-            invoiceType: row['Invoice Type'] || row.Type || 'Tax Invoice',
-            date: row['Date'] || row['Proforma Date'] || undefined,
-            validUntil: row['Valid Until'] || undefined,
-            shippingCharges: Number(row['Shipping Charges']) || 0,
-            packagingCharges: Number(row['Packaging Charges']) || 0,
-            discountTotal: Number(row['Discount Total'] || row.Discount) || 0,
+            clientName: getVal(['Client Name', 'Client', 'Customer Name', 'Customer']),
+            clientEmail: getVal(['Client Email', 'Email', 'Customer Email']) || '',
+            clientPhone: getVal(['Client Phone', 'Phone', 'Customer Phone', 'Contact']) || '',
+            clientState: getVal(['Client State', 'State', 'Place of Supply']) || '',
+            placeOfSupply: getVal(['Place of Supply', 'Client State', 'State']) || '',
+            invoiceType: getVal(['Invoice Type', 'Type', 'Document Type']) || 'Tax Invoice',
+            date: getVal(['Date', 'Proforma Date', 'Issue Date']) || undefined,
+            validUntil: getVal(['Valid Until', 'Valid']) || undefined,
+            shippingCharges: Number(getVal(['Shipping Charges', 'Shipping', 'Freight'])) || 0,
+            packagingCharges: Number(getVal(['Packaging Charges', 'Packaging'])) || 0,
+            discountTotal: Number(getVal(['Discount Total', 'Discount'])) || 0,
             items: []
           };
         }
-        if (row['Item Name'] || row.Item) {
+        
+        const itemName = getVal(['Item Name', 'Item', 'Product Name', 'Product', 'Description']);
+        if (itemName) {
            grouped[id].items.push({
-             name: row['Item Name'] || row.Item,
-             description: row['Item Description'] || '',
-             qty: Number(row.Qty || row.QTY || row.Quantity) || 1,
-             rate: Number(row.Rate || row.Price) || 0,
-             taxRate: Number(row['Tax Rate'] || row.Tax) || 0,
-             discount: Number(row['Item Discount']) || 0 
+             name: itemName,
+             description: getVal(['Item Description', 'Desc', 'Details']) || '',
+             qty: Number(getVal(['Qty', 'QTY', 'Quantity', 'Quantity '])) || 1,
+             rate: Number(getVal(['Rate', 'Price', 'Unit Price'])) || 0,
+             taxRate: Number(getVal(['Tax Rate', 'Tax', 'Tax %', 'GST', 'IGST'])) || 0,
+             discount: Number(getVal(['Item Discount', 'Disc'])) || 0 
            });
         }
       });
@@ -91,7 +103,7 @@ const ProformaList = () => {
       }
 
       await api.post('/proformas/bulk', { proformas: formattedProformas });
-      alert(`Successfully imported \${formattedProformas.length} proformas!`);
+      alert(`Successfully imported ${formattedProformas.length} proformas!`);
       setIsCsvModalOpen(false);
       setLoading(true);
       fetchProformas();
@@ -151,6 +163,9 @@ const ProformaList = () => {
           </Link>
         </div>
       </div>
+
+      {/* Quota Indicator for Free Tier */}
+      <QuotaIndicator type="quotes" />
 
       <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
         <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
@@ -252,11 +267,11 @@ const ProformaList = () => {
 
       {/* Bulk Upload CSV Modal */}
       <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Proformas to Database">
-        <CsvUploader 
+        <CsvAndExcelUploader 
           onDataParsed={handleCsvParsed} 
           isLoading={isImporting}
-          title="Upload Proformas CSV"
-          subtitle="Group rows by 'Proforma No' or 'ID'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
+          title="Upload Proformas File"
+          subtitle="Group rows by 'Proforma No'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
         />
         <div className="mt-4 flex justify-end">
           <button 
