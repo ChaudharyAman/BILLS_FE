@@ -6,6 +6,12 @@ const Subscription = () => {
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'yearly'
   const [loading, setLoading] = useState(false);
 
+  const userStr = localStorage.getItem('user');
+  const userObj = userStr ? JSON.parse(userStr) : null;
+  const user = userObj?.user || null;
+  const isPro = user?.subscription?.plan === 'pro' && user?.subscription?.status === 'active';
+  const activeBillingCycle = user?.subscription?.billingCycle; // 'monthly' | 'yearly'
+
   useEffect(() => {
     // Dynamically load Razorpay script
     const loadRazorpayScript = () => {
@@ -27,9 +33,6 @@ const Subscription = () => {
       });
 
       // 2. Initialize Razorpay options
-      const userStr = localStorage.getItem('user');
-      const user = userStr ? JSON.parse(userStr).user : null;
-
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'dummy_key_id', // Fallback for testing UI without key
         amount: order.amount,
@@ -48,7 +51,12 @@ const Subscription = () => {
               billingCycle: billingCycle
             });
             alert('Payment Successful! You are now a Pro member.');
-            // Optionally redirect or update local user state
+            // Update local storage and reload so Layout and other components update immediately
+            if (userObj && verifyRes.data.user) {
+              userObj.user = verifyRes.data.user;
+              localStorage.setItem('user', JSON.stringify(userObj));
+              window.location.reload();
+            }
           } catch (verifyError) {
             console.error('Verification failed', verifyError);
             alert('Payment verification failed. Please contact support.');
@@ -180,7 +188,7 @@ const Subscription = () => {
           <div className="mb-6">
             <h3 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
               Free 
-              <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1 rounded-full border border-slate-200">Current Plan</span>
+              {!isPro && <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1 rounded-full border border-slate-200">Current Plan</span>}
             </h3>
             <p className="mt-2 text-slate-500 text-sm h-10">Essential tools to get your billing started and organized.</p>
           </div>
@@ -190,8 +198,8 @@ const Subscription = () => {
             <span className="text-lg text-slate-500 font-medium">/forever</span>
           </div>
 
-          <button disabled className="w-full py-3.5 px-4 rounded-xl font-semibold text-slate-400 bg-slate-100 border border-slate-200 cursor-not-allowed text-sm transition-colors">
-            Active Plan
+          <button disabled className={`w-full py-3.5 px-4 rounded-xl font-semibold text-sm transition-colors ${!isPro ? 'text-slate-400 bg-slate-100 border border-slate-200 cursor-not-allowed' : 'text-slate-600 bg-white border border-slate-300 hover:bg-slate-50'}`}>
+            {!isPro ? 'Active Plan' : 'Downgrade to Free'}
           </button>
 
           <div className="mt-8 pt-8 border-t border-slate-100">
@@ -226,7 +234,11 @@ const Subscription = () => {
           <div className="relative mb-6">
             <h3 className="text-2xl font-bold text-slate-900 flex items-center justify-between">
               <span className="flex items-center gap-2">Professional <Star className="w-5 h-5 text-amber-400 fill-amber-400" /></span>
-              <span className="text-xs font-bold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full border border-indigo-200 uppercase tracking-wider">Most Popular</span>
+              {isPro ? (
+                  <span className="text-xs font-bold bg-green-100 text-green-700 px-3 py-1 rounded-full border border-green-200 uppercase tracking-wider">Current Plan</span>
+              ) : (
+                  <span className="text-xs font-bold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full border border-indigo-200 uppercase tracking-wider">Most Popular</span>
+              )}
             </h3>
             <p className="mt-2 text-slate-500 text-sm h-10">Advanced features for power users and growing agencies.</p>
           </div>
@@ -246,19 +258,40 @@ const Subscription = () => {
             )}
           </div>
 
-          <button 
-            onClick={handlePayment}
-            disabled={loading}
-            className={`relative w-full group overflow-hidden py-3.5 px-4 rounded-xl font-bold text-white shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}>
-            <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 bg-[length:200%_auto] group-hover:bg-[100%_auto] transition-all duration-500"></span>
-            <span className="relative flex items-center justify-center gap-2">
-              {loading ? (
-                <>Processing... <FaSpinner className="w-4 h-4 animate-spin" /></>
-              ) : (
-                <>Upgrade to Pro <Zap className="w-4 h-4 fill-current" /></>
-              )}
-            </span>
-          </button>
+          {/* Button Logic */}
+          {isPro && activeBillingCycle === 'yearly' ? (
+            <button 
+              disabled
+              className="relative w-full py-3.5 px-4 rounded-xl font-bold text-indigo-700 bg-indigo-50 border-2 border-indigo-200 cursor-not-allowed">
+              <span className="relative flex items-center justify-center gap-2">
+                Currently Subscribed (Yearly) <Check className="w-4 h-4 fill-current" />
+              </span>
+            </button>
+          ) : isPro && activeBillingCycle === 'monthly' && billingCycle === 'monthly' ? (
+            <button 
+              disabled
+              className="relative w-full py-3.5 px-4 rounded-xl font-bold text-indigo-700 bg-indigo-50 border-2 border-indigo-200 cursor-not-allowed">
+              <span className="relative flex items-center justify-center gap-2">
+                Currently Subscribed (Monthly) <Check className="w-4 h-4 fill-current" />
+              </span>
+            </button>
+          ) : (
+            <button 
+              onClick={handlePayment}
+              disabled={loading}
+              className={`relative w-full group overflow-hidden py-3.5 px-4 rounded-xl font-bold text-white shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}>
+              <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 bg-[length:200%_auto] group-hover:bg-[100%_auto] transition-all duration-500"></span>
+              <span className="relative flex items-center justify-center gap-2">
+                {loading ? (
+                  <>Processing... <FaSpinner className="w-4 h-4 animate-spin" /></>
+                ) : isPro && activeBillingCycle === 'monthly' && billingCycle === 'yearly' ? (
+                  <>Upgrade to Yearly <Zap className="w-4 h-4 fill-current" /></>
+                ) : (
+                  <>Upgrade to Pro <Zap className="w-4 h-4 fill-current" /></>
+                )}
+              </span>
+            </button>
+          )}
 
           <div className="relative mt-8 pt-8 border-t border-slate-100">
             <h4 className="text-sm font-semibold text-slate-900 mb-4 tracking-wide">EVERYTHING IN FREE, PLUS</h4>

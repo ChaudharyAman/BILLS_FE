@@ -21,6 +21,13 @@ const ItemForm = lazy(() => import('./pages/ItemForm'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Subscription = lazy(() => import('./pages/Subscription'));
 
+// Reports
+const GstReport = lazy(() => import('./pages/reports/GstReport'));
+const RevenueReport = lazy(() => import('./pages/reports/RevenueReport'));
+
+// Accounts
+const PaymentCollection = lazy(() => import('./pages/accounts/PaymentCollection'));
+const AccountStatement = lazy(() => import('./pages/accounts/AccountStatement'));
 
 function App() {
   return (
@@ -62,10 +69,17 @@ function App() {
                   <Route path="/clients/new" element={<ClientForm />} />
                   <Route path="/clients/edit/:id" element={<ClientForm />} />
 
-                  {/* Items */}
                   <Route path="/items" element={<ItemList />} />
                   <Route path="/items/new" element={<ItemForm />} />
                   <Route path="/items/edit/:id" element={<ItemForm />} />
+
+                  {/* Reports */}
+                  <Route path="/reports/gst" element={<GstReport />} />
+                  <Route path="/reports/revenue" element={<RevenueReport />} />
+
+                  {/* Accounts */}
+                  <Route path="/accounts/payments" element={<PaymentCollection />} />
+                  <Route path="/accounts/statements" element={<AccountStatement />} />
 
                   <Route path="/subscription" element={<Subscription />} />
                   <Route path="/settings" element={<Settings />} />
