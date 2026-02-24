@@ -1,16 +1,70 @@
 import React, { useState, useEffect } from 'react';
-import { FaCheck as Check, FaStar as Star, FaBolt as Zap, FaShieldAlt as Shield, FaQuestionCircle as HelpCircle, FaTimes as X, FaSpinner } from 'react-icons/fa';
+import { FaCheck as Check, FaTimes as Cross, FaSpinner, FaPalette } from 'react-icons/fa';
 import api from '../api/axios';
 
 const Subscription = () => {
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'yearly'
-  const [loading, setLoading] = useState(false);
+  const [loadingCode, setLoadingCode] = useState(null); // 'pro'
+  const [activeThemeIdx, setActiveThemeIdx] = useState(0);
 
   const userStr = localStorage.getItem('user');
   const userObj = userStr ? JSON.parse(userStr) : null;
   const user = userObj?.user || null;
   const isPro = user?.subscription?.plan === 'pro' && user?.subscription?.status === 'active';
   const activeBillingCycle = user?.subscription?.billingCycle; // 'monthly' | 'yearly'
+
+  const themes = [
+    {
+      name: 'Indigo (Default)',
+      bg: 'bg-[#f8f9fc]',
+      heading: 'text-[#1a174c]',
+      toggleActive: 'bg-[#5b73e8] text-white',
+      proBg: 'bg-[#6b82f0]',
+      proBadge: 'bg-[#8b9ef5]',
+      proShadow: 'shadow-[#6b82f0]/20',
+      proTextBtn: 'text-[#6b82f0]',
+      baseCheck: 'text-[#a8b1db]',
+      baseBtn: 'bg-[#f0f2fa] text-[#5b73e8] hover:bg-[#e4e9f7]'
+    },
+    {
+      name: 'Emerald',
+      bg: 'bg-emerald-50/30',
+      heading: 'text-emerald-950',
+      toggleActive: 'bg-emerald-500 text-white',
+      proBg: 'bg-emerald-500',
+      proBadge: 'bg-emerald-400',
+      proShadow: 'shadow-emerald-500/20',
+      proTextBtn: 'text-emerald-600',
+      baseCheck: 'text-emerald-300',
+      baseBtn: 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+    },
+    {
+      name: 'Midnight',
+      bg: 'bg-slate-50',
+      heading: 'text-slate-900',
+      toggleActive: 'bg-slate-800 text-white',
+      proBg: 'bg-slate-900',
+      proBadge: 'bg-slate-700',
+      proShadow: 'shadow-slate-900/20',
+      proTextBtn: 'text-slate-900',
+      baseCheck: 'text-slate-300',
+      baseBtn: 'bg-slate-100 text-slate-800 hover:bg-slate-200'
+    },
+    {
+      name: 'Rose',
+      bg: 'bg-rose-50/30',
+      heading: 'text-rose-950',
+      toggleActive: 'bg-rose-500 text-white',
+      proBg: 'bg-rose-500',
+      proBadge: 'bg-rose-400',
+      proShadow: 'shadow-rose-500/20',
+      proTextBtn: 'text-rose-600',
+      baseCheck: 'text-rose-300',
+      baseBtn: 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+    }
+  ];
+
+  const theme = themes[activeThemeIdx];
 
   useEffect(() => {
     // Dynamically load Razorpay script
@@ -23,8 +77,8 @@ const Subscription = () => {
     loadRazorpayScript();
   }, []);
 
-  const handlePayment = async () => {
-    setLoading(true);
+  const handlePayment = async (planType) => {
+    setLoadingCode(planType);
     try {
       // 1. Create order on backend
       const { data: order } = await api.post('/subscriptions/create-order', {
@@ -34,14 +88,13 @@ const Subscription = () => {
 
       // 2. Initialize Razorpay options
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'dummy_key_id', // Fallback for testing UI without key
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'dummy_key_id',
         amount: order.amount,
         currency: order.currency,
         name: 'MyBill',
         description: `Pro Plan - ${billingCycle.charAt(0).toUpperCase() + billingCycle.slice(1)}`,
         order_id: order.id,
         handler: async function (response) {
-          // 3. Verify payment on success
           try {
             const verifyRes = await api.post('/subscriptions/verify', {
               razorpay_order_id: response.razorpay_order_id,
@@ -51,7 +104,6 @@ const Subscription = () => {
               billingCycle: billingCycle
             });
             alert('Payment Successful! You are now a Pro member.');
-            // Update local storage and reload so Layout and other components update immediately
             if (userObj && verifyRes.data.user) {
               userObj.user = verifyRes.data.user;
               localStorage.setItem('user', JSON.stringify(userObj));
@@ -68,31 +120,7 @@ const Subscription = () => {
           contact: user?.phone || ''
         },
         theme: {
-          color: '#4F46E5' // Indigo-600
-        },
-        config: {
-          display: {
-            blocks: {
-              upi: {
-                name: "Pay via UPI",
-                instruments: [
-                  { method: "upi" }
-                ]
-              },
-              other: {
-                name: "Other Payment modes",
-                instruments: [
-                  { method: "card" },
-                  { method: "netbanking" },
-                  { method: "wallet" }
-                ]
-              }
-            },
-            sequence: ["block.upi", "block.other"],
-            preferences: {
-              show_default_blocks: true
-            }
-          }
+          color: activeThemeIdx === 1 ? '#10b981' : activeThemeIdx === 2 ? '#0f172a' : activeThemeIdx === 3 ? '#f43f5e' : '#6b82f0'
         }
       };
 
@@ -109,234 +137,193 @@ const Subscription = () => {
       console.error('Error initiating payment:', error);
       alert('Failed to initiate payment. Please try again later.');
     } finally {
-      setLoading(false);
+      setLoadingCode(null);
     }
   };
 
   const featuresFree = [
-    { text: 'Up to 15 Invoices/Month', included: true },
-    { text: 'Up to 15 Quotes & Proformas/Month', included: true },
-    { text: '5 Document Edits/Month', included: true },
-    { text: 'Document Deletion', included: false },
-    { text: 'Client Management', included: true },
-    { text: 'Community Support', included: true },
-    { text: 'Custom Branding (watermarked)', included: true },
-    { text: 'GST Reports', included: false },
-    { text: 'Client-wise Revenue Reports', included: false },
-    { text: 'Account Statements & Payment Collection', included: false },
+    { text: 'Up to 15 Invoices/Month', type: 'check' },
+    { text: 'Up to 15 Quotes & Proformas/Month', type: 'check' },
+    { text: '5 Document Edits/Month', type: 'check' },
+    { text: 'Document Deletion', type: 'cross' },
+    { text: 'Client Management', type: 'check' },
+    { text: 'Community Support', type: 'check' },
+    { text: 'Custom Branding (watermarked)', type: 'check' },
+    { text: 'GST Reports', type: 'cross' },
+    { text: 'Client-wise Revenue Reports', type: 'cross' },
+    { text: 'Account Statements & Payment Collection', type: 'cross' },
   ];
 
   const featuresPro = [
-    { text: 'Unlimited Invoices & Quotes', included: true },
-    { text: 'Unlimited Document Edits', included: true },
-    { text: 'Unlimited Document Deletion', included: true },
-    { text: 'Unlimited Client Management', included: true },
-    { text: 'GST Reports', included: true },
-    { text: 'Client-wise Revenue Reports', included: true },
-    { text: 'Payment Collection', included: true },
-    { text: 'Account Statements', included: true },
-    { text: 'Custom Branding & Logos', included: true },
-    { text: 'Priority 24/7 Support', included: true },
+    { text: 'Unlimited Invoices & Quotes', type: 'check' },
+    { text: 'Unlimited Document Edits', type: 'check' },
+    { text: 'Unlimited Document Deletion', type: 'check' },
+    { text: 'Unlimited Client Management', type: 'check' },
+    { text: 'GST Reports', type: 'check' },
+    { text: 'Client-wise Revenue Reports', type: 'check' },
+    { text: 'Payment Collection', type: 'check' },
+    { text: 'Account Statements', type: 'check' },
+    { text: 'Custom Branding & Logos', type: 'check' },
+    { text: 'Priority 24/7 Support', type: 'check' },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className={`min-h-[calc(100vh-64px)] ${theme.bg} py-12 px-4 sm:px-6 lg:px-8 font-sans text-slate-800 transition-colors duration-500`}>
       
+      {/* Theme Switcher */}
+      <div className="absolute top-20 right-4 lg:right-8 flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-200 z-50">
+        <FaPalette className="text-slate-400 w-3 h-3" />
+        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mr-1">Theme:</span>
+        <div className="flex gap-1">
+          {themes.map((t, idx) => (
+            <button 
+              key={idx}
+              onClick={() => setActiveThemeIdx(idx)}
+              title={t.name}
+              className={`w-4 h-4 rounded-full transition-transform ${activeThemeIdx === idx ? 'ring-2 ring-offset-1 ring-slate-400 scale-110' : 'hover:scale-110'}`}
+              style={{ backgroundColor: t.proBg.replace('bg-', '').replace('[', '').replace(']', '') || (t.name === 'Midnight' ? '#0f172a' : t.name === 'Emerald' ? '#10b981' : t.name === 'Rose' ? '#f43f5e' : '#6b82f0') }}
+            />
+          ))}
+        </div>
+      </div>
+
       {/* Header Section */}
-      <div className="max-w-7xl mx-auto text-center mb-16">
-        <h2 className="text-sm font-bold tracking-wide text-indigo-600 uppercase mb-3">
-          Pricing & Plans
-        </h2>
-        <h1 className="text-4xl font-extrabold text-slate-900 sm:text-5xl lg:text-6xl tracking-tight mb-4">
-          Simple pricing for <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600">growing businesses</span>
+      <div className="max-w-xl mx-auto text-center mb-8">
+        <h1 className={`text-2xl md:text-3xl font-bold ${theme.heading} tracking-tight mb-3 transition-colors duration-500`}>
+          Simple, transparent pricing
         </h1>
-        <p className="mt-4 text-xl text-slate-500 max-w-2xl mx-auto">
-          Start for free, then upgrade when you need advanced features, higher limits, and custom branding.
+        <p className="text-sm md:text-base text-slate-400 font-medium">
+          No contracts. No surprise fees.
         </p>
       </div>
 
-      {/* Billing Toggle */}
-      <div className="flex justify-center mb-12">
-        <div className="relative flex items-center p-1 bg-slate-200/60 rounded-full border border-slate-300 backdrop-blur-sm shadow-inner">
+      {/* Billing Toggle (Pill style matching reference) */}
+      <div className="flex justify-center mb-10">
+        <div className="flex items-center p-1 bg-white rounded-full shadow-sm border border-slate-100">
           <button
             onClick={() => setBillingCycle('monthly')}
-            className={`relative w-40 flex justify-center py-2.5 text-sm font-semibold rounded-full transition-all duration-300 ease-in-out ${
+            className={`px-5 py-2 text-[11px] font-bold uppercase tracking-wider rounded-full transition-colors duration-300 ${
               billingCycle === 'monthly'
-                ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/5'
-                : 'text-slate-500 hover:text-slate-900'
+                ? `${theme.toggleActive} shadow-sm`
+                : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            Monthly
+            MONTHLY
           </button>
           <button
             onClick={() => setBillingCycle('yearly')}
-            className={`relative w-40 flex justify-center py-2.5 text-sm font-semibold rounded-full transition-all duration-300 ease-in-out ${
+            className={`px-5 py-2 text-[11px] font-bold uppercase tracking-wider rounded-full transition-colors duration-300 ${
               billingCycle === 'yearly'
-                ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/5'
-                : 'text-slate-500 hover:text-slate-900'
+                ? `${theme.toggleActive} shadow-sm`
+                : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            Yearly <span className="ml-2 text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full uppercase tracking-wide">Save 20%</span>
+            YEARLY
           </button>
         </div>
       </div>
 
       {/* Pricing Cards Container */}
-      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 relative">
+      <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-0 items-center justify-center">
         
-        {/* Decorative Background Blob */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-gradient-to-r from-indigo-300/30 to-purple-300/30 blur-3xl -z-10 rounded-full pointer-events-none opacity-60"></div>
+        {/* --- BASE PLAN CARD --- */}
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-50 p-6 md:p-8 md:rounded-r-none z-0 hover:shadow-md transition-shadow relative md:translate-x-1">
+          <div className="mb-4">
+            <div className="flex items-baseline gap-1 mb-4">
+              <span className={`text-4xl font-extrabold ${theme.heading} transition-colors duration-500`}>₹0</span>
+              <span className="text-xs font-semibold text-slate-400">/month</span>
+            </div>
+            <h3 className={`text-xl font-bold ${theme.heading} mb-1 transition-colors duration-500`}>Base</h3>
+            <p className="text-xs text-slate-400 font-medium h-10 mb-6 line-clamp-2">
+              For individuals and small startups getting off the ground.
+            </p>
 
-        {/* --- FREE PLAN CARD --- */}
-        <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/60 p-8 xl:p-10 flex flex-col transform transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-          <div className="mb-6">
-            <h3 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-              Free 
-              {!isPro && <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1 rounded-full border border-slate-200">Current Plan</span>}
-            </h3>
-            <p className="mt-2 text-slate-500 text-sm h-10">Essential tools to get your billing started and organized.</p>
-          </div>
-          
-          <div className="mt-2 mb-8">
-            <span className="text-5xl font-extrabold text-slate-900">₹0</span>
-            <span className="text-lg text-slate-500 font-medium">/forever</span>
-          </div>
-
-          <button disabled className={`w-full py-3.5 px-4 rounded-xl font-semibold text-sm transition-colors ${!isPro ? 'text-slate-400 bg-slate-100 border border-slate-200 cursor-not-allowed' : 'text-slate-600 bg-white border border-slate-300 hover:bg-slate-50'}`}>
-            {!isPro ? 'Active Plan' : 'Downgrade to Free'}
-          </button>
-
-          <div className="mt-8 pt-8 border-t border-slate-100">
-            <h4 className="text-sm font-semibold text-slate-900 mb-4 tracking-wide">WHAT'S INCLUDED</h4>
-            <ul className="space-y-4">
+            <h4 className="text-[10px] font-bold tracking-widest text-[#1a174c] uppercase mb-4">WHAT'S INCLUDED</h4>
+            <ul className="space-y-4 mb-8">
               {featuresFree.map((feature, idx) => (
-                <li key={idx} className="flex items-start">
-                  <div className="flex-shrink-0 mt-0.5">
-                    {feature.included ? (
-                      <Check className="w-5 h-5 text-indigo-500" />
+                <li key={idx} className="flex items-start gap-3">
+                  <div className="mt-[2px] shrink-0">
+                    {feature.type === 'check' ? (
+                      <Check className={`w-3.5 h-3.5 ${theme.baseCheck} transition-colors duration-500`} />
                     ) : (
-                      <X className="w-5 h-5 text-slate-300" />
+                      <Cross className="w-3.5 h-3.5 text-slate-300" />
                     )}
                   </div>
-                  <p className={`ml-3 text-sm ${feature.included ? 'text-slate-700 font-medium' : 'text-slate-400'}`}>
+                  <span className={`text-xs font-medium ${feature.type === 'check' ? 'text-slate-600' : 'text-slate-400'}`}>
                     {feature.text}
-                  </p>
+                  </span>
                 </li>
               ))}
             </ul>
           </div>
+
+          <button 
+            disabled 
+            className={`w-full py-2.5 px-4 rounded-full font-bold text-xs ${theme.baseBtn} transition-colors duration-500 mt-auto`}
+          >
+            {!isPro ? 'Active Plan' : 'Downgrade'}
+          </button>
         </div>
 
-        {/* --- PRO PLAN CARD --- */}
-        <div className="relative bg-white rounded-3xl shadow-2xl shadow-indigo-900/10 border-2 border-indigo-500/50 p-8 xl:p-10 flex flex-col transform transition-all duration-300 hover:-translate-y-1 hover:shadow-indigo-500/15 overflow-hidden group">
-          
-          {/* Pro Glow Effect */}
-          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-indigo-200 rounded-full blur-3xl opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
-          
-          <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-
-          <div className="relative mb-6">
-            <h3 className="text-2xl font-bold text-slate-900 flex items-center justify-between">
-              <span className="flex items-center gap-2">Professional <Star className="w-5 h-5 text-amber-400 fill-amber-400" /></span>
-              {isPro ? (
-                  <span className="text-xs font-bold bg-green-100 text-green-700 px-3 py-1 rounded-full border border-green-200 uppercase tracking-wider">Current Plan</span>
-              ) : (
-                  <span className="text-xs font-bold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full border border-indigo-200 uppercase tracking-wider">Most Popular</span>
-              )}
-            </h3>
-            <p className="mt-2 text-slate-500 text-sm h-10">Advanced features for power users and growing agencies.</p>
+        {/* --- PRO PLAN CARD (CENTER) --- */}
+        <div className={`${theme.proBg} rounded-3xl shadow-xl ${theme.proShadow} p-6 md:p-8 z-10 relative transform scale-100 md:scale-105 border border-white/10 transition-colors duration-500`}>
+          <div className="absolute top-5 right-6">
+            <span className={`${theme.proBadge} text-[9px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-full transition-colors duration-500`}>
+              POPULAR
+            </span>
           </div>
           
-          <div className="relative mt-2 mb-8">
-            <div className="flex items-baseline">
-              <span className="text-5xl font-extrabold text-slate-900">
+          <div>
+            <div className="flex items-baseline gap-1 mb-4 mt-2">
+              <span className="text-4xl font-extrabold text-white">
                 {billingCycle === 'monthly' ? '₹1' : '₹799'}
               </span>
-              <span className="text-lg text-slate-500 font-medium ml-1">/mo</span>
+              <span className="text-xs font-semibold text-white/70">/month</span>
             </div>
-            {billingCycle === 'yearly' && (
-              <p className="text-sm text-indigo-600 mt-1">Billed ₹9,588 yearly</p>
-            )}
-            {billingCycle === 'monthly' && (
-              <p className="text-sm text-slate-500 mt-1 invisible">Placeholder</p> // To keep height consistent
-            )}
+            <h3 className="text-xl font-bold text-white mb-1">Pro</h3>
+            <p className="text-xs text-white/80 font-medium h-10 mb-6 line-clamp-2">
+              For growing businesses optimizing their billing workflows.
+            </p>
+
+            <h4 className="text-[10px] font-bold tracking-widest text-indigo-900 uppercase mb-4">EVERYTHING IN FREE, PLUS</h4>
+            <ul className="space-y-4 mb-8">
+              {featuresPro.map((feature, idx) => (
+                <li key={idx} className="flex items-start gap-3">
+                  <div className="mt-0.5 shrink-0 bg-white rounded-full p-0.5 w-3.5 h-3.5 flex items-center justify-center">
+                    <Check className={`w-2.5 h-2.5 ${theme.proTextBtn} transition-colors duration-500`} />
+                  </div>
+                  <span className="text-xs font-medium text-white">{feature.text}</span>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          {/* Button Logic */}
+          {/* Button Logic for Pro */}
           {isPro && activeBillingCycle === 'yearly' ? (
-            <button 
-              disabled
-              className="relative w-full py-3.5 px-4 rounded-xl font-bold text-indigo-700 bg-indigo-50 border-2 border-indigo-200 cursor-not-allowed">
-              <span className="relative flex items-center justify-center gap-2">
-                Currently Subscribed (Yearly) <Check className="w-4 h-4 fill-current" />
-              </span>
+            <button disabled className={`w-full py-2.5 px-4 rounded-full font-bold text-xs ${theme.proTextBtn} bg-white opacity-90 cursor-not-allowed transition-colors duration-500`}>
+              Current Plan (Yearly)
             </button>
           ) : isPro && activeBillingCycle === 'monthly' && billingCycle === 'monthly' ? (
-            <button 
-              disabled
-              className="relative w-full py-3.5 px-4 rounded-xl font-bold text-indigo-700 bg-indigo-50 border-2 border-indigo-200 cursor-not-allowed">
-              <span className="relative flex items-center justify-center gap-2">
-                Currently Subscribed (Monthly) <Check className="w-4 h-4 fill-current" />
-              </span>
+            <button disabled className={`w-full py-2.5 px-4 rounded-full font-bold text-xs ${theme.proTextBtn} bg-white opacity-90 cursor-not-allowed transition-colors duration-500`}>
+              Current Plan (Monthly)
             </button>
           ) : (
             <button 
-              onClick={handlePayment}
-              disabled={loading}
-              className={`relative w-full group overflow-hidden py-3.5 px-4 rounded-xl font-bold text-white shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}>
-              <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 bg-[length:200%_auto] group-hover:bg-[100%_auto] transition-all duration-500"></span>
-              <span className="relative flex items-center justify-center gap-2">
-                {loading ? (
-                  <>Processing... <FaSpinner className="w-4 h-4 animate-spin" /></>
-                ) : isPro && activeBillingCycle === 'monthly' && billingCycle === 'yearly' ? (
-                  <>Upgrade to Yearly <Zap className="w-4 h-4 fill-current" /></>
-                ) : (
-                  <>Upgrade to Pro <Zap className="w-4 h-4 fill-current" /></>
-                )}
-              </span>
+              onClick={() => handlePayment('pro')}
+              disabled={loadingCode === 'pro'}
+              className={`w-full py-2.5 px-4 rounded-full font-bold text-xs ${theme.proTextBtn} bg-white hover:bg-slate-50 transition-colors shadow-md flex items-center justify-center gap-2 duration-500`}
+            >
+              {loadingCode === 'pro' ? (
+                <><FaSpinner className={`animate-spin ${theme.proTextBtn}`} /> Processing...</>
+              ) : isPro && billingCycle === 'yearly' ? (
+                'Upgrade to Yearly'
+              ) : (
+                'Upgrade'
+              )}
             </button>
           )}
-
-          <div className="relative mt-8 pt-8 border-t border-slate-100">
-            <h4 className="text-sm font-semibold text-slate-900 mb-4 tracking-wide">EVERYTHING IN FREE, PLUS</h4>
-            <ul className="space-y-4">
-              {featuresPro.map((feature, idx) => (
-                <li key={idx} className="flex items-start">
-                  <div className="flex-shrink-0 mt-0.5">
-                    <div className="h-5 w-5 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-200">
-                      <Check className="w-3 h-3 text-indigo-600" />
-                    </div>
-                  </div>
-                  <p className="ml-3 text-sm text-slate-700 font-medium">
-                    {feature.text}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
 
-      </div>
-
-      {/* FAQ / Trust Section */}
-      <div className="max-w-4xl mx-auto mt-24 mb-12 text-center">
-        <h3 className="text-2xl font-bold text-slate-900 mb-8">Frequently Asked Questions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-indigo-50 rounded-lg"><Shield className="w-5 h-5 text-indigo-600" /></div>
-              <h4 className="font-semibold text-slate-900">Is my billing data secure?</h4>
-            </div>
-            <p className="text-sm text-slate-500 pl-14">Absolutely. We use bank-level encryption and do not store sensitive payment details on our servers.</p>
-          </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-purple-50 rounded-lg"><HelpCircle className="w-5 h-5 text-purple-600" /></div>
-              <h4 className="font-semibold text-slate-900">Can I cancel anytime?</h4>
-            </div>
-            <p className="text-sm text-slate-500 pl-14">Yes! You can switch back to the free plan anytime no questions asked. Your invoices will remain accessible.</p>
-          </div>
-        </div>
       </div>
 
     </div>
