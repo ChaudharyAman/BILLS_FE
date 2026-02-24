@@ -24,7 +24,8 @@ const Subscription = () => {
       proShadow: 'shadow-[#6b82f0]/20',
       proTextBtn: 'text-[#6b82f0]',
       baseCheck: 'text-[#a8b1db]',
-      baseBtn: 'bg-[#f0f2fa] text-[#5b73e8] hover:bg-[#e4e9f7]'
+      baseBtn: 'bg-[#f0f2fa] text-[#5b73e8] hover:bg-[#e4e9f7]',
+      hex: '#6b82f0' // Replaced dynamic Tailwind parses with explicitly mapped HEX codes for immediate render safety
     },
     {
       name: 'Emerald',
@@ -36,7 +37,8 @@ const Subscription = () => {
       proShadow: 'shadow-emerald-500/20',
       proTextBtn: 'text-emerald-600',
       baseCheck: 'text-emerald-300',
-      baseBtn: 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+      baseBtn: 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100',
+      hex: '#10b981'
     },
     {
       name: 'Midnight',
@@ -48,7 +50,8 @@ const Subscription = () => {
       proShadow: 'shadow-slate-900/20',
       proTextBtn: 'text-slate-900',
       baseCheck: 'text-slate-300',
-      baseBtn: 'bg-slate-100 text-slate-800 hover:bg-slate-200'
+      baseBtn: 'bg-slate-100 text-slate-800 hover:bg-slate-200',
+      hex: '#0f172a'
     },
     {
       name: 'Rose',
@@ -60,7 +63,8 @@ const Subscription = () => {
       proShadow: 'shadow-rose-500/20',
       proTextBtn: 'text-rose-600',
       baseCheck: 'text-rose-300',
-      baseBtn: 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+      baseBtn: 'bg-rose-50 text-rose-600 hover:bg-rose-100',
+      hex: '#f43f5e'
     }
   ];
 
@@ -181,7 +185,7 @@ const Subscription = () => {
               onClick={() => setActiveThemeIdx(idx)}
               title={t.name}
               className={`w-4 h-4 rounded-full transition-transform ${activeThemeIdx === idx ? 'ring-2 ring-offset-1 ring-slate-400 scale-110' : 'hover:scale-110'}`}
-              style={{ backgroundColor: t.proBg.replace('bg-', '').replace('[', '').replace(']', '') || (t.name === 'Midnight' ? '#0f172a' : t.name === 'Emerald' ? '#10b981' : t.name === 'Rose' ? '#f43f5e' : '#6b82f0') }}
+              style={{ backgroundColor: t.hex }}
             />
           ))}
         </div>
