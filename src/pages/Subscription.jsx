@@ -116,6 +116,8 @@ const Subscription = () => {
   const featuresFree = [
     { text: 'Up to 15 Invoices/Month', included: true },
     { text: 'Up to 15 Quotes & Proformas/Month', included: true },
+    { text: '5 Document Edits/Month', included: true },
+    { text: 'Document Deletion', included: false },
     { text: 'Client Management', included: true },
     { text: 'Community Support', included: true },
     { text: 'Custom Branding (watermarked)', included: true },
@@ -126,6 +128,8 @@ const Subscription = () => {
 
   const featuresPro = [
     { text: 'Unlimited Invoices & Quotes', included: true },
+    { text: 'Unlimited Document Edits', included: true },
+    { text: 'Unlimited Document Deletion', included: true },
     { text: 'Unlimited Client Management', included: true },
     { text: 'GST Reports', included: true },
     { text: 'Client-wise Revenue Reports', included: true },
@@ -246,7 +250,7 @@ const Subscription = () => {
           <div className="relative mt-2 mb-8">
             <div className="flex items-baseline">
               <span className="text-5xl font-extrabold text-slate-900">
-                {billingCycle === 'monthly' ? '₹999' : '₹799'}
+                {billingCycle === 'monthly' ? '₹1' : '₹799'}
               </span>
               <span className="text-lg text-slate-500 font-medium ml-1">/mo</span>
             </div>

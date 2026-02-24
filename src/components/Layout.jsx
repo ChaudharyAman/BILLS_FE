@@ -49,7 +49,13 @@ const Layout = ({ children }) => {
 
   // Check user subscription tier
   const userStr = localStorage.getItem('user');
-  const userObj = userStr ? JSON.parse(userStr).user : null;
+  let userObj = null;
+  try {
+    userObj = userStr ? JSON.parse(userStr).user : null;
+  } catch (e) {
+    console.error('Failed to parse user from localStorage', e);
+    // Optionally clean up corrupted state: localStorage.removeItem('user');
+  }
   const isPro = userObj?.subscription?.plan === 'pro';
 
   const isActive = (path) => location.pathname.startsWith(path);

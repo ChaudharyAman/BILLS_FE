@@ -17,6 +17,12 @@ const QuoteList = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+
+  const userStr = localStorage.getItem('user');
+  let userObj = null;
+  try { userObj = userStr ? JSON.parse(userStr).user : null; } catch(e) {}
+  const isPro = userObj?.subscription?.plan === 'pro';
 
   useEffect(() => { fetchQuotes(); }, []);
 
@@ -115,8 +121,8 @@ const QuoteList = () => {
   };
 
   const filtered = quotes.filter(q =>
-    q.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    q.quoteNo?.toLowerCase().includes(searchTerm.toLowerCase())
+    String(q.client?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    String(q.quoteNo || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
   const displayed = filtered.slice(0, rowsPerPage);
 
@@ -252,7 +258,16 @@ const QuoteList = () => {
                           <FaArrowRight size={17} />
                         </button>
                       )}
-                      <button onClick={() => handleDelete(q._id)} className="text-gray-400 hover:text-red-600 transition-colors" title="Delete"><FaTrash size={17} /></button>
+                      <button 
+                        onClick={() => {
+                          if (!isPro) return setShowPremiumModal(true);
+                          handleDelete(q._id);
+                        }} 
+                        className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`} 
+                        title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
+                      >
+                        <FaTrash size={17} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -290,6 +305,27 @@ const QuoteList = () => {
           >
             Cancel
           </button>
+        </div>
+      </Modal>
+
+      {/* Premium Feature Modal */}
+      <Modal isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} title="Premium Feature">
+        <div className="p-4 text-center">
+          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Upgrade to Pro</h3>
+          <p className="text-gray-500 mb-6">
+            Deleting quotes is a premium feature. Upgrade to Pro to unlock unlimited document management, including deleting and an unlimited edit quota.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button onClick={() => setShowPremiumModal(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+              Maybe Later
+            </button>
+            <Link to="/subscription" className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 rounded-xl shadow-lg shadow-yellow-500/30 transition-all flex items-center gap-2">
+              Upgrade Now
+            </Link>
+          </div>
         </div>
       </Modal>
 

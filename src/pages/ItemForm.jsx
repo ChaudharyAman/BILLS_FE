@@ -47,7 +47,15 @@ const ItemForm = ({ isModal, onSuccess }) => {
       setLoading(true);
       const response = await api.get(`/items/${id}`);
       const item = response.data;
-      setFormData(item);
+      
+      // Merge with default state to ensure nested objects exist (e.g., older items lacking salesInfo)
+      setFormData(prev => ({
+        ...prev,
+        ...item,
+        salesInfo: { ...prev.salesInfo, ...(item.salesInfo || {}) },
+        purchaseInfo: { ...prev.purchaseInfo, ...(item.purchaseInfo || {}) }
+      }));
+      
       setActiveTab(item.type || 'Goods');
       setLoading(false);
     } catch (error) {
