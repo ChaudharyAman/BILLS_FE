@@ -149,7 +149,7 @@ const ItemList = () => {
         <div className="relative w-72">
           <input
             type="text"
-            placeholder="Search items..."
+            placeholder="Search inventory..."
             className="w-full pl-4 pr-10 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm"
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
@@ -224,8 +224,8 @@ const ItemList = () => {
           </div>
         ) : filteredItems.length === 0 ? (          <div className="text-center py-16">
             <FaBox size={40} className="mx-auto text-slate-300 mb-3" />
-            <p className="text-slate-500 font-medium">No items found</p>
-            <p className="text-slate-400 text-sm mt-1">Create your first item to get started</p>
+            <p className="text-slate-500 font-medium">No inventory found</p>
+            <p className="text-slate-400 text-sm mt-1">Create your first inventory item to get started</p>
             <Link to="/items/new" className="mt-4 inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               <FaPlus size={16} /> New Item
             </Link>
@@ -339,7 +339,7 @@ const ItemList = () => {
                 </select>
               </div>
               <div className="flex items-center gap-3">
-                <span>{filteredItems.length} items total</span>
+                <span>{filteredItems.length} inventory items total</span>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
@@ -364,7 +364,7 @@ const ItemList = () => {
       </div>
 
       {/* Bulk Upload CSV Modal */}
-      <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Items to Database">
+      <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Inventory to Database">
         <CsvAndExcelUploader 
           onDataParsed={handleCsvParsed} 
           isLoading={isImporting}

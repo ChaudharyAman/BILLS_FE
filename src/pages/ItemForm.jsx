@@ -158,7 +158,7 @@ const ItemForm = ({ isModal, onSuccess }) => {
           >
             <FaArrowLeft size={24} />
           </button>
-          <h1 className="text-2xl font-bold text-gray-800">{id ? 'Edit Item' : 'New Item'}</h1>
+          <h1 className="text-2xl font-bold text-gray-800">{id ? 'Edit Inventory' : 'New Inventory'}</h1>
         </div>
         
         {/* Tabs */}

@@ -4,6 +4,7 @@ import api from '../api/axios';
 import { FaPlus, FaSearch, FaChevronDown, FaSort, FaTrash, FaPencilAlt } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 import ExportDropdown from '../components/ExportDropdown';
+import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
 
 const ClientList = () => {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ const ClientList = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClients, setSelectedClients] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     fetchClients();
@@ -24,6 +26,58 @@ const ClientList = () => {
     } catch (error) {
       console.error('Error fetching clients:', error);
       setLoading(false);
+    }
+  };
+
+  const handleCsvParsed = async (data) => {
+    setIsUploading(true);
+    
+    // Map CSV/Excel rows to Client JSON Objects
+    const formattedClients = data.map(row => {
+      // Handle variations in column headers for Name
+      const name = row['Company Name'] || row['Company'] || row['Name'] || row['Client Name'] || row.name;
+      // Handle variations for Email
+      const email = row['Email'] || row['Email Address'] || row.email;
+      // Handle variations for Phone
+      const phone = row['Phone'] || row['Phone Number'] || row['Contact'] || row.phone;
+      // Handle variations for City
+      const city = row['City'] || row['Billing City'] || row.city;
+      // Handle variations for State
+      const state = row['State'] || row['Billing State'] || row.state;
+      // Handle variations for Balance
+      const balanceRaw = row['Opening Balance'] || row['Balance'] || row.openingBalance || 0;
+      const openingBalance = parseFloat(balanceRaw) || 0;
+
+      return {
+        name: name ? String(name).trim() : 'Unnamed Client', // Name is required in schema
+        email: email ? String(email).trim() : undefined,
+        phone: phone ? String(phone).trim() : undefined,
+        billingAddress: {
+          city: city ? String(city).trim() : undefined,
+          state: state ? String(state).trim() : undefined,
+        },
+        openingBalance: openingBalance,
+        isClient: true,
+        isVendor: false
+      };
+    });
+
+    try {
+      const response = await api.post('/clients/bulk', { clients: formattedClients });
+      fetchClients(); // Refresh list after upload
+      alert(`Success: ${response.data.message}`);
+    } catch (error) {
+      console.error('Error uploading clients:', error);
+      if (error.response?.status === 207) {
+         // Partial success
+         alert(`Partial Success: ${error.response.data.message}. Check console for details.`);
+         console.warn("Upload Errors:", error.response.data.errors);
+         fetchClients(); // Still refresh to show successful ones
+      } else {
+         alert(error.response?.data?.message || 'Failed to import clients.');
+      }
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -121,6 +175,13 @@ const ClientList = () => {
                    { header: 'Opening Balance', key: 'openingBalance' }
                 ]}
              />
+             
+             <CsvAndExcelUploader 
+               onDataParsed={handleCsvParsed} 
+               isLoading={isUploading}
+               compact={true}
+             />
+
              <Link
               to="/clients/new"
               className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-semibold shadow-sm"

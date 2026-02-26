@@ -496,7 +496,7 @@ const InvoiceForm = () => {
           <div className={`bg-[#E8EFF5] border border-gray-200 border-b-0 rounded-t-lg px-3 py-2 text-xs font-bold text-gray-600 grid gap-2 items-center`}
             style={{ gridTemplateColumns: buildGridCols(hasHSN, hasTax, hasExcise) }}>
             <div>#</div>
-            <div>Item Name</div>
+            <div>Inventory Name</div>
             <div>Description</div>
             {hasHSN && <div>HSN/SAC</div>}
             <div>Unit</div>

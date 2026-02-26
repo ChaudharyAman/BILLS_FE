@@ -402,7 +402,7 @@ const PurchaseOrderForm = () => {
               <thead>
                 <tr>
                   <th className={`${th} w-8`}>No</th>
-                  <th className={`${th} w-40`}>Item Name</th>
+                  <th className={`${th} w-40`}>Inventory Name</th>
                   <th className={th}>Description</th>
                   <th className={`${th} w-20`}>Unit</th>
                   <th className={`${th} w-16`}>QTY</th>
@@ -428,11 +428,11 @@ const PurchaseOrderForm = () => {
                             }
                         }} 
                         value={item._id || ""}>
-                        <option value="">Select Item</option>
+                        <option value="">Select Inventory</option>
                         {itemsList.map(i => <option key={i._id} value={i._id}>{i.name}</option>)}
                         <option value="_CREATE_NEW_" className="font-bold text-blue-600">+ Create New Item</option>
                       </select>
-                      <input placeholder="Item name" value={item.name}
+                      <input placeholder="Inventory name" value={item.name}
                         onChange={e => updateItem(idx, 'name', e.target.value)}
                         className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400" required />
                     </td>

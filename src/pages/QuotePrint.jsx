@@ -237,7 +237,7 @@ const QuotePrint = ({ docType = 'quote' }) => {
           <thead>
             <tr>
               <th style={thStyle('center')}>#</th>
-              <th style={thStyle()}>Item / Description</th>
+              <th style={thStyle()}>Inventory / Description</th>
               {hasTax && <th style={thStyle('center')}>HSN/SAC</th>}
               <th style={thStyle('center')}>Unit</th>
               <th style={thStyle('right')}>Qty</th>

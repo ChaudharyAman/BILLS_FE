@@ -11,7 +11,7 @@ const NAV = [
   { label: 'Dashboard',          icon: FaThLarge,       path: '/dashboard' },
   { label: 'Clients / Customers',icon: FaUsers,           path: '/clients' },
   { label: 'Vendors / Suppliers',icon: FaTruck,           path: '/vendors' },
-  { label: 'Items',              icon: FaBox,         path: '/items' },
+  { label: 'Inventory',          icon: FaBox,         path: '/items' },
   {
     label: 'Invoices', icon: FaFileInvoice, path: '/invoices',
   },
@@ -128,9 +128,9 @@ const Layout = ({ children }) => {
             <FaShoppingCart size={ICON_SIZE} /> Purchase Orders
           </Link>
 
-          {/* Items */}
+          {/* Items / Inventory */}
           <Link to="/items" className={linkCls('/items')}>
-            <FaBox size={ICON_SIZE} /> Items
+            <FaBox size={ICON_SIZE} /> Inventory
           </Link>
 
           {/* Invoices */}

@@ -14,7 +14,8 @@ const CsvAndExcelUploader = ({
   onDataParsed, 
   isLoading = false,
   title = "Upload File",
-  subtitle = "Drag & drop a .csv, .xlsx, or .xls file here, or click to select"
+  subtitle = "Drag & drop a .csv, .xlsx, or .xls file here, or click to select",
+  compact = false
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
@@ -92,17 +93,17 @@ const CsvAndExcelUploader = ({
 
   const handleDragOver = (e) => {
     e.preventDefault();
-    setIsDragging(true);
+    if (!compact) setIsDragging(true);
   };
 
   const handleDragLeave = (e) => {
     e.preventDefault();
-    setIsDragging(false);
+    if (!compact) setIsDragging(false);
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
-    setIsDragging(false);
+    if (!compact) setIsDragging(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       processFile(e.dataTransfer.files[0]);
@@ -116,6 +117,33 @@ const CsvAndExcelUploader = ({
       e.target.value = null;
     }
   };
+
+  if (compact) {
+    return (
+      <div className="w-full">
+         <input 
+          type="file" 
+          accept=".csv, .xls, .xlsx, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/csv"
+          className="hidden" 
+          ref={fileInputRef} 
+          onChange={handleFileChange} 
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isLoading}
+          className={`flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 font-medium whitespace-nowrap transition-colors ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-slate-50 hover:text-blue-600'} shadow-sm`}
+        >
+          {isLoading ? <FaSpinner className="animate-spin" /> : <FaUpload />} 
+          {isLoading ? 'Importing...' : 'Import'}
+        </button>
+        {error && (
+          <div className="absolute mt-2 p-2 bg-red-50 text-red-600 text-xs rounded border border-red-100 whitespace-nowrap z-10 shadow-lg">
+             {error}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
