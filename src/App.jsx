@@ -16,8 +16,13 @@ const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
 const ClientList = lazy(() => import('./pages/ClientList'));
 const ClientForm = lazy(() => import('./pages/ClientForm'));
+const VendorList = lazy(() => import('./pages/VendorList'));
+const VendorForm = lazy(() => import('./pages/VendorForm'));
 const ItemList = lazy(() => import('./pages/ItemList'));
 const ItemForm = lazy(() => import('./pages/ItemForm'));
+const PurchaseOrderList = lazy(() => import('./pages/PurchaseOrderList'));
+const PurchaseOrderForm = lazy(() => import('./pages/PurchaseOrderForm'));
+const PurchaseOrderPrint = lazy(() => import('./pages/PurchaseOrderPrint'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Subscription = lazy(() => import('./pages/Subscription'));
 
@@ -69,9 +74,20 @@ function App() {
                   <Route path="/clients/new" element={<ClientForm />} />
                   <Route path="/clients/edit/:id" element={<ClientForm />} />
 
+                  {/* Vendors */}
+                  <Route path="/vendors" element={<VendorList />} />
+                  <Route path="/vendors/new" element={<VendorForm />} />
+                  <Route path="/vendors/edit/:id" element={<VendorForm />} />
+
                   <Route path="/items" element={<ItemList />} />
                   <Route path="/items/new" element={<ItemForm />} />
                   <Route path="/items/edit/:id" element={<ItemForm />} />
+
+                  {/* Purchase Orders */}
+                  <Route path="/purchase-orders" element={<PurchaseOrderList />} />
+                  <Route path="/purchase-orders/new" element={<PurchaseOrderForm />} />
+                  <Route path="/purchase-orders/edit/:id" element={<PurchaseOrderForm />} />
+                  <Route path="/purchase-orders/:id/print" element={<PurchaseOrderPrint />} />
 
                   {/* Reports */}
                   <Route path="/reports/gst" element={<GstReport />} />

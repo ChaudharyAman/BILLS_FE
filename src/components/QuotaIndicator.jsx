@@ -41,7 +41,7 @@ const QuotaIndicator = ({ type }) => {
   if (percentage >= 100) barColor = 'bg-red-500';
   else if (percentage >= 80) barColor = 'bg-orange-500';
 
-  let title = type === 'invoices' ? 'Invoices' : 'Quotes & Proformas';
+  let title = type === 'invoices' ? 'Invoices' : (type === 'purchaseOrders' ? 'Purchase Orders' : 'Quotes & Proformas');
 
   // Helper for generating progress bars
   const ProgressBar = ({ used, limit, label }) => {

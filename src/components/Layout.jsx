@@ -4,12 +4,13 @@ import {
   FaThLarge, FaUsers, FaBox, FaFileInvoice,
   FaClipboardList, FaCog, FaSignOutAlt,
   FaChevronDown, FaChevronRight, FaMinus, FaStar,
-  FaChartBar, FaWallet, FaLock, FaTimes
+  FaChartBar, FaWallet, FaLock, FaTimes, FaTruck, FaShoppingCart
 } from 'react-icons/fa';
 
 const NAV = [
   { label: 'Dashboard',          icon: FaThLarge,       path: '/dashboard' },
   { label: 'Clients / Customers',icon: FaUsers,           path: '/clients' },
+  { label: 'Vendors / Suppliers',icon: FaTruck,           path: '/vendors' },
   { label: 'Items',              icon: FaBox,         path: '/items' },
   {
     label: 'Invoices', icon: FaFileInvoice, path: '/invoices',
@@ -115,6 +116,16 @@ const Layout = ({ children }) => {
           {/* Clients */}
           <Link to="/clients" className={linkCls('/clients')}>
             <FaUsers size={ICON_SIZE} /> Clients / Customers
+          </Link>
+
+          {/* Vendors */}
+          <Link to="/vendors" className={linkCls('/vendors')}>
+            <FaTruck size={ICON_SIZE} /> Vendors / Suppliers
+          </Link>
+
+          {/* Purchase Orders */}
+          <Link to="/purchase-orders" className={linkCls('/purchase-orders')}>
+            <FaShoppingCart size={ICON_SIZE} /> Purchase Orders
           </Link>
 
           {/* Items */}

@@ -21,4 +21,20 @@ api.interceptors.request.use(
   }
 );
 
+// Add a response interceptor
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // If the request fails with a 401 (Unauthorized) error, clear the token and redirect to login
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
