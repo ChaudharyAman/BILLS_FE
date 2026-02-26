@@ -404,6 +404,7 @@ const PurchaseOrderForm = () => {
                   <th className={`${th} w-8`}>No</th>
                   <th className={`${th} w-40`}>Inventory Name</th>
                   <th className={th}>Description</th>
+                  <th className={`${th} w-24`}>HSN/SAC</th>
                   <th className={`${th} w-20`}>Unit</th>
                   <th className={`${th} w-16`}>QTY</th>
                   <th className={`${th} w-24`}>Price</th>
@@ -443,6 +444,10 @@ const PurchaseOrderForm = () => {
                       <div className="text-xs text-gray-400 mt-0.5">
                         {1000 - (item.description?.length || 0)} characters left
                       </div>
+                    </td>
+                    <td className="px-2 py-2 align-top">
+                      <input placeholder="HSN" value={item.hsnCode || ''} onChange={e => updateItem(idx, 'hsnCode', e.target.value)}
+                        className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400" />
                     </td>
                     <td className="px-2 py-2 align-top">
                       <input value={item.unit} onChange={e => updateItem(idx, 'unit', e.target.value)}

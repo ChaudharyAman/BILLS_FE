@@ -238,7 +238,7 @@ const PurchaseOrderPrint = () => {
             <tr>
               <th style={thStyle('center')}>#</th>
               <th style={thStyle()}>Inventory / Description</th>
-              {hasTax && <th style={thStyle('center')}>HSN/SAC</th>}
+              <th style={thStyle('center')}>HSN/SAC</th>
               <th style={thStyle('center')}>Unit</th>
               <th style={thStyle('right')}>Qty</th>
               <th style={thStyle('right')}>Rate</th>
@@ -257,7 +257,7 @@ const PurchaseOrderPrint = () => {
                   <div style={{ fontWeight: 600, color: '#111827' }}>{item.name}</div>
                   {item.description && <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}>{item.description}</div>}
                 </td>
-                {hasTax && <td style={tdStyle('center')}>{item.hsnCode || '—'}</td>}
+                <td style={tdStyle('center')}>{item.hsnCode || '—'}</td>
                 <td style={tdStyle('center')}>{item.unit || 'pcs'}</td>
                 <td style={tdStyle('right')}>{item.qty}</td>
                 <td style={tdStyle('right')}>₹{fmt(item.rate)}</td>

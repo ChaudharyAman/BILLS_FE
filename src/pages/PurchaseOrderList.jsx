@@ -193,6 +193,7 @@ const PurchaseOrderList = () => {
                   </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">PurchaseOrder No.</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">HSN/SAC</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vendor</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Valid Until</th>
@@ -207,6 +208,7 @@ const PurchaseOrderList = () => {
                   <tr key={i} className="bg-white border-b border-gray-100">
                     <td className="px-6 py-4 text-center"><Skeleton width="18px" height="18px" className="mx-auto" /></td>
                     <td className="px-6 py-4"><Skeleton width="100px" height="20px" /></td>
+                    <td className="px-6 py-4"><Skeleton width="60px" height="20px" /></td>
                     <td className="px-6 py-4"><Skeleton width="140px" height="20px" /></td>
                     <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
                     <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
@@ -216,7 +218,7 @@ const PurchaseOrderList = () => {
                   </tr>
                 ))
               ) : displayed.length === 0 ? (
-                <tr><td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">No purchaseOrders found.</td></tr>
+                <tr><td colSpan="9" className="px-6 py-12 text-center text-gray-500 text-sm">No purchaseOrders found.</td></tr>
               ) : displayed.map(q => (
                 <tr key={q._id} className="hover:bg-blue-50/50 transition-colors">
                   <td className="px-6 py-4 text-center">
@@ -228,6 +230,9 @@ const PurchaseOrderList = () => {
                     <Link to={`/purchase-orders/${q._id}/print`} className="text-blue-600 font-medium hover:text-blue-800 hover:underline">
                       {q.poNumber}
                     </Link>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {[...new Set((q.items || []).map(it => it.hsnCode).filter(Boolean))].join(', ') || '—'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{q.vendor?.name}</div>
