@@ -280,7 +280,7 @@ const Subscription = () => {
           <div>
             <div className="flex items-baseline gap-1 mb-4 mt-2">
               <span className="text-4xl font-extrabold text-white">
-                {billingCycle === 'monthly' ? '₹1' : '₹799'}
+                {billingCycle === 'monthly' ? '₹999' : '₹799'}
               </span>
               <span className="text-xs font-semibold text-white/70">/month</span>
             </div>
