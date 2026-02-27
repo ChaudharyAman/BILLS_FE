@@ -13,18 +13,29 @@ const ClientList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClients, setSelectedClients] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
 
   useEffect(() => {
-    fetchClients();
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      fetchClients();
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, page, rowsPerPage]);
 
   const fetchClients = async () => {
     try {
-      const response = await api.get('/clients');
-      setClients(response.data);
-      setLoading(false);
+      setLoading(true);
+      const res = await api.get(`/clients?page=${page}&limit=${rowsPerPage}&search=${encodeURIComponent(searchTerm)}`);
+      setClients(res.data.data || []);
+      setTotalPages(res.data.totalPages || 1);
+      setTotalRecords(res.data.total || 0);
     } catch (error) {
       console.error('Error fetching clients:', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -94,10 +105,7 @@ const ClientList = () => {
     }
   };
 
-  const filteredClients = clients.filter(client =>
-    String(client.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredClients = clients; // Backend pagination
 
   const toggleSelectAll = (e) => {
     if (e.target.checked) {
@@ -155,7 +163,7 @@ const ClientList = () => {
                     placeholder="Search"
                     className="w-full pl-4 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                 />
                 <FaSearch className="absolute right-3 top-2.5 text-slate-400 h-4 w-4" />
             </div>
@@ -325,12 +333,46 @@ const ClientList = () => {
         )}
         
         {/* Pagination Footer */}
-        <div className="flex justify-end p-4 border-t border-slate-200 bg-white">
-            <div className="relative">
-                 <button className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded text-sm text-slate-600 hover:bg-slate-50">
-                    10 per page
-                    <FaChevronDown size={14} />
-                 </button>
+        <div className="flex flex-col sm:flex-row justify-between items-center p-4 border-t border-slate-200 bg-white gap-4">
+            <div className="text-sm text-slate-500">
+                Showing {clients.length} of {totalRecords} records
+            </div>
+            
+            <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-500">Rows per page:</span>
+                    <select 
+                      value={rowsPerPage} 
+                      onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
+                      className="border border-slate-200 rounded text-sm text-slate-600 px-2 py-1 outline-none"
+                    >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                    </select>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                    <span className="text-sm text-slate-600">
+                        Page {page} of {totalPages || 1}
+                    </span>
+                    <div className="flex gap-1">
+                        <button 
+                          disabled={page <= 1}
+                          onClick={() => setPage(p => p - 1)}
+                          className="px-3 py-1 border border-slate-200 text-sm text-slate-600 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Prev
+                        </button>
+                        <button 
+                          disabled={page >= totalPages}
+                          onClick={() => setPage(p => p + 1)}
+                          className="px-3 py-1 border border-slate-200 text-sm text-slate-600 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
       </div>

@@ -47,23 +47,33 @@ const InvoiceList = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
+  // Debounced Search Effect
   useEffect(() => {
-    fetchInvoices();
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      fetchInvoices();
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, page, rowsPerPage]);
 
   const fetchInvoices = async () => {
     try {
-      const response = await api.get('/invoices');
-      setInvoices(response.data);
-      setLoading(false);
+      setLoading(true);
+      const res = await api.get(`/invoices?page=${page}&limit=${rowsPerPage}&search=${encodeURIComponent(searchTerm)}`);
+      setInvoices(res.data.data || []);
+      setTotalPages(res.data.totalPages || 1);
+      setTotalRecords(res.data.total || 0);
     } catch (error) {
       console.error('Error fetching invoices:', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -153,13 +163,7 @@ const InvoiceList = () => {
 
 
   
-  // --- Filtering & Pagination ---
-  const filteredInvoices = invoices.filter(inv => 
-      inv.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      inv.invoiceNo?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
-  const displayedInvoices = filteredInvoices.slice(0, rowsPerPage);
+  const displayedInvoices = invoices; // Backend handles slice/filter
 
   const formatDate = (dateString) => {
     if (!dateString) return '—';
@@ -201,7 +205,7 @@ const InvoiceList = () => {
         </div>
         <div className="flex gap-3">
            <ExportDropdown 
-              data={selectedInvoices.length > 0 ? invoices.filter(i => selectedInvoices.includes(i._id)) : filteredInvoices}
+              data={selectedInvoices.length > 0 ? displayedInvoices.filter(i => selectedInvoices.includes(i._id)) : displayedInvoices}
               filename="MyBill_Invoices"
               columns={[
                  { header: 'Invoice No', key: 'invoiceNo' },
@@ -281,11 +285,11 @@ const InvoiceList = () => {
                     placeholder="Search invoices..." 
                     className="w-full pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                  />
              </div>
              <div className="text-sm text-gray-500">
-                 Showing {displayedInvoices.length} of {filteredInvoices.length} results
+                 Showing {displayedInvoices.length} of {totalRecords} results
              </div>
         </div>
 
@@ -418,15 +422,13 @@ const InvoiceList = () => {
         </div>
         
         {/* Footer / Pagination */}
-         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
-           <div className="text-sm text-gray-500">
-               Page 1 of {Math.ceil(filteredInvoices.length / rowsPerPage)}
-           </div>
+         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+           
            <div className="flex items-center gap-2">
                <span className="text-sm text-gray-500">Rows per page:</span>
                <select 
                  value={rowsPerPage}
-                 onChange={(e) => setRowsPerPage(Number(e.target.value))}
+                 onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
                  className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                >
                  <option value={10}>10</option>
@@ -434,6 +436,28 @@ const InvoiceList = () => {
                  <option value={50}>50</option>
                  <option value={100}>100</option>
                </select>
+           </div>
+           
+           <div className="flex items-center gap-4">
+               <div className="text-sm text-gray-500">
+                   Page <span className="font-medium text-gray-900">{page}</span> of <span className="font-medium text-gray-900">{totalPages || 1}</span>
+               </div>
+               <div className="flex gap-2">
+                 <button
+                   disabled={page <= 1}
+                   onClick={() => setPage(p => p - 1)}
+                   className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                 >
+                   Previous
+                 </button>
+                 <button
+                   disabled={page >= totalPages}
+                   onClick={() => setPage(p => p + 1)}
+                   className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                 >
+                   Next
+                 </button>
+               </div>
            </div>
          </div>
       </div>

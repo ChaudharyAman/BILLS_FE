@@ -17,17 +17,25 @@ const ItemList = () => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
-    fetchItems();
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      fetchItems();
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, currentPage, itemsPerPage]);
 
   const fetchItems = async () => {
     try {
-      const response = await api.get('/items');
-      setItems(response.data);
+      setLoading(true);
+      const res = await api.get(`/items?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(searchTerm)}`);
+      setItems(res.data.data || []);
+      setTotalPages(res.data.totalPages || 1);
+      setTotalRecords(res.data.total || 0);
     } catch (error) {
       console.error('Error fetching items:', error);
     } finally {
@@ -110,19 +118,8 @@ const ItemList = () => {
     }
   };
 
-  const filteredItems = items.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.hsnCode?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (item.sku?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (item.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
-
-  // Pagination
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-  const paginatedItems = filteredItems.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const filteredItems = items;
+  const paginatedItems = items; // Backend pagination
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
@@ -339,11 +336,11 @@ const ItemList = () => {
                 </select>
               </div>
               <div className="flex items-center gap-3">
-                <span>{filteredItems.length} inventory items total</span>
+                <span>{totalRecords} inventory items total</span>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
+                    disabled={currentPage <= 1}
                     className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <FaChevronLeft size={14} />
@@ -351,7 +348,7 @@ const ItemList = () => {
                   <span className="px-2">Page {currentPage} of {totalPages || 1}</span>
                   <button
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages || totalPages === 0}
+                    disabled={currentPage >= totalPages || totalPages === 0}
                     className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <FaChevronRight size={14} />

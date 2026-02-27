@@ -18,8 +18,8 @@ const AccountStatement = () => {
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const res = await api.get('/clients');
-        setClients(res.data || []);
+        const res = await api.get('/clients?limit=1000');
+        setClients(res.data.data || []);
       } catch (err) {
         console.error('Error fetching clients:', err);
       } finally {

@@ -12,6 +12,9 @@ const ExpenseList = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
@@ -20,12 +23,20 @@ const ExpenseList = () => {
   try { userObj = userStr ? JSON.parse(userStr).user : null; } catch(e) {}
   const isPro = userObj?.subscription?.plan === 'pro';
 
-  useEffect(() => { fetchExpenses(); }, []);
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchExpenses();
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, page, rowsPerPage]);
 
   const fetchExpenses = async () => {
     try {
-      const res = await api.get('/expenses');
-      setExpenses(res.data);
+      setLoading(true);
+      const res = await api.get(`/expenses?page=${page}&limit=${rowsPerPage}&search=${encodeURIComponent(searchTerm)}`);
+      setExpenses(res.data.data || []);
+      setTotalPages(res.data.totalPages || 1);
+      setTotalRecords(res.data.total || 0);
     } catch (e) {
       console.error(e);
     } finally {
@@ -49,12 +60,7 @@ const ExpenseList = () => {
   const toggleAll = () =>
     setSelectedIds(selectedIds.length === expenses.length ? [] : expenses.map(e => e._id));
 
-  const filtered = expenses.filter(exp =>
-    String(exp.vendor?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    String(exp.expenseNumber || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
-  const displayed = filtered.slice(0, rowsPerPage);
+  const displayed = expenses; // Backend pagination
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const fmt = (v) => (Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
@@ -76,7 +82,7 @@ const ExpenseList = () => {
         </div>
         <div className="flex gap-3">
           <ExportDropdown 
-              data={selectedIds.length > 0 ? expenses.filter(e => selectedIds.includes(e._id)) : filtered}
+              data={selectedIds.length > 0 ? displayed.filter(e => selectedIds.includes(e._id)) : displayed}
               filename="MyBill_Expenses"
               columns={[
                  { header: 'Expense No', key: 'expenseNumber' },
@@ -98,8 +104,8 @@ const ExpenseList = () => {
         <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
           <input type="text" placeholder="Search expenses..."
             className="w-full max-w-sm pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-          <div className="text-sm text-gray-500 ml-4">Showing {displayed.length} of {filtered.length}</div>
+            value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setPage(1); }} />
+          <div className="text-sm text-gray-500 ml-4">Showing {displayed.length} of {totalRecords}</div>
         </div>
 
         <div className="overflow-x-auto">
@@ -184,14 +190,34 @@ const ExpenseList = () => {
           </table>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
-          <div className="text-sm text-gray-500">Page 1 of {Math.ceil(filtered.length / rowsPerPage) || 1}</div>
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500">Rows per page:</span>
-            <select value={rowsPerPage} onChange={e => setRowsPerPage(Number(e.target.value))}
+            <select value={rowsPerPage} onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
               className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
-              <option value={10}>10</option><option value={25}>25</option><option value={50}>50</option>
+              <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option>
             </select>
+          </div>
+          <div className="flex items-center gap-4">
+              <div className="text-sm text-gray-500">
+                  Page <span className="font-medium text-gray-900">{page}</span> of <span className="font-medium text-gray-900">{totalPages || 1}</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage(p => p - 1)}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                <button
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(p => p + 1)}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
           </div>
         </div>
       </div>
