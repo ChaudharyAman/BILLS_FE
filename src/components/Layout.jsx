@@ -104,10 +104,17 @@ const Layout = ({ children }) => {
 
         {/* Logo */}
         <div className="px-5 py-5 border-b border-white/10">
-          <h1 className="text-lg font-bold text-white flex items-center gap-2 tracking-wide">
-            <FaThLarge size={20} className="text-blue-400" />
-            MyBill
-          </h1>
+          <div className="flex flex-col">
+            <h1 className="text-lg font-bold text-white flex items-center gap-2 tracking-wide">
+              <FaThLarge size={20} className="text-blue-400" />
+              MyBill
+            </h1>
+            {isPro && (
+              <span className="text-[10px] text-amber-400 font-bold tracking-widest uppercase ml-7 mt-0.5">
+                Pro Member
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Nav */}
