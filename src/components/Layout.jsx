@@ -110,7 +110,7 @@ const Layout = ({ children }) => {
               MyBill
             </h1>
             {isPro && (
-              <span className="text-[10px] text-amber-400 font-bold tracking-widest uppercase ml-7 mt-0.5">
+              <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase ml-7 mt-0.5">
                 Pro Member
               </span>
             )}
