@@ -23,6 +23,8 @@ const ItemForm = lazy(() => import('./pages/ItemForm'));
 const PurchaseOrderList = lazy(() => import('./pages/PurchaseOrderList'));
 const PurchaseOrderForm = lazy(() => import('./pages/PurchaseOrderForm'));
 const PurchaseOrderPrint = lazy(() => import('./pages/PurchaseOrderPrint'));
+const ExpenseList = lazy(() => import('./pages/ExpenseList'));
+const ExpenseForm = lazy(() => import('./pages/ExpenseForm'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Subscription = lazy(() => import('./pages/Subscription'));
 
@@ -88,6 +90,11 @@ function App() {
                   <Route path="/purchase-orders/new" element={<PurchaseOrderForm />} />
                   <Route path="/purchase-orders/edit/:id" element={<PurchaseOrderForm />} />
                   <Route path="/purchase-orders/:id/print" element={<PurchaseOrderPrint />} />
+
+                  {/* Expenses */}
+                  <Route path="/expenses" element={<ExpenseList />} />
+                  <Route path="/expenses/new" element={<ExpenseForm />} />
+                  <Route path="/expenses/edit/:id" element={<ExpenseForm />} />
 
                   {/* Reports */}
                   <Route path="/reports/gst" element={<GstReport />} />

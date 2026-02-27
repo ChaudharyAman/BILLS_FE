@@ -135,6 +135,11 @@ const Layout = ({ children }) => {
             <FaShoppingCart size={ICON_SIZE} /> Purchase Orders
           </Link>
 
+          {/* Expenses */}
+          <Link to="/expenses" className={linkCls('/expenses')}>
+            <FaMinus size={ICON_SIZE} /> Expenses
+          </Link>
+
           {/* Items / Inventory */}
           <Link to="/items" className={linkCls('/items')}>
             <FaBox size={ICON_SIZE} /> Inventory
