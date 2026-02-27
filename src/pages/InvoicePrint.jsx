@@ -420,10 +420,10 @@ const InvoicePrint = () => {
       {/* ── Print CSS ── */}
       <style>{`
         @media print {
-          body { margin: 0; background: #fff; }
+          body { margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .print\\:hidden { display: none !important; }
-          #invoice-print { box-shadow: none !important; max-width: 100% !important; padding: 20px !important; }
-          @page { size: A4; margin: 10mm; }
+          #invoice-print { box-shadow: none !important; max-width: 100% !important; padding: 15mm 15mm !important; margin: 0 auto !important; }
+          @page { size: auto; margin: 0mm; }
         }
       `}</style>
     </div>
