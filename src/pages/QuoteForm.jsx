@@ -407,9 +407,9 @@ const QuoteForm = ({ docType = 'quote' }) => {
                   <th className={`${th} w-24`}>HSN/SAC</th>
                   <th className={`${th} w-20`}>Unit</th>
                   <th className={`${th} w-16`}>QTY</th>
-                  <th className={`${th} w-24`}>Price</th>
-                  <th className={`${th} w-24`}>Discount (%)</th>
-                  {hasTax && <th className={`${th} w-28`}>Tax</th>}
+                  <th className={`${th} w-24 text-right`}>Price</th>
+                  <th className={`${th} w-24 text-right`}>Discount (%)</th>
+                  {hasTax && <th className={`${th} w-28 text-right`}>Tax</th>}
                   <th className={`${th} w-24 text-right`}>Total</th>
                   <th className={`${th} w-10`}></th>
                 </tr>

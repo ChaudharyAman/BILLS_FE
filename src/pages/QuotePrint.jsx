@@ -240,9 +240,9 @@ const QuotePrint = ({ docType = 'quote' }) => {
               <th style={thStyle()}>Inventory / Description</th>
               {hasTax && <th style={thStyle('center')}>HSN/SAC</th>}
               <th style={thStyle('center')}>Unit</th>
-              <th style={thStyle('right')}>Qty</th>
-              <th style={thStyle('right')}>Rate</th>
-              <th style={thStyle('right')}>Disc%</th>
+              <th style={{ ...thStyle('right'), paddingRight: 20 }}>Qty</th>
+              <th style={{ ...thStyle('right'), paddingRight: 20 }}>Rate</th>
+              <th style={{ ...thStyle('right'), paddingRight: 20 }}>Disc%</th>
               {hasTax && isIntraState && <th style={thStyle('right')}>CGST</th>}
               {hasTax && isIntraState && <th style={thStyle('right')}>SGST</th>}
               {hasTax && !isIntraState && <th style={thStyle('right')}>IGST</th>}
@@ -259,9 +259,9 @@ const QuotePrint = ({ docType = 'quote' }) => {
                 </td>
                 {hasTax && <td style={tdStyle('center')}>{item.hsnCode || '—'}</td>}
                 <td style={tdStyle('center')}>{item.unit || 'pcs'}</td>
-                <td style={tdStyle('right')}>{item.qty}</td>
-                <td style={tdStyle('right')}>₹{fmt(item.rate)}</td>
-                <td style={tdStyle('right')}>{item.discount > 0 ? `${item.discount}%` : '—'}</td>
+                <td style={{ ...tdStyle('right'), paddingRight: 20 }}>{item.qty}</td>
+                <td style={{ ...tdStyle('right'), paddingRight: 20 }}>₹{fmt(item.rate)}</td>
+                <td style={{ ...tdStyle('right'), paddingRight: 20 }}>{item.discount > 0 ? `${item.discount}%` : '—'}</td>
                 {hasTax && isIntraState && <td style={tdStyle('right')}>₹{fmt(item.cgst)}</td>}
                 {hasTax && isIntraState && <td style={tdStyle('right')}>₹{fmt(item.sgst)}</td>}
                 {hasTax && !isIntraState && <td style={tdStyle('right')}>₹{fmt(item.igst)}</td>}
