@@ -38,13 +38,13 @@ const ExpenseForm = () => {
     try {
       setLoading(true);
       const [vRes, cRes, iRes] = await Promise.all([
-        api.get('/vendors'),
-        api.get('/clients'),
-        api.get('/items')
+        api.get('/vendors?limit=1000'),
+        api.get('/clients?limit=1000'),
+        api.get('/items?limit=1000')
       ]);
-      setVendors(vRes.data);
-      setClients(cRes.data);
-      setInventory(iRes.data);
+      setVendors(vRes.data.data || []);
+      setClients(cRes.data.data || []);
+      setInventory(iRes.data.data || []);
 
       if (id) {
         const eRes = await api.get(`/expenses/${id}`);

@@ -75,9 +75,9 @@ const QuoteForm = ({ docType = 'quote' }) => {
 
   const fetchDependencies = async () => {
     try {
-      const [cr, ir] = await Promise.all([api.get('/clients'), api.get('/items')]);
-      setClients(cr.data);
-      setItemsList(ir.data);
+      const [cr, ir] = await Promise.all([api.get('/clients?limit=1000'), api.get('/items?limit=1000')]);
+      setClients(cr.data.data || []);
+      setItemsList(ir.data.data || []);
     } catch (e) { console.error(e); }
   };
 

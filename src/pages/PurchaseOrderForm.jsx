@@ -73,9 +73,9 @@ const PurchaseOrderForm = () => {
 
   const fetchDependencies = async () => {
     try {
-      const [vr, ir] = await Promise.all([api.get('/vendors'), api.get('/items')]);
-      setVendors(vr.data);
-      setItemsList(ir.data);
+      const [vr, ir] = await Promise.all([api.get('/vendors?limit=1000'), api.get('/items?limit=1000')]);
+      setVendors(vr.data.data || []);
+      setItemsList(ir.data.data || []);
     } catch (e) { console.error(e); }
   };
 
