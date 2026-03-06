@@ -232,6 +232,7 @@ const InvoicePrint = () => {
               <th style={TH('center','42px')}>S.No</th>
               <th style={TH('left', null)}>Item{'\n'}Description</th>
               <th style={TH('center','80px')}>HSN/SAC</th>
+              <th style={TH('center','65px')}>QTY</th>
               <th style={TH('right','90px')}>{'Price\n(₹)'}</th>
               {hasTax && <th style={TH('right','105px')}>{'Taxable Value\n(₹)'}</th>}
               {hasTax && isIntra  && <th style={TH('right','78px')}>{'CGST\n(₹)'}</th>}
@@ -262,6 +263,10 @@ const InvoicePrint = () => {
                     )}
                   </td>
                   <td style={TD('center')}>{item.hsnCode || ''}</td>
+                  <td style={TD('center')}>
+                    {qty}
+                    {item.unit && <><br/><span style={{ fontSize:9, color: MUTED }}>{item.unit}</span></>}
+                  </td>
                   <td style={TD('right')}>{fmt(rate)}</td>
                   {/* Tax columns — conditionally show */}
                   {hasTax && <td style={TD('right')}>{fmt(taxable)}</td>}
@@ -298,7 +303,7 @@ const InvoicePrint = () => {
           {/* ── Total footer row — now always 8 cols: S.No+Item+HSN+Price = 4 span, then Taxable, CGST, SGST, Amount ── */}
           <tfoot>
             <tr style={{ background:'#eef5f8' }}>
-              <td colSpan={4}
+              <td colSpan={5}
                 style={{ padding:'7px 8px', textAlign:'right', fontWeight:700, fontSize:11, color: TEXT, borderTop:`2px solid ${TEAL}` }}>
                 Total {taxRate > 0 ? `@${taxRate}%` : ''}
               </td>
