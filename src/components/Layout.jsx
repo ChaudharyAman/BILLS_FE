@@ -6,6 +6,7 @@ import {
   FaChevronDown, FaChevronRight, FaMinus, FaStar,
   FaChartBar, FaWallet, FaLock, FaTimes, FaTruck, FaShoppingCart
 } from 'react-icons/fa';
+import api from '../api/axios';
 
 const NAV = [
   { label: 'Dashboard',          icon: FaThLarge,       path: '/dashboard' },
@@ -255,8 +256,12 @@ const Layout = ({ children }) => {
         {/* Logout */}
         <div className="border-t border-white/10 p-3">
           <button
-            onClick={() => {
-              localStorage.removeItem('token');
+            onClick={async () => {
+              try {
+                await api.post('/auth/logout');
+              } catch (err) {
+                console.error('Logout failed', err);
+              }
               localStorage.removeItem('user');
               window.location.href = '/login';
             }}

@@ -6,12 +6,49 @@ const Subscription = () => {
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'yearly'
   const [loadingCode, setLoadingCode] = useState(null); // 'pro'
   const [activeThemeIdx, setActiveThemeIdx] = useState(0);
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
-  const userStr = localStorage.getItem('user');
-  const userObj = userStr ? JSON.parse(userStr) : null;
-  const user = userObj?.user || null;
+  // Initialize with current local storage
+  const [userState, setUserState] = useState(() => {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  });
+
+  // Listen for background auth syncs from App.jsx so this page auto-updates
+  useEffect(() => {
+    const handleAuthSync = () => {
+      const userStr = localStorage.getItem('user');
+      setUserState(userStr ? JSON.parse(userStr) : null);
+    };
+    window.addEventListener('auth-sync', handleAuthSync);
+    return () => window.removeEventListener('auth-sync', handleAuthSync);
+  }, []);
+
+  const user = userState?.user || null;
   const isPro = user?.subscription?.plan === 'pro' && user?.subscription?.status === 'active';
   const activeBillingCycle = user?.subscription?.billingCycle; // 'monthly' | 'yearly'
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      setLoadingHistory(true);
+      try {
+        const response = await api.get('/subscriptions/history');
+        if (response.data) {
+          setPaymentHistory(response.data);
+        }
+      } catch (err) {
+        console.error('Failed to load history:', err);
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+    
+    // Only fetch history if the user is logged in
+    if (user) {
+      fetchHistory();
+    }
+  }, []);
 
   const themes = [
     {
@@ -328,6 +365,68 @@ const Subscription = () => {
           )}
         </div>
 
+      </div>
+
+      {/* --- PAYMENT HISTORY SECTION --- */}
+      <div className="max-w-3xl mx-auto mt-16 pb-8">
+        <h2 className={`text-lg font-bold ${theme.heading} mb-4 flex items-center gap-2`}>
+          Subscription History
+        </h2>
+        
+        {loadingHistory ? (
+           <div className="flex justify-center items-center py-10 bg-white rounded-2xl shadow-sm border border-slate-100">
+             <FaSpinner className="animate-spin text-slate-300 w-6 h-6" />
+           </div>
+        ) : paymentHistory.length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 text-center">
+            <p className="text-sm font-medium text-slate-500">No payment history found.</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+             <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                   <thead className="bg-[#fcfdff] border-b border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                     <tr>
+                        <th className="px-4 py-4">Date</th>
+                        <th className="px-4 py-4">End Date</th>
+                        <th className="px-4 py-4">Plan Name</th>
+                        <th className="px-4 py-4">Billing Cycle</th>
+                        <th className="px-4 py-4">Amount Paid</th>
+                        <th className="px-4 py-4 text-right">Transaction ID</th>
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-slate-50">
+                     {paymentHistory.map((item, idx) => (
+                       <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-4 py-4 font-medium text-slate-800">
+                            {new Date(item.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                          </td>
+                          <td className="px-4 py-4 font-medium text-slate-600">
+                            {item.endDate 
+                              ? new Date(item.endDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                              : <span className="text-slate-400 italic">Continuous</span>}
+                          </td>
+                          <td className="px-4 py-4">
+                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 uppercase">
+                               {item.plan}
+                             </span>
+                          </td>
+                          <td className="px-4 py-4 text-slate-600 capitalize">
+                             {item.billingCycle}
+                          </td>
+                          <td className="px-4 py-4 font-bold text-slate-800">
+                             ₹{item.amount.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-4 text-right text-xs text-slate-400 font-mono">
+                             {item.razorpayPaymentId}
+                          </td>
+                       </tr>
+                     ))}
+                   </tbody>
+                </table>
+             </div>
+          </div>
+        )}
       </div>
 
     </div>

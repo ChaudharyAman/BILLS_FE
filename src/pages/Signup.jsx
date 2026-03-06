@@ -38,8 +38,11 @@ const Signup = () => {
         password: formData.password
       });
 
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data));
+      // token is now set via HttpOnly cookie by the server
+      
+      // wrap it in { user: ... } so Layout.jsx parses it correctly
+      localStorage.setItem('user', JSON.stringify({ user: response.data.user }));
+      
       navigate('/invoices');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create account');

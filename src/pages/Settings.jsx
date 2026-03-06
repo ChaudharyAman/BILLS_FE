@@ -17,6 +17,7 @@ const Settings = () => {
   // ── Company Settings ──────────────────────────────────────────────────────
   const [formData, setFormData] = useState({
     companyName: '',
+    contactName: '',
     address: { line1: '', city: '', state: '', zip: '' },
     gstin: '',
     email: '',
@@ -97,7 +98,7 @@ const Settings = () => {
         if (key === 'address') {
           Object.keys(formData.address).forEach(k => data.append(`address[${k}]`, formData.address[k]));
         } else if (!['logoFile', 'logoUrl', 'signatureFile', 'signatureUrl', '_id', 'createdAt', 'updatedAt', '__v', 'user'].includes(key)) {
-          data.append(key, formData[key]);
+          data.append(key, formData[key] || '');
         }
       });
       if (formData.logoFile) {
@@ -273,10 +274,21 @@ const Settings = () => {
                     onChange={handleChange} className={inputCls} required />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
+                  <input type="text" name="contactName" value={formData.contactName}
+                    onChange={handleChange} className={inputCls} placeholder="e.g. John Doe" />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">GSTIN</label>
                   <input type="text" name="gstin" value={formData.gstin}
                     onChange={handleChange} className={`${inputCls} uppercase`}
                     placeholder="e.g. 29ABCDE1234F1Z5" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                  <input type="text" name="website" value={formData.website}
+                    onChange={handleChange} className={inputCls}
+                    placeholder="e.g. www.mycompany.com" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

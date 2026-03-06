@@ -1,8 +1,9 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import PageLoader from './components/PageLoader';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
+import api from './api/axios';
 
 // Lazy Load Pages
 const InvoiceList = lazy(() => import('./pages/InvoiceList'));
@@ -37,6 +38,59 @@ const PaymentCollection = lazy(() => import('./pages/accounts/PaymentCollection'
 const AccountStatement = lazy(() => import('./pages/accounts/AccountStatement'));
 
 function App() {
+  
+  // Storage Migrator: The old Login.jsx saved `response.data.user` directly as `{ username: 'xxx' }`. 
+  // But Layout.jsx and other components expect `{ user: { username: 'xxx' } }`.
+  // If we detect the unwrapped version, let's wrap it immediately before the App mounts components.
+  const rawUser = localStorage.getItem('user');
+  if (rawUser) {
+    try {
+      const parsed = JSON.parse(rawUser);
+      // If it has an _id but no wrapper, it's the raw format.
+      if (parsed._id && !parsed.user) {
+        localStorage.setItem('user', JSON.stringify({ user: parsed }));
+      }
+    } catch (e) {
+      console.warn("Could not migrate local storage", e);
+    }
+  }
+
+  // Background Sync for Subscription Status
+  useEffect(() => {
+    const syncSubscription = async () => {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return;
+      
+      try {
+        const userObj = JSON.parse(userStr);
+        if (!userObj || !userObj.user) return;
+        
+        const res = await api.get('/subscriptions/status');
+        const dbSub = res.data;
+        
+        // If the database has a newer or different subscription state, sync it into localStorage
+        const localSub = userObj.user.subscription;
+        if (
+          dbSub && (
+            localSub?.plan !== dbSub.plan ||
+            localSub?.status !== dbSub.status ||
+            localSub?.billingCycle !== dbSub.billingCycle
+          )
+        ) {
+          userObj.user.subscription = dbSub;
+          localStorage.setItem('user', JSON.stringify(userObj));
+          // Dispatch a custom event so other components (like Sidebars/QuotaUI) can re-render immediately if needed
+          window.dispatchEvent(new Event('auth-sync'));
+        }
+      } catch (err) {
+         // Silently fail auth syncs if offline or token expired, PrivateRoute will handle real auth
+         console.warn('Background subscription sync skipped:', err.message);
+      }
+    };
+    
+    syncSubscription();
+  }, []);
+
   return (
     <Router>
       <div className="min-h-screen bg-gray-100 font-sans text-gray-900">

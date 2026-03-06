@@ -7,6 +7,7 @@ import ClientForm from './ClientForm';
 import ItemForm from './ItemForm';
 import Skeleton from '../components/Skeleton';
 import CsvUploader from '../components/CsvUploader';
+import ItemSelect from '../components/ItemSelect';
 
 const INVOICE_TYPES = ['Invoice', 'Retail Invoice', 'Tax Invoice', 'Excise Invoice'];
 
@@ -519,19 +520,28 @@ const InvoiceForm = () => {
 
                 {/* Item Name */}
                 <div>
-                  <div className="flex gap-1">
-                     <input list={`items-${index}`} placeholder="Select item"
-                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"
-                        value={item.name} onChange={(e) => updateItem(index, 'name', e.target.value)} />
-                     <button type="button" onClick={() => { setPendingItemIndex(index); setIsItemModalOpen(true); }}
-                        className="px-2 bg-blue-50 text-blue-600 rounded border border-blue-100 hover:bg-blue-100 transition-colors" title="Add New Item">
-                        <FaPlus size={10} />
-                     </button>
-                  </div>
-                  <datalist id={`items-${index}`}>
-                    {itemsList.map(i => <option key={i._id} value={i.name} />)}
-                  </datalist>
+                  <ItemSelect
+                    items={itemsList}
+                    value={item.itemRef || ''}
+                    onChange={(found) => {
+                      const newItems = [...formData.items];
+                      newItems[index] = {
+                        ...newItems[index],
+                        itemRef: found._id,
+                        name: found.name,
+                        description: found.description || '',
+                        rate: found.salesInfo?.price || found.rate || 0,
+                        unit: found.unit || 'pcs',
+                        taxRate: found.defaultTaxRate || 0,
+                        hsnCode: found.hsnCode || '',
+                      };
+                      setFormData({ ...formData, items: newItems });
+                    }}
+                    onAddNew={() => { setPendingItemIndex(index); setIsItemModalOpen(true); }}
+                    onEdit={(it) => navigate(`/items/edit/${it._id}`)}
+                  />
                 </div>
+
 
                 {/* Description */}
                 <div>

@@ -5,15 +5,12 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Send cookies with every request
 });
 
-// Add a request interceptor
+// Add a request interceptor (keeping it around in case other headers are needed later, but removing token logic)
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
     return config;
   },
   (error) => {
@@ -27,10 +24,9 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // If the request fails with a 401 (Unauthorized) error, clear the token and redirect to login
+    // If the request fails with a 401 (Unauthorized) error, redirect to login
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      localStorage.removeItem('user'); // Token is now in cookie, no need to remove from localStorage
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }

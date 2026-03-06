@@ -7,6 +7,7 @@ import ClientForm from './ClientForm';
 import ItemForm from './ItemForm';
 import Skeleton from '../components/Skeleton';
 import CsvUploader from '../components/CsvUploader';
+import ItemSelect from '../components/ItemSelect';
 
 // docType: 'quote' | 'proforma'
 const QuoteForm = ({ docType = 'quote' }) => {
@@ -141,10 +142,18 @@ const QuoteForm = ({ docType = 'quote' }) => {
     const found = itemsList.find(i => i._id === itemId);
     if (!found) return;
     const items = [...formData.items];
+    const taxRate = found.defaultTaxRate || 0;
     items[idx] = {
-      ...items[idx], name: found.name, description: found.description || '',
-      hsnCode: found.hsnCode || '', unit: found.unit || 'pcs',
-      rate: found.price || 0, taxRate: found.taxRate || 0,
+      ...items[idx],
+      itemRef: found._id,
+      name: found.name,
+      description: found.description || '',
+      hsnCode: found.hsnCode || '',
+      unit: found.unit || 'pcs',
+      rate: found.salesInfo?.price || found.rate || 0,
+      taxRate,
+      taxSelect: [0,5,12,18,28].includes(taxRate) ? String(taxRate) : (taxRate > 0 ? 'custom' : '0'),
+      customTaxRate: [0,5,12,18,28].includes(taxRate) ? '' : String(taxRate || ''),
     };
     items[idx].amount = calcRow(items[idx]);
     setFormData(f => ({ ...f, items }));
@@ -397,7 +406,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
         <div className="px-6 py-4">
           <h2 className="text-sm font-bold text-gray-700 mb-3">{docLabel}</h2>
 
-          <div className="border border-gray-200 rounded overflow-hidden">
+          <div className="border border-gray-200 rounded">
             <table className="min-w-full">
               <thead>
                 <tr>
@@ -419,23 +428,16 @@ const QuoteForm = ({ docType = 'quote' }) => {
                   <tr key={idx} className="bg-white hover:bg-gray-50/50">
                     <td className="px-3 py-2 text-sm text-gray-400 align-top pt-3">{idx + 1}</td>
                     <td className="px-2 py-2 align-top">
-                      <select className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full mb-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                        onChange={e => {
-                            if (e.target.value === '_CREATE_NEW_') {
-                                setPendingItemIndex(idx);
-                                setIsItemModalOpen(true);
-                            } else {
-                                selectItem(idx, e.target.value);
-                            }
-                        }} 
-                        value={item._id || ""}>
-                        <option value="">Select Inventory</option>
-                        {itemsList.map(i => <option key={i._id} value={i._id}>{i.name}</option>)}
-                        <option value="_CREATE_NEW_" className="font-bold text-blue-600">+ Create New Item</option>
-                      </select>
+                      <ItemSelect
+                        items={itemsList}
+                        value={item.itemRef || ''}
+                        onChange={(found) => selectItem(idx, found._id)}
+                        onAddNew={() => { setPendingItemIndex(idx); setIsItemModalOpen(true); }}
+                        onEdit={(it) => navigate(`/items/edit/${it._id}`)}
+                      />
                       <input placeholder="Inventory name" value={item.name}
                         onChange={e => updateItem(idx, 'name', e.target.value)}
-                        className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400" required />
+                        className="mt-1 border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400" required />
                     </td>
                     <td className="px-2 py-2 align-top">
                       <textarea rows={2} placeholder="Description" value={item.description}
