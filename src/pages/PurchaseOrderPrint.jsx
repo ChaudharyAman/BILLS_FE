@@ -99,6 +99,7 @@ const PurchaseOrderPrint = () => {
   const isIntra    = !doc.totalIGST || doc.totalIGST === 0;
   const hasTax     = (Number(doc.totalCGST)>0)||(Number(doc.totalSGST)>0)||(Number(doc.totalIGST)>0)
     || items.some(it => Number(it.cgst)>0 || Number(it.sgst)>0 || Number(it.igst)>0);
+  const hasDiscount= items.some(it => Number(it.discount) > 0);
 
   const addrStr = (a) => {
     if (!a) return null;
@@ -219,8 +220,9 @@ const PurchaseOrderPrint = () => {
               <th style={TH('center','42px')}>S.No</th>
               <th style={TH('left',null)}>{'Item\nDescription'}</th>
               <th style={TH('center','80px')}>HSN/SAC</th>
-              <th style={TH('center','65px')}>QTY</th>
               <th style={TH('right','90px')}>{'Price\n(₹)'}</th>
+              <th style={TH('center','65px')}>QTY</th>
+              {hasDiscount && <th style={TH('right', '70px')}>{'Discount\n(%)'}</th>}
               {hasTax && <th style={TH('right','105px')}>{'Taxable Value\n(₹)'}</th>}
               {hasTax && isIntra  && <th style={TH('right','78px')}>{'CGST\n(₹)'}</th>}
               {hasTax && isIntra  && <th style={TH('right','78px')}>{'SGST\n(₹)'}</th>}
@@ -240,11 +242,12 @@ const PurchaseOrderPrint = () => {
                     {item.description && <div style={{ color:MUTED,fontSize:10,marginTop:1 }}>{item.description}</div>}
                   </td>
                   <td style={TD('center')}>{item.hsnCode||''}</td>
+                  <td style={TD('right')}>{fmt(rate)}</td>
                   <td style={TD('center')}>
                     {qty}
                     {item.unit && <><br/><span style={{ fontSize:9, color: MUTED }}>{item.unit}</span></>}
                   </td>
-                  <td style={TD('right')}>{fmt(rate)}</td>
+                  {hasDiscount && <td style={TD('right')}>{disc > 0 ? `${disc}%` : ''}</td>}
                   {hasTax && <td style={TD('right')}>{fmt(taxable)}</td>}
                   {hasTax && isIntra && <>
                     <td style={TD('right')}>{fmt(item.cgst)}<br/><span style={{fontSize:9,color:MUTED}}>{cgstR}%</span></td>
@@ -258,7 +261,7 @@ const PurchaseOrderPrint = () => {
           </tbody>
           <tfoot>
             <tr style={{ background:'#eef5f8' }}>
-              <td colSpan={5} style={{ padding:'7px 8px',textAlign:'right',fontWeight:700,fontSize:11,color:TEXT,borderTop:`2px solid ${TEAL}` }}>
+              <td colSpan={5 + (hasDiscount ? 1 : 0)} style={{ padding:'7px 8px',textAlign:'right',fontWeight:700,fontSize:11,color:TEXT,borderTop:`2px solid ${TEAL}` }}>
                 Total {taxRate>0?`@${taxRate}%`:''}
               </td>
               {hasTax && <td style={{ padding:'7px 8px',textAlign:'right',fontWeight:700,borderTop:`2px solid ${TEAL}` }}>{fmt(doc.subTotal)}</td>}

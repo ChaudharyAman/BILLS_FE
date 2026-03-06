@@ -84,6 +84,7 @@ const InvoicePrint = () => {
   // Show tax cols only if there is any actual tax amount applied
   const hasTax = (Number(invoice.totalCGST) > 0) || (Number(invoice.totalSGST) > 0) || (Number(invoice.totalIGST) > 0)
     || items.some(it => Number(it.cgst) > 0 || Number(it.sgst) > 0 || Number(it.igst) > 0);
+  const hasDiscount = items.some(it => Number(it.discount) > 0);
 
   const grandTotal  = Number(invoice.grandTotal)  || 0;
   const balanceDue  = Number(invoice.balanceDue)  || 0;
@@ -234,6 +235,7 @@ const InvoicePrint = () => {
               <th style={TH('center','80px')}>HSN/SAC</th>
               <th style={TH('center','65px')}>QTY</th>
               <th style={TH('right','90px')}>{'Price\n(₹)'}</th>
+              {hasDiscount && <th style={TH('right', '70px')}>{'Discount\n(%)'}</th>}
               {hasTax && <th style={TH('right','105px')}>{'Taxable Value\n(₹)'}</th>}
               {hasTax && isIntra  && <th style={TH('right','78px')}>{'CGST\n(₹)'}</th>}
               {hasTax && isIntra  && <th style={TH('right','78px')}>{'SGST\n(₹)'}</th>}
@@ -268,6 +270,7 @@ const InvoicePrint = () => {
                     {item.unit && <><br/><span style={{ fontSize:9, color: MUTED }}>{item.unit}</span></>}
                   </td>
                   <td style={TD('right')}>{fmt(rate)}</td>
+                  {hasDiscount && <td style={TD('right')}>{discPct > 0 ? `${discPct}%` : ''}</td>}
                   {/* Tax columns — conditionally show */}
                   {hasTax && <td style={TD('right')}>{fmt(taxable)}</td>}
                   {hasTax && isIntra && (
@@ -303,7 +306,7 @@ const InvoicePrint = () => {
           {/* ── Total footer row — now always 8 cols: S.No+Item+HSN+Price = 4 span, then Taxable, CGST, SGST, Amount ── */}
           <tfoot>
             <tr style={{ background:'#eef5f8' }}>
-              <td colSpan={5}
+              <td colSpan={5 + (hasDiscount ? 1 : 0)}
                 style={{ padding:'7px 8px', textAlign:'right', fontWeight:700, fontSize:11, color: TEXT, borderTop:`2px solid ${TEAL}` }}>
                 Total {taxRate > 0 ? `@${taxRate}%` : ''}
               </td>
