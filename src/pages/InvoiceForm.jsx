@@ -679,7 +679,11 @@ const InvoiceForm = () => {
             {/* Shipping */}
             <div>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={showShipping} onChange={(e) => setShowShipping(e.target.checked)}
+                <input type="checkbox" checked={showShipping} onChange={(e) => {
+                  const checked = e.target.checked;
+                  setShowShipping(checked);
+                  if (!checked) setFormData({ ...formData, shippingCharges: 0 });
+                }}
                   className="w-4 h-4 accent-emerald-500" />
                 <span className="text-sm font-medium text-gray-700">Add Shipping Charges</span>
               </label>
@@ -714,7 +718,11 @@ const InvoiceForm = () => {
             {/* Discount on Total */}
             <div>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={showDiscountTotal} onChange={(e) => setShowDiscountTotal(e.target.checked)}
+                <input type="checkbox" checked={showDiscountTotal} onChange={(e) => {
+                  const checked = e.target.checked;
+                  setShowDiscountTotal(checked);
+                  if (!checked) setFormData({ ...formData, discountTotal: 0 });
+                }}
                   className="w-4 h-4 accent-emerald-500" />
                 <span className="text-sm font-medium text-gray-700">Add Discount on Total</span>
               </label>
@@ -730,7 +738,17 @@ const InvoiceForm = () => {
             {/* Discount to All */}
             <div>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={showDiscountToAll} onChange={(e) => setShowDiscountToAll(e.target.checked)}
+                <input type="checkbox" checked={showDiscountToAll} onChange={(e) => {
+                  const checked = e.target.checked;
+                  setShowDiscountToAll(checked);
+                  if (!checked) {
+                    setDiscountToAll('');
+                    setFormData(f => ({
+                      ...f,
+                      items: f.items.map(i => ({ ...i, discount: 0 }))
+                    }));
+                  }
+                }}
                   className="w-4 h-4 accent-emerald-500" />
                 <span className="text-sm font-medium text-gray-700">Apply Discount to All Items</span>
               </label>
@@ -750,7 +768,11 @@ const InvoiceForm = () => {
             {/* Custom Amount */}
             <div>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={showCustomAmount} onChange={(e) => setShowCustomAmount(e.target.checked)}
+                <input type="checkbox" checked={showCustomAmount} onChange={(e) => {
+                  const checked = e.target.checked;
+                  setShowCustomAmount(checked);
+                  if (!checked) setFormData({ ...formData, packagingCharges: 0 });
+                }}
                   className="w-4 h-4 accent-emerald-500" />
                 <span className="text-sm font-medium text-gray-700">Add Custom Amount</span>
               </label>

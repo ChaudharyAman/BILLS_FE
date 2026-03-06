@@ -107,13 +107,14 @@ const QuoteForm = ({ docType = 'quote' }) => {
         shippingCharges: d.shippingCharges || 0,
         packagingCharges: d.packagingCharges || 0,
         customChargeLabel: d.customChargeLabel || 'Custom Amount',
-        customChargeAmount: 0,
+        customChargeAmount: d.packagingCharges || 0,
         discountTotal: d.discountTotal || 0,
         notes: d.notes || '',
         terms: d.terms || '',
       });
       if (d.shippingCharges > 0) setShowShipping(true);
       if (d.discountTotal > 0) setShowDiscountTotal(true);
+      if (d.packagingCharges > 0) setShowCustomAmount(true);
     } catch (e) { console.error(e); }
   };
 
@@ -189,16 +190,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
     setIsCsvModalOpen(false);
   };
 
-  // Apply discount to all items
-  const applyDiscountToAll = () => {
-    const pct = Number(discountToAll) || 0;
-    const items = formData.items.map(it => {
-      const updated = { ...it, discount: pct };
-      updated.amount = calcRow(updated);
-      return updated;
-    });
-    setFormData(f => ({ ...f, items }));
-  };
+  // Apply discount to all items automatically via onChange now
 
   // ── Totals ───────────────────────────────────────────────────────────────────
   const subTotal = formData.items.reduce((s, it) => {
@@ -235,7 +227,8 @@ const QuoteForm = ({ docType = 'quote' }) => {
         items: formData.items.map(it => ({ ...it, amount: calcRow(it) })),
         shippingCharges: showShipping ? Number(formData.shippingCharges) : 0,
         discountTotal: showDiscountTotal ? Number(formData.discountTotal) : 0,
-        customChargeAmount: showCustomAmount ? Number(formData.customChargeAmount) : 0,
+        packagingCharges: showCustomAmount ? Number(formData.customChargeAmount) : 0,
+        customChargeLabel: showCustomAmount ? formData.customChargeLabel : 'Custom Amount',
       };
       let savedId = id;
       if (id) {
@@ -576,19 +569,40 @@ const QuoteForm = ({ docType = 'quote' }) => {
 
             {/* Discount to all */}
             <label className="flex items-center gap-2 cursor-pointer text-sm text-blue-600 hover:text-blue-800">
-              <input type="checkbox" checked={showDiscountToAll} onChange={e => setShowDiscountToAll(e.target.checked)}
+              <input type="checkbox" checked={showDiscountToAll} onChange={e => {
+                const checked = e.target.checked;
+                setShowDiscountToAll(checked);
+                if (!checked) {
+                  setDiscountToAll('');
+                  setFormData(f => ({
+                    ...f,
+                    items: f.items.map(it => {
+                      const updated = { ...it, discount: 0 };
+                      updated.amount = calcRow(updated);
+                      return updated;
+                    })
+                  }));
+                }
+              }}
                 className="rounded border-gray-300 text-blue-600" />
               Add discount to all
             </label>
             {showDiscountToAll && (
               <div className="ml-6 flex items-center gap-2">
                 <input type="number" min="0" max="100" placeholder="%" value={discountToAll}
-                  onChange={e => setDiscountToAll(e.target.value)}
+                  onChange={e => {
+                    const pct = e.target.value;
+                    setDiscountToAll(pct);
+                    setFormData(f => ({
+                      ...f,
+                      items: f.items.map(it => {
+                        const updated = { ...it, discount: pct };
+                        updated.amount = calcRow(updated);
+                        return updated;
+                      })
+                    }));
+                  }}
                   className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-24 focus:outline-none focus:ring-1 focus:ring-blue-400" />
-                <button type="button" onClick={applyDiscountToAll}
-                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-sm rounded border border-gray-300 transition-colors">
-                  Apply
-                </button>
               </div>
             )}
 
