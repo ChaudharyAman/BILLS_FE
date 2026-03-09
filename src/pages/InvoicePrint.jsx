@@ -119,7 +119,7 @@ const InvoicePrint = () => {
 
   // Show tax cols only if there is any actual tax amount applied
   const hasTax = (Number(invoice.totalCGST) > 0) || (Number(invoice.totalSGST) > 0) || (Number(invoice.totalIGST) > 0)
-    || items.some(it => Number(it.cgst) > 0 || Number(it.sgst) > 0 || Number(it.igst) > 0);
+    || items.some(it => Number(it.cgst) > 0 || Number(it.sgst) > 0 || Number(it.igst) > 0 || Number(it.taxRate) > 0);
   const hasDiscount = items.some(it => Number(it.discount) > 0);
 
   const grandTotal  = Number(invoice.grandTotal)  || 0;
@@ -336,8 +336,7 @@ const InvoicePrint = () => {
           {/* ── Total footer row ── */}
           <tfoot>
             <tr style={{ background:'#eef5f8' }}>
-              <td colSpan={5 + (hasDiscount ? 1 : 0)}
-                style={{ padding:'7px 8px', textAlign:'right', fontWeight:700, fontSize:11, color: TEXT, borderTop:`2px solid ${TEAL}` }}>
+              <td colSpan={5 + (hasDiscount ? 1 : 0)} style={{ padding:'7px 8px', textAlign:'right', fontWeight:700, fontSize:11, color: TEXT, borderTop:`2px solid ${TEAL}` }}>
                 Total {taxRate > 0 ? `@${taxRate}%` : ''}
               </td>
               {hasTax && (
@@ -410,6 +409,29 @@ const InvoicePrint = () => {
             {advancePaid > 0 && <SummaryRow label="Balance Due"   value={`₹ ${fmt(balanceDue)}`}    red />}
             <SummaryRow label="Total Value (in words)"
               value={`₹ ${numberToWords(Math.round(grandTotal))}`} />
+            
+            {/* Signature Area */}
+            <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'center' }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: TEAL, marginBottom: 8 }}>
+                For {company.companyName}
+              </div>
+              
+              <div style={{ minHeight: 60, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                {(company.signatureUrl || company.signature) ? (
+                  <img 
+                    src={company.signatureUrl || company.signature} 
+                    alt="Signature" 
+                    style={{ maxHeight: 60, maxWidth: 180, objectFit: 'contain' }}
+                  />
+                ) : (
+                  <div style={{ height: 60 }}></div> /* Placeholder space if no signature */
+                )}
+              </div>
+              
+              <div style={{ marginTop: 8, fontSize: 11, fontWeight: 600, color: MUTED, borderTop: `1px solid ${MUTED}`, paddingTop: 4, width: 180 }}>
+                Authorized Signatory
+              </div>
+            </div>
           </div>
         </div>
 

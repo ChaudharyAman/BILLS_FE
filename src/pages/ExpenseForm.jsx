@@ -222,10 +222,10 @@ const ExpenseForm = () => {
                     />
                     <input 
                       type="text" 
-                      className={`${inputBaseCls} flex-1`} 
+                      className={`${inputBaseCls} flex-1 text-gray-700`} 
                       value={formData.expenseNumberSuffix}
                       onChange={e => setFormData(p => ({ ...p, expenseNumberSuffix: e.target.value }))}
-                      placeholder="1"
+                      placeholder="e.g. 001"
                       required
                     />
                   </div>
