@@ -143,12 +143,12 @@ const PurchaseOrderForm = () => {
     const found = itemsList.find(i => i._id === itemId);
     if (!found) return;
     const items = [...formData.items];
-    const taxRate = found.defaultTaxRate || 0;
+    const taxRate = found.salesInfo?.taxRate || found.defaultTaxRate || 0;
     items[idx] = {
       ...items[idx],
       itemRef: found._id,
       name: found.name,
-      description: found.description || '',
+      description: found.description || found.salesInfo?.description || '',
       hsnCode: found.hsnCode || '',
       unit: found.unit || 'pcs',
       rate: found.salesInfo?.price || found.rate || 0,

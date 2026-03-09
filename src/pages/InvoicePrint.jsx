@@ -208,6 +208,23 @@ const InvoicePrint = () => {
               </div>
             </div>
 
+            {/* Status Stamp */}
+            <div style={{ display:'flex', justifyContent:'flex-end', marginBottom: 12 }}>
+              <div style={{
+                padding: '4px 10px',
+                borderRadius: '4px',
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                border: `1px solid ${balanceDue <= 0 ? '#10b981' : (invoice.status === 'DRAFT' ? '#9ca3af' : '#3b82f6')}`,
+                color: balanceDue <= 0 ? '#059669' : (invoice.status === 'DRAFT' ? '#6b7280' : '#2563eb'),
+                background: balanceDue <= 0 ? '#ecfdf5' : (invoice.status === 'DRAFT' ? '#f3f4f6' : '#eff6ff')
+              }}>
+                {balanceDue <= 0 ? 'PAID' : (invoice.status || 'SENT')}
+              </div>
+            </div>
+
             {/* Amount Due bar */}
             <div style={{
               background: TEAL, color:'#fff',

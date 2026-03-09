@@ -132,26 +132,33 @@ const QuoteForm = ({ docType = 'quote' }) => {
   const updateItem = (idx, field, value) => {
     const items = [...formData.items];
     items[idx] = { ...items[idx], [field]: value };
-    items[idx].amount = calcRow(items[idx]);
-    setFormData(f => ({ ...f, items }));
-  };
-
-  const addItem = () => setFormData(f => ({ ...f, items: [...f.items, emptyItem()] }));
-  const removeItem = (idx) => setFormData(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
+    
+    // Auto-fill from item text name matching
+    if (field === 'name') {
+      const found = itemsList.find(i => i.name === value);
+      if (found) {
+        items[idx].description = found.description || found.salesInfo?.description || '';
+        items[idx].rate = found.salesInfo?.price || found.rate || 0;
+        items[idx].unit = found.unit || 'pcs';
+        items[idx].taxRate = found.salesInfo?.taxRate || found.defaultTaxRate || 0;
+        items[idx].hsnCode = found.hsnCode || '';
+        items[idx].itemRef = found._id;
+      }
+    }
 
   const selectItem = (idx, itemId) => {
     const found = itemsList.find(i => i._id === itemId);
     if (!found) return;
     const items = [...formData.items];
-    const taxRate = found.defaultTaxRate || 0;
+    const taxRate = found.salesInfo?.taxRate || found.defaultTaxRate || 0; // Use salesInfo taxRate if available
     items[idx] = {
       ...items[idx],
       itemRef: found._id,
       name: found.name,
-      description: found.description || '',
+      description: found.description || found.salesInfo?.description || '', // Use salesInfo description
       hsnCode: found.hsnCode || '',
       unit: found.unit || 'pcs',
-      rate: found.salesInfo?.price || found.rate || 0,
+      rate: found.salesInfo?.price || found.rate || 0, // Use salesInfo price
       taxRate,
       taxSelect: [0,5,12,18,28].includes(taxRate) ? String(taxRate) : (taxRate > 0 ? 'custom' : '0'),
       customTaxRate: [0,5,12,18,28].includes(taxRate) ? '' : String(taxRate || ''),
@@ -229,6 +236,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
         discountTotal: showDiscountTotal ? Number(formData.discountTotal) : 0,
         packagingCharges: showCustomAmount ? Number(formData.customChargeAmount) : 0,
         customChargeLabel: showCustomAmount ? formData.customChargeLabel : 'Custom Amount',
+        advancePaid: Number(formData.advancePaid) || 0, // Ensure advancePaid is a number
       };
       let savedId = id;
       if (id) {
@@ -389,6 +397,29 @@ const QuoteForm = ({ docType = 'quote' }) => {
                 <label className="text-sm text-gray-600 w-24 flex-shrink-0 text-right">Valid until</label>
                 <input type="date" value={formData.validUntil}
                   onChange={e => setFormData(f => ({ ...f, validUntil: e.target.value }))}
+                  className={`${inp} flex-1`} />
+              </div>
+              {/* Row 3: Status + Advance Paid */}
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-gray-600 w-28 flex-shrink-0">Status</label>
+                <select value={formData.status}
+                  onChange={e => {
+                    const newStatus = e.target.value;
+                    setFormData(f => {
+                      const updated = { ...f, status: newStatus };
+                      // If status is 'ACCEPTED' or 'CONFIRMED', auto-fill advancePaid with grandTotal
+                      if (newStatus === 'ACCEPTED' || newStatus === 'CONFIRMED') {
+                        updated.advancePaid = grandTotal;
+                      }
+                      return updated;
+                    });
+                  }}
+                  className={`${inp} w-36`}>
+                  {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <label className="text-sm text-gray-600 w-24 flex-shrink-0 text-right">Advance Paid</label>
+                <input type="number" min="0" value={formData.advancePaid}
+                  onChange={e => setFormData(f => ({ ...f, advancePaid: e.target.value }))}
                   className={`${inp} flex-1`} />
               </div>
             </div>

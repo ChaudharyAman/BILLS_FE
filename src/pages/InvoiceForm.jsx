@@ -190,10 +190,10 @@ const InvoiceForm = () => {
     if (field === 'name') {
       const found = itemsList.find(i => i.name === value);
       if (found) {
-        newItems[index].description = found.description || '';
+        newItems[index].description = found.description || found.salesInfo?.description || '';
         newItems[index].rate = found.salesInfo?.price || found.rate || 0;
         newItems[index].unit = found.unit || 'pcs';
-        newItems[index].taxRate = found.defaultTaxRate || 0;
+        newItems[index].taxRate = found.salesInfo?.taxRate || found.defaultTaxRate || 0;
         newItems[index].hsnCode = found.hsnCode || '';
         newItems[index].itemRef = found._id;
       }
@@ -430,7 +430,16 @@ const InvoiceForm = () => {
             <div>
               <label className={lbl}>Status</label>
               <select className={inp} value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'PAID') {
+                    const total = getGrandTotal();
+                    setFormData({ ...formData, status: val, advancePaid: total });
+                    setShowAdvance(true);
+                  } else {
+                    setFormData({ ...formData, status: val });
+                  }
+                }}>
                 <option value="DRAFT">Draft</option>
                 <option value="SENT">Sent</option>
                 <option value="PAID">Paid</option>
@@ -529,10 +538,10 @@ const InvoiceForm = () => {
                         ...newItems[index],
                         itemRef: found._id,
                         name: found.name,
-                        description: found.description || '',
+                        description: found.description || found.salesInfo?.description || '',
                         rate: found.salesInfo?.price || found.rate || 0,
                         unit: found.unit || 'pcs',
-                        taxRate: found.defaultTaxRate || 0,
+                        taxRate: found.salesInfo?.taxRate || found.defaultTaxRate || 0,
                         hsnCode: found.hsnCode || '',
                       };
                       setFormData({ ...formData, items: newItems });
