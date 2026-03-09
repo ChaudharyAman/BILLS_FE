@@ -207,51 +207,37 @@ const ExpenseForm = () => {
             </div>
 
             {/* Config Col */}
-            <div className="w-full md:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+            <div className="w-full xl:w-2/3 flex flex-col p-6 space-y-4">
               
-              {/* Number and Date */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <span className={`${labelCls} !mb-0 min-w-[60px]`}>Number</span>
-                  <div className="flex w-full gap-2">
+              {/* Row 1: Number and Payment Method */}
+              <div className="flex flex-col sm:flex-row gap-6 lg:gap-8 justify-between">
+                {/* Number */}
+                <div className="flex-1 flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4 max-w-[50%]">
+                  <span className={`${labelCls} !mb-0 min-w-[70px] whitespace-nowrap`}>Number</span>
+                  <div className="flex w-full gap-2 items-center text-gray-500 font-bold">
                     <input 
                       type="text" 
-                      className={`${inputBaseCls} w-20 text-center uppercase`} 
+                      className="w-24 min-w-0 border border-gray-200 rounded text-sm px-3 py-2 text-gray-900 text-center uppercase focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans bg-[#f8f9fa] shadow-sm font-normal" 
                       value={formData.expenseNumberPrefix} 
                       onChange={e => setFormData(p => ({ ...p, expenseNumberPrefix: e.target.value }))}
                     />
+                    -
                     <input 
                       type="text" 
-                      className="w-full border border-gray-200 rounded text-sm px-3 py-2 text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans flex-1" 
+                      className="flex-1 min-w-0 border border-gray-200 rounded text-sm px-3 py-2 text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans bg-[#f8f9fa] shadow-sm font-normal" 
                       value={formData.expenseNumberSuffix}
                       onChange={e => setFormData(p => ({ ...p, expenseNumberSuffix: e.target.value }))}
-                      placeholder="e.g. 001"
+                      placeholder="e.g. 4567"
                       required
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                   <span className={`${labelCls} !mb-0 min-w-[60px] text-right xl:text-left`}>Date</span>
-                   <div className="relative w-full">
-                     <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                     <input 
-                       type="date" 
-                       className={`${inputBaseCls} pl-9`} 
-                       value={formData.date}
-                       onChange={e => setFormData(p => ({ ...p, date: e.target.value }))}
-                       required
-                     />
-                   </div>
-                </div>
-              </div>
-
-              {/* Payment Method and Client Reference */}
-              <div className="space-y-4">
-                 <div className="flex items-center gap-4">
-                  <span className={`${labelCls} !mb-0 min-w-[100px] text-right xl:text-left`}>Payment method</span>
+                {/* Payment Method */}
+                <div className="flex-1 flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4 max-w-[50%]">
+                  <span className={`${labelCls} !mb-0 min-w-[110px] whitespace-nowrap text-right xl:text-left`}>Payment method</span>
                   <select 
-                    className={inputBaseCls}
+                    className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm`}
                     value={formData.paymentMethod}
                     onChange={e => setFormData(p => ({ ...p, paymentMethod: e.target.value }))}
                   >
@@ -263,11 +249,42 @@ const ExpenseForm = () => {
                     <option value="UPI">UPI</option>
                   </select>
                 </div>
+              </div>
 
-                <div className="flex items-center gap-4">
-                  <span className={`${labelCls} !mb-0 min-w-[100px] text-right xl:text-left`}>Client</span>
+              {/* Row 2: Date and Client */}
+              <div className="flex flex-col sm:flex-row gap-6 lg:gap-8 justify-between">
+                {/* Date */}
+                <div className="flex-1 flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4 max-w-[50%]">
+                   <span className={`${labelCls} !mb-0 min-w-[70px] whitespace-nowrap`}>Date</span>
+                   <div className="relative w-full">
+                     <FaCalendarAlt className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                     <input 
+                       type="date" 
+                       className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm`} 
+                       style={{ WebkitAppearance: 'none' }}
+                       value={formData.date}
+                       onChange={e => setFormData(p => ({ ...p, date: e.target.value }))}
+                       required
+                     />
+                     <style jsx>{`
+                        input[type="date"]::-webkit-calendar-picker-indicator {
+                            opacity: 0;
+                            width: 100%;
+                            height: 100%;
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            cursor: pointer;
+                        }
+                     `}</style>
+                   </div>
+                </div>
+
+                {/* Client Reference */}
+                <div className="flex-1 flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4 max-w-[50%]">
+                  <span className={`${labelCls} !mb-0 min-w-[110px] whitespace-nowrap text-right xl:text-left`}>Client</span>
                   <select 
-                    className={inputBaseCls}
+                    className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm`}
                     value={formData.clientRef}
                     onChange={e => setFormData(p => ({ ...p, clientRef: e.target.value }))}
                   >
