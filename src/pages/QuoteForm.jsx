@@ -145,6 +145,13 @@ const QuoteForm = ({ docType = 'quote' }) => {
         items[idx].itemRef = found._id;
       }
     }
+    
+    items[idx].amount = calcRow(items[idx]);
+    setFormData(f => ({ ...f, items }));
+  };
+
+  const addItem = () => setFormData(f => ({ ...f, items: [...f.items, emptyItem()] }));
+  const removeItem = (idx) => setFormData(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
 
   const selectItem = (idx, itemId) => {
     const found = itemsList.find(i => i._id === itemId);
