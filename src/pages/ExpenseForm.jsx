@@ -222,7 +222,7 @@ const ExpenseForm = () => {
                     />
                     <input 
                       type="text" 
-                      className={`${inputBaseCls} flex-1 text-gray-700`} 
+                      className="w-full border border-gray-200 rounded text-sm px-3 py-2 text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans flex-1" 
                       value={formData.expenseNumberSuffix}
                       onChange={e => setFormData(p => ({ ...p, expenseNumberSuffix: e.target.value }))}
                       placeholder="e.g. 001"

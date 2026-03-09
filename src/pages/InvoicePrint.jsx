@@ -261,18 +261,18 @@ const InvoicePrint = () => {
         <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11, marginBottom:0 }}>
           <thead>
             <tr>
-              <th style={TH('center','42px')}>S.No</th>
-              <th style={TH('left', null)}>Item{'\n'}Description</th>
-              <th style={TH('center','80px')}>HSN/SAC</th>
-              <th style={TH('center','65px')}>QTY</th>
-              <th style={TH('right','90px')}>{'Price\n(₹)'}</th>
-              {hasDiscount && <th style={TH('right', '70px')}>{'Discount\n(%)'}</th>}
-              {hasTax && <th style={TH('right','105px')}>{'Taxable Value\n(₹)'}</th>}
-              {hasTax && isIntra  && <th style={TH('right','78px')}>{'CGST\n(₹)'}</th>}
-              {hasTax && isIntra  && <th style={TH('right','78px')}>{'SGST\n(₹)'}</th>}
-              {hasTax && !isIntra && <th style={TH('right','90px')}>{'IGST\n(₹)'}</th>}
-              {hasExcise && <th style={TH('right','80px')}>{'Excise\n(₹)'}</th>}
-              <th style={{ ...TH('right','96px'), borderRight:'none' }}>{'Amount\n(₹)'}</th>
+              <th style={TH('center','4%')}>S.No</th>
+              <th style={TH('left', '24%')}>Item{'\n'}Description</th>
+              <th style={TH('center','10%')}>HSN/SAC</th>
+              <th style={TH('center','8%')}>QTY</th>
+              <th style={TH('right','10%')}>{'Price\n(₹)'}</th>
+              {hasDiscount && <th style={TH('right', '8%')}>{'Discount\n(%)'}</th>}
+              {hasTax && <th style={TH('right','12%')}>{'Taxable\nValue (₹)'}</th>}
+              {hasTax && isIntra  && <th style={TH('right','10%')}>{'CGST\n(₹)'}</th>}
+              {hasTax && isIntra  && <th style={TH('right','10%')}>{'SGST\n(₹)'}</th>}
+              {hasTax && !isIntra && <th style={TH('right','10%')}>{'IGST\n(₹)'}</th>}
+              {hasExcise && <th style={TH('right','8%')}>{'Excise\n(₹)'}</th>}
+              <th style={{ ...TH('right','12%'), borderRight:'none' }}>{'Amount\n(₹)'}</th>
             </tr>
           </thead>
           <tbody>
@@ -412,10 +412,6 @@ const InvoicePrint = () => {
             
             {/* Signature Area */}
             <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'center' }}>
-              <div style={{ fontWeight: 700, fontSize: 13, color: TEAL, marginBottom: 8 }}>
-                For {company.companyName}
-              </div>
-              
               <div style={{ minHeight: 60, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
                 {(company.signatureUrl || company.signature) ? (
                   <img 
