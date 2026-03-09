@@ -145,9 +145,9 @@ const Subscription = () => {
               billingCycle: billingCycle
             });
             alert('Payment Successful! You are now a Pro member.');
-            if (userObj && verifyRes.data.user) {
-              userObj.user = verifyRes.data.user;
-              localStorage.setItem('user', JSON.stringify(userObj));
+            if (userState && verifyRes.data.user) {
+              const updatedState = { ...userState, user: verifyRes.data.user };
+              localStorage.setItem('user', JSON.stringify(updatedState));
               window.location.reload();
             }
           } catch (verifyError) {

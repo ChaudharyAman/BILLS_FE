@@ -26,9 +26,12 @@ api.interceptors.response.use(
   (error) => {
     // If the request fails with a 401 (Unauthorized) error, redirect to login
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('user'); // Token is now in cookie, no need to remove from localStorage
+      localStorage.removeItem('user');
       if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+        // Call logout to clear the HttpOnly JWT cookie server-side
+        api.post('/auth/logout').catch(() => {}).finally(() => {
+          window.location.href = '/login';
+        });
       }
     }
     return Promise.reject(error);

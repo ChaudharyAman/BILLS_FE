@@ -36,6 +36,11 @@ const AccountStatement = () => {
         setData({ summary: {}, invoices: [] });
         return;
       }
+      // Validate date range before fetching
+      if (startDate && endDate && endDate < startDate) {
+        setData({ summary: {}, invoices: [] });
+        return;
+      }
       setLoading(true);
       try {
         let url = `/invoices/accounts/statements?clientId=${selectedClient}`;
@@ -143,6 +148,13 @@ const AccountStatement = () => {
             </div>
          </div>
       </div>
+
+      {/* Date range validation warning */}
+      {startDate && endDate && endDate < startDate && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm font-medium">
+          ⚠️ End date cannot be before start date. Please correct the date range.
+        </div>
+      )}
 
       {selectedClient && (
          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

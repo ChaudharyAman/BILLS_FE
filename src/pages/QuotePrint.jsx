@@ -118,7 +118,7 @@ const QuotePrint = ({ docType = 'quote' }) => {
   };
 
   const docNo   = isProforma ? doc.proformaNo : doc.quoteNo;
-  const shortNo = docNo?.replace(/^(PRO-|QT-|QUOT-)/,'') || docNo;
+  const shortNo = docNo?.replace(/^(PRF-|PRO-|QT-|QUOT-)/,'') || docNo;
 
   return (
     <div style={{ background:'#eee', minHeight:'100vh', padding:'20px 0', fontFamily:'Arial, Helvetica, sans-serif' }}>
@@ -295,13 +295,16 @@ const QuotePrint = ({ docType = 'quote' }) => {
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginTop:4 }}>
           {/* Left: bank (proforma) or notes */}
           <div style={{ width:'44%', fontSize:11, lineHeight:1.8, color: TEXT }}>
-            {isProforma && <>
-              {company.accountName   && <div><b>Account Holder Name:</b> {company.accountName.toUpperCase()}</div>}
-              {company.bankName      && <div><b>Bank Name:</b> {company.bankName.toUpperCase()}</div>}
-              {company.accountNumber && <div><b>Account Number:</b> {company.accountNumber}</div>}
-              {company.branchName    && <div><b>Branch Name:</b> {company.branchName.toUpperCase()}</div>}
-              {company.ifscCode      && <div><b>IFSC Code:</b> {company.ifscCode}</div>}
-            </>}
+            {isProforma && (() => {
+              const bank = company.bankDetails || {};
+              return (<>
+                {bank.accountName   && <div><b>Account Holder Name:</b> {bank.accountName.toUpperCase()}</div>}
+                {bank.bankName      && <div><b>Bank Name:</b> {bank.bankName.toUpperCase()}</div>}
+                {bank.accountNumber && <div><b>Account Number:</b> {bank.accountNumber}</div>}
+                {bank.branch        && <div><b>Branch Name:</b> {bank.branch.toUpperCase()}</div>}
+                {bank.ifscCode      && <div><b>IFSC Code:</b> {bank.ifscCode}</div>}
+              </>);
+            })()}
             {doc.notes && <div style={{ marginTop:isProforma?8:0, fontSize:10, color: MUTED }}><b style={{ color: TEXT }}>Notes:</b><br/>{doc.notes}</div>}
             {doc.terms && <div style={{ marginTop:6, fontSize:10, color: MUTED }}><b style={{ color: TEXT }}>Terms & Conditions:</b><br/><span style={{whiteSpace:'pre-wrap'}}>{doc.terms}</span></div>}
           </div>

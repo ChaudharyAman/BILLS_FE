@@ -120,7 +120,7 @@ const PurchaseOrderPrint = () => {
           <FaArrowLeft size={13}/> Back
         </button>
         <div style={{ display:'flex',gap:8 }}>
-          {doc.status!=='CONVERTED' && (
+          {doc.status !== 'BILLED' && (
             <button onClick={handleConvert} disabled={converting}
               style={{ display:'flex',alignItems:'center',gap:6,padding:'7px 14px',background:'#7c3aed',color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontSize:13,fontWeight:700 }}>
               <FaArrowRight size={13}/> Convert to Invoice

@@ -20,11 +20,19 @@ const Settings = () => {
     contactName: '',
     address: { line1: '', city: '', state: '', zip: '' },
     gstin: '',
+    pan: '',
     email: '',
     phone: '',
     website: '',
     logoUrl: '',
     signatureUrl: '',
+    bankDetails: {
+      accountName: '',
+      bankName: '',
+      accountNumber: '',
+      branch: '',
+      ifscCode: '',
+    },
   });
 
   // ── Software / Account Settings ───────────────────────────────────────────
@@ -61,7 +69,10 @@ const Settings = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name.includes('.')) {
+    if (name.startsWith('bankDetails.')) {
+      const field = name.replace('bankDetails.', '');
+      setFormData(prev => ({ ...prev, bankDetails: { ...prev.bankDetails, [field]: value } }));
+    } else if (name.includes('.')) {
       const [parent, child] = name.split('.');
       setFormData(prev => ({ ...prev, [parent]: { ...prev[parent], [child]: value } }));
     } else {
@@ -97,6 +108,8 @@ const Settings = () => {
       Object.keys(formData).forEach(key => {
         if (key === 'address') {
           Object.keys(formData.address).forEach(k => data.append(`address[${k}]`, formData.address[k]));
+        } else if (key === 'bankDetails') {
+          Object.keys(formData.bankDetails).forEach(k => data.append(`bankDetails[${k}]`, formData.bankDetails[k] || ''));
         } else if (!['logoFile', 'logoUrl', 'signatureFile', 'signatureUrl', '_id', 'createdAt', 'updatedAt', '__v', 'user'].includes(key)) {
           data.append(key, formData[key] || '');
         }
@@ -334,6 +347,39 @@ const Settings = () => {
               </div>
             </div>
 
+            {/* Bank Details */}
+            <div>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">🏦 Bank Details</h3>
+              <p className="text-xs text-gray-500 mb-3">These details appear on Invoice, Proforma, and Quote print views.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Holder Name</label>
+                  <input type="text" name="bankDetails.accountName" value={formData.bankDetails?.accountName || ''}
+                    onChange={handleChange} className={inputCls} placeholder="e.g. My Company Ltd" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                  <input type="text" name="bankDetails.bankName" value={formData.bankDetails?.bankName || ''}
+                    onChange={handleChange} className={inputCls} placeholder="e.g. State Bank of India" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                  <input type="text" name="bankDetails.accountNumber" value={formData.bankDetails?.accountNumber || ''}
+                    onChange={handleChange} className={inputCls} placeholder="e.g. 1234567890" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Branch</label>
+                  <input type="text" name="bankDetails.branch" value={formData.bankDetails?.branch || ''}
+                    onChange={handleChange} className={inputCls} placeholder="e.g. New Delhi Main Branch" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
+                  <input type="text" name="bankDetails.ifscCode" value={formData.bankDetails?.ifscCode || ''}
+                    onChange={handleChange} className={`${inputCls} uppercase`} placeholder="e.g. SBIN0001234" />
+                </div>
+              </div>
+            </div>
+
             <div className="flex justify-end pt-4 border-t border-gray-100">
               <button type="submit" disabled={loading}
                 className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-colors disabled:opacity-50">
@@ -345,7 +391,7 @@ const Settings = () => {
       )}
 
       {/* ── SOFTWARE / ACCOUNT SETTINGS ── */}
-      {tab === 'software' && (
+      {!pageLoading && tab === 'software' && (
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
           <form onSubmit={handleSoftwareSubmit} className="space-y-6">
 

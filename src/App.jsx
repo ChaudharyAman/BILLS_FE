@@ -41,19 +41,21 @@ function App() {
   
   // Storage Migrator: The old Login.jsx saved `response.data.user` directly as `{ username: 'xxx' }`. 
   // But Layout.jsx and other components expect `{ user: { username: 'xxx' } }`.
-  // If we detect the unwrapped version, let's wrap it immediately before the App mounts components.
-  const rawUser = localStorage.getItem('user');
-  if (rawUser) {
-    try {
-      const parsed = JSON.parse(rawUser);
-      // If it has an _id but no wrapper, it's the raw format.
-      if (parsed._id && !parsed.user) {
-        localStorage.setItem('user', JSON.stringify({ user: parsed }));
+  // If we detect the unwrapped version, wrap it once on mount.
+  useEffect(() => {
+    const rawUser = localStorage.getItem('user');
+    if (rawUser) {
+      try {
+        const parsed = JSON.parse(rawUser);
+        // If it has an _id but no wrapper, it's the raw format.
+        if (parsed._id && !parsed.user) {
+          localStorage.setItem('user', JSON.stringify({ user: parsed }));
+        }
+      } catch (e) {
+        console.warn("Could not migrate local storage", e);
       }
-    } catch (e) {
-      console.warn("Could not migrate local storage", e);
     }
-  }
+  }, []);
 
   // Background Sync for Subscription Status
   useEffect(() => {

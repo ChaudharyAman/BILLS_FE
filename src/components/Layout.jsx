@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   FaThLarge, FaUsers, FaBox, FaFileInvoice,
@@ -49,22 +49,29 @@ const Layout = ({ children }) => {
   // Premium Modal State
   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
-  // Check user subscription tier
-  const userStr = localStorage.getItem('user');
-  let userObj = null;
+  // Tick counter — increments whenever App.jsx dispatches 'auth-sync' after a background
+  // subscription refresh, causing this component to re-read localStorage.
+  const [syncTick, setSyncTick] = useState(0);
+  useEffect(() => {
+    const onAuthSync = () => setSyncTick(t => t + 1);
+    window.addEventListener('auth-sync', onAuthSync);
+    return () => window.removeEventListener('auth-sync', onAuthSync);
+  }, []);
+
+  // Check user subscription tier — re-evaluated whenever syncTick changes
+  let isPro = false;
   try {
-    userObj = userStr ? JSON.parse(userStr).user : null;
+    const userStr = localStorage.getItem('user');
+    const userObj = userStr ? JSON.parse(userStr).user : null;
+    isPro = userObj?.subscription?.plan === 'pro';
   } catch (e) {
     console.error('Failed to parse user from localStorage', e);
-    // Optionally clean up corrupted state: localStorage.removeItem('user');
   }
-  const isPro = userObj?.subscription?.plan === 'pro';
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  void syncTick; // ensure syncTick is in the dependency chain for linters
 
   const isActive = (path) => location.pathname.startsWith(path);
 
-  const isSalesActive = ['/invoices', '/quotes', '/proformas'].some(p =>
-    location.pathname.startsWith(p)
-  );
   const [quotesOpen, setQuotesOpen] = useState(
     location.pathname.startsWith('/quotes') || location.pathname.startsWith('/proformas')
   );

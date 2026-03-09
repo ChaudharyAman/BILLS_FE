@@ -28,11 +28,46 @@ const fmtDate = (d) => {
   return `${String(dt.getDate()).padStart(2,'0')} - ${dt.toLocaleString('en-IN',{month:'short'})} - ${dt.getFullYear()}`;
 };
 
-// ── Color palette (matches reference image) ──────────────────────
+// ── Color palette ─────────────────────────────────────────────────
 const TEAL   = '#1e5f78';
 const TEXT   = '#1a1a1a';
 const MUTED  = '#555';
 const BORDER = '#d0d0d0';
+
+// ── Style helpers ────────────────────────────────────────────────
+function TH(align, width) {
+  return {
+    padding: '7px 8px',
+    background: TEAL,
+    color: '#fff',
+    fontWeight: 700,
+    fontSize: 11,
+    textAlign: align,
+    width: width || undefined,
+    whiteSpace: 'pre-line',
+    lineHeight: 1.3,
+    borderRight: '1px solid rgba(255,255,255,0.18)',
+  };
+}
+
+function TD(align, noWrap = false) {
+  return {
+    padding: '7px 8px',
+    textAlign: align,
+    verticalAlign: 'top',
+    borderBottom: `1px solid ${BORDER}`,
+    color: TEXT,
+    ...(noWrap ? {} : { whiteSpace: 'nowrap' }),
+  };
+}
+
+const SummaryRow = ({ label, value, green, red }) => (
+  <div style={{ display:'flex', justifyContent:'space-between', padding:'3px 0', gap:12,
+    color: green ? '#059669' : red ? '#dc2626' : TEXT }}>
+    <b style={{ whiteSpace:'nowrap', color: green ? '#059669' : red ? '#dc2626' : TEXT }}>{label}</b>
+    <span style={{ textAlign:'right' }}>{value}</span>
+  </div>
+);
 
 // ── Main Component ───────────────────────────────────────────────
 const InvoicePrint = () => {
@@ -76,6 +111,7 @@ const InvoicePrint = () => {
   // ── Data ────────────────────────────────────────────────────────
   const company     = settings || {};
   const client      = invoice.client || {};
+  const bank        = invoice.bankDetails || {}; // FIX #3: read from invoice, not settings
   const items       = invoice.items  || [];
   const invType     = invoice.invoiceType || 'Tax Invoice';
   const hasExcise   = invType === 'Excise Invoice';
@@ -102,11 +138,6 @@ const InvoicePrint = () => {
   const companyAddr = addrStr(company.address);
   const clientAddr  = addrStr(client.address);
   const shipAddr    = invoice.shippingAddress?.line1 ? addrStr(invoice.shippingAddress) : clientAddr;
-
-  // Table column count for colSpan calculation
-  // Columns: S.No | Item | HSN | Price | [Taxable] | [CGST] | [SGST/IGST] | Amount
-  // "Total" label spans: S.No + Item + HSN + Price = 4 cols always
-  const totalLabelSpan = 4;
 
   // ── Render ───────────────────────────────────────────────────────
   return (
@@ -271,7 +302,6 @@ const InvoicePrint = () => {
                   </td>
                   <td style={TD('right')}>{fmt(rate)}</td>
                   {hasDiscount && <td style={TD('right')}>{discPct > 0 ? `${discPct}%` : ''}</td>}
-                  {/* Tax columns — conditionally show */}
                   {hasTax && <td style={TD('right')}>{fmt(taxable)}</td>}
                   {hasTax && isIntra && (
                     <td style={TD('right')}>
@@ -303,7 +333,7 @@ const InvoicePrint = () => {
             })}
           </tbody>
 
-          {/* ── Total footer row — now always 8 cols: S.No+Item+HSN+Price = 4 span, then Taxable, CGST, SGST, Amount ── */}
+          {/* ── Total footer row ── */}
           <tfoot>
             <tr style={{ background:'#eef5f8' }}>
               <td colSpan={5 + (hasDiscount ? 1 : 0)}
@@ -330,7 +360,6 @@ const InvoicePrint = () => {
                   {fmt(invoice.totalIGST)}
                 </td>
               )}
-
               {hasExcise && (
                 <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:700, borderTop:`2px solid ${TEAL}` }}>
                   {fmt(invoice.exciseDuty?.totalExcise)}
@@ -349,16 +378,16 @@ const InvoicePrint = () => {
         {/* ── ROW 3: Bank details (left) | Summary (right) ── */}
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginTop:4 }}>
 
-          {/* LEFT: Bank Details */}
+          {/* LEFT: Bank Details — read from invoice.bankDetails (fix #3) */}
           <div style={{ width:'44%', fontSize:11, lineHeight:1.8, color: TEXT }}>
-            {company.accountName   && <div><b>Account Holder Name:</b> {company.accountName.toUpperCase()}</div>}
-            {company.bankName      && <div><b>Bank Name:</b> {company.bankName.toUpperCase()}</div>}
-            {company.accountNumber && <div><b>Account Number:</b> {company.accountNumber}</div>}
-            {company.branchName    && <div><b>Branch Name:</b> {company.branchName.toUpperCase()}</div>}
-            {company.ifscCode      && <div><b>IFSC Code:</b> {company.ifscCode}</div>}
+            {bank.accountName   && <div><b>Account Holder Name:</b> {bank.accountName.toUpperCase()}</div>}
+            {bank.bankName      && <div><b>Bank Name:</b> {bank.bankName.toUpperCase()}</div>}
+            {bank.accountNumber && <div><b>Account Number:</b> {bank.accountNumber}</div>}
+            {bank.branch        && <div><b>Branch Name:</b> {bank.branch.toUpperCase()}</div>}
+            {bank.ifscCode      && <div><b>IFSC Code:</b> {bank.ifscCode}</div>}
             {invoice.terms && (
               <div style={{ marginTop:10, fontSize:10, color: MUTED }}>
-                <b style={{ color: TEXT }}>Terms & Conditions:</b><br/>
+                <b style={{ color: TEXT }}>Terms &amp; Conditions:</b><br/>
                 <span style={{ whiteSpace:'pre-wrap' }}>{invoice.terms}</span>
               </div>
             )}
@@ -380,12 +409,9 @@ const InvoicePrint = () => {
             {advancePaid > 0 && <SummaryRow label="Advance Paid"  value={`(-) ₹ ${fmt(advancePaid)}`} green />}
             {advancePaid > 0 && <SummaryRow label="Balance Due"   value={`₹ ${fmt(balanceDue)}`}    red />}
             <SummaryRow label="Total Value (in words)"
-              value={`₹ ${numberToWords(Math.round(grandTotal))}`}
-              multiline />
+              value={`₹ ${numberToWords(Math.round(grandTotal))}`} />
           </div>
         </div>
-
-
 
       </div>{/* end A4 */}
 
@@ -400,45 +426,5 @@ const InvoicePrint = () => {
     </div>
   );
 };
-
-// ── Style helpers ────────────────────────────────────────────────
-const TEAL_C = '#1e5f78';
-const TEXT_C  = '#1a1a1a';
-const MUTED_C = '#555';
-const BORDER_C = '#d0d0d0';
-
-function TH(align, width) {
-  return {
-    padding: '7px 8px',
-    background: TEAL_C,
-    color: '#fff',
-    fontWeight: 700,
-    fontSize: 11,
-    textAlign: align,
-    width: width || undefined,
-    whiteSpace: 'pre-line',
-    lineHeight: 1.3,
-    borderRight: '1px solid rgba(255,255,255,0.18)',
-  };
-}
-
-function TD(align, noWrap = false) {
-  return {
-    padding: '7px 8px',
-    textAlign: align,
-    verticalAlign: 'top',
-    borderBottom: `1px solid ${BORDER_C}`,
-    color: TEXT_C,
-    ...(noWrap ? {} : { whiteSpace: 'nowrap' }),
-  };
-}
-
-const SummaryRow = ({ label, value, green, red, multiline }) => (
-  <div style={{ display:'flex', justifyContent:'space-between', padding:'3px 0', gap:12,
-    color: green ? '#059669' : red ? '#dc2626' : TEXT_C }}>
-    <b style={{ whiteSpace:'nowrap', color: green ? '#059669' : red ? '#dc2626' : TEXT_C }}>{label}</b>
-    <span style={{ textAlign:'right' }}>{value}</span>
-  </div>
-);
 
 export default InvoicePrint;

@@ -133,13 +133,7 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
-                    <span className="text-sm text-slate-600">Remember me</span>
-                </label>
-                <a href="#" className="text-sm font-medium text-teal-600 hover:text-teal-700">Forgot password?</a>
-            </div>
+
 
             <button
               type="submit"
