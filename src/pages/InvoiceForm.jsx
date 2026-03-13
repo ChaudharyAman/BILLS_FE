@@ -220,11 +220,17 @@ const InvoiceForm = () => {
   };
 
   // ── Calculations ──────────────────────────────────────────────
-  const calcRow = (item) => {
+  // Returns taxable value for a row (before tax)
+  const calcTaxableRow = (item) => {
     const qty = Number(item.qty) || 0;
     const rate = Number(item.rate) || 0;
     const disc = Number(item.discount) || 0;
-    const taxable = qty * rate * (1 - disc / 100);
+    return qty * rate * (1 - disc / 100);
+  };
+
+  // Returns full row amount including tax/excise (for display in the items table)
+  const calcRow = (item) => {
+    const taxable = calcTaxableRow(item);
     const gst = hasTax ? taxable * (Number(item.taxRate) / 100) : 0;
     let excise = 0;
     if (hasExcise) {
@@ -236,30 +242,35 @@ const InvoiceForm = () => {
     return taxable + gst + excise;
   };
 
-  const getSubTotal = () => formData.items.reduce((a, i) => a + calcRow(i), 0);
-
-  const getGrandTotal = () => {
-    const sub = getSubTotal();
-    const ship = Number(formData.shippingCharges) || 0;
-    const custom = Number(formData.packagingCharges) || 0;
-    const disc = Number(formData.discountTotal) || 0;
-    return sub + ship + custom - disc;
-  };
+  // Subtotal = sum of taxable values only (pre-tax)
+  const getSubTotal = () => formData.items.reduce((a, i) => a + calcTaxableRow(i), 0);
 
   const getTaxBreakdown = () => {
     let cgst = 0, sgst = 0, igst = 0;
     if (!hasTax) return { cgst, sgst, igst };
+    // Use IGST when placeOfSupply is filled in (inter-state), else CGST+SGST
+    const isInterState = !!(formData.placeOfSupply && formData.placeOfSupply.trim());
     formData.items.forEach(item => {
-      const qty = Number(item.qty) || 0;
-      const rate = Number(item.rate) || 0;
-      const disc = Number(item.discount) || 0;
-      const taxable = qty * rate * (1 - disc / 100);
+      const taxable = calcTaxableRow(item);
       const tax = taxable * (Number(item.taxRate) / 100);
-      // Assume IGST if place of supply differs — simplified: always CGST+SGST for now
-      cgst += tax / 2;
-      sgst += tax / 2;
+      if (isInterState) {
+        igst += tax;
+      } else {
+        cgst += tax / 2;
+        sgst += tax / 2;
+      }
     });
     return { cgst, sgst, igst };
+  };
+
+  const getGrandTotal = () => {
+    const sub = getSubTotal();
+    const { cgst, sgst, igst } = getTaxBreakdown();
+    const totalTax = cgst + sgst + igst;
+    const ship = Number(formData.shippingCharges) || 0;
+    const custom = Number(formData.packagingCharges) || 0;
+    const disc = Number(formData.discountTotal) || 0;
+    return sub + totalTax + ship + custom - disc;
   };
 
   // ── Item helpers ──────────────────────────────────────────────
@@ -357,7 +368,7 @@ const InvoiceForm = () => {
   const inp = 'w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white';
   const lbl = 'block text-xs font-medium text-gray-500 mb-1';
 
-  const { cgst, sgst } = getTaxBreakdown();
+  const { cgst, sgst, igst } = getTaxBreakdown();
   
   if (loading && id) {
       return (
@@ -908,7 +919,13 @@ const InvoiceForm = () => {
                 <span className="font-semibold">₹ {getSubTotal().toFixed(2)}</span>
               </div>
 
-              {hasTax && (
+              {hasTax && igst > 0 && (
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>IGST</span>
+                  <span>₹ {igst.toFixed(2)}</span>
+                </div>
+              )}
+              {hasTax && cgst > 0 && (
                 <>
                   <div className="flex justify-between text-sm text-gray-600">
                     <span>CGST</span>
