@@ -30,6 +30,7 @@ const fmtDate = (d) => {
 
 // ── Color palette ─────────────────────────────────────────────────
 const TEAL   = '#1e5f78';
+const DARK   = '#1e293b';
 const TEXT   = '#1a1a1a';
 const MUTED  = '#555';
 const BORDER = '#d0d0d0';
@@ -170,7 +171,7 @@ const InvoicePrint = () => {
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 8 }}>
 
           {/* LEFT: logo + company details */}
-          <div style={{ width: '50%', paddingTop: 50 }}>
+          <div style={{ width: '50%', paddingTop: 18 }}>
             {(company.logoUrl || company.logo) && (
               <img src={company.logoUrl || company.logo} alt="logo"
                 style={{ maxHeight:55, maxWidth:180, objectFit:'contain', marginBottom:10, display:'block' }}/>
@@ -194,18 +195,16 @@ const InvoicePrint = () => {
 
           {/* RIGHT: TAX INVOICE + #no + Amount bar + meta */}
           <div style={{ width: '48%', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            {/* Original for recipient */}
-            <div style={{ textAlign:'right', fontSize:11, color: MUTED, marginBottom:4, fontStyle:'italic' }}>
-              Original for recipient
-            </div>
-
-            {/* TAX INVOICE   #58 */}
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:8, width: '100%' }}>
-              <div style={{ fontSize:22, fontWeight:700, color: TEAL, letterSpacing:'-0.5px' }}>
+            {/* TAX INVOICE   #58 row with Original text above #58 */}
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:8, width: '100%' }}>
+              <div style={{ fontSize:22, fontWeight:700, color: DARK, letterSpacing:'-0.5px' }}>
                 {invType.toUpperCase()}
               </div>
-              <div style={{ fontSize:22, fontWeight:700, color: TEAL }}>
-                #{invoice.invoiceNo?.replace(/^INV-/,'') || invoice.invoiceNo}
+              <div style={{ textAlign:'right' }}>
+                <div style={{ fontSize:11, color: DARK, marginBottom: 2 }}>Original for recipient</div>
+                <div style={{ fontSize:22, fontWeight:700, color: DARK }}>
+                  #{invoice.invoiceNo?.replace(/^INV-/,'') || invoice.invoiceNo}
+                </div>
               </div>
             </div>
 
@@ -215,15 +214,15 @@ const InvoicePrint = () => {
             <div style={{
               background: TEAL, color:'#fff',
               display:'flex', justifyContent:'space-between', alignItems:'center',
-              padding:'6px 12px', fontWeight:400, fontSize:13, marginBottom:16,
-              width: '100%'
+              padding:'2px 12px', fontWeight:400, fontSize:13, marginBottom:16,
+              width: '100%', minWidth: '260px'
             }}>
               <span>Amount Due:</span>
               <span>₹ {fmt(advancePaid > 0 ? balanceDue : grandTotal)}</span>
             </div>
 
             {/* Meta: right-label + right-value grid */}
-            <div style={{ display:'grid', gridTemplateColumns:'auto auto', columnGap: 8, rowGap:0, fontSize:11 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'auto auto', columnGap: 60, rowGap:0, fontSize:11, lineHeight: 1.2 }}>
               {[
                 ['Issue Date:',       fmtDate(invoice.date)],
                 ['Due Date:',         fmtDate(invoice.dueDate)],
@@ -244,8 +243,8 @@ const InvoicePrint = () => {
         {/* ── ROW 2: Bill To | Ship To ── */}
         <div style={{ display:'flex', gap: 60, marginBottom: 12 }}>
           <div style={{ width:'48%' }}>
-            <div style={{ fontSize:11, fontWeight:700, color: TEXT, marginBottom:2 }}>Bill To</div>
-            <div style={{ fontSize:13, fontWeight:700, color: TEAL, marginBottom:2 }}>{client.name}</div>
+            <div style={{ fontSize:11, fontWeight:700, color: DARK, marginBottom:0 }}>Bill To</div>
+            <div style={{ fontSize:13, fontWeight:700, color: DARK, marginBottom:2 }}>{client.name}</div>
             <div style={{ fontSize:11, color: TEXT, lineHeight:1.4 }}>
               {clientAddr && <div>{clientAddr}</div>}
               {client.gstin && <div><b>GSTIN:</b> {client.gstin}</div>}
@@ -254,7 +253,7 @@ const InvoicePrint = () => {
             </div>
           </div>
           <div style={{ width:'48%' }}>
-            <div style={{ fontSize:11, fontWeight:700, color: TEXT, marginBottom:2 }}>Ship To</div>
+            <div style={{ fontSize:11, fontWeight:700, color: DARK, marginBottom:0 }}>Ship To</div>
             <div style={{ fontSize:11, color: TEXT, lineHeight:1.4 }}>
               {shipAddr || 'Same as billing address'}
             </div>
