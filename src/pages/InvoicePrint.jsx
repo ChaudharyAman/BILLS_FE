@@ -62,11 +62,11 @@ function TD(align, noWrap = false) {
   };
 }
 
-const SummaryRow = ({ label, value, green, red }) => (
-  <div style={{ display:'flex', justifyContent:'flex-end', padding:'3px 0', gap:12,
-    color: green ? '#059669' : red ? '#dc2626' : TEXT, fontSize: 11 }}>
-    <span style={{ whiteSpace:'nowrap', color: green ? '#059669' : red ? '#dc2626' : TEXT, textAlign: 'right' }}>{label}</span>
-    <span style={{ textAlign:'right', width: '100px', fontWeight: 400 }}>{value}</span>
+const SummaryRow = ({ label, value, green, red, isBoldValue }) => (
+  <div style={{ display:'flex', justifyContent:'flex-end', padding:'2px 0', gap:30,
+    color: green ? '#059669' : red ? '#dc2626' : DARK, fontSize: 11 }}>
+    <span style={{ whiteSpace:'nowrap', color: green ? '#059669' : red ? '#dc2626' : DARK, textAlign: 'right', fontWeight: 700 }}>{label}</span>
+    <span style={{ textAlign:'right', width: '130px', fontWeight: isBoldValue ? 700 : 400 }}>{value}</span>
   </div>
 );
 
@@ -382,11 +382,11 @@ const InvoicePrint = () => {
 
           {/* LEFT: Bank Details — read from invoice.bankDetails (fix #3) */}
           <div style={{ width:'44%', fontSize:11, lineHeight:1.8, color: TEXT }}>
-            {bank.accountName   && <div>Account Holder Name: {bank.accountName.toUpperCase()}</div>}
-            {bank.bankName      && <div>Bank Name: {bank.bankName.toUpperCase()}</div>}
-            {bank.accountNumber && <div>Account Number: {bank.accountNumber}</div>}
-            {bank.branch        && <div>Branch Name: {bank.branch.toUpperCase()}</div>}
-            {bank.ifscCode      && <div>IFSC Code: {bank.ifscCode}</div>}
+            {bank.accountName   && <div><b>Account Holder Name:</b> {bank.accountName.toUpperCase()}</div>}
+            {bank.bankName      && <div><b>Bank Name:</b> {bank.bankName.toUpperCase()}</div>}
+            {bank.accountNumber && <div><b>Account Number:</b> {bank.accountNumber}</div>}
+            {bank.branch        && <div><b>Branch Name:</b> {bank.branch.toUpperCase()}</div>}
+            {bank.ifscCode      && <div><b>IFSC Code:</b> {bank.ifscCode}</div>}
             {invoice.terms && (
               <div style={{ marginTop:10, fontSize:10, color: MUTED }}>
                 <span style={{ color: TEXT }}>Terms &amp; Conditions:</span><br/>
@@ -401,17 +401,28 @@ const InvoicePrint = () => {
           </div>
 
           {/* RIGHT: Totals Summary */}
-          <div style={{ width:'52%', fontSize:12 }}>
-            <SummaryRow label="Total Taxable Value"    value={`₹ ${fmt(invoice.subTotal)}`} />
-            {invoice.shippingCharges > 0 && <SummaryRow label="Shipping Charges" value={`(+) ₹ ${fmt(invoice.shippingCharges)}`} />}
-            {invoice.packagingCharges > 0 && <SummaryRow label={invoice.customChargeLabel || 'Custom Charge'} value={`(+) ₹ ${fmt(invoice.packagingCharges)}`} />}
-            {invoice.discountTotal > 0 && <SummaryRow label="Discount" value={`(-) ₹ ${fmt(invoice.discountTotal)}`} />}
-            {Math.abs(rounded) >= 0.005 && <SummaryRow label="Rounded Off" value={`(-) ₹ ${fmt(Math.abs(rounded))}`} />}
-            <SummaryRow label="Total Value (in figure)"  value={`₹ ${fmt(Math.round(grandTotal))}`} />
-            {advancePaid > 0 && <SummaryRow label="Advance Paid"  value={`(-) ₹ ${fmt(advancePaid)}`} green />}
-            {advancePaid > 0 && <SummaryRow label="Balance Due"   value={`₹ ${fmt(balanceDue)}`}    red />}
-            <SummaryRow label="Total Value (in words)"
-              value={`₹ ${numberToWords(Math.round(grandTotal))}`} />
+          <div style={{ width:'54%', fontSize:12 }}>
+            <SummaryRow label="Total Taxable Value"    value={`₹ ${fmt(invoice.subTotal)}`} isBoldValue />
+            {invoice.shippingCharges > 0 && <SummaryRow label="Shipping Charges" value={`(+) ₹ ${fmt(invoice.shippingCharges)}`} isBoldValue />}
+            {invoice.packagingCharges > 0 && <SummaryRow label={invoice.customChargeLabel || 'Custom Charge'} value={`(+) ₹ ${fmt(invoice.packagingCharges)}`} isBoldValue />}
+            {invoice.discountTotal > 0 && <SummaryRow label="Discount" value={`(-) ₹ ${fmt(invoice.discountTotal)}`} isBoldValue />}
+            {Math.abs(rounded) >= 0.005 && (
+              <SummaryRow 
+                label="Rounded Off" 
+                value={`${rounded < 0 ? '(-)' : '(+)'} ₹ ${fmt(Math.abs(rounded))}`} 
+                isBoldValue
+              />
+            )}
+            <SummaryRow label="Total Value (in figure)"  value={`₹ ${Math.round(grandTotal).toLocaleString('en-IN')}`} isBoldValue />
+            {advancePaid > 0 && <SummaryRow label="Advance Paid"  value={`(-) ₹ ${fmt(advancePaid)}`} green isBoldValue />}
+            {advancePaid > 0 && <SummaryRow label="Balance Due"   value={`₹ ${fmt(balanceDue)}`}    red isBoldValue />}
+            
+            <div style={{ display:'flex', justifyContent:'flex-end', padding:'4px 0', gap:30, color: DARK, fontSize: 11 }}>
+              <span style={{ whiteSpace:'nowrap', color: DARK, textAlign: 'right', fontWeight: 700 }}>Total Value (in words)</span>
+              <div style={{ textAlign:'right', width: '220px', fontWeight: 700 }}>
+                ₹ {numberToWords(Math.round(grandTotal))}
+              </div>
+            </div>
             
             {/* Signature Area */}
             <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'center' }}>
