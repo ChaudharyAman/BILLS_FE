@@ -37,7 +37,7 @@ const BORDER = '#d0d0d0';
 // ── Style helpers ────────────────────────────────────────────────
 function TH(align, width) {
   return {
-    padding: '7px 8px',
+    padding: '4px 8px',
     background: TEAL,
     color: '#fff',
     fontWeight: 400,
@@ -52,7 +52,7 @@ function TH(align, width) {
 
 function TD(align, noWrap = false) {
   return {
-    padding: '7px 8px',
+    padding: '4px 8px',
     textAlign: align,
     verticalAlign: 'top',
     borderBottom: `1px solid ${BORDER}`,
@@ -223,7 +223,7 @@ const InvoicePrint = () => {
             </div>
 
             {/* Meta: right-label + right-value grid */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr auto', rowGap:3, fontSize:11, width: '220px' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'auto auto', columnGap: 8, rowGap:0, fontSize:11 }}>
               {[
                 ['Issue Date:',       fmtDate(invoice.date)],
                 ['Due Date:',         fmtDate(invoice.dueDate)],
@@ -233,8 +233,8 @@ const InvoicePrint = () => {
                 invoice.paymentMode         ? ['Payment Mode:',    invoice.paymentMode]         : null,
               ].filter(Boolean).map(([lbl, val]) => (
                 <React.Fragment key={lbl}>
-                  <div style={{ textAlign:'right', color: MUTED, paddingRight:8, whiteSpace: 'nowrap' }}>{lbl}</div>
-                  <div style={{ textAlign:'right', color: TEXT }}>{val}</div>
+                  <div style={{ textAlign:'right', color: MUTED, whiteSpace: 'nowrap' }}>{lbl}</div>
+                  <div style={{ textAlign:'right', color: TEXT, whiteSpace: 'nowrap' }}>{val}</div>
                 </React.Fragment>
               ))}
             </div>
@@ -322,7 +322,7 @@ const InvoicePrint = () => {
                   {hasTax && !isIntra && (
                     <td style={{ ...TD('right'), fontWeight:700 }}>
                       {fmt(igstAmt)}
-                      {item.taxRate > 0 && <><br/><span style={{ fontSize:9, color: MUTOM, fontWeight:400 }}>{item.taxRate}%</span></>}
+                      {item.taxRate > 0 && <><br/><span style={{ fontSize:9, color: MUTED, fontWeight:400 }}>{item.taxRate}%</span></>}
                     </td>
                   )}
                   {hasExcise && (
@@ -340,35 +340,35 @@ const InvoicePrint = () => {
           {/* ── Total footer row ── */}
           <tfoot>
             <tr style={{ background:'#eef5f8' }}>
-              <td colSpan={5 + (hasDiscount ? 1 : 0)} style={{ padding:'7px 8px', textAlign:'right', fontWeight:400, fontSize:11, color: TEXT, borderTop:`2px solid ${TEAL}` }}>
+              <td colSpan={5 + (hasDiscount ? 1 : 0)} style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, fontSize:11, color: TEXT, borderTop:`2px solid ${TEAL}` }}>
                 Total {taxRate > 0 ? `@${taxRate}%` : ''}
               </td>
               {hasTax && (
-                <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
+                <td style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                   {fmt(invoice.subTotal)}
                 </td>
               )}
               {hasTax && isIntra && (
                 <>
-                  <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
+                  <td style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                     {fmt(invoice.totalCGST)}
                   </td>
-                  <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
+                  <td style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                     {fmt(invoice.totalSGST)}
                   </td>
                 </>
               )}
               {hasTax && !isIntra && (
-                <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
+                <td style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                   {fmt(invoice.totalIGST)}
                 </td>
               )}
               {hasExcise && (
-                <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
+                <td style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                   {fmt(invoice.exciseDuty?.totalExcise)}
                 </td>
               )}
-              <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
+              <td style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                 {fmt(invoice.grandTotal)}
               </td>
             </tr>
