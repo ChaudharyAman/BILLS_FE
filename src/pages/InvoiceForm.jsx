@@ -104,9 +104,27 @@ const InvoiceForm = () => {
 
   const fetchDependencies = async () => {
     try {
-      const [cr, ir] = await Promise.all([api.get('/clients?limit=1000'), api.get('/items?limit=1000')]);
+      const [cr, ir, sr] = await Promise.all([
+        api.get('/clients?limit=1000'),
+        api.get('/items?limit=1000'),
+        api.get('/settings')
+      ]);
       setClients(cr.data.data || []);
       setItemsList(ir.data.data || []);
+      
+      // If creating a NEW invoice, pre-fill bank details from settings
+      if (!id && sr.data?.bankDetails) {
+        setFormData(prev => ({
+          ...prev,
+          bankDetails: {
+            accountName: sr.data.bankDetails.accountName || '',
+            bankName: sr.data.bankDetails.bankName || '',
+            accountNumber: sr.data.bankDetails.accountNumber || '',
+            branch: sr.data.bankDetails.branch || '',
+            ifscCode: sr.data.bankDetails.ifscCode || '',
+          }
+        }));
+      }
     } catch (e) { console.error(e); }
   };
 
@@ -878,6 +896,48 @@ const InvoiceForm = () => {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Bank Details ── */}
+        <div className="mt-8 border-t border-gray-100 pt-6">
+          <label className="block text-xs font-bold text-gray-600 mb-4 uppercase tracking-wider">Bank Details</label>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase">Account Holder Name</label>
+              <input type="text" className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
+                placeholder="Account Holder Name"
+                value={formData.bankDetails?.accountName} 
+                onChange={(e) => setFormData({ ...formData, bankDetails: { ...formData.bankDetails, accountName: e.target.value } })} />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase">Bank Name</label>
+              <input type="text" className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
+                placeholder="Bank Name"
+                value={formData.bankDetails?.bankName} 
+                onChange={(e) => setFormData({ ...formData, bankDetails: { ...formData.bankDetails, bankName: e.target.value } })} />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase">Account Number</label>
+              <input type="text" className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
+                placeholder="Account Number"
+                value={formData.bankDetails?.accountNumber} 
+                onChange={(e) => setFormData({ ...formData, bankDetails: { ...formData.bankDetails, accountNumber: e.target.value } })} />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase">Branch Name</label>
+              <input type="text" className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
+                placeholder="Branch Name"
+                value={formData.bankDetails?.branch} 
+                onChange={(e) => setFormData({ ...formData, bankDetails: { ...formData.bankDetails, branch: e.target.value } })} />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase">IFSC Code</label>
+              <input type="text" className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
+                placeholder="IFSC Code"
+                value={formData.bankDetails?.ifscCode} 
+                onChange={(e) => setFormData({ ...formData, bankDetails: { ...formData.bankDetails, ifscCode: e.target.value } })} />
             </div>
           </div>
         </div>
