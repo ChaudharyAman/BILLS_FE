@@ -399,7 +399,17 @@ const InvoiceForm = () => {
           <div className="col-span-8 grid grid-cols-3 gap-x-4 gap-y-3">
             <div>
               <label className={lbl}>Invoice No.</label>
-              <input className={`${inp} bg-gray-50 text-gray-400`} value={formData.invoiceNo} disabled />
+              <input 
+                className={inp} 
+                value={formData.invoiceNo} 
+                onChange={(e) => setFormData({ ...formData, invoiceNo: e.target.value })}
+                onFocus={(e) => {
+                  if (e.target.value === 'Auto-generated') {
+                    setFormData({ ...formData, invoiceNo: '' });
+                  }
+                }}
+                placeholder="Auto-generated"
+              />
             </div>
             <div>
               <label className={lbl}>Invoice Date</label>
