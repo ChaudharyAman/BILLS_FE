@@ -292,46 +292,46 @@ const InvoicePrint = () => {
               const rowBg   = i % 2 === 0 ? '#fff' : '#f8f8f8';
               return (
                 <tr key={i} style={{ background: rowBg }}>
-                  <td style={TD('center')}>{i + 1}</td>
+                  <td style={{ ...TD('center'), fontWeight:700 }}>{i + 1}</td>
                   <td style={TD('left', true)}>
-                    <div style={{ fontWeight:400, color: TEAL }}>{item.name}</div>
+                    <div style={{ fontWeight:700, color: TEAL }}>{item.name}</div>
                     {item.description && (
                       <div style={{ color: MUTED, fontSize:10, marginTop:1, whiteSpace:'pre-wrap' }}>{item.description}</div>
                     )}
                   </td>
-                  <td style={TD('center')}>{item.hsnCode || ''}</td>
+                  <td style={{ ...TD('center'), fontWeight:700 }}>{item.hsnCode || ''}</td>
                   <td style={TD('center')}>
                     {qty}
                     {item.unit && <><br/><span style={{ fontSize:9, color: MUTED }}>{item.unit}</span></>}
                   </td>
-                  <td style={TD('right')}>{fmt(rate)}</td>
+                  <td style={{ ...TD('right'), fontWeight:700 }}>{fmt(rate)}</td>
                   {hasDiscount && <td style={TD('right')}>{discPct > 0 ? `${discPct}%` : ''}</td>}
-                  {hasTax && <td style={TD('right')}>{fmt(taxable)}</td>}
+                  {hasTax && <td style={{ ...TD('right'), fontWeight:700 }}>{fmt(taxable)}</td>}
                   {hasTax && isIntra && (
-                    <td style={TD('right')}>
+                    <td style={{ ...TD('right'), fontWeight:700 }}>
                       {fmt(cgstAmt)}
-                      {cgstR > 0 && <><br/><span style={{ fontSize:9, color: MUTED }}>{cgstR}%</span></>}
+                      {cgstR > 0 && <><br/><span style={{ fontSize:9, color: MUTED, fontWeight:400 }}>{cgstR}%</span></>}
                     </td>
                   )}
                   {hasTax && isIntra && (
-                    <td style={TD('right')}>
+                    <td style={{ ...TD('right'), fontWeight:700 }}>
                       {fmt(sgstAmt)}
-                      {cgstR > 0 && <><br/><span style={{ fontSize:9, color: MUTED }}>{cgstR}%</span></>}
+                      {cgstR > 0 && <><br/><span style={{ fontSize:9, color: MUTED, fontWeight:400 }}>{cgstR}%</span></>}
                     </td>
                   )}
                   {hasTax && !isIntra && (
-                    <td style={TD('right')}>
+                    <td style={{ ...TD('right'), fontWeight:700 }}>
                       {fmt(igstAmt)}
-                      {item.taxRate > 0 && <><br/><span style={{ fontSize:9, color: MUTED }}>{item.taxRate}%</span></>}
+                      {item.taxRate > 0 && <><br/><span style={{ fontSize:9, color: MUTOM, fontWeight:400 }}>{item.taxRate}%</span></>}
                     </td>
                   )}
                   {hasExcise && (
-                    <td style={TD('right')}>
+                    <td style={{ ...TD('right'), fontWeight:700 }}>
                       {fmt(item.exciseAmount)}<br/>
-                      <span style={{ fontSize:9, color: MUTED }}>BED {item.bedPercent}%</span>
+                      <span style={{ fontSize:9, color: MUTED, fontWeight:400 }}>BED {item.bedPercent}%</span>
                     </td>
                   )}
-                  <td style={{ ...TD('right'), fontWeight:400 }}>{fmt(item.amount)}</td>
+                  <td style={{ ...TD('right'), fontWeight:700 }}>{fmt(item.amount)}</td>
                 </tr>
               );
             })}
