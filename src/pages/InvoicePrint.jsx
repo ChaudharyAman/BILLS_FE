@@ -62,11 +62,11 @@ function TD(align, noWrap = false) {
   };
 }
 
-const SummaryRow = ({ label, value, green, red, isBoldValue }) => (
+const SummaryRow = ({ label, value, green, red, isBoldValue, vWidth = '220px' }) => (
   <div style={{ display:'flex', justifyContent:'flex-end', padding:'2px 0', gap:30,
     color: green ? '#059669' : red ? '#dc2626' : DARK, fontSize: 11 }}>
-    <span style={{ whiteSpace:'nowrap', color: green ? '#059669' : red ? '#dc2626' : DARK, textAlign: 'right', fontWeight: 700 }}>{label}</span>
-    <span style={{ textAlign:'right', width: '130px', fontWeight: isBoldValue ? 700 : 400 }}>{value}</span>
+    <span style={{ width: '150px', whiteSpace:'nowrap', color: green ? '#059669' : red ? '#dc2626' : DARK, textAlign: 'right', fontWeight: 700 }}>{label}</span>
+    <span style={{ textAlign:'right', width: vWidth, fontWeight: isBoldValue ? 700 : 400 }}>{value}</span>
   </div>
 );
 
@@ -381,7 +381,7 @@ const InvoicePrint = () => {
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginTop:4 }}>
 
           {/* LEFT: Bank Details — read from invoice.bankDetails (fix #3) */}
-          <div style={{ width:'44%', fontSize:11, lineHeight:1.8, color: TEXT }}>
+          <div style={{ width:'44%', fontSize:11, lineHeight:1.8, color: DARK }}>
             {bank.accountName   && <div><b>Account Holder Name:</b> {bank.accountName.toUpperCase()}</div>}
             {bank.bankName      && <div><b>Bank Name:</b> {bank.bankName.toUpperCase()}</div>}
             {bank.accountNumber && <div><b>Account Number:</b> {bank.accountNumber}</div>}
@@ -413,16 +413,16 @@ const InvoicePrint = () => {
                 isBoldValue
               />
             )}
-            <SummaryRow label="Total Value (in figure)"  value={`₹ ${Math.round(grandTotal).toLocaleString('en-IN')}`} isBoldValue />
-            {advancePaid > 0 && <SummaryRow label="Advance Paid"  value={`(-) ₹ ${fmt(advancePaid)}`} green isBoldValue />}
-            {advancePaid > 0 && <SummaryRow label="Balance Due"   value={`₹ ${fmt(balanceDue)}`}    red isBoldValue />}
+            <SummaryRow label="Total Value (in figure)"  value={`₹ ${Math.round(grandTotal).toLocaleString('en-IN')}`} isBoldValue vWidth="220px" />
+            {advancePaid > 0 && <SummaryRow label="Advance Paid"  value={`(-) ₹ ${fmt(advancePaid)}`} green isBoldValue vWidth="220px" />}
+            {advancePaid > 0 && <SummaryRow label="Balance Due"   value={`₹ ${fmt(balanceDue)}`}    red isBoldValue vWidth="220px" />}
             
-            <div style={{ display:'flex', justifyContent:'flex-end', padding:'4px 0', gap:30, color: DARK, fontSize: 11 }}>
-              <span style={{ whiteSpace:'nowrap', color: DARK, textAlign: 'right', fontWeight: 700 }}>Total Value (in words)</span>
-              <div style={{ textAlign:'right', width: '220px', fontWeight: 700 }}>
-                ₹ {numberToWords(Math.round(grandTotal))}
-              </div>
-            </div>
+            <SummaryRow 
+              label="Total Value (in words)" 
+              value={`₹ ${numberToWords(Math.round(grandTotal))}`} 
+              isBoldValue 
+              vWidth="220px" 
+            />
             
             {/* Signature Area */}
             <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'center' }}>
