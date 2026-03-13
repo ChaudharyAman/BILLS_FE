@@ -40,7 +40,7 @@ function TH(align, width) {
     padding: '7px 8px',
     background: TEAL,
     color: '#fff',
-    fontWeight: 700,
+    fontWeight: 400,
     fontSize: 11,
     textAlign: align,
     width: width || undefined,
@@ -62,10 +62,10 @@ function TD(align, noWrap = false) {
 }
 
 const SummaryRow = ({ label, value, green, red }) => (
-  <div style={{ display:'flex', justifyContent:'space-between', padding:'3px 0', gap:12,
-    color: green ? '#059669' : red ? '#dc2626' : TEXT }}>
-    <b style={{ whiteSpace:'nowrap', color: green ? '#059669' : red ? '#dc2626' : TEXT }}>{label}</b>
-    <span style={{ textAlign:'right' }}>{value}</span>
+  <div style={{ display:'flex', justifyContent:'flex-end', padding:'3px 0', gap:12,
+    color: green ? '#059669' : red ? '#dc2626' : TEXT, fontSize: 11 }}>
+    <span style={{ whiteSpace:'nowrap', color: green ? '#059669' : red ? '#dc2626' : TEXT, textAlign: 'right' }}>{label}</span>
+    <span style={{ textAlign:'right', width: '100px', fontWeight: 400 }}>{value}</span>
   </div>
 );
 
@@ -138,6 +138,8 @@ const InvoicePrint = () => {
   const companyAddr = addrStr(company.address);
   const clientAddr  = addrStr(client.address);
   const shipAddr    = invoice.shippingAddress?.line1 ? addrStr(invoice.shippingAddress) : (client.shippingAddress?.line1 ? addrStr(client.shippingAddress) : clientAddr);
+  const user = invoice?.user || null;
+  const isPro = user?.planType === 'PRO';
 
   // ── Render ───────────────────────────────────────────────────────
   return (
@@ -151,7 +153,7 @@ const InvoicePrint = () => {
           <FaArrowLeft size={13}/> Back
         </button>
         <button onClick={() => window.print()}
-          style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 20px', background:TEAL, color:'#fff', border:'none', borderRadius:6, cursor:'pointer', fontSize:13, fontWeight:700 }}>
+          style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 20px', background:TEAL, color:'#fff', border:'none', borderRadius:6, cursor:'pointer', fontSize:13, fontWeight:400 }}>
           <FaPrint size={13}/> Print / Download
         </button>
       </div>
@@ -165,15 +167,15 @@ const InvoicePrint = () => {
       }}>
 
         {/* ── ROW 1: Logo+Company (left) | Invoice Title (right) ── */}
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 20 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 8 }}>
 
           {/* LEFT: logo + company details */}
-          <div style={{ width: '50%' }}>
+          <div style={{ width: '50%', paddingTop: 50 }}>
             {(company.logoUrl || company.logo) && (
               <img src={company.logoUrl || company.logo} alt="logo"
                 style={{ maxHeight:55, maxWidth:180, objectFit:'contain', marginBottom:10, display:'block' }}/>
             )}
-            <div style={{ fontWeight:700, fontSize:14, color: TEAL, marginBottom:4 }}>
+            <div style={{ fontWeight:700, fontSize:15, color: TEAL, marginBottom:6 }}>
               {company.companyName}
             </div>
             <div style={{ fontSize:11, color: TEXT, lineHeight:1.4 }}>
@@ -191,51 +193,37 @@ const InvoicePrint = () => {
           </div>
 
           {/* RIGHT: TAX INVOICE + #no + Amount bar + meta */}
-          <div style={{ width: '48%' }}>
+          <div style={{ width: '48%', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
             {/* Original for recipient */}
             <div style={{ textAlign:'right', fontSize:11, color: MUTED, marginBottom:4, fontStyle:'italic' }}>
               Original for recipient
             </div>
 
             {/* TAX INVOICE   #58 */}
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:8 }}>
-              <div style={{ fontSize:22, fontWeight:800, color: TEAL, letterSpacing:'-0.5px' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:8, width: '100%' }}>
+              <div style={{ fontSize:22, fontWeight:700, color: TEAL, letterSpacing:'-0.5px' }}>
                 {invType.toUpperCase()}
               </div>
-              <div style={{ fontSize:22, fontWeight:800, color: TEAL }}>
+              <div style={{ fontSize:22, fontWeight:700, color: TEAL }}>
                 #{invoice.invoiceNo?.replace(/^INV-/,'') || invoice.invoiceNo}
               </div>
             </div>
 
-            {/* Status Stamp */}
-            <div style={{ display:'flex', justifyContent:'flex-end', marginBottom: 12 }}>
-              <div style={{
-                padding: '4px 10px',
-                borderRadius: '4px',
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: '1px',
-                textTransform: 'uppercase',
-                border: `1px solid ${balanceDue <= 0 ? '#10b981' : (invoice.status === 'DRAFT' ? '#9ca3af' : '#3b82f6')}`,
-                color: balanceDue <= 0 ? '#059669' : (invoice.status === 'DRAFT' ? '#6b7280' : '#2563eb'),
-                background: balanceDue <= 0 ? '#ecfdf5' : (invoice.status === 'DRAFT' ? '#f3f4f6' : '#eff6ff')
-              }}>
-                {balanceDue <= 0 ? 'PAID' : (invoice.status || 'SENT')}
-              </div>
-            </div>
+
 
             {/* Amount Due bar */}
             <div style={{
               background: TEAL, color:'#fff',
               display:'flex', justifyContent:'space-between', alignItems:'center',
-              padding:'6px 12px', fontWeight:700, fontSize:13, marginBottom:16,
+              padding:'6px 12px', fontWeight:400, fontSize:13, marginBottom:16,
+              width: '100%'
             }}>
               <span>Amount Due:</span>
               <span>₹ {fmt(advancePaid > 0 ? balanceDue : grandTotal)}</span>
             </div>
 
             {/* Meta: right-label + right-value grid */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr auto', rowGap:4, fontSize:11 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr auto', rowGap:3, fontSize:11, width: '220px' }}>
               {[
                 ['Issue Date:',       fmtDate(invoice.date)],
                 ['Due Date:',         fmtDate(invoice.dueDate)],
@@ -245,7 +233,7 @@ const InvoicePrint = () => {
                 invoice.paymentMode         ? ['Payment Mode:',    invoice.paymentMode]         : null,
               ].filter(Boolean).map(([lbl, val]) => (
                 <React.Fragment key={lbl}>
-                  <div style={{ textAlign:'right', color: MUTED, paddingRight:12 }}>{lbl}</div>
+                  <div style={{ textAlign:'right', color: MUTED, paddingRight:8, whiteSpace: 'nowrap' }}>{lbl}</div>
                   <div style={{ textAlign:'right', color: TEXT }}>{val}</div>
                 </React.Fragment>
               ))}
@@ -254,14 +242,14 @@ const InvoicePrint = () => {
         </div>
 
         {/* ── ROW 2: Bill To | Ship To ── */}
-        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:20 }}>
+        <div style={{ display:'flex', gap: 60, marginBottom: 12 }}>
           <div style={{ width:'48%' }}>
             <div style={{ fontSize:11, fontWeight:700, color: TEXT, marginBottom:2 }}>Bill To</div>
             <div style={{ fontSize:13, fontWeight:700, color: TEAL, marginBottom:2 }}>{client.name}</div>
             <div style={{ fontSize:11, color: TEXT, lineHeight:1.4 }}>
               {clientAddr && <div>{clientAddr}</div>}
               {client.gstin && <div><b>GSTIN:</b> {client.gstin}</div>}
-              {client.phone && <div>Ph: {client.phone}</div>}
+              {client.phone && <div><b>Ph:</b> {client.phone}</div>}
               {client.email && <div>{client.email}</div>}
             </div>
           </div>
@@ -306,7 +294,7 @@ const InvoicePrint = () => {
                 <tr key={i} style={{ background: rowBg }}>
                   <td style={TD('center')}>{i + 1}</td>
                   <td style={TD('left', true)}>
-                    <div style={{ fontWeight:700, color: TEAL }}>{item.name}</div>
+                    <div style={{ fontWeight:400, color: TEAL }}>{item.name}</div>
                     {item.description && (
                       <div style={{ color: MUTED, fontSize:10, marginTop:1, whiteSpace:'pre-wrap' }}>{item.description}</div>
                     )}
@@ -343,7 +331,7 @@ const InvoicePrint = () => {
                       <span style={{ fontSize:9, color: MUTED }}>BED {item.bedPercent}%</span>
                     </td>
                   )}
-                  <td style={{ ...TD('right'), fontWeight:700 }}>{fmt(item.amount)}</td>
+                  <td style={{ ...TD('right'), fontWeight:400 }}>{fmt(item.amount)}</td>
                 </tr>
               );
             })}
@@ -352,35 +340,35 @@ const InvoicePrint = () => {
           {/* ── Total footer row ── */}
           <tfoot>
             <tr style={{ background:'#eef5f8' }}>
-              <td colSpan={5 + (hasDiscount ? 1 : 0)} style={{ padding:'7px 8px', textAlign:'right', fontWeight:700, fontSize:11, color: TEXT, borderTop:`2px solid ${TEAL}` }}>
+              <td colSpan={5 + (hasDiscount ? 1 : 0)} style={{ padding:'7px 8px', textAlign:'right', fontWeight:400, fontSize:11, color: TEXT, borderTop:`2px solid ${TEAL}` }}>
                 Total {taxRate > 0 ? `@${taxRate}%` : ''}
               </td>
               {hasTax && (
-                <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:700, borderTop:`2px solid ${TEAL}` }}>
+                <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                   {fmt(invoice.subTotal)}
                 </td>
               )}
               {hasTax && isIntra && (
                 <>
-                  <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:700, borderTop:`2px solid ${TEAL}` }}>
+                  <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                     {fmt(invoice.totalCGST)}
                   </td>
-                  <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:700, borderTop:`2px solid ${TEAL}` }}>
+                  <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                     {fmt(invoice.totalSGST)}
                   </td>
                 </>
               )}
               {hasTax && !isIntra && (
-                <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:700, borderTop:`2px solid ${TEAL}` }}>
+                <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                   {fmt(invoice.totalIGST)}
                 </td>
               )}
               {hasExcise && (
-                <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:700, borderTop:`2px solid ${TEAL}` }}>
+                <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                   {fmt(invoice.exciseDuty?.totalExcise)}
                 </td>
               )}
-              <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:700, borderTop:`2px solid ${TEAL}` }}>
+              <td style={{ padding:'7px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                 {fmt(invoice.grandTotal)}
               </td>
             </tr>
@@ -395,20 +383,20 @@ const InvoicePrint = () => {
 
           {/* LEFT: Bank Details — read from invoice.bankDetails (fix #3) */}
           <div style={{ width:'44%', fontSize:11, lineHeight:1.8, color: TEXT }}>
-            {bank.accountName   && <div><b>Account Holder Name:</b> {bank.accountName.toUpperCase()}</div>}
-            {bank.bankName      && <div><b>Bank Name:</b> {bank.bankName.toUpperCase()}</div>}
-            {bank.accountNumber && <div><b>Account Number:</b> {bank.accountNumber}</div>}
-            {bank.branch        && <div><b>Branch Name:</b> {bank.branch.toUpperCase()}</div>}
-            {bank.ifscCode      && <div><b>IFSC Code:</b> {bank.ifscCode}</div>}
+            {bank.accountName   && <div>Account Holder Name: {bank.accountName.toUpperCase()}</div>}
+            {bank.bankName      && <div>Bank Name: {bank.bankName.toUpperCase()}</div>}
+            {bank.accountNumber && <div>Account Number: {bank.accountNumber}</div>}
+            {bank.branch        && <div>Branch Name: {bank.branch.toUpperCase()}</div>}
+            {bank.ifscCode      && <div>IFSC Code: {bank.ifscCode}</div>}
             {invoice.terms && (
               <div style={{ marginTop:10, fontSize:10, color: MUTED }}>
-                <b style={{ color: TEXT }}>Terms &amp; Conditions:</b><br/>
+                <span style={{ color: TEXT }}>Terms &amp; Conditions:</span><br/>
                 <span style={{ whiteSpace:'pre-wrap' }}>{invoice.terms}</span>
               </div>
             )}
             {invoice.notes && (
               <div style={{ marginTop:6, fontSize:10, color: MUTED }}>
-                <b style={{ color: TEXT }}>Notes:</b><br/>{invoice.notes}
+                <span style={{ color: TEXT }}>Notes:</span><br/>{invoice.notes}
               </div>
             )}
           </div>
@@ -440,10 +428,21 @@ const InvoicePrint = () => {
                 )}
               </div>
               
-              <div style={{ marginTop: 8, fontSize: 11, fontWeight: 600, color: MUTED, borderTop: `1px solid ${MUTED}`, paddingTop: 4, width: 180 }}>
+              <div style={{ marginTop: 8, fontSize: 11, fontWeight: 400, color: MUTED, borderTop: `1px solid ${MUTED}`, paddingTop: 4, width: 180 }}>
                 Authorized Signatory
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* ── Footer ── */}
+        <div style={{ marginTop: '20px', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div style={{ width: '250px' }}>
+            {!isPro && (
+              <div style={{ fontSize: 9, fontStyle: 'italic', color: '#888' }}>
+                Tax Invoice made with <span style={{ color: TEAL, fontWeight: 400 }}>MyBill</span>.
+              </div>
+            )}
           </div>
         </div>
 
