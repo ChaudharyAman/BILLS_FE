@@ -137,7 +137,7 @@ const InvoicePrint = () => {
 
   const companyAddr = addrStr(company.address);
   const clientAddr  = addrStr(client.address);
-  const shipAddr    = invoice.shippingAddress?.line1 ? addrStr(invoice.shippingAddress) : clientAddr;
+  const shipAddr    = invoice.shippingAddress?.line1 ? addrStr(invoice.shippingAddress) : (client.shippingAddress?.line1 ? addrStr(client.shippingAddress) : clientAddr);
 
   // ── Render ───────────────────────────────────────────────────────
   return (

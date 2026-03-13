@@ -85,7 +85,14 @@ const InvoiceForm = () => {
     notes: '',
     terms: '',
     transport: { mode: 'Road', vehicleNumber: '', eWayBillNo: '' },
-    shippingAddress: { line1: '', city: '', state: '', zip: '' },
+    shippingAddress: { line1: '', line2: '', city: '', state: '', zip: '', country: 'India' },
+    bankDetails: {
+      accountName: '',
+      bankName: '',
+      accountNumber: '',
+      branch: '',
+      ifscCode: '',
+    },
     exciseDuty: {
       bedPercent: 0, sedPercent: 0, cessPercent: 0,
       manufacturerName: '', manufacturerAddress: '', rangeCode: '',
@@ -134,19 +141,73 @@ const InvoiceForm = () => {
       const res = await api.get(`/invoices/${invoiceId}`);
       const inv = res.data;
       const fmt = (d) => d ? new Date(d).toISOString().split('T')[0] : '';
+      
       setFormData({
         ...inv,
-        clientRef: inv.client?.clientRef || inv.clientRef,
+        invoiceType: inv.invoiceType || 'Tax Invoice',
+        clientRef: inv.client?.clientRef || inv.clientRef || '',
+        invoiceNo: inv.invoiceNo || 'Auto-generated',
+        poNumber: inv.poNumber || '',
         date: fmt(inv.date),
+        poDate: fmt(inv.poDate),
         dueDate: fmt(inv.dueDate),
-        poDate: fmt(inv.poDate || inv.transport?.poDate),
-        poNumber: inv.poNumber || inv.transport?.poNumber || '',
+        paymentMode: inv.paymentMode || '',
+        paymentTerms: inv.paymentTerms || 'On Receipt',
         status: inv.status || 'DRAFT',
-        transport: inv.transport || { mode: 'Road' },
-        shippingAddress: inv.shippingAddress || {},
-        exciseDuty: inv.exciseDuty || { bedPercent: 0, sedPercent: 0, cessPercent: 0 },
-        items: (inv.items || []).map(i => ({ ...emptyItem(), ...i })),
+        placeOfSupply: inv.placeOfSupply || '',
+        reverseCharge: !!inv.reverseCharge,
+        shippingCharges: inv.shippingCharges || 0,
+        packagingCharges: inv.packagingCharges || 0,
+        customChargeLabel: inv.customChargeLabel || 'Custom Amount',
+        discountTotal: inv.discountTotal || 0,
+        advancePaid: inv.advancePaid || 0,
+        notes: inv.notes || '',
+        terms: inv.terms || '',
+        transport: {
+          mode: inv.transport?.mode || 'Road',
+          vehicleNumber: inv.transport?.vehicleNumber || '',
+          eWayBillNo: inv.transport?.eWayBillNo || '',
+        },
+        shippingAddress: {
+          line1: inv.shippingAddress?.line1 || '',
+          line2: inv.shippingAddress?.line2 || '',
+          city: inv.shippingAddress?.city || '',
+          state: inv.shippingAddress?.state || '',
+          zip: inv.shippingAddress?.zip || '',
+          country: inv.shippingAddress?.country || 'India',
+        },
+        bankDetails: {
+          accountName: inv.bankDetails?.accountName || '',
+          bankName: inv.bankDetails?.bankName || '',
+          accountNumber: inv.bankDetails?.accountNumber || '',
+          branch: inv.bankDetails?.branch || '',
+          ifscCode: inv.bankDetails?.ifscCode || '',
+        },
+        exciseDuty: {
+          bedPercent: inv.exciseDuty?.bedPercent || 0,
+          sedPercent: inv.exciseDuty?.sedPercent || 0,
+          cessPercent: inv.exciseDuty?.cessPercent || 0,
+          manufacturerName: inv.exciseDuty?.manufacturerName || '',
+          manufacturerAddress: inv.exciseDuty?.manufacturerAddress || '',
+          rangeCode: inv.exciseDuty?.rangeCode || '',
+        },
+        items: (inv.items || []).map(i => ({ 
+          ...emptyItem(), 
+          ...i,
+          name: i.name || '',
+          description: i.description || '',
+          hsnCode: i.hsnCode || '',
+          unit: i.unit || 'pcs',
+          qty: i.qty || 0,
+          rate: i.rate || 0,
+          discount: i.discount || 0,
+          taxRate: i.taxRate || 0,
+          bedPercent: i.bedPercent || 0,
+          sedPercent: i.sedPercent || 0,
+          cessPercent: i.cessPercent || 0,
+        })),
       });
+
       if (inv.shippingCharges > 0) setShowShipping(true);
       if (inv.packagingCharges > 0) setShowCustomAmount(true);
       if (inv.discountTotal > 0) setShowDiscountTotal(true);

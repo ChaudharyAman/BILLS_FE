@@ -447,7 +447,24 @@ const ClientForm = ({ onSuccess, onCancel }) => {
                                 ) : (
                                     <div className="animate-fadeIn">
                                         <div className="flex justify-between items-center mb-4">
-                                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Shipping Address</h3>
+                                            <div className="flex items-center gap-4">
+                                                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Shipping Address</h3>
+                                                <label className="flex items-center gap-2 cursor-pointer bg-teal-50 px-2 py-1 rounded-md border border-teal-100">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="w-3.5 h-3.5 accent-teal-600"
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setFormData(prev => ({
+                                                                    ...prev,
+                                                                    shippingAddress: { ...prev.billingAddress }
+                                                                }));
+                                                            }
+                                                        }} 
+                                                    />
+                                                    <span className="text-[10px] font-bold text-teal-700 uppercase">Same as Billing Address</span>
+                                                </label>
+                                            </div>
                                             <button type="button" onClick={() => setShowShipping(false)} className="text-xs text-red-500 hover:text-red-700">Remove</button>
                                         </div>
                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
