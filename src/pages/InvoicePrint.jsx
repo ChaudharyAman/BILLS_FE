@@ -141,10 +141,10 @@ const InvoicePrint = () => {
 
   // ── Render ───────────────────────────────────────────────────────
   return (
-    <div style={{ background: '#eee', minHeight: '100vh', padding: '20px 0', fontFamily: 'Arial, Helvetica, sans-serif' }}>
+    <div style={{ background: '#fff', minHeight: '100vh', padding: '0', fontFamily: 'Arial, Helvetica, sans-serif' }}>
 
       {/* Screen toolbar */}
-      <div style={{ maxWidth: 860, margin: '0 auto 12px', display: 'flex', justifyContent: 'space-between' }}
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '20px 0 12px', display: 'flex', justifyContent: 'space-between' }}
         className="print:hidden">
         <button onClick={() => navigate('/invoices')}
           style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', border:`1px solid ${BORDER}`, borderRadius:6, background:'#fff', cursor:'pointer', fontSize:13, color:'#333' }}>
@@ -159,7 +159,6 @@ const InvoicePrint = () => {
       {/* ══════════════ A4 WHITE SHEET ══════════════ */}
       <div id="invoice-print" style={{
         maxWidth: 860, margin: '0 auto', background: '#fff',
-        boxShadow: '0 2px 20px rgba(0,0,0,0.12)',
         padding: '32px 36px 36px',
         fontFamily: 'Arial, Helvetica, sans-serif',
         fontSize: 12, color: TEXT,
