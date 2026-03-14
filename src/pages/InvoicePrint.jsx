@@ -448,11 +448,6 @@ const InvoicePrint = () => {
         {/* ── Footer ── */}
         <div style={{ marginTop: '20px', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <div style={{ width: '250px' }}>
-            {!isPro && (
-              <div style={{ fontSize: 9, fontStyle: 'italic', color: '#888' }}>
-                Tax Invoice made with <span style={{ color: TEAL, fontWeight: 400 }}>MyBill</span>.
-              </div>
-            )}
           </div>
         </div>
 
