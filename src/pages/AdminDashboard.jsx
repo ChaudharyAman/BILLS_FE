@@ -49,12 +49,20 @@ const AdminDashboard = () => {
   const handleUpdatePlan = async () => {
     try {
       setIsUpdating(true);
-      await api.patch(`/admin/users/${selectedUser._id}/plan`, planForm);
+      // If plan is free, we don't need an end date
+      const payload = { ...planForm };
+      if (payload.plan === 'free') {
+        payload.endDate = '';
+      }
+      
+      await api.patch(`/admin/users/${selectedUser._id}/plan`, payload);
       toast.success('Subscription updated successfully');
       setIsModalOpen(false);
       fetchUsers(); // Refresh list
     } catch (err) {
-      toast.error('Failed to update subscription');
+      console.error('Update failed:', err);
+      const msg = err.response?.data?.message || 'Failed to update subscription';
+      toast.error(msg);
     } finally {
       setIsUpdating(false);
     }
