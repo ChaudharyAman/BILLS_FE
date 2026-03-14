@@ -11,6 +11,17 @@ const api = axios.create({
 // Add a request interceptor (keeping it around in case other headers are needed later, but removing token logic)
 api.interceptors.request.use(
   (config) => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const userObj = JSON.parse(userStr);
+        if (userObj.token) {
+          config.headers.Authorization = `Bearer ${userObj.token}`;
+        }
+      }
+    } catch (e) {
+      console.warn("Axios interceptor: could not parse user from storage", e);
+    }
     return config;
   },
   (error) => {

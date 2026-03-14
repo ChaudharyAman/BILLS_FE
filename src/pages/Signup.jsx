@@ -38,10 +38,8 @@ const Signup = () => {
         password: formData.password
       });
 
-      // token is now set via HttpOnly cookie by the server
-      
-      // wrap it in { user: ... } so Layout.jsx parses it correctly
-      localStorage.setItem('user', JSON.stringify({ user: response.data.user }));
+      // store the whole response data (user + token)
+      localStorage.setItem('user', JSON.stringify(response.data));
       
       navigate('/invoices');
     } catch (err) {

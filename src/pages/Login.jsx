@@ -24,8 +24,8 @@ const Login = () => {
 
     try {
       const response = await api.post('/auth/login', formData);
-      // wrap it in { user: ... } so Layout.jsx parses it correctly
-      localStorage.setItem('user', JSON.stringify({ user: response.data.user }));
+      // store the whole response data (user + token)
+      localStorage.setItem('user', JSON.stringify(response.data));
       navigate('/invoices');
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid credentials');
