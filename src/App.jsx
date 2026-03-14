@@ -28,6 +28,7 @@ const ExpenseList = lazy(() => import('./pages/ExpenseList'));
 const ExpenseForm = lazy(() => import('./pages/ExpenseForm'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Subscription = lazy(() => import('./pages/Subscription'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
 // Reports
 const GstReport = lazy(() => import('./pages/reports/GstReport'));
@@ -36,6 +37,8 @@ const RevenueReport = lazy(() => import('./pages/reports/RevenueReport'));
 // Accounts
 const PaymentCollection = lazy(() => import('./pages/accounts/PaymentCollection'));
 const AccountStatement = lazy(() => import('./pages/accounts/AccountStatement'));
+
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   
@@ -68,18 +71,23 @@ function App() {
         if (!userObj || !userObj.user) return;
         
         const res = await api.get('/subscriptions/status');
-        const dbSub = res.data;
+        const { subscription: dbSub, role: dbRole } = res.data;
         
-        // If the database has a newer or different subscription state, sync it into localStorage
+        // If the database has a newer state, sync it into localStorage
         const localSub = userObj.user.subscription;
-        if (
-          dbSub && (
-            localSub?.plan !== dbSub.plan ||
-            localSub?.status !== dbSub.status ||
-            localSub?.billingCycle !== dbSub.billingCycle
-          )
-        ) {
-          userObj.user.subscription = dbSub;
+        const localRole = userObj.user.role;
+
+        const hasSubChanged = dbSub && (
+          localSub?.plan !== dbSub.plan ||
+          localSub?.status !== dbSub.status ||
+          localSub?.billingCycle !== dbSub.billingCycle
+        );
+        const hasRoleChanged = dbRole && localRole !== dbRole;
+
+        if (hasSubChanged || hasRoleChanged) {
+          if (dbSub) userObj.user.subscription = dbSub;
+          if (dbRole) userObj.user.role = dbRole;
+          
           localStorage.setItem('user', JSON.stringify(userObj));
           // Dispatch a custom event so other components (like Sidebars/QuotaUI) can re-render immediately if needed
           window.dispatchEvent(new Event('auth-sync'));
@@ -97,6 +105,7 @@ function App() {
     <Router>
       <div className="min-h-screen bg-gray-100 font-sans text-gray-900">
         <Suspense fallback={<PageLoader />}>
+          <Toaster position="top-right" />
           <Routes>
             {/* Auth Routes - No Layout */}
             <Route path="/login" element={<Login />} />
@@ -162,6 +171,7 @@ function App() {
 
                   <Route path="/subscription" element={<Subscription />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/admin" element={<AdminDashboard />} />
                 </Routes>
               </Layout>
             </PrivateRoute>

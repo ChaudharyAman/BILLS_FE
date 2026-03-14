@@ -60,10 +60,12 @@ const Layout = ({ children }) => {
 
   // Check user subscription tier — re-evaluated whenever syncTick changes
   let isPro = false;
+  let isSuperAdmin = false;
   try {
     const userStr = localStorage.getItem('user');
     const userObj = userStr ? JSON.parse(userStr).user : null;
     isPro = userObj?.subscription?.plan === 'pro';
+    isSuperAdmin = userObj?.role === 'superadmin';
   } catch (e) {
     console.error('Failed to parse user from localStorage', e);
   }
@@ -258,6 +260,13 @@ const Layout = ({ children }) => {
           <Link to="/settings" className={linkCls('/settings')}>
             <FaCog size={ICON_SIZE} /> Settings
           </Link>
+
+          {/* Admin Dashboard */}
+          {isSuperAdmin && (
+            <Link to="/admin" className={linkCls('/admin')}>
+              <FaLock size={ICON_SIZE} className="text-red-400" /> Admin Panel
+            </Link>
+          )}
         </nav>
 
         {/* Logout */}

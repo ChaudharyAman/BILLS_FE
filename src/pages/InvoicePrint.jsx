@@ -168,7 +168,7 @@ const InvoicePrint = () => {
       }}>
 
         {/* ── ROW 1: Logo+Company (left) | Invoice Title (right) ── */}
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 8 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 28 }}>
 
           {/* LEFT: logo + company details */}
           <div style={{ width: '50%', paddingTop: 18 }}>
@@ -243,7 +243,7 @@ const InvoicePrint = () => {
         {/* ── ROW 2: Bill To | Ship To ── */}
         <div style={{ display:'flex', gap: 60, marginBottom: 12 }}>
           <div style={{ width:'48%' }}>
-            <div style={{ fontSize:11, fontWeight:700, color: DARK, marginBottom:0 }}>Bill To</div>
+            <div style={{ fontSize:11, fontWeight:700, color: DARK, marginBottom: 8 }}>Bill To</div>
             <div style={{ fontSize:13, fontWeight:700, color: DARK, marginBottom:2 }}>{client.name}</div>
             <div style={{ fontSize:11, color: TEXT, lineHeight:1.4 }}>
               {clientAddr && <div>{clientAddr}</div>}
@@ -253,7 +253,7 @@ const InvoicePrint = () => {
             </div>
           </div>
           <div style={{ width:'48%' }}>
-            <div style={{ fontSize:11, fontWeight:700, color: DARK, marginBottom:0 }}>Ship To</div>
+            <div style={{ fontSize:11, fontWeight:700, color: DARK, marginBottom: 8 }}>Ship To</div>
             <div style={{ fontSize:11, color: TEXT, lineHeight:1.4 }}>
               {shipAddr || 'Same as billing address'}
             </div>
