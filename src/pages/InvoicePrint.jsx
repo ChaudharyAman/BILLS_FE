@@ -265,9 +265,8 @@ const InvoicePrint = () => {
           <thead>
             <tr>
               <th style={TH('center','4%')}>S.No</th>
-              <th style={TH('left', '24%')}>Item{'\n'}Description</th>
+              <th style={TH('left', '32%')}>Item{'\n'}Description</th>
               <th style={TH('center','10%')}>HSN/SAC</th>
-              <th style={TH('center','8%')}>QTY</th>
               <th style={TH('right','10%')}>{'Price\n(₹)'}</th>
               {hasDiscount && <th style={TH('right', '8%')}>{'Discount\n(%)'}</th>}
               {hasTax && <th style={TH('right','12%')}>{'Taxable\nValue (₹)'}</th>}
@@ -299,10 +298,6 @@ const InvoicePrint = () => {
                     )}
                   </td>
                   <td style={{ ...TD('center'), fontWeight:700 }}>{item.hsnCode || ''}</td>
-                  <td style={TD('center')}>
-                    {qty}
-                    {item.unit && <><br/><span style={{ fontSize:9, color: MUTED }}>{item.unit}</span></>}
-                  </td>
                   <td style={{ ...TD('right'), fontWeight:700 }}>{fmt(rate)}</td>
                   {hasDiscount && <td style={TD('right')}>{discPct > 0 ? `${discPct}%` : ''}</td>}
                   {hasTax && <td style={{ ...TD('right'), fontWeight:700 }}>{fmt(taxable)}</td>}
@@ -339,7 +334,7 @@ const InvoicePrint = () => {
           {/* ── Total footer row ── */}
           <tfoot>
             <tr style={{ background:'#eef5f8' }}>
-              <td colSpan={5 + (hasDiscount ? 1 : 0)} style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, fontSize:11, color: TEXT, borderTop:`2px solid ${TEAL}` }}>
+              <td colSpan={4 + (hasDiscount ? 1 : 0)} style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, fontSize:11, color: TEXT, borderTop:`2px solid ${TEAL}` }}>
                 Total {taxRate > 0 ? `@${taxRate}%` : ''}
               </td>
               {hasTax && (
