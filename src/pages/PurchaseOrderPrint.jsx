@@ -303,6 +303,8 @@ const PurchaseOrderPrint = () => {
           .print\\:hidden { display:none !important; }
           #doc-print { box-shadow:none !important; }
           @page { size:A4; margin:0; }
+          thead { display: table-row-group; }
+          tfoot { display: table-row-group; }
         }
       `}</style>
     </div>

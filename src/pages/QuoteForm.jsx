@@ -377,58 +377,54 @@ const QuoteForm = ({ docType = 'quote' }) => {
             </div>
 
             {/* Right: Doc No + Date + PO + Valid Until */}
-            <div className="space-y-2">
-              {/* Row 1: Doc No + Date */}
-              <div className="flex items-center gap-3">
-                <label className="text-sm text-gray-600 w-28 flex-shrink-0">{docNoLabel}</label>
+            <div className="grid grid-cols-[110px_1fr_120px_1fr] gap-x-4 gap-y-3 items-center">
+              
+              {/* Row 1: Quotation No + Date */}
+              <label className="text-sm text-gray-600">Quotation no</label>
+              <div className="flex gap-2">
                 <input type="text" placeholder="123" value={formData.docNo}
                   onChange={e => setFormData(f => ({ ...f, docNo: e.target.value }))}
-                  className={`${inp} w-20`} />
+                  className={`${inp} w-24`} />
                 <input type="text" placeholder="2" value={formData.docNoSuffix}
                   onChange={e => setFormData(f => ({ ...f, docNoSuffix: e.target.value }))}
-                  className={`${inp} w-16`} />
-                <label className="text-sm text-gray-600 w-28 flex-shrink-0 text-right">{docLabel} date</label>
-                <input type="date" value={formData.date}
-                  onChange={e => setFormData(f => ({ ...f, date: e.target.value }))}
-                  className={`${inp} flex-1`} required />
+                  className={`${inp} w-20`} />
               </div>
-              {/* Row 2: PO Number + Valid Until */}
-              <div className="flex items-center gap-3">
-                <select className={`${inp} w-36`} defaultValue="PO Number">
+              <label className="text-sm text-gray-600 text-right">Quotation date</label>
+              <input type="date" value={formData.date}
+                onChange={e => setFormData(f => ({ ...f, date: e.target.value }))}
+                className={inp} required />
+
+              {/* Row 2: PO No + Valid Until */}
+              <div className="flex items-center">
+                <select className="text-sm text-gray-600 bg-transparent border-none outline-none cursor-pointer" defaultValue="PO Number">
                   <option>PO Number</option>
-                  <option>Reference No</option>
+                  <option>Ref Number</option>
                 </select>
-                <input type="text" value={formData.poNumber}
-                  onChange={e => setFormData(f => ({ ...f, poNumber: e.target.value }))}
-                  className={`${inp} w-32`} placeholder="" />
-                <label className="text-sm text-gray-600 w-24 flex-shrink-0 text-right">Valid until</label>
-                <input type="date" value={formData.validUntil}
-                  onChange={e => setFormData(f => ({ ...f, validUntil: e.target.value }))}
-                  className={`${inp} flex-1`} />
               </div>
+              <input type="text" value={formData.poNumber}
+                onChange={e => setFormData(f => ({ ...f, poNumber: e.target.value }))}
+                className={inp} placeholder="" />
+              <label className="text-sm text-gray-600 text-right">Valid until</label>
+              <input type="date" value={formData.validUntil}
+                onChange={e => setFormData(f => ({ ...f, validUntil: e.target.value }))}
+                className={inp} />
+
               {/* Row 3: Status + Advance Paid */}
-              <div className="flex items-center gap-3">
-                <label className="text-sm text-gray-600 w-28 flex-shrink-0">Status</label>
-                <select value={formData.status}
-                  onChange={e => {
-                    const newStatus = e.target.value;
-                    setFormData(f => {
-                      const updated = { ...f, status: newStatus };
-                      // If status is 'ACCEPTED' or 'CONFIRMED', auto-fill advancePaid with grandTotal
-                      if (newStatus === 'ACCEPTED' || newStatus === 'CONFIRMED') {
-                        updated.advancePaid = grandTotal;
-                      }
-                      return updated;
-                    });
-                  }}
-                  className={`${inp} w-36`}>
-                  {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <label className="text-sm text-gray-600 w-24 flex-shrink-0 text-right">Advance Paid</label>
-                <input type="number" min="0" value={formData.advancePaid}
-                  onChange={e => setFormData(f => ({ ...f, advancePaid: e.target.value }))}
-                  className={`${inp} flex-1`} />
-              </div>
+              <label className="text-sm text-gray-600">Status</label>
+              <select value={formData.status}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === 'ACCEPTED' || val === 'BILLED') {
+                    setFormData(f => ({ ...f, status: val, advancePaid: getGrandTotal() }));
+                  } else setFormData(f => ({ ...f, status: val }));
+                }}
+                className={inp}>
+                {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <label className="text-sm text-gray-600 text-right">Advance Paid</label>
+              <input type="number" min="0" value={formData.advancePaid}
+                onChange={e => setFormData(f => ({ ...f, advancePaid: e.target.value }))}
+                className={inp} />
             </div>
           </div>
         </div>

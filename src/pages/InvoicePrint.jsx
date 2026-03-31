@@ -144,7 +144,7 @@ const InvoicePrint = () => {
 
   // ── Render ───────────────────────────────────────────────────────
   return (
-    <div style={{ background: '#fff', minHeight: '100vh', padding: '0', fontFamily: 'Arial, Helvetica, sans-serif' }}>
+    <div style={{ background: '#fff', minHeight: '100vh', padding: '0', fontFamily: 'Calibri, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
 
       {/* Screen toolbar */}
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '20px 0 12px', display: 'flex', justifyContent: 'space-between' }}
@@ -163,7 +163,7 @@ const InvoicePrint = () => {
       <div id="invoice-print" style={{
         maxWidth: 860, margin: '0 auto', background: '#fff',
         padding: '32px 36px 36px',
-        fontFamily: 'Arial, Helvetica, sans-serif',
+        fontFamily: 'Calibri, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
         fontSize: 12, color: TEXT,
       }}>
 
@@ -454,6 +454,8 @@ const InvoicePrint = () => {
           .print\\:hidden { display:none !important; }
           #invoice-print { box-shadow:none !important; }
           @page { size:A4; margin:0; }
+          thead { display: table-row-group; }
+          tfoot { display: table-row-group; }
         }
       `}</style>
     </div>
