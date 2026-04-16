@@ -64,13 +64,14 @@ const Layout = ({ children }) => {
   try {
     const userStr = localStorage.getItem('user');
     const userObj = userStr ? JSON.parse(userStr).user : null;
-    isPro = userObj?.subscription?.plan === 'pro';
+    isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
     isSuperAdmin = userObj?.role === 'superadmin';
   } catch (e) {
     console.error('Failed to parse user from localStorage', e);
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   void syncTick; // ensure syncTick is in the dependency chain for linters
+  const hasPremiumAccess = isPro || isSuperAdmin;
 
   const isActive = (path) => location.pathname.startsWith(path);
 
@@ -85,7 +86,7 @@ const Layout = ({ children }) => {
   );
 
   const handlePremiumClick = (e, path) => {
-    if (!isPro) {
+    if (!hasPremiumAccess) {
       e.preventDefault();
       setShowPremiumModal(true);
     } else if (path) {
@@ -119,9 +120,9 @@ const Layout = ({ children }) => {
               <FaThLarge size={20} className="text-blue-400" />
               MyBill
             </h1>
-            {isPro && (
+            {hasPremiumAccess && (
               <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase ml-7 mt-0.5">
-                Pro Member
+                {isSuperAdmin ? 'Super Admin' : 'Pro Member'}
               </span>
             )}
           </div>
@@ -190,7 +191,7 @@ const Layout = ({ children }) => {
           {/* Reports (collapsible, Premium) */}
           <button
             onClick={(e) => {
-               if (!isPro) { handlePremiumClick(e); }
+               if (!hasPremiumAccess) { handlePremiumClick(e); }
                else { setReportsOpen(o => !o); }
             }}
             className={`flex items-center justify-between px-5 py-2.5 text-sm font-medium transition-colors w-full border-l-2
@@ -200,14 +201,14 @@ const Layout = ({ children }) => {
           >
             <span className="flex items-center gap-3">
               <FaChartBar size={ICON_SIZE} /> Reports
-              {!isPro && <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded uppercase ml-1">Pro</span>}
+              {!hasPremiumAccess && <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded uppercase ml-1">Pro</span>}
             </span>
             {reportsOpen
               ? <FaChevronDown size={14} className="text-slate-400" />
               : <FaChevronRight size={14} className="text-slate-400" />}
           </button>
 
-          {reportsOpen && isPro && (
+          {reportsOpen && hasPremiumAccess && (
             <div className="bg-black/10">
               <Link to="/reports/gst" className={subLinkCls('/reports/gst')}>
                 <FaMinus size={12} className="text-slate-500" /> GST Reports
@@ -221,7 +222,7 @@ const Layout = ({ children }) => {
           {/* Accounts (collapsible, Premium) */}
           <button
             onClick={(e) => {
-               if (!isPro) { handlePremiumClick(e); }
+               if (!hasPremiumAccess) { handlePremiumClick(e); }
                else { setAccountsOpen(o => !o); }
             }}
             className={`flex items-center justify-between px-5 py-2.5 text-sm font-medium transition-colors w-full border-l-2
@@ -231,14 +232,14 @@ const Layout = ({ children }) => {
           >
             <span className="flex items-center gap-3">
               <FaWallet size={ICON_SIZE} /> Accounts
-              {!isPro && <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded uppercase ml-1">Pro</span>}
+              {!hasPremiumAccess && <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded uppercase ml-1">Pro</span>}
             </span>
             {accountsOpen
               ? <FaChevronDown size={14} className="text-slate-400" />
               : <FaChevronRight size={14} className="text-slate-400" />}
           </button>
 
-          {accountsOpen && isPro && (
+          {accountsOpen && hasPremiumAccess && (
             <div className="bg-black/10">
               <Link to="/accounts/payments" className={subLinkCls('/accounts/payments')}>
                 <FaMinus size={12} className="text-slate-500" /> Payment Collection
@@ -281,6 +282,7 @@ const Layout = ({ children }) => {
               localStorage.removeItem('user');
               window.location.href = '/login';
             }}
+            data-testid="logout-button"
             className="flex items-center gap-3 px-4 py-2.5 rounded text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors w-full"
           >
             <FaSignOutAlt size={ICON_SIZE} /> Logout

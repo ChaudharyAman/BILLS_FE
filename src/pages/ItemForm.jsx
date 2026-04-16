@@ -210,6 +210,7 @@ const ItemForm = ({ isModal, onSuccess }) => {
               type="text"
               name="name"
               required
+              data-testid="item-name"
               className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border"
               value={formData.name}
               onChange={handleChange}
@@ -293,6 +294,7 @@ const ItemForm = ({ isModal, onSuccess }) => {
                   name="price"
                   min="0"
                   step="0.01"
+                  data-testid="item-sales-price"
                   className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border"
                   value={formData.salesInfo.price}
                   onChange={(e) => handleNestedChange('salesInfo', e)}
@@ -396,6 +398,7 @@ const ItemForm = ({ isModal, onSuccess }) => {
           <button
             type="submit"
             disabled={loading}
+            data-testid="save-item"
             className="px-8 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 flex items-center gap-2 shadow-sm font-medium"
           >
             <FaSave size={18} />

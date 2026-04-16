@@ -9,6 +9,26 @@ import Skeleton from '../components/Skeleton';
 import CsvUploader from '../components/CsvUploader';
 import ItemSelect from '../components/ItemSelect';
 
+const parseDocumentNumberParts = (value, prefix) => {
+  const raw = String(value || '').trim();
+  if (!raw) return { docNo: '', docNoSuffix: '' };
+
+  const normalizedPrefix = String(prefix || '').trim().replace(/[-/\s]+$/g, '');
+  const withoutPrefix = normalizedPrefix && raw.startsWith(`${normalizedPrefix}-`)
+    ? raw.slice(normalizedPrefix.length + 1)
+    : raw;
+
+  const parts = withoutPrefix.split('-');
+  if (parts.length === 1) {
+    return { docNo: parts[0], docNoSuffix: '' };
+  }
+
+  return {
+    docNo: parts[0],
+    docNoSuffix: parts.slice(1).join('-'),
+  };
+};
+
 const PurchaseOrderForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -16,7 +36,7 @@ const PurchaseOrderForm = () => {
   const apiBase = '/purchase-orders';
   const listPath = '/purchase-orders';
   const docLabel = 'Purchase Order';
-  const docNoLabel = 'Number';
+  const docNoLabel = 'Purchase Order no';
 
   const STATUSES = ['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'BILLED', 'CANCELLED'];
 
@@ -37,6 +57,7 @@ const PurchaseOrderForm = () => {
   const [showDiscountToAll, setShowDiscountToAll] = useState(false);
   const [discountToAll, setDiscountToAll] = useState('');
   const [showCustomAmount, setShowCustomAmount] = useState(false);
+  const [prefixes, setPrefixes] = useState({ purchaseOrder: 'PO' });
 
   const emptyItem = () => ({
     name: '', description: '', hsnCode: '', unit: 'pcs',
@@ -68,26 +89,41 @@ const PurchaseOrderForm = () => {
   const hasTax = ['Tax Invoice', 'Excise Invoice'].includes(formData.invoiceType);
 
   useEffect(() => {
-    fetchDependencies();
-    if (id) fetchDoc(id);
+    const load = async () => {
+      const loadedPrefixes = await fetchDependencies();
+      if (id) await fetchDoc(id, loadedPrefixes);
+    };
+    load();
   }, [id]);
 
   const fetchDependencies = async () => {
     try {
-      const [vr, ir] = await Promise.all([api.get('/vendors?limit=1000'), api.get('/items?limit=1000')]);
+      const [vr, ir, sr] = await Promise.all([
+        api.get('/vendors?limit=1000'),
+        api.get('/items?limit=1000'),
+        api.get('/settings'),
+      ]);
       setVendors(vr.data.data || []);
       setItemsList(ir.data.data || []);
+      const loadedPrefixes = {
+        purchaseOrder: sr.data?.purchaseOrderPrefix || 'PO',
+      };
+      setPrefixes(loadedPrefixes);
+      return loadedPrefixes;
     } catch (e) { console.error(e); }
+    return prefixes;
   };
 
-  const fetchDoc = async (docId) => {
+  const fetchDoc = async (docId, prefixMap = prefixes) => {
     try {
       const res = await api.get(`${apiBase}/${docId}`);
       const d = res.data;
+      const parsedDocNumber = parseDocumentNumberParts(d.poNumber, prefixMap.purchaseOrder);
       setFormData({
         invoiceType: d.invoiceType || 'Tax Invoice',
         vendorRef: d.vendor?.vendorRef || '',
-        docNo: '', docNoSuffix: '',
+        docNo: parsedDocNumber.docNo,
+        docNoSuffix: parsedDocNumber.docNoSuffix,
         poNumber: d.transport?.poNumber || '',
         refNumber: d.refNumber || '',
         date: d.date ? d.date.split('T')[0] : '',
@@ -114,7 +150,7 @@ const PurchaseOrderForm = () => {
       });
       if (d.shippingCharges > 0) setShowShipping(true);
       if (d.discountTotal > 0) setShowDiscountTotal(true);
-      if (d.packagingCharges > 0) setShowCustomAmount(true);
+      if (Number(d.packagingCharges) !== 0) setShowCustomAmount(true);
     } catch (e) { console.error(e); }
   };
 
@@ -229,6 +265,7 @@ const PurchaseOrderForm = () => {
         discountTotal: showDiscountTotal ? Number(formData.discountTotal) : 0,
         packagingCharges: showCustomAmount ? Number(formData.customChargeAmount) : 0,
         customChargeLabel: showCustomAmount ? formData.customChargeLabel : 'Custom Amount',
+        refNumber: formData.refNumber || '',
       };
       let savedId = id;
       if (id) {
@@ -338,6 +375,7 @@ const PurchaseOrderForm = () => {
                 <label className="text-sm text-gray-600 w-28 flex-shrink-0">Vendor name</label>
                 <div className="flex gap-2 flex-1">
                   <select value={formData.vendorRef}
+                    data-testid="purchase-order-vendor-select"
                     onChange={e => {
                       setFormData(f => ({ ...f, vendorRef: e.target.value }));
                       // Show pending if vendor has outstanding
@@ -367,6 +405,7 @@ const PurchaseOrderForm = () => {
               <div className="flex items-center gap-3">
                 <label className="text-sm text-gray-600 w-28 flex-shrink-0">{docNoLabel}</label>
                 <input type="text" placeholder="123" value={formData.docNo}
+                  data-testid="purchase-order-doc-number"
                   onChange={e => setFormData(f => ({ ...f, docNo: e.target.value }))}
                   className={`${inp} w-20`} />
                 <input type="text" placeholder="2" value={formData.docNoSuffix}
@@ -388,6 +427,7 @@ const PurchaseOrderForm = () => {
                   className={`${inp} w-32`} placeholder="" />
                 <label className="text-sm text-gray-600 w-24 flex-shrink-0 text-right">Valid until</label>
                 <input type="date" value={formData.validUntil}
+                  data-testid="purchase-order-valid-until"
                   onChange={e => setFormData(f => ({ ...f, validUntil: e.target.value }))}
                   className={`${inp} flex-1`} />
               </div>
@@ -424,6 +464,7 @@ const PurchaseOrderForm = () => {
                       <ItemSelect
                         items={itemsList}
                         value={item.itemRef || ''}
+                        testId={`purchase-order-item-select-${idx}`}
                         onChange={(found) => selectItem(idx, found._id)}
                         onAddNew={() => { setPendingItemIndex(idx); setIsItemModalOpen(true); }}
                         onEdit={(it) => navigate(`/items/edit/${it._id}`)}
@@ -434,6 +475,7 @@ const PurchaseOrderForm = () => {
                     </td>
                     <td className="px-2 py-2 align-top">
                       <textarea rows={2} placeholder="Description" value={item.description}
+                        data-testid={`purchase-order-item-description-${idx}`}
                         onChange={e => updateItem(idx, 'description', e.target.value)}
                         className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full resize-none focus:outline-none focus:ring-1 focus:ring-blue-400" />
                       <div className="text-xs text-gray-400 mt-0.5">
@@ -450,11 +492,13 @@ const PurchaseOrderForm = () => {
                     </td>
                     <td className="px-2 py-2 align-top">
                       <input type="number" min="0" value={item.qty}
+                        data-testid={`purchase-order-item-qty-${idx}`}
                         onChange={e => updateItem(idx, 'qty', e.target.value)}
                         className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400" />
                     </td>
                     <td className="px-2 py-2 align-top">
                       <input type="number" min="0" placeholder="Price" value={item.rate || ''}
+                        data-testid={`purchase-order-item-rate-${idx}`}
                         onChange={e => updateItem(idx, 'rate', e.target.value)}
                         className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400" />
                     </td>
@@ -650,6 +694,12 @@ const PurchaseOrderForm = () => {
                   <span>- ₹ {Number(formData.discountTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
+              {showCustomAmount && Number(formData.customChargeAmount) !== 0 && (
+                <div className="flex justify-between py-2 border-b border-gray-200 text-sm text-gray-600">
+                  <span>{formData.customChargeLabel}:</span>
+                  <span>₹ {Number(formData.customChargeAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
               <div className="flex justify-between py-2.5 text-sm font-bold text-green-700 bg-green-50 px-2 rounded mt-1">
                 <span>Total:</span>
                 <span>₹ {grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
@@ -679,10 +729,12 @@ const PurchaseOrderForm = () => {
         {/* ── Footer Buttons ── */}
         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center gap-3">
           <button type="submit" disabled={loading}
+            data-testid="purchase-order-save"
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded text-sm font-semibold transition-colors disabled:opacity-60">
             ✓ Preview &amp; save
           </button>
           <button type="button" disabled={loading}
+            data-testid="purchase-order-save-draft"
             onClick={e => handleSubmit(e, true)}
             className="px-5 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60">
             Save as draft

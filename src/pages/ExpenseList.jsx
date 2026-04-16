@@ -21,7 +21,7 @@ const ExpenseList = () => {
   const userStr = localStorage.getItem('user');
   let userObj = null;
   try { userObj = userStr ? JSON.parse(userStr).user : null; } catch(e) {}
-  const isPro = userObj?.subscription?.plan === 'pro';
+  const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {

@@ -11,13 +11,14 @@ import { FaPencilAlt, FaPlus } from 'react-icons/fa';
  *   onAddNew     – called when user clicks "+ Add new item"
  *   onEdit       – called with item object when user clicks the edit pencil
  */
-const ItemSelect = ({ items = [], value, onChange, onAddNew, onEdit }) => {
+const ItemSelect = ({ items = [], value, displayValue = '', onChange, onAddNew, onEdit, testId = '' }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const containerRef = useRef(null);
   const searchRef = useRef(null);
 
   const selected = items.find(i => i._id === value) || null;
+  const selectedLabel = selected?.name || displayValue || 'Select Item';
 
   // Close on outside click
   useEffect(() => {
@@ -52,6 +53,7 @@ const ItemSelect = ({ items = [], value, onChange, onAddNew, onEdit }) => {
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
+        data-testid={testId || undefined}
         style={{
           width: '100%',
           display: 'flex',
@@ -62,13 +64,13 @@ const ItemSelect = ({ items = [], value, onChange, onAddNew, onEdit }) => {
           padding: '6px 10px',
           fontSize: 13,
           background: '#fff',
-          color: selected ? '#111827' : '#9ca3af',
+          color: selected || displayValue ? '#111827' : '#9ca3af',
           cursor: 'pointer',
           textAlign: 'left',
         }}
       >
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {selected ? selected.name : 'Select Item'}
+          {selectedLabel}
         </span>
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, marginLeft: 6 }}>
           <path d={open ? 'M2 8L6 4L10 8' : 'M2 4L6 8L10 4'} stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -97,6 +99,7 @@ const ItemSelect = ({ items = [], value, onChange, onAddNew, onEdit }) => {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
+              data-testid={testId ? `${testId}-search` : undefined}
               placeholder="Type to search"
               style={{
                 width: '100%',
@@ -167,6 +170,7 @@ const ItemSelect = ({ items = [], value, onChange, onAddNew, onEdit }) => {
               <button
                 type="button"
                 onClick={() => { onAddNew(); setOpen(false); setSearch(''); }}
+                data-testid={testId ? `${testId}-add-new` : undefined}
                 style={{
                   background: 'none',
                   border: 'none',

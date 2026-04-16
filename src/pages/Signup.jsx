@@ -121,6 +121,7 @@ const Signup = () => {
                 type="text"
                 name="username"
                 required
+                data-testid="signup-username"
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm text-sm"
                 placeholder="Choose a username"
                 value={formData.username}
@@ -134,6 +135,7 @@ const Signup = () => {
                 type="email"
                 name="email"
                 required
+                data-testid="signup-email"
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm text-sm"
                 placeholder="Enter your email"
                 value={formData.email}
@@ -148,6 +150,7 @@ const Signup = () => {
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   required
+                  data-testid="signup-password"
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm text-sm pr-11"
                   placeholder="Create a password"
                   value={formData.password}
@@ -167,6 +170,7 @@ const Signup = () => {
                   type={showConfirm ? 'text' : 'password'}
                   name="confirmPassword"
                   required
+                  data-testid="signup-confirm-password"
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm text-sm pr-11"
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
@@ -182,6 +186,7 @@ const Signup = () => {
             <button
               type="submit"
               disabled={loading}
+              data-testid="signup-submit"
               className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.99] mt-2 text-sm"
             >
               {loading ? 'Creating account...' : 'Sign up'}

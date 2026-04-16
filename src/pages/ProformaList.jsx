@@ -26,7 +26,7 @@ const ProformaList = () => {
   const userStr = localStorage.getItem('user');
   let userObj = null;
   try { userObj = userStr ? JSON.parse(userStr).user : null; } catch(e) {}
-  const isPro = userObj?.subscription?.plan === 'pro';
+  const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -152,21 +152,28 @@ const ProformaList = () => {
           <p className="text-gray-500 mt-1">Advance invoices before final billing</p>
         </div>
         <div className="flex gap-3">
-          <ExportDropdown 
-              data={selectedIds.length > 0 ? displayed.filter(p => selectedIds.includes(p._id)) : displayed}
-              filename="MyBill_Proformas"
-              columns={[
-                 { header: 'Proforma No', key: 'proformaNo' },
-                 { header: 'Client Name', key: 'client.name' },
-                 { header: 'Date', key: 'date' },
-                 { header: 'Valid Until', key: 'validUntil' },
-                 { header: 'Status', key: 'status' },
-                 { header: 'Grand Total', key: 'grandTotal' }
-              ]}
-          />
+          <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
+            <ExportDropdown 
+                disabled={!isPro}
+                data={selectedIds.length > 0 ? displayed.filter(p => selectedIds.includes(p._id)) : displayed}
+                filename="MyBill_Proformas"
+                columns={[
+                   { header: 'Proforma No', key: 'proformaNo' },
+                   { header: 'Client Name', key: 'client.name' },
+                   { header: 'Date', key: 'date' },
+                   { header: 'Valid Until', key: 'validUntil' },
+                   { header: 'Status', key: 'status' },
+                   { header: 'Grand Total', key: 'grandTotal' }
+                ]}
+            />
+          </div>
           <button
-             onClick={() => setIsCsvModalOpen(true)}
-             className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+             onClick={() => isPro ? setIsCsvModalOpen(true) : setShowPremiumModal(true)}
+             className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm ${
+               isPro 
+                 ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200' 
+                 : 'bg-gray-50 text-gray-400 border border-gray-200 opacity-70 cursor-not-allowed'
+             }`}
            >
              <FaFileAlt size={16} /> Bulk Import
            </button>

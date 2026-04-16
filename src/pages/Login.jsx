@@ -107,6 +107,7 @@ const Login = () => {
                 type="text"
                 name="username"
                 required
+                data-testid="login-username"
                 className="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm"
                 placeholder="Enter username or email"
                 value={formData.username}
@@ -121,6 +122,7 @@ const Login = () => {
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   required
+                  data-testid="login-password"
                   className="w-full px-5 py-4 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm pr-12"
                   placeholder="Enter your password"
                   value={formData.password}
@@ -138,6 +140,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
+              data-testid="login-submit"
               className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.99]"
             >
               {loading ? 'Logging in...' : 'Sign in'}

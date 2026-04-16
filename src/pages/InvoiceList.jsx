@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { FaPlus, FaDownload, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaChevronDown } from 'react-icons/fa';
+import { FaPlus, FaDownload, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaChevronDown, FaFilePdf } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 import ExportDropdown from '../components/ExportDropdown';
 import Modal from '../components/Modal';
 import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
 import QuotaIndicator from '../components/QuotaIndicator';
+import PdfInvoiceImporter from '../components/PdfInvoiceImporter';
 import { FaFileAlt } from 'react-icons/fa';
 
 const DOC_TYPES = [
@@ -36,7 +37,7 @@ const InvoiceList = () => {
   const userStr = localStorage.getItem('user');
   let userObj = null;
   try { userObj = userStr ? JSON.parse(userStr).user : null; } catch(e) {}
-  const isPro = userObj?.subscription?.plan === 'pro';
+  const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -55,6 +56,7 @@ const InvoiceList = () => {
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [isPdfScannerOpen, setIsPdfScannerOpen] = useState(false);
 
   // Debounced Search Effect
   useEffect(() => {
@@ -122,7 +124,13 @@ const InvoiceList = () => {
             shippingCharges: Number(getVal(['Shipping Charges', 'Shipping', 'Freight'])) || 0,
             packagingCharges: Number(getVal(['Packaging Charges', 'Packaging'])) || 0,
             discountTotal: Number(getVal(['Discount Total', 'Discount'])) || 0,
-            advancePaid: Number(getVal(['Advance Paid', 'Advance', 'Paid Amount'])) || 0,
+            advancePaid: Number(getVal(['Advance Paid', 'Advance', 'Paid Amount', 'Amount Paid'])) || 0,
+            tds: Number(getVal(['TDS'])) || 0,
+            tcs: Number(getVal(['TCS'])) || 0,
+            currency: getVal(['Currency']) || 'INR',
+            fy: getVal(['Financial Year', 'FY']) || undefined,
+            drCr: getVal(['Dr. / Cr.', 'Dr/Cr']) || 'Dr.',
+            notes: getVal(['Private notes', 'Notes']) || '',
             items: []
           };
         }
@@ -204,28 +212,62 @@ const InvoiceList = () => {
             <p className="text-gray-500 mt-1">Manage and track your invoice history</p>
         </div>
         <div className="flex gap-3">
-           <ExportDropdown 
-              data={selectedInvoices.length > 0 ? displayedInvoices.filter(i => selectedInvoices.includes(i._id)) : displayedInvoices}
-              filename="MyBill_Invoices"
-              columns={[
-                 { header: 'Invoice No', key: 'invoiceNo' },
-                 { header: 'Type', key: 'invoiceType' },
-                 { header: 'Client Name', key: 'client.name' },
-                 { header: 'Client GSTIN', key: 'client.gstin' },
-                 { header: 'Date', key: 'date' },
-                 { header: 'Due Date', key: 'dueDate' },
-                 { header: 'Status', key: 'status' },
-                 { header: 'Grand Total', key: 'grandTotal' },
-                 { header: 'Balance Due', key: 'balanceDue' }
-              ]}
-           />
+           <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
+             <ExportDropdown 
+                disabled={!isPro}
+                data={selectedInvoices.length > 0 ? displayedInvoices.filter(i => selectedInvoices.includes(i._id)) : displayedInvoices}
+                filename="MyBill_Invoices"
+                columns={[
+                   { header: 'Client Name', key: 'client.name' },
+                   { header: 'Client GSTIN', key: 'client.gstin' },
+                   { header: 'Invoice Number', key: 'invoiceNo' },
+                   { header: 'Creator Name', key: 'user.username' },
+                   { header: 'Client Phone Number', key: 'client.phone' },
+                   { header: 'Client Email', key: 'client.email' },
+                   { header: 'Client City', key: 'client.address.city' },
+                   { header: 'Client State', key: 'client.address.state' },
+                   { header: 'P.O. Number', key: 'transport.poNumber' },
+                   { header: 'P.O. Date', key: 'transport.poDate' },
+                   { header: 'Issue Date', key: 'date' },
+                   { header: 'Due Date', key: 'dueDate' },
+                   { header: 'Payment Mode', key: 'paymentMode' },
+                   { header: 'Financial Year', key: 'fy' },
+                   { header: 'Currency', key: 'currency' },
+                   { header: 'Amount', key: 'subTotal' },
+                   { header: 'Tax', key: 'taxTotal' },
+                   { header: 'Total', key: 'grandTotal' },
+                   { header: 'Status', key: 'status' },
+                   { header: 'Amount Paid', key: 'advancePaid' },
+                   { header: 'Balance', key: 'balanceDue' },
+                   { header: 'Dr. / Cr.', key: 'drCr' },
+                   { header: 'Date Of Payment', key: 'paymentDate' },
+                   { header: 'Type', key: 'invoiceType' },
+                   { header: 'Private notes', key: 'notes' },
+                   { header: 'Payments', key: 'paymentMode' },
+                   { header: 'Discount', key: 'discountTotal' },
+                   { header: 'TDS', key: 'tds' },
+                   { header: 'TCS', key: 'tcs' },
+                ]}
+             />
+           </div>
            
            <button
-             onClick={() => setIsCsvModalOpen(true)}
-             className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
-           >
-             <FaFileAlt size={16} /> Bulk Import
-           </button>
+              onClick={() => setIsPdfScannerOpen(true)}
+              className="bg-violet-50 hover:bg-violet-100 text-violet-600 border border-violet-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+            >
+              <FaFilePdf size={16} /> Scan PDF
+            </button>
+
+           <button
+              onClick={() => isPro ? setIsCsvModalOpen(true) : setShowPremiumModal(true)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm ${
+                isPro 
+                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200' 
+                  : 'bg-gray-50 text-gray-400 border border-gray-200 opacity-70 cursor-not-allowed'
+              }`}
+            >
+              <FaFileAlt size={16} /> Bulk Import
+            </button>
 
           {/* Unified New Document button */}
           <div className="relative" ref={typeMenuRef}>
@@ -502,6 +544,13 @@ const InvoiceList = () => {
           </div>
         </div>
       </Modal>
+
+      {/* PDF Invoice Scanner Modal */}
+      <PdfInvoiceImporter
+        isOpen={isPdfScannerOpen}
+        onClose={() => setIsPdfScannerOpen(false)}
+        onImportSuccess={() => { setIsPdfScannerOpen(false); fetchInvoices(); }}
+      />
 
     </div>
   );

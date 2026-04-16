@@ -179,10 +179,10 @@ const Settings = () => {
           </h1>
         </div>
         <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
-          <button type="button" onClick={() => setTab('company')} className={tabBtn('company')}>
+          <button type="button" onClick={() => setTab('company')} data-testid="settings-company-tab" className={tabBtn('company')}>
             🏢 Company
           </button>
-          <button type="button" onClick={() => setTab('software')} className={tabBtn('software')}>
+          <button type="button" onClick={() => setTab('software')} data-testid="settings-software-tab" className={tabBtn('software')}>
             ⚙️ Software
           </button>
         </div>
@@ -284,11 +284,13 @@ const Settings = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
                   <input type="text" name="companyName" value={formData.companyName}
+                    data-testid="settings-company-name"
                     onChange={handleChange} className={inputCls} required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
                   <input type="text" name="contactName" value={formData.contactName}
+                    data-testid="settings-contact-name"
                     onChange={handleChange} className={inputCls} placeholder="e.g. John Doe" />
                 </div>
                 <div>
@@ -382,6 +384,7 @@ const Settings = () => {
 
             <div className="flex justify-end pt-4 border-t border-gray-100">
               <button type="submit" disabled={loading}
+                data-testid="save-company-settings"
                 className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-colors disabled:opacity-50">
                 <FaSave size={18} /> {loading ? 'Saving…' : 'Save Settings'}
               </button>
@@ -402,6 +405,7 @@ const Settings = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
                   <input type="text" value={softData.username}
+                    data-testid="settings-username"
                     onChange={e => setSoftData(p => ({ ...p, username: e.target.value }))}
                     className={inputCls} placeholder="Your login username" />
                 </div>
@@ -409,12 +413,14 @@ const Settings = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Login Email</label>
                     <input type="email" value={softData.email}
+                      data-testid="settings-email"
                       onChange={e => setSoftData(p => ({ ...p, email: e.target.value }))}
                       className={inputCls} placeholder="your@email.com" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
                     <input type="text" value={softData.phone}
+                      data-testid="settings-phone"
                       onChange={e => setSoftData(p => ({ ...p, phone: e.target.value }))}
                       className={inputCls} placeholder="+91 98765 43210" />
                   </div>
@@ -474,6 +480,7 @@ const Settings = () => {
 
             <div className="flex justify-end pt-4 border-t border-gray-100">
               <button type="submit" disabled={softLoading}
+                data-testid="save-account-settings"
                 className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-colors disabled:opacity-50">
                 <FaSave size={18} /> {softLoading ? 'Saving…' : 'Save Account Settings'}
               </button>

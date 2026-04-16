@@ -39,6 +39,51 @@ const emptyItem = () => ({
   amount: 0, isCustom: false,
 });
 
+const extractStateCode = (value = '') => {
+  const text = String(value || '').trim();
+  if (!text) return '';
+
+  const prefixMatch = text.match(/^(\d{2})\s*[-(]/);
+  if (prefixMatch) return prefixMatch[1];
+
+  const parenMatch = text.match(/\((\d{2})\)/);
+  if (parenMatch) return parenMatch[1];
+
+  return '';
+};
+
+const normalizeStateName = (value = '') => String(value || '')
+  .replace(/^\d{2}\s*[-)]?\s*/, '')
+  .split('(')[0]
+  .trim()
+  .toLowerCase();
+
+const isInterStateSupply = (placeOfSupply, companyState, companyGstin) => {
+  const supply = String(placeOfSupply || '').trim();
+  if (!supply) return false;
+
+  const supplyStateCode = extractStateCode(supply);
+  const companyStateCode = String(companyGstin || '').trim().slice(0, 2);
+
+  if (supplyStateCode && /^\d{2}$/.test(companyStateCode)) {
+    return supplyStateCode !== companyStateCode;
+  }
+
+  const normalizedSupply = normalizeStateName(supply);
+  const normalizedCompanyState = normalizeStateName(companyState);
+
+  if (normalizedSupply && normalizedCompanyState) {
+    return normalizedSupply !== normalizedCompanyState;
+  }
+
+  return false;
+};
+
+const normalizeCatalogName = (value = '') => String(value || '')
+  .trim()
+  .replace(/\s+/g, ' ')
+  .toLowerCase();
+
 const InvoiceForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -58,14 +103,25 @@ const InvoiceForm = () => {
   const [showDiscountTotal, setShowDiscountTotal] = useState(false);
   const [showDiscountToAll, setShowDiscountToAll] = useState(false);
   const [discountToAll, setDiscountToAll] = useState('');
+
+  const userStr = localStorage.getItem('user');
+  let userObj = null;
+  try { userObj = userStr ? JSON.parse(userStr).user : null; } catch(e) {}
+  const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
   const [showCustomAmount, setShowCustomAmount] = useState(false);
   const [showAdvance, setShowAdvance] = useState(false);
   const [showTransportDropdown, setTransportDropdown] = useState(false);
   const [transportSearch, setTransportSearch] = useState('');
+  const [companyTaxProfile, setCompanyTaxProfile] = useState({ state: '', gstin: '' });
+  const [catalogReady, setCatalogReady] = useState(false);
+  const [isSyncingPdfItems, setIsSyncingPdfItems] = useState(false);
 
   const [formData, setFormData] = useState({
     invoiceType: queryType,
     clientRef: '',
+    clientName: '',
+    clientGST: '',
+    importSource: '',
     invoiceNo: 'Auto-generated',
     poNumber: '',
     date: new Date().toISOString().split('T')[0],
@@ -97,6 +153,11 @@ const InvoiceForm = () => {
       bedPercent: 0, sedPercent: 0, cessPercent: 0,
       manufacturerName: '', manufacturerAddress: '', rangeCode: '',
     },
+    fy: '',
+    currency: 'INR',
+    tds: 0,
+    tcs: 0,
+    drCr: 'Dr.',
   });
 
   const invoiceType = formData.invoiceType;
@@ -109,6 +170,162 @@ const InvoiceForm = () => {
     if (id) fetchInvoice(id);
   }, [id]);
 
+  // ── PDF Import: Read extracted data from sessionStorage ────────
+  useEffect(() => {
+    const source = new URLSearchParams(location.search).get('source');
+    if (source !== 'pdf' || id) return;
+
+    try {
+      const raw = sessionStorage.getItem('pdfImportData');
+      if (!raw) return;
+
+      const pdf = JSON.parse(raw);
+      sessionStorage.removeItem('pdfImportData'); // Clean up
+
+      if (!pdf._fromPdfImport) return;
+
+      setFormData(prev => ({
+        ...prev,
+        clientName: pdf.clientName || prev.clientName,
+        clientGST: pdf.clientGST || prev.clientGST,
+        importSource: pdf._fromPdfImport ? 'pdf' : prev.importSource,
+        invoiceNo: pdf.invoiceNo || prev.invoiceNo,
+        date: pdf.invoiceDate || prev.date,
+        dueDate: pdf.dueDate || prev.dueDate,
+        placeOfSupply: pdf.placeOfSupply || prev.placeOfSupply,
+        paymentMode: pdf.paymentMode || prev.paymentMode,
+        poNumber: pdf.poNumber || prev.poNumber,
+        poDate: pdf.poDate || prev.poDate,
+        customChargeLabel: pdf.customChargeLabel || prev.customChargeLabel,
+        packagingCharges: pdf.packagingCharges ?? prev.packagingCharges,
+        discountTotal: pdf.discountTotal || 0,
+        items: pdf.items?.length > 0
+          ? pdf.items.map(item => ({
+              ...emptyItem(),
+              name: item.name || '',
+              description: item.description || '',
+              unit: item.unit || 'pcs',
+              qty: item.qty || 1,
+              rate: item.rate || 0,
+              taxRate: item.taxRate || 0,
+              discount: item.discount || 0,
+              isCustom: true,
+            }))
+          : prev.items,
+      }));
+
+      if (Number(pdf.packagingCharges) !== 0) {
+        setShowCustomAmount(true);
+      }
+
+      // Auto-match client by name (deferred until clients are loaded)
+      if (pdf.clientName) {
+        const matchInterval = setInterval(() => {
+          setClients(currentClients => {
+            if (currentClients.length === 0) return currentClients;
+            clearInterval(matchInterval);
+
+            const match = currentClients.find(c =>
+              c.name?.toLowerCase().trim() === pdf.clientName.toLowerCase().trim()
+            );
+            if (match) {
+              setFormData(prev => ({
+                ...prev,
+                clientRef: match._id,
+                placeOfSupply: prev.placeOfSupply || match.billingAddress?.state || '',
+              }));
+            }
+            return currentClients;
+          });
+        }, 300);
+
+        // Safety: clear interval after 5s
+        setTimeout(() => clearInterval(matchInterval), 5000);
+      }
+    } catch (e) {
+      console.warn('Failed to load PDF import data:', e);
+    }
+  }, [location.search, id]);
+
+  useEffect(() => {
+    if (id || formData.importSource !== 'pdf' || !catalogReady || isSyncingPdfItems) return;
+
+    const missingItems = formData.items.filter(item => !item.itemRef && normalizeCatalogName(item.name));
+    if (missingItems.length === 0) return;
+
+    let isCancelled = false;
+
+    const syncPdfItemsToCatalog = async () => {
+      setIsSyncingPdfItems(true);
+
+      try {
+        const knownItems = new Map(
+          itemsList
+            .filter(item => normalizeCatalogName(item.name))
+            .map(item => [normalizeCatalogName(item.name), item])
+        );
+
+        const createdItems = [];
+
+        for (const item of missingItems) {
+          const itemKey = normalizeCatalogName(item.name);
+          if (!itemKey || knownItems.has(itemKey)) continue;
+
+          const response = await api.post('/items', {
+            name: item.name,
+            description: item.description || '',
+            hsnCode: item.hsnCode || '',
+            unit: item.unit || 'pcs',
+            rate: Number(item.rate) || 0,
+            sellingPrice: Number(item.rate) || 0,
+            purchasePrice: Number(item.rate) || 0,
+            taxRate: Number(item.taxRate) || 0,
+            defaultTaxRate: Number(item.taxRate) || 0,
+          });
+
+          const createdItem = response.data;
+          knownItems.set(itemKey, createdItem);
+          createdItems.push(createdItem);
+        }
+
+        if (isCancelled) return;
+
+        if (createdItems.length > 0) {
+          setItemsList(prev => [...createdItems, ...prev]);
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          items: prev.items.map(item => {
+            if (item.itemRef) return item;
+
+            const matchedItem = knownItems.get(normalizeCatalogName(item.name));
+            if (!matchedItem) return item;
+
+            return {
+              ...item,
+              itemRef: matchedItem._id,
+            };
+          }),
+        }));
+      } catch (e) {
+        if (!isCancelled) {
+          console.error('Failed to sync PDF items to catalog:', e);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsSyncingPdfItems(false);
+        }
+      }
+    };
+
+    syncPdfItemsToCatalog();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [id, formData.importSource, formData.items, itemsList, catalogReady, isSyncingPdfItems]);
+
   const fetchDependencies = async () => {
     try {
       const [cr, ir, sr] = await Promise.all([
@@ -118,6 +335,10 @@ const InvoiceForm = () => {
       ]);
       setClients(cr.data.data || []);
       setItemsList(ir.data.data || []);
+      setCompanyTaxProfile({
+        state: sr.data?.address?.state || '',
+        gstin: sr.data?.gstin || '',
+      });
       
       // If creating a NEW invoice, pre-fill bank details from settings
       if (!id && sr.data?.bankDetails) {
@@ -133,6 +354,7 @@ const InvoiceForm = () => {
         }));
       }
     } catch (e) { console.error(e); }
+    finally { setCatalogReady(true); }
   };
 
   const fetchInvoice = async (invoiceId) => {
@@ -146,6 +368,9 @@ const InvoiceForm = () => {
         ...inv,
         invoiceType: inv.invoiceType || 'Tax Invoice',
         clientRef: inv.client?.clientRef || inv.clientRef || '',
+        clientName: inv.client?.name || '',
+        clientGST: inv.client?.gstin || '',
+        importSource: '',
         invoiceNo: inv.invoiceNo || 'Auto-generated',
         poNumber: inv.transport?.poNumber || inv.poNumber || '',
         date: fmt(inv.date),
@@ -191,6 +416,11 @@ const InvoiceForm = () => {
           manufacturerAddress: inv.exciseDuty?.manufacturerAddress || '',
           rangeCode: inv.exciseDuty?.rangeCode || '',
         },
+        fy: inv.fy || '',
+        currency: inv.currency || 'INR',
+        tds: inv.tds || 0,
+        tcs: inv.tcs || 0,
+        drCr: inv.drCr || 'Dr.',
         items: (inv.items || []).map(i => ({ 
           ...emptyItem(), 
           ...i,
@@ -209,7 +439,7 @@ const InvoiceForm = () => {
       });
 
       if (inv.shippingCharges > 0) setShowShipping(true);
-      if (inv.packagingCharges > 0) setShowCustomAmount(true);
+      if (Number(inv.packagingCharges) !== 0) setShowCustomAmount(true);
       if (inv.discountTotal > 0) setShowDiscountTotal(true);
       if (inv.advancePaid > 0) setShowAdvance(true);
     } catch (e) {
@@ -248,8 +478,11 @@ const InvoiceForm = () => {
   const getTaxBreakdown = () => {
     let cgst = 0, sgst = 0, igst = 0;
     if (!hasTax) return { cgst, sgst, igst };
-    // Use IGST when placeOfSupply is filled in (inter-state), else CGST+SGST
-    const isInterState = !!(formData.placeOfSupply && formData.placeOfSupply.trim());
+    const isInterState = isInterStateSupply(
+      formData.placeOfSupply,
+      companyTaxProfile.state,
+      companyTaxProfile.gstin
+    );
     formData.items.forEach(item => {
       const taxable = calcTaxableRow(item);
       const tax = taxable * (Number(item.taxRate) / 100);
@@ -270,7 +503,13 @@ const InvoiceForm = () => {
     const ship = Number(formData.shippingCharges) || 0;
     const custom = Number(formData.packagingCharges) || 0;
     const disc = Number(formData.discountTotal) || 0;
-    return sub + totalTax + ship + custom - disc;
+    const tds = Number(formData.tds) || 0;
+    const tcs = Number(formData.tcs) || 0;
+    // Grand Total typically = Subtotal + Tax + Shipping + Custom - Discount
+    // TDS/TCS are usually handled as adjustments to the final amount or separate markers.
+    // For this app, we'll keep Grand Total as the payable amount before TDS deduction (commonly).
+    // But we'll add TCS to Grand Total if present.
+    return sub + totalTax + ship + custom - disc + tcs;
   };
 
   // ── Item helpers ──────────────────────────────────────────────
@@ -334,7 +573,8 @@ const InvoiceForm = () => {
   // ── Submit ────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.clientRef || formData.clientRef === '_CREATE_NEW_') {
+    const canAutoCreatePdfClient = formData.importSource === 'pdf' && formData.clientName?.trim();
+    if ((!formData.clientRef || formData.clientRef === '_CREATE_NEW_') && !canAutoCreatePdfClient) {
       alert('Please select a valid client.');
       return;
     }
@@ -369,6 +609,9 @@ const InvoiceForm = () => {
   const lbl = 'block text-xs font-medium text-gray-500 mb-1';
 
   const { cgst, sgst, igst } = getTaxBreakdown();
+  const pendingPdfClientName = formData.importSource === 'pdf' && !formData.clientRef
+    ? formData.clientName?.trim()
+    : '';
   
   if (loading && id) {
       return (
@@ -434,7 +677,7 @@ const InvoiceForm = () => {
           <button onClick={() => navigate('/invoices')} className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-medium">
             Cancel
           </button>
-          <button onClick={handleSubmit} disabled={loading} className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold disabled:opacity-60">
+          <button onClick={handleSubmit} disabled={loading} data-testid="save-invoice" className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold disabled:opacity-60">
             {loading ? 'Saving...' : 'Save Invoice'}
           </button>
         </div>
@@ -451,6 +694,7 @@ const InvoiceForm = () => {
               <label className={lbl}>Client Name *</label>
               <div className="relative">
                 <select
+                  data-testid="invoice-client-select"
                   className={inp}
                   value={formData.clientRef}
                   onChange={(e) => {
@@ -458,7 +702,7 @@ const InvoiceForm = () => {
                     else setFormData({ ...formData, clientRef: e.target.value });
                   }}
                 >
-                  <option value="">Select Client</option>
+                  <option value="">{pendingPdfClientName ? `${pendingPdfClientName} (will be created on save)` : 'Select Client'}</option>
                   {clients.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                   <option value="_CREATE_NEW_" className="font-bold text-blue-600">+ Create New Client</option>
                 </select>
@@ -470,6 +714,7 @@ const InvoiceForm = () => {
               <div>
                 <label className={lbl}>Place of Supply</label>
                 <input className={inp} placeholder="e.g. HR (26)" value={formData.placeOfSupply}
+                  data-testid="invoice-place-of-supply"
                   onChange={(e) => setFormData({ ...formData, placeOfSupply: e.target.value })} />
               </div>
             )}
@@ -490,6 +735,7 @@ const InvoiceForm = () => {
             <div>
               <label className={lbl}>Invoice No.</label>
               <input 
+                data-testid="invoice-number"
                 className={inp} 
                 value={formData.invoiceNo} 
                 onChange={(e) => setFormData({ ...formData, invoiceNo: e.target.value })}
@@ -512,6 +758,7 @@ const InvoiceForm = () => {
               <label className={lbl}>Due Date</label>
               <div className="relative">
                 <input type="date" className={inp} value={formData.dueDate}
+                  data-testid="invoice-due-date"
                   onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} />
               </div>
             </div>
@@ -550,6 +797,7 @@ const InvoiceForm = () => {
             <div>
               <label className={lbl}>Payment Mode</label>
               <select className={inp} value={formData.paymentMode}
+                data-testid="invoice-payment-mode"
                 onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}>
                 <option value="">Select</option>
                 <option>Cash</option>
@@ -632,6 +880,8 @@ const InvoiceForm = () => {
                   <ItemSelect
                     items={itemsList}
                     value={item.itemRef || ''}
+                    displayValue={item.name || ''}
+                    testId={`invoice-item-select-${index}`}
                     onChange={(found) => {
                       const newItems = [...formData.items];
                       newItems[index] = {
@@ -655,6 +905,7 @@ const InvoiceForm = () => {
                 {/* Description */}
                 <div>
                   <input placeholder="Description"
+                    data-testid={`invoice-item-description-${index}`}
                     className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none text-gray-500"
                     value={item.description} onChange={(e) => updateItem(index, 'description', e.target.value)} />
                 </div>
@@ -680,12 +931,14 @@ const InvoiceForm = () => {
                 {/* Qty */}
                 <div>
                   <input type="number" min="0" className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                    data-testid={`invoice-item-qty-${index}`}
                     value={item.qty} onChange={(e) => updateItem(index, 'qty', e.target.value)} />
                 </div>
 
                 {/* Price */}
                 <div>
                   <input type="number" min="0" className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                    data-testid={`invoice-item-rate-${index}`}
                     value={item.rate} onChange={(e) => updateItem(index, 'rate', e.target.value)} />
                 </div>
 
@@ -902,12 +1155,41 @@ const InvoiceForm = () => {
                 <FaPlus size={14} /> Add Advance Payment
               </button>
               {showAdvance && (
-                <div className="mt-2 pl-6 flex items-center gap-2">
-                  <label className="text-xs text-gray-500">Amount Paid:</label>
-                  <input type="number" className="border border-blue-200 rounded px-2 py-1.5 text-sm w-36 outline-none bg-blue-50 focus:border-blue-500"
-                    value={formData.advancePaid} onChange={(e) => setFormData({ ...formData, advancePaid: e.target.value })} />
+                <div className="mt-2 pl-6 flex items-center gap-4">
+                  <div>
+                    <label className="text-[10px] text-gray-500 uppercase block">Amount Paid:</label>
+                    <input type="number" className="border border-blue-200 rounded px-2 py-1.5 text-sm w-36 outline-none bg-blue-50 focus:border-blue-500"
+                      value={formData.advancePaid} onChange={(e) => setFormData({ ...formData, advancePaid: e.target.value })} />
+                  </div>
                 </div>
               )}
+            </div>
+
+            {/* TDS & TCS */}
+            <div className="pt-2 grid grid-cols-2 gap-4">
+              <div>
+                <label className={lbl}>TDS Deduction {!isPro && <span className="text-[10px] font-bold text-amber-500 bg-amber-50 px-1 rounded ml-1 border border-amber-200 uppercase tracking-tighter">Pro</span>}</label>
+                <input type="number" placeholder="Amount"
+                  value={formData.tds} onChange={(e) => setFormData({ ...formData, tds: e.target.value })} disabled={!isPro} onClick={() => !isPro && setShowPremiumModal(true)} className={`${inp} ${!isPro ? "opacity-50 cursor-not-allowed bg-gray-50" : ""}`} />
+              </div>
+              <div>
+                <label className={lbl}>TCS Collection {!isPro && <span className="text-[10px] font-bold text-amber-500 bg-amber-50 px-1 rounded ml-1 border border-amber-200 uppercase tracking-tighter">Pro</span>}</label>
+                <input type="number" placeholder="Amount"
+                  value={formData.tcs} onChange={(e) => setFormData({ ...formData, tcs: e.target.value })} disabled={!isPro} onClick={() => !isPro && setShowPremiumModal(true)} className={`${inp} ${!isPro ? "opacity-50 cursor-not-allowed bg-gray-50" : ""}`} />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+               <div>
+                  <label className={lbl}>Currency</label>
+                  <input type="text" className={inp} placeholder="INR"
+                    value={formData.currency} onChange={(e) => setFormData({ ...formData, currency: e.target.value })} />
+               </div>
+               <div>
+                  <label className={lbl}>Financial Year</label>
+                  <input type="text" className={inp} placeholder="e.g. 2023-24"
+                    value={formData.fy} onChange={(e) => setFormData({ ...formData, fy: e.target.value })} />
+               </div>
             </div>
           </div>
 
@@ -944,7 +1226,7 @@ const InvoiceForm = () => {
                   <span>₹ {Number(formData.shippingCharges).toFixed(2)}</span>
                 </div>
               )}
-              {showCustomAmount && Number(formData.packagingCharges) > 0 && (
+              {showCustomAmount && Number(formData.packagingCharges) !== 0 && (
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>{formData.customChargeLabel}</span>
                   <span>₹ {Number(formData.packagingCharges).toFixed(2)}</span>
@@ -954,6 +1236,12 @@ const InvoiceForm = () => {
                 <div className="flex justify-between text-sm text-red-500">
                   <span>Discount on Total</span>
                   <span>- ₹ {Number(formData.discountTotal).toFixed(2)}</span>
+                </div>
+              )}
+              {Number(formData.tcs) > 0 && (
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>TCS Collected</span>
+                  <span>+ ₹ {Number(formData.tcs).toFixed(2)}</span>
                 </div>
               )}
 
@@ -970,9 +1258,21 @@ const InvoiceForm = () => {
                   </div>
                   <div className="flex justify-between text-sm font-bold text-gray-800 border-t border-gray-200 pt-2">
                     <span>Balance Due</span>
-                    <span>₹ {Math.max(0, getGrandTotal() - Number(formData.advancePaid)).toFixed(2)}</span>
+                    <span>₹ {Math.max(0, getGrandTotal() - Number(formData.advancePaid) - Number(formData.tds)).toFixed(2)}</span>
                   </div>
                 </>
+              )}
+              {Number(formData.tds) > 0 && !showAdvance && (
+                 <div className="flex justify-between text-sm text-red-500">
+                    <span>TDS Deducted</span>
+                    <span>- ₹ {Number(formData.tds).toFixed(2)}</span>
+                 </div>
+              )}
+              {Number(formData.tds) > 0 && showAdvance && (
+                 <div className="flex justify-between text-sm text-red-500">
+                    <span>TDS Deducted</span>
+                    <span>- ₹ {Number(formData.tds).toFixed(2)}</span>
+                 </div>
               )}
             </div>
           </div>

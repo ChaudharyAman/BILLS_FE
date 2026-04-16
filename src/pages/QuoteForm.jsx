@@ -9,6 +9,26 @@ import Skeleton from '../components/Skeleton';
 import CsvUploader from '../components/CsvUploader';
 import ItemSelect from '../components/ItemSelect';
 
+const parseDocumentNumberParts = (value, prefix) => {
+  const raw = String(value || '').trim();
+  if (!raw) return { docNo: '', docNoSuffix: '' };
+
+  const normalizedPrefix = String(prefix || '').trim().replace(/[-/\s]+$/g, '');
+  const withoutPrefix = normalizedPrefix && raw.startsWith(`${normalizedPrefix}-`)
+    ? raw.slice(normalizedPrefix.length + 1)
+    : raw;
+
+  const parts = withoutPrefix.split('-');
+  if (parts.length === 1) {
+    return { docNo: parts[0], docNoSuffix: '' };
+  }
+
+  return {
+    docNo: parts[0],
+    docNoSuffix: parts.slice(1).join('-'),
+  };
+};
+
 // docType: 'quote' | 'proforma'
 const QuoteForm = ({ docType = 'quote' }) => {
   const navigate = useNavigate();
@@ -41,6 +61,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
   const [showDiscountToAll, setShowDiscountToAll] = useState(false);
   const [discountToAll, setDiscountToAll] = useState('');
   const [showCustomAmount, setShowCustomAmount] = useState(false);
+  const [prefixes, setPrefixes] = useState({ quote: 'QT', proforma: 'PRF' });
 
   const emptyItem = () => ({
     name: '', description: '', hsnCode: '', unit: 'pcs',
@@ -70,26 +91,43 @@ const QuoteForm = ({ docType = 'quote' }) => {
   const hasTax = ['Tax Invoice', 'Excise Invoice'].includes(formData.invoiceType);
 
   useEffect(() => {
-    fetchDependencies();
-    if (id) fetchDoc(id);
+    const load = async () => {
+      const loadedPrefixes = await fetchDependencies();
+      if (id) await fetchDoc(id, loadedPrefixes);
+    };
+    load();
   }, [id]);
 
   const fetchDependencies = async () => {
     try {
-      const [cr, ir] = await Promise.all([api.get('/clients?limit=1000'), api.get('/items?limit=1000')]);
+      const [cr, ir, sr] = await Promise.all([
+        api.get('/clients?limit=1000'),
+        api.get('/items?limit=1000'),
+        api.get('/settings'),
+      ]);
       setClients(cr.data.data || []);
       setItemsList(ir.data.data || []);
+      const loadedPrefixes = {
+        quote: sr.data?.quotePrefix || 'QT',
+        proforma: sr.data?.proformaPrefix || 'PRF',
+      };
+      setPrefixes(loadedPrefixes);
+      return loadedPrefixes;
     } catch (e) { console.error(e); }
+    return prefixes;
   };
 
-  const fetchDoc = async (docId) => {
+  const fetchDoc = async (docId, prefixMap = prefixes) => {
     try {
       const res = await api.get(`${apiBase}/${docId}`);
       const d = res.data;
+      const docNumber = isProforma ? d.proformaNo : d.quoteNo;
+      const parsedDocNumber = parseDocumentNumberParts(docNumber, isProforma ? prefixMap.proforma : prefixMap.quote);
       setFormData({
         invoiceType: d.invoiceType || 'Tax Invoice',
         clientRef: d.client?.clientRef || '',
-        docNo: '', docNoSuffix: '',
+        docNo: parsedDocNumber.docNo,
+        docNoSuffix: parsedDocNumber.docNoSuffix,
         poNumber: d.transport?.poNumber || '',
         date: d.date ? d.date.split('T')[0] : '',
         validUntil: d.validUntil ? d.validUntil.split('T')[0] : '',
@@ -114,7 +152,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
       });
       if (d.shippingCharges > 0) setShowShipping(true);
       if (d.discountTotal > 0) setShowDiscountTotal(true);
-      if (d.packagingCharges > 0) setShowCustomAmount(true);
+      if (Number(d.packagingCharges) !== 0) setShowCustomAmount(true);
     } catch (e) { console.error(e); }
   };
 
@@ -239,6 +277,9 @@ const QuoteForm = ({ docType = 'quote' }) => {
         ...formData,
         status: saveAsDraft ? 'DRAFT' : formData.status,
         items: formData.items.map(it => ({ ...it, amount: calcRow(it) })),
+        transport: {
+          poNumber: formData.poNumber || '',
+        },
         shippingCharges: showShipping ? Number(formData.shippingCharges) : 0,
         discountTotal: showDiscountTotal ? Number(formData.discountTotal) : 0,
         packagingCharges: showCustomAmount ? Number(formData.customChargeAmount) : 0,
@@ -353,6 +394,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
                 <label className="text-sm text-gray-600 w-28 flex-shrink-0">Client name</label>
                 <div className="flex gap-2 flex-1">
                   <select value={formData.clientRef}
+                    data-testid="quote-client-select"
                     onChange={e => {
                       setFormData(f => ({ ...f, clientRef: e.target.value }));
                       // Show pending if client has outstanding
@@ -380,9 +422,10 @@ const QuoteForm = ({ docType = 'quote' }) => {
             <div className="grid grid-cols-[110px_1fr_120px_1fr] gap-x-4 gap-y-3 items-center">
               
               {/* Row 1: Quotation No + Date */}
-              <label className="text-sm text-gray-600">Quotation no</label>
+              <label className="text-sm text-gray-600">{docNoLabel}</label>
               <div className="flex gap-2">
                 <input type="text" placeholder="123" value={formData.docNo}
+                  data-testid="quote-doc-number"
                   onChange={e => setFormData(f => ({ ...f, docNo: e.target.value }))}
                   className={`${inp} w-24`} />
                 <input type="text" placeholder="2" value={formData.docNoSuffix}
@@ -406,6 +449,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
                 className={inp} placeholder="" />
               <label className="text-sm text-gray-600 text-right">Valid until</label>
               <input type="date" value={formData.validUntil}
+                data-testid="quote-valid-until"
                 onChange={e => setFormData(f => ({ ...f, validUntil: e.target.value }))}
                 className={inp} />
 
@@ -458,6 +502,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
                       <ItemSelect
                         items={itemsList}
                         value={item.itemRef || ''}
+                        testId={`quote-item-select-${idx}`}
                         onChange={(found) => selectItem(idx, found._id)}
                         onAddNew={() => { setPendingItemIndex(idx); setIsItemModalOpen(true); }}
                         onEdit={(it) => navigate(`/items/edit/${it._id}`)}
@@ -468,6 +513,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
                     </td>
                     <td className="px-2 py-2 align-top">
                       <textarea rows={2} placeholder="Description" value={item.description}
+                        data-testid={`quote-item-description-${idx}`}
                         onChange={e => updateItem(idx, 'description', e.target.value)}
                         className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full resize-none focus:outline-none focus:ring-1 focus:ring-blue-400" />
                       <div className="text-xs text-gray-400 mt-0.5">
@@ -484,11 +530,13 @@ const QuoteForm = ({ docType = 'quote' }) => {
                     </td>
                     <td className="px-2 py-2 align-top">
                       <input type="number" min="0" value={item.qty}
+                        data-testid={`quote-item-qty-${idx}`}
                         onChange={e => updateItem(idx, 'qty', e.target.value)}
                         className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400" />
                     </td>
                     <td className="px-2 py-2 align-top">
                       <input type="number" min="0" placeholder="Price" value={item.rate || ''}
+                        data-testid={`quote-item-rate-${idx}`}
                         onChange={e => updateItem(idx, 'rate', e.target.value)}
                         className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400" />
                     </td>
@@ -684,6 +732,12 @@ const QuoteForm = ({ docType = 'quote' }) => {
                   <span>- ₹ {Number(formData.discountTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
+              {showCustomAmount && Number(formData.customChargeAmount) !== 0 && (
+                <div className="flex justify-between py-2 border-b border-gray-200 text-sm text-gray-600">
+                  <span>{formData.customChargeLabel}:</span>
+                  <span>₹ {Number(formData.customChargeAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
               <div className="flex justify-between py-2.5 text-sm font-bold text-green-700 bg-green-50 px-2 rounded mt-1">
                 <span>Total:</span>
                 <span>₹ {grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
@@ -713,10 +767,12 @@ const QuoteForm = ({ docType = 'quote' }) => {
         {/* ── Footer Buttons ── */}
         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center gap-3">
           <button type="submit" disabled={loading}
+            data-testid="quote-save"
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded text-sm font-semibold transition-colors disabled:opacity-60">
             ✓ Preview &amp; save
           </button>
           <button type="button" disabled={loading}
+            data-testid="quote-save-draft"
             onClick={e => handleSubmit(e, true)}
             className="px-5 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60">
             Save as draft

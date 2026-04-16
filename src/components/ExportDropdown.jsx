@@ -9,7 +9,7 @@ import * as XLSX from 'xlsx';
  * @param {String} filename - The base name for the downloaded file (without extension).
  * @param {Array} columns - (Optional) Array of column keys to include, or an array of { header, key } objects.
  */
-const ExportDropdown = ({ data, filename = 'export', columns = null }) => {
+const ExportDropdown = ({ data, filename = 'export', columns = null, testId = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -98,6 +98,7 @@ const ExportDropdown = ({ data, filename = 'export', columns = null }) => {
     <div className="relative inline-block text-left" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
+        data-testid={testId || undefined}
         className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
       >
         <FaDownload size={14} className="text-slate-400" /> 
@@ -110,6 +111,7 @@ const ExportDropdown = ({ data, filename = 'export', columns = null }) => {
           <div className="py-1" role="menu" aria-orientation="vertical">
             <button
               onClick={handleExportCSV}
+              data-testid={testId ? `${testId}-csv` : undefined}
               className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-colors"
               role="menuitem"
             >
@@ -118,6 +120,7 @@ const ExportDropdown = ({ data, filename = 'export', columns = null }) => {
             </button>
             <button
               onClick={handleExportExcel}
+              data-testid={testId ? `${testId}-excel` : undefined}
               className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-colors"
               role="menuitem"
             >

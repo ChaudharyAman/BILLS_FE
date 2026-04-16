@@ -25,7 +25,7 @@ const PurchaseOrderList = () => {
   const userStr = localStorage.getItem('user');
   let userObj = null;
   try { userObj = userStr ? JSON.parse(userStr).user : null; } catch(e) {}
-  const isPro = userObj?.subscription?.plan === 'pro';
+  const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -141,7 +141,8 @@ const PurchaseOrderList = () => {
     SENT: 'bg-blue-100 text-blue-700 border-blue-200',
     ACCEPTED: 'bg-green-100 text-green-700 border-green-200',
     REJECTED: 'bg-red-100 text-red-700 border-red-200',
-    CONVERTED: 'bg-purple-100 text-purple-700 border-purple-200',
+    BILLED: 'bg-purple-100 text-purple-700 border-purple-200',
+    CANCELLED: 'bg-slate-100 text-slate-700 border-slate-200',
   };
 
   return (
@@ -248,7 +249,7 @@ const PurchaseOrderList = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{fmtDate(q.date)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {q.validUntil ? (
-                      <span className={new Date(q.validUntil) < new Date() && q.status !== 'CONVERTED' ? 'text-red-500 font-medium' : ''}>
+                      <span className={new Date(q.validUntil) < new Date() && q.status !== 'BILLED' ? 'text-red-500 font-medium' : ''}>
                         {fmtDate(q.validUntil)}
                       </span>
                     ) : '—'}
@@ -265,7 +266,7 @@ const PurchaseOrderList = () => {
                     <div className="flex justify-center gap-2 items-center">
                       <Link to={`/purchase-orders/${q._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View"><FaEye size={17} /></Link>
                       <Link to={`/purchase-orders/edit/${q._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={17} /></Link>
-                      {q.status !== 'CONVERTED' && (
+                      {q.status !== 'BILLED' && (
                         <button onClick={() => handleConvert(q._id)} className="text-gray-400 hover:text-purple-600 transition-colors" title="Convert to Invoice">
                           <FaArrowRight size={17} />
                         </button>

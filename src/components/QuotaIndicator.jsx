@@ -9,12 +9,14 @@ const QuotaIndicator = ({ type }) => {
 
   // Check user subscription tier
   const userStr = localStorage.getItem('user');
-  const userObj = userStr ? JSON.parse(userStr).user : null;
-  const isPro = userObj?.subscription?.plan === 'pro';
+  let userObj = null;
+  try { userObj = userStr ? JSON.parse(userStr).user : null; } catch (e) {}
+  const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
+  const isSuperAdmin = userObj?.role === 'superadmin';
 
   useEffect(() => {
     // Only fetch for free users
-    if (!isPro) {
+    if (!isPro && !isSuperAdmin) {
       const fetchUsage = async () => {
         try {
           const res = await api.get('/subscriptions/usage');
@@ -28,9 +30,9 @@ const QuotaIndicator = ({ type }) => {
       };
       fetchUsage();
     }
-  }, [isPro, type]);
+  }, [isPro, isSuperAdmin, type]);
 
-  if (isPro) return null; // Pro users have unlimited
+  if (isPro || isSuperAdmin) return null; // premium users have unlimited
   if (loading || !usage) return <div className="h-14 animate-pulse bg-gray-100 rounded-xl"></div>;
 
   const { used, limit } = usage;

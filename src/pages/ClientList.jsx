@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { FaPlus, FaSearch, FaChevronDown, FaSort, FaTrash, FaPencilAlt } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
+import Modal from '../components/Modal';
 import ExportDropdown from '../components/ExportDropdown';
 import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
 
@@ -18,6 +19,12 @@ const ClientList = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+
+  const userStr = localStorage.getItem('user');
+  let userObj = null;
+  try { userObj = userStr ? JSON.parse(userStr).user : null; } catch(e) {}
+  const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -171,24 +178,31 @@ const ClientList = () => {
 
         {/* Right Side: Actions */}
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-             <ExportDropdown 
-                data={filteredClients} 
-                filename="MyBill_Clients_Export" 
-                columns={[
-                   { header: 'Company Name', key: 'name' },
-                   { header: 'Email', key: 'email' },
-                   { header: 'Phone', key: 'phone' },
-                   { header: 'City', key: 'billingAddress.city' },
-                   { header: 'State', key: 'billingAddress.state' },
-                   { header: 'Opening Balance', key: 'openingBalance' }
-                ]}
-             />
+             <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
+               <ExportDropdown 
+                  disabled={!isPro}
+                  testId="clients-export"
+                  data={filteredClients} 
+                  filename="MyBill_Clients_Export" 
+                  columns={[
+                     { header: 'Company Name', key: 'name' },
+                     { header: 'Email', key: 'email' },
+                     { header: 'Phone', key: 'phone' },
+                     { header: 'City', key: 'billingAddress.city' },
+                     { header: 'State', key: 'billingAddress.state' },
+                     { header: 'Opening Balance', key: 'openingBalance' }
+                  ]}
+               />
+             </div>
              
-             <CsvAndExcelUploader 
-               onDataParsed={handleCsvParsed} 
-               isLoading={isUploading}
-               compact={true}
-             />
+             <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
+               <CsvAndExcelUploader 
+                 onDataParsed={handleCsvParsed} 
+                 isLoading={isUploading}
+                 compact={true}
+                 disabled={!isPro}
+               />
+             </div>
 
              <Link
               to="/clients/new"
@@ -310,9 +324,12 @@ const ClientList = () => {
                                         <FaPencilAlt size={14} />
                                       </Link>
                                       <button 
-                                          onClick={() => handleDelete(client._id)} 
-                                          className="text-slate-300 hover:text-red-500 transition-colors"
-                                          title="Delete"
+                                          onClick={() => {
+                                              if (!isPro) return setShowPremiumModal(true);
+                                              handleDelete(client._id);
+                                          }} 
+                                          className={`transition-colors ${isPro ? 'text-slate-300 hover:text-red-500' : 'text-slate-200 hover:text-slate-400'}`}
+                                          title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
                                       >
                                           <FaTrash size={14} />
                                       </button>
@@ -376,6 +393,27 @@ const ClientList = () => {
             </div>
         </div>
       </div>
+      {/* Premium Feature Modal */}
+      <Modal isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} title="Premium Feature">
+        <div className="p-4 text-center">
+          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Upgrade to Pro</h3>
+          <p className="text-gray-500 mb-6">
+            Bulk operations and data management are premium features. Upgrade to Pro to unlock unlimited document management, including bulk import/export and deleting clients.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button onClick={() => setShowPremiumModal(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+              Maybe Later
+            </button>
+            <Link to="/subscription" className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 rounded-xl shadow-lg shadow-yellow-500/30 transition-all flex items-center gap-2">
+              Upgrade Now
+            </Link>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   );
 };

@@ -322,6 +322,7 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                             Company name
                         </label>
                         <input type="text" name="name" required value={formData.name} onChange={handleChange}
+                            data-testid="vendor-name"
                             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                     </div>
                     <div>
@@ -332,6 +333,7 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Email</label>
                         <input type="email" name="email" value={formData.email} onChange={handleChange}
+                            data-testid="vendor-email"
                             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                     </div>
                      <div>
@@ -470,6 +472,7 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                                       <div>
                                         <label className="block text-xs text-slate-500 mb-1">State</label>
                                         <input type="text" name="billingAddress.state" value={formData.billingAddress.state} onChange={handleChange}
+                                            data-testid="vendor-billing-state"
                                             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                      </div>
                                       <div>
@@ -635,6 +638,7 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                      Cancel
                  </button>
                  <button type="submit" disabled={loading}
+                    data-testid="save-vendor"
                     className="px-6 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors shadow-md hover:shadow-lg flex items-center gap-2">
                      <FaSave size={18} />
                      {loading ? 'Saving...' : 'Save Vendor'}

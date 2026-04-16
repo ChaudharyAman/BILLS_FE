@@ -193,6 +193,7 @@ const ExpenseForm = () => {
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                 <span className={`${labelCls} !mb-0 min-w-[90px] shrink-0`}>Vendor name</span>
                 <select 
+                  data-testid="expense-vendor-select"
                   className={`${inputBaseCls} flex-1`}
                   value={formData.vendorRef}
                   onChange={e => setFormData(p => ({ ...p, vendorRef: e.target.value }))}
@@ -222,6 +223,7 @@ const ExpenseForm = () => {
                   -
                   <input 
                     type="text" 
+                    data-testid="expense-number-suffix"
                     className="flex-1 border border-gray-200 rounded text-sm px-3 py-2 text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans bg-[#f8f9fa] shadow-sm font-normal" 
                     value={formData.expenseNumberSuffix}
                     onChange={e => setFormData(p => ({ ...p, expenseNumberSuffix: e.target.value }))}
@@ -235,6 +237,7 @@ const ExpenseForm = () => {
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Payment method</span>
                 <select 
+                  data-testid="expense-payment-method"
                   className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
                   value={formData.paymentMethod}
                   onChange={e => setFormData(p => ({ ...p, paymentMethod: e.target.value }))}
@@ -279,6 +282,7 @@ const ExpenseForm = () => {
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Client</span>
                 <select 
+                  data-testid="expense-client-select"
                   className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
                   value={formData.clientRef}
                   onChange={e => setFormData(p => ({ ...p, clientRef: e.target.value }))}
@@ -315,6 +319,7 @@ const ExpenseForm = () => {
                 {/* Item Select & Text grouped */}
                 <div className="flex-1 flex flex-col md:flex-row gap-2 w-full md:w-auto min-w-[300px]">
                   <select 
+                    data-testid={`expense-item-select-${idx}`}
                     className={`${inputBaseCls} md:w-1/2`}
                     value={item.itemRef}
                     onChange={(e) => handleItemChange(idx, 'itemRef', e.target.value)}
@@ -327,6 +332,7 @@ const ExpenseForm = () => {
                   <input 
                     type="text" 
                     placeholder="Custom Item Description"
+                    data-testid={`expense-item-name-${idx}`}
                     className={`${inputBaseCls} md:w-1/2`} 
                     value={item.name}
                     onChange={(e) => handleItemChange(idx, 'name', e.target.value)}
@@ -350,6 +356,7 @@ const ExpenseForm = () => {
                   <input 
                     type="number" 
                     placeholder="1"
+                    data-testid={`expense-item-qty-${idx}`}
                     className={inputBaseCls} 
                     value={item.qty}
                     onChange={(e) => handleItemChange(idx, 'qty', e.target.value)}
@@ -362,6 +369,7 @@ const ExpenseForm = () => {
                   <input 
                     type="number" 
                     placeholder="Price"
+                    data-testid={`expense-item-rate-${idx}`}
                     className={inputBaseCls} 
                     value={item.rate}
                     onChange={(e) => handleItemChange(idx, 'rate', e.target.value)}
@@ -464,6 +472,7 @@ const ExpenseForm = () => {
              <button 
                type="submit" 
                disabled={loading}
+               data-testid="save-expense"
                className="bg-[#48c774] hover:bg-[#3db263] text-white px-6 py-2.5 rounded font-bold text-sm tracking-wide shadow-sm flex items-center gap-2 transition-colors disabled:opacity-50"
              >
                <FaCheck size={14} /> Save
