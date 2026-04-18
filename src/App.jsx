@@ -26,6 +26,8 @@ const PurchaseOrderForm = lazy(() => import('./pages/PurchaseOrderForm'));
 const PurchaseOrderPrint = lazy(() => import('./pages/PurchaseOrderPrint'));
 const ExpenseList = lazy(() => import('./pages/ExpenseList'));
 const ExpenseForm = lazy(() => import('./pages/ExpenseForm'));
+const IncomeList = lazy(() => import('./pages/IncomeList'));
+const IncomeForm = lazy(() => import('./pages/IncomeForm'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Subscription = lazy(() => import('./pages/Subscription'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
@@ -155,6 +157,11 @@ function App() {
                   <Route path="/purchase-orders/new" element={<PurchaseOrderForm />} />
                   <Route path="/purchase-orders/edit/:id" element={<PurchaseOrderForm />} />
                   <Route path="/purchase-orders/:id/print" element={<PurchaseOrderPrint />} />
+
+                  {/* Incomes */}
+                  <Route path="/incomes" element={<IncomeList />} />
+                  <Route path="/incomes/new" element={<IncomeForm />} />
+                  <Route path="/incomes/edit/:id" element={<IncomeForm />} />
 
                   {/* Expenses */}
                   <Route path="/expenses" element={<ExpenseList />} />

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   FaThLarge, FaUsers, FaBox, FaFileInvoice,
   FaClipboardList, FaCog, FaSignOutAlt,
-  FaChevronDown, FaChevronRight, FaMinus, FaStar,
+  FaChevronDown, FaChevronRight, FaMinus, FaPlus, FaStar,
   FaChartBar, FaWallet, FaLock, FaTimes, FaTruck, FaShoppingCart
 } from 'react-icons/fa';
 import api from '../api/axios';
@@ -146,6 +146,11 @@ const Layout = ({ children }) => {
             <FaShoppingCart size={ICON_SIZE} /> Purchase Orders
           </Link>
 
+          {/* Incomes */}
+          <Link to="/incomes" className={linkCls('/incomes')}>
+            <FaPlus size={ICON_SIZE} /> Incomes
+          </Link>
+
           {/* Expenses */}
           <Link to="/expenses" className={linkCls('/expenses')}>
             <FaMinus size={ICON_SIZE} /> Expenses
@@ -170,7 +175,7 @@ const Layout = ({ children }) => {
                 : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
           >
             <span className="flex items-center gap-3">
-              <FaClipboardList size={ICON_SIZE} /> Quotes &amp; Proformas
+               <FaClipboardList size={ICON_SIZE} /> Quotes &amp; Proformas
             </span>
             {quotesOpen
               ? <FaChevronDown size={14} className="text-slate-400" />

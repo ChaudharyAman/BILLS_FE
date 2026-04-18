@@ -28,6 +28,7 @@ const VendorForm = ({ onSuccess, onCancel }) => {
     isClient: false,
     useForDispatch: false,
     vendorCode: '',
+    vendorRelation: 'Bought From',
     clientWiseItemPrice: false,
     
     // Addresses
@@ -316,6 +317,15 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                              Individual
                          </label>
                      </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Vendor Relationship</label>
+                         <select name="vendorRelation" value={formData.vendorRelation} onChange={handleChange} 
+                             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all mb-4">
+                             <option value="Bought From">Bought From</option>
+                             <option value="Sold To">Sold To</option>
+                         </select>
+                    </div>
 
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">
