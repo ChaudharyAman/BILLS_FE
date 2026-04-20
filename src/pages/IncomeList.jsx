@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { FaPlus, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaFileAlt } from 'react-icons/fa';
+import { FaPlus, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaFileAlt, FaFilePdf } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 import ExportDropdown from '../components/ExportDropdown';
 import Modal from '../components/Modal';
+import PdfInvoiceImporter from '../components/PdfInvoiceImporter';
 
 const IncomeList = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const IncomeList = () => {
   const [totalRecords, setTotalRecords] = useState(0);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [isPdfScannerOpen, setIsPdfScannerOpen] = useState(false);
 
   const userStr = localStorage.getItem('user');
   let userObj = null;
@@ -92,6 +94,13 @@ const IncomeList = () => {
                  { header: 'Amount', key: 'grandTotal' }
               ]}
           />
+          <button
+            type="button"
+            onClick={() => setIsPdfScannerOpen(true)}
+            className="bg-violet-50 hover:bg-violet-100 text-violet-600 border border-violet-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <FaFilePdf size={16} /> Scan PDF
+          </button>
           <Link to="/incomes/new"
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm">
             <FaPlus size={16} /> New Income
@@ -242,6 +251,12 @@ const IncomeList = () => {
           </div>
         </div>
       </Modal>
+
+      <PdfInvoiceImporter
+        isOpen={isPdfScannerOpen}
+        onClose={() => setIsPdfScannerOpen(false)}
+        targetType="income"
+      />
 
     </div>
   );

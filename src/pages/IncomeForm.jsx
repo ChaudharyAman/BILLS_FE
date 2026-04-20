@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
 import { FaCalendarAlt, FaCheck, FaTimes, FaPlus } from 'react-icons/fa';
+import { buildPdfTransactionPatch } from '../utils/pdfTransactionImport';
 
 const IncomeForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   
   const [vendors, setVendors] = useState([]);
@@ -19,7 +21,9 @@ const IncomeForm = () => {
     date: new Date().toISOString().substring(0, 10),
     paymentMethod: '',
     vendorRef: '',
+    vendorName: '',
     clientRef: '',
+    clientName: '',
     items: [
       { itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }
     ],
@@ -42,9 +46,12 @@ const IncomeForm = () => {
         api.get('/clients?limit=1000'),
         api.get('/items?limit=1000')
       ]);
-      setVendors(vRes.data.data || []);
-      setClients(cRes.data.data || []);
-      setInventory(iRes.data.data || []);
+      const loadedVendors = vRes.data.data || [];
+      const loadedClients = cRes.data.data || [];
+      const loadedInventory = iRes.data.data || [];
+      setVendors(loadedVendors);
+      setClients(loadedClients);
+      setInventory(loadedInventory);
 
       if (id) {
         const eRes = await api.get(`/incomes/${id}`);
@@ -64,18 +71,57 @@ const IncomeForm = () => {
             date: data.date ? new Date(data.date).toISOString().substring(0, 10) : '',
             paymentMethod: data.paymentMethod || '',
             vendorRef: data.vendor?.vendorRef || '',
+            vendorName: data.vendor?.name || '',
             clientRef: data.client?.clientRef || '',
+            clientName: data.client?.name || '',
             items: data.items?.length > 0 ? data.items : [{ itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }],
             reverseCharge: data.reverseCharge || false,
             terms: data.terms || '',
             privateNotes: data.privateNotes || ''
         });
+      } else {
+        applyPdfImportData(loadedVendors, loadedClients, loadedInventory);
       }
     } catch (e) {
       console.error(e);
       alert('Failed to load form data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const applyPdfImportData = (loadedVendors, loadedClients, loadedInventory) => {
+    const source = new URLSearchParams(location.search).get('source');
+    if (source !== 'pdf' || id) return;
+
+    try {
+      const raw = sessionStorage.getItem('incomePdfImportData');
+      if (!raw) return;
+
+      const pdf = JSON.parse(raw);
+      sessionStorage.removeItem('incomePdfImportData');
+      if (!pdf._fromPdfImport) return;
+
+      const patch = buildPdfTransactionPatch(pdf, 'income', {
+        vendors: loadedVendors,
+        clients: loadedClients,
+        inventory: loadedInventory,
+      });
+
+      setFormData(prev => ({
+        ...prev,
+        incomeNumberSuffix: patch.numberSuffix || prev.incomeNumberSuffix,
+        date: patch.date || prev.date,
+        paymentMethod: patch.paymentMethod || prev.paymentMethod,
+        vendorRef: patch.vendorRef || prev.vendorRef,
+        vendorName: patch.vendorName || prev.vendorName,
+        clientRef: patch.clientRef || prev.clientRef,
+        clientName: patch.clientName || prev.clientName,
+        items: patch.items.length > 0 ? patch.items : prev.items,
+        privateNotes: [prev.privateNotes, patch.privateNotes].filter(Boolean).join('\n'),
+      }));
+    } catch (e) {
+      console.warn('Failed to load income PDF import data:', e);
     }
   };
 
@@ -136,13 +182,25 @@ const IncomeForm = () => {
     try {
       const selectedVendor = vendors.find(v => v._id === formData.vendorRef) || {};
       const selectedClient = clients.find(c => c._id === formData.clientRef) || {};
+      const scannedVendorName = formData.vendorName?.trim();
+      const scannedClientName = formData.clientName?.trim();
+
+      if (!selectedVendor._id && !scannedVendorName) {
+        alert('Please select a vendor.');
+        setLoading(false);
+        return;
+      }
 
       const payload = {
         incomeNumber: `${formData.incomeNumberPrefix}${formData.incomeNumberSuffix}`,
         date: formData.date,
         paymentMethod: formData.paymentMethod,
-        vendor: { vendorRef: selectedVendor._id, name: selectedVendor.name },
-        client: formData.clientRef ? { clientRef: selectedClient._id, name: selectedClient.name } : null,
+        vendor: selectedVendor._id
+          ? { vendorRef: selectedVendor._id, name: selectedVendor.name }
+          : { name: scannedVendorName },
+        client: selectedClient._id
+          ? { clientRef: selectedClient._id, name: selectedClient.name }
+          : (scannedClientName ? { name: scannedClientName } : null),
         reverseCharge: formData.reverseCharge,
         items: formData.items,
         subTotal: totals.subTotal,
@@ -192,18 +250,25 @@ const IncomeForm = () => {
             <div className="w-full md:w-1/3 p-6 border-r border-gray-200">
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                 <span className={`${labelCls} !mb-0 min-w-[90px] shrink-0`}>Vendor name</span>
-                <select 
-                  data-testid="income-vendor-select"
-                  className={`${inputBaseCls} flex-1`}
-                  value={formData.vendorRef}
-                  onChange={e => setFormData(p => ({ ...p, vendorRef: e.target.value }))}
-                  required
-                >
-                  <option value="" disabled className="text-gray-400">Select Vendor</option>
-                  {vendors.map(v => (
-                    <option key={v._id} value={v._id}>{v.name}</option>
-                  ))}
-                </select>
+                <div className="flex-1">
+                  <select 
+                    data-testid="income-vendor-select"
+                    className={`${inputBaseCls} w-full`}
+                    value={formData.vendorRef}
+                    onChange={e => {
+                      const vendor = vendors.find(v => v._id === e.target.value);
+                      setFormData(p => ({ ...p, vendorRef: e.target.value, vendorName: vendor?.name || p.vendorName }));
+                    }}
+                  >
+                    <option value="" disabled className="text-gray-400">Select Vendor</option>
+                    {vendors.map(v => (
+                      <option key={v._id} value={v._id}>{v.name}</option>
+                    ))}
+                  </select>
+                  {!formData.vendorRef && formData.vendorName && (
+                    <p className="mt-1 text-xs text-amber-600">Scanned: {formData.vendorName}</p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -281,17 +346,25 @@ const IncomeForm = () => {
               {/* Client Reference */}
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Client</span>
-                <select 
-                  data-testid="income-client-select"
-                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
-                  value={formData.clientRef}
-                  onChange={e => setFormData(p => ({ ...p, clientRef: e.target.value }))}
-                >
-                  <option value="" className="text-gray-400">Reference client</option>
-                  {clients.map(c => (
-                    <option key={c._id} value={c._id}>{c.name}</option>
-                  ))}
-                </select>
+                <div className="flex-1">
+                  <select 
+                    data-testid="income-client-select"
+                    className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                    value={formData.clientRef}
+                    onChange={e => {
+                      const client = clients.find(c => c._id === e.target.value);
+                      setFormData(p => ({ ...p, clientRef: e.target.value, clientName: client?.name || p.clientName }));
+                    }}
+                  >
+                    <option value="" className="text-gray-400">Reference client</option>
+                    {clients.map(c => (
+                      <option key={c._id} value={c._id}>{c.name}</option>
+                    ))}
+                  </select>
+                  {!formData.clientRef && formData.clientName && (
+                    <p className="mt-1 text-xs text-amber-600">Scanned: {formData.clientName}</p>
+                  )}
+                </div>
               </div>
 
             </div>
