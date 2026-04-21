@@ -56,6 +56,12 @@ const IncomeForm = () => {
       if (id) {
         const eRes = await api.get(`/incomes/${id}`);
         const data = eRes.data;
+
+        if (data.sourceType === 'invoice' && data.sourceInvoice) {
+          alert('This income is synced from an invoice. Opening the original invoice instead.');
+          navigate(`/invoices/edit/${data.sourceInvoice}`, { replace: true });
+          return;
+        }
         
         let prefix = 'INC-';
         let suffix = data.incomeNumber || '';
