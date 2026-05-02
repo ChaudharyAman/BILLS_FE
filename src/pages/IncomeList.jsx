@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { FaPlus, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaFileAlt } from 'react-icons/fa';
+import { FaPlus, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaFileAlt, FaFilePdf } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 import ExportDropdown from '../components/ExportDropdown';
 import Modal from '../components/Modal';
+import PdfInvoiceImporter from '../components/PdfInvoiceImporter';
 
 const IncomeList = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const IncomeList = () => {
   const [totalRecords, setTotalRecords] = useState(0);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [isPdfScannerOpen, setIsPdfScannerOpen] = useState(false);
 
   const userStr = localStorage.getItem('user');
   let userObj = null;
@@ -61,6 +63,10 @@ const IncomeList = () => {
     setSelectedIds(selectedIds.length === incomes.length ? [] : incomes.map(e => e._id));
 
   const displayed = incomes; // Backend pagination
+  const isInvoiceSynced = (income) => income?.sourceType === 'invoice' && income?.sourceInvoice;
+  const getEditPath = (income) => (
+    isInvoiceSynced(income) ? `/invoices/edit/${income.sourceInvoice}` : `/incomes/edit/${income._id}`
+  );
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const fmt = (v) => (Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
@@ -78,7 +84,7 @@ const IncomeList = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Incomes</h1>
-          <p className="text-gray-500 mt-1">Record and manage your company purchases and outgoings</p>
+          <p className="text-gray-500 mt-1">Track manual income records and invoice-linked income in one place</p>
         </div>
         <div className="flex gap-3">
           <ExportDropdown 
@@ -86,12 +92,20 @@ const IncomeList = () => {
               filename="MyBill_Incomes"
               columns={[
                  { header: 'Income No', key: 'incomeNumber' },
-                 { header: 'Vendor Name', key: 'vendor.name' },
+                 { header: 'Party Name', key: 'vendor.name' },
                  { header: 'Date', key: 'date' },
                  { header: 'Status', key: 'status' },
-                 { header: 'Amount', key: 'grandTotal' }
+                 { header: 'Amount', key: 'grandTotal' },
+                 { header: 'Source', key: 'sourceType' }
               ]}
           />
+          <button
+            type="button"
+            onClick={() => setIsPdfScannerOpen(true)}
+            className="bg-violet-50 hover:bg-violet-100 text-violet-600 border border-violet-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <FaFilePdf size={16} /> Scan PDF
+          </button>
           <Link to="/incomes/new"
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm">
             <FaPlus size={16} /> New Income
@@ -119,8 +133,9 @@ const IncomeList = () => {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Number</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vendor</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Party</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Reference Client</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Source</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
                 <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
@@ -135,13 +150,14 @@ const IncomeList = () => {
                     <td className="px-6 py-4"><Skeleton width="100px" height="20px" /></td>
                     <td className="px-6 py-4"><Skeleton width="140px" height="20px" /></td>
                     <td className="px-6 py-4"><Skeleton width="100px" height="20px" /></td>
+                    <td className="px-6 py-4"><Skeleton width="70px" height="24px" className="rounded-full" /></td>
                     <td className="px-6 py-4"><Skeleton width="80px" height="24px" className="rounded-full" /></td>
                     <td className="px-6 py-4 text-right"><Skeleton width="80px" height="20px" className="ml-auto" /></td>
                     <td className="px-6 py-4 text-center"><Skeleton width="100px" height="20px" className="mx-auto" /></td>
                   </tr>
                 ))
               ) : displayed.length === 0 ? (
-                <tr><td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">No incomes found.</td></tr>
+                <tr><td colSpan="9" className="px-6 py-12 text-center text-gray-500 text-sm">No incomes found.</td></tr>
               ) : displayed.map(exp => (
                 <tr key={exp._id} className="hover:bg-blue-50/50 transition-colors">
                   <td className="px-6 py-4 text-center">
@@ -151,15 +167,24 @@ const IncomeList = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{fmtDate(exp.date)}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <Link to={`/incomes/edit/${exp._id}`} className="text-blue-600 font-medium hover:text-blue-800 hover:underline">
+                    <Link to={getEditPath(exp)} className="text-blue-600 font-medium hover:text-blue-800 hover:underline">
                       {exp.incomeNumber}
                     </Link>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{exp.vendor?.name || '—'}</div>
+                    <div className="text-sm font-medium text-gray-900">{exp.vendor?.name || exp.client?.name || '—'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {exp.client?.name || '—'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                      exp.sourceType === 'invoice'
+                        ? 'bg-blue-100 text-blue-700 border-blue-200'
+                        : 'bg-gray-100 text-gray-700 border-gray-200'
+                    }`}>
+                      {exp.sourceType === 'invoice' ? 'Invoice' : 'Manual'}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${STATUS_STYLES[exp.status] || STATUS_STYLES.DRAFT}`}>
@@ -171,14 +196,25 @@ const IncomeList = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <div className="flex justify-center gap-3 items-center">
-                      <Link to={`/incomes/edit/${exp._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={17} /></Link>
+                      <Link
+                        to={getEditPath(exp)}
+                        className="text-gray-400 hover:text-blue-600 transition-colors"
+                        title={isInvoiceSynced(exp) ? 'Open invoice' : 'Edit'}
+                      >
+                        <FaEdit size={17} />
+                      </Link>
                       <button 
                         onClick={() => {
                           if (!isPro) return setShowPremiumModal(true);
+                          if (isInvoiceSynced(exp)) {
+                            if (!window.confirm('Delete the original invoice? This will remove it from the income tab too.')) return;
+                            api.delete(`/invoices/${exp.sourceInvoice}`).then(fetchIncomes).catch(() => alert('Failed to delete'));
+                            return;
+                          }
                           handleDelete(exp._id);
                         }} 
                         className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`} 
-                        title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
+                        title={isPro ? (isInvoiceSynced(exp) ? "Delete invoice" : "Delete") : "Pro Feature - Upgrade to Delete"}
                       >
                         <FaTrash size={17} />
                       </button>
@@ -242,6 +278,12 @@ const IncomeList = () => {
           </div>
         </div>
       </Modal>
+
+      <PdfInvoiceImporter
+        isOpen={isPdfScannerOpen}
+        onClose={() => setIsPdfScannerOpen(false)}
+        targetType="income"
+      />
 
     </div>
   );

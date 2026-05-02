@@ -10,6 +10,51 @@ const STATUS_CONFIG = {
   'rejected':      { color: 'red',     icon: FaTimesCircle, label: 'Rejected', desc: 'Could not parse — enter manually' },
 };
 
+const TARGET_CONFIG = {
+  invoice: {
+    title: 'PDF Invoice Scanner',
+    subtitle: 'Upload a PDF invoice to auto-extract data',
+    uploadText: 'Drag & drop a PDF invoice here',
+    extractLabel: 'Extract Invoice Data',
+    extractingLabel: 'Extracting invoice data...',
+    detailsTitle: 'Invoice Details',
+    sendLabel: 'Send to Invoice Form',
+    storageKey: 'pdfImportData',
+    navigateTo: '/invoices/new?source=pdf',
+    numberLabel: 'Invoice Number',
+    dateLabel: 'Invoice Date',
+    primaryPartyLabel: 'Client Name',
+  },
+  expense: {
+    title: 'PDF Expense Scanner',
+    subtitle: 'Upload a bill or receipt to prefill an expense',
+    uploadText: 'Drag & drop an expense PDF here',
+    extractLabel: 'Extract Expense Data',
+    extractingLabel: 'Extracting expense data...',
+    detailsTitle: 'Expense Details',
+    sendLabel: 'Send to Expense Form',
+    storageKey: 'expensePdfImportData',
+    navigateTo: '/expenses/new?source=pdf',
+    numberLabel: 'Bill Number',
+    dateLabel: 'Bill Date',
+    primaryPartyLabel: 'Vendor Name',
+  },
+  income: {
+    title: 'PDF Income Scanner',
+    subtitle: 'Upload an invoice or receipt to prefill income',
+    uploadText: 'Drag & drop an income PDF here',
+    extractLabel: 'Extract Income Data',
+    extractingLabel: 'Extracting income data...',
+    detailsTitle: 'Income Details',
+    sendLabel: 'Send to Income Form',
+    storageKey: 'incomePdfImportData',
+    navigateTo: '/incomes/new?source=pdf',
+    numberLabel: 'Reference Number',
+    dateLabel: 'Reference Date',
+    primaryPartyLabel: 'Customer / Payer',
+  },
+};
+
 const calculateItemTaxable = (item) => {
   const quantity = Number(item?.quantity) || 0;
   const price = Number(item?.price) || 0;
@@ -23,14 +68,16 @@ const calculateItemAmount = (item) => {
   return Number((taxable + (taxable * gstRate) / 100).toFixed(2));
 };
 
-const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess }) => {
+const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'invoice' }) => {
   const navigate = useNavigate();
+  const config = TARGET_CONFIG[targetType] || TARGET_CONFIG.invoice;
   const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
   const [error, setError] = useState(null);
+  const [extractionSource, setExtractionSource] = useState(null);
 
   // ─── File Handling ──────────────────────────────────────
   const handleFileSelect = (selectedFile) => {
@@ -82,15 +129,38 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess }) => {
         withCredentials: true
       }));
 
-      const res = await uploadApi.post('/pdf/extract', formData, {
+      const requestConfig = {
         headers: {
-          'Content-Type': 'multipart/form-data', // Axios 1.x handles this correctly with FormData
+          'Content-Type': 'multipart/form-data',
         },
-        timeout: 60000,
-      });
+        timeout: 120000,
+      };
 
-      setExtractedData(res.data);
+      let response;
+      let source = 'AI';
+      const targetQuery = encodeURIComponent(targetType || 'invoice');
+
+      try {
+        response = await uploadApi.post(`/pdf/extract-ai?target=${targetQuery}`, formData, requestConfig);
+      } catch (aiErr) {
+        source = 'Standard';
+        response = await uploadApi.post('/pdf/extract', formData, requestConfig);
+        const fallbackMessage = aiErr.response?.data?.message || aiErr.message;
+        if (fallbackMessage) {
+          console.warn('AI invoice parser unavailable, used standard parser instead:', fallbackMessage);
+        }
+        if (response?.data) {
+          response.data.warnings = [
+            ...(response.data.warnings || []),
+            `AI parser was unavailable or slow, so the standard parser was used instead.`,
+          ];
+        }
+      }
+
+      setExtractionSource(source);
+      setExtractedData(response.data);
     } catch (err) {
+      setExtractionSource(null);
       setError(err.response?.data?.message || err.message || 'Failed to extract invoice data.');
     } finally {
       setIsExtracting(false);
@@ -122,7 +192,7 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess }) => {
   const addItem = () => {
     setExtractedData(prev => ({
       ...prev,
-      items: [...prev.items, { name: '', quantity: 1, unit: 'pcs', price: 0, gst: 0, discount: 0, amount: 0 }],
+      items: [...(prev.items || []), { name: '', quantity: 1, unit: 'pcs', price: 0, gst: 0, discount: 0, amount: 0 }],
     }));
   };
 
@@ -130,38 +200,50 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess }) => {
   const handleSaveToForm = () => {
     if (!extractedData) return;
     const roundOff = Number(extractedData.roundOff) || 0;
+    const items = (extractedData.items || []).map(item => ({
+      name: item.name || '',
+      description: '',
+      unit: item.unit && item.unit !== '-' ? item.unit : 'pcs',
+      qty: item.quantity || 1,
+      rate: item.price || 0,
+      taxRate: item.gst || 0,
+      discount: item.discount || 0,
+    }));
 
-    // Store the extracted data in sessionStorage for the InvoiceForm to pick up
-    const payload = {
-      invoiceNo: extractedData.invoiceNumber || '',
-      invoiceDate: extractedData.invoiceDate || '',
+    const commonPayload = {
+      documentNumber: extractedData.invoiceNumber || '',
+      documentDate: extractedData.invoiceDate || '',
       dueDate: extractedData.dueDate || '',
+      vendorName: extractedData.vendorName || '',
+      vendorGST: extractedData.vendorGST || '',
       clientName: extractedData.clientName || '',
       clientGST: extractedData.clientGST || '',
       placeOfSupply: extractedData.placeOfSupply || '',
+      paymentMethod: extractedData.paymentMode || '',
       paymentMode: extractedData.paymentMode || '',
       poNumber: extractedData.poNumber || '',
       poDate: extractedData.poDate || '',
-      items: (extractedData.items || []).map(item => ({
-        name: item.name || '',
-        description: '',
-        unit: item.unit && item.unit !== '-' ? item.unit : 'pcs',
-        qty: item.quantity || 1,
-        rate: item.price || 0,
-        taxRate: item.gst || 0,
-        discount: item.discount || 0,
-      })),
+      items,
       subTotal: extractedData.subTotal || 0,
       taxTotal: extractedData.taxAmount || 0,
       grandTotal: extractedData.totalAmount || 0,
-      customChargeLabel: roundOff ? 'Round Off' : '',
-      packagingCharges: roundOff,
       _fromPdfImport: true,
     };
 
-    sessionStorage.setItem('pdfImportData', JSON.stringify(payload));
+    const payload = targetType === 'invoice'
+      ? {
+          ...commonPayload,
+          invoiceNo: extractedData.invoiceNumber || '',
+          invoiceDate: extractedData.invoiceDate || '',
+          customChargeLabel: roundOff ? 'Round Off' : '',
+          packagingCharges: roundOff,
+        }
+      : commonPayload;
+
+    sessionStorage.setItem(config.storageKey, JSON.stringify(payload));
     onClose();
-    navigate('/invoices/new?source=pdf');
+    if (onImportSuccess) onImportSuccess();
+    navigate(config.navigateTo);
   };
 
   // ─── Reset ─────────────────────────────────────────────
@@ -169,6 +251,7 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess }) => {
     setFile(null);
     setExtractedData(null);
     setError(null);
+    setExtractionSource(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -176,10 +259,10 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess }) => {
 
   const statusCfg = extractedData ? STATUS_CONFIG[extractedData.status] || STATUS_CONFIG['rejected'] : null;
   const computedSubTotal = extractedData
-    ? Number(extractedData.items.reduce((sum, item) => sum + calculateItemTaxable(item), 0).toFixed(2))
+    ? Number((extractedData.items || []).reduce((sum, item) => sum + calculateItemTaxable(item), 0).toFixed(2))
     : 0;
   const computedTaxAmount = extractedData
-    ? Number(extractedData.items.reduce((sum, item) => sum + (calculateItemAmount(item) - calculateItemTaxable(item)), 0).toFixed(2))
+    ? Number((extractedData.items || []).reduce((sum, item) => sum + (calculateItemAmount(item) - calculateItemTaxable(item)), 0).toFixed(2))
     : 0;
   const computedGrandTotal = extractedData
     ? Number((computedSubTotal + computedTaxAmount + (Number(extractedData.roundOff) || 0)).toFixed(2))
@@ -198,8 +281,8 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess }) => {
               <FaFilePdf className="text-white" size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">PDF Invoice Scanner</h2>
-              <p className="text-xs text-gray-500">Upload a PDF invoice to auto-extract data</p>
+              <h2 className="text-lg font-bold text-gray-900">{config.title}</h2>
+              <p className="text-xs text-gray-500">{config.subtitle}</p>
             </div>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100">
@@ -244,7 +327,7 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess }) => {
                   <div className="space-y-3">
                     <FaCloudUploadAlt className="mx-auto text-gray-400" size={48} />
                     <p className="text-base font-medium text-gray-700">
-                      {isDragging ? 'Drop your PDF here...' : 'Drag & drop a PDF invoice here'}
+                      {isDragging ? 'Drop your PDF here...' : config.uploadText}
                     </p>
                     <p className="text-xs text-gray-400">or click to browse • Max 10MB</p>
                   </div>
@@ -267,12 +350,12 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess }) => {
                   {isExtracting ? (
                     <>
                       <FaSpinner className="animate-spin" size={18} />
-                      Extracting data...
+                      {config.extractingLabel}
                     </>
                   ) : (
                     <>
                       <FaFilePdf size={18} />
-                      Extract Invoice Data
+                      {config.extractLabel}
                     </>
                   )}
                 </button>
@@ -294,6 +377,9 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess }) => {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-gray-900">{statusCfg?.label}</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                      {extractionSource || (extractedData.metadata?.parsedWithAI ? 'AI' : 'Standard')} parser
+                    </span>
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full
                       ${extractedData.confidence >= 90 ? 'bg-emerald-200 text-emerald-800' :
                         extractedData.confidence >= 75 ? 'bg-amber-200 text-amber-800' :
@@ -335,14 +421,20 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess }) => {
               {/* Editable Fields Grid */}
               <div className="bg-gray-50 rounded-xl border border-gray-200 p-4">
                 <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                  <FaEdit size={14} /> Invoice Details
+                  <FaEdit size={14} /> {config.detailsTitle}
                   <span className="text-xs font-normal text-gray-400">(click any field to edit)</span>
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <EditableField label="Invoice Number" value={extractedData.invoiceNumber} onChange={v => updateField('invoiceNumber', v)} />
-                  <EditableField label="Invoice Date" value={extractedData.invoiceDate} onChange={v => updateField('invoiceDate', v)} type="date" />
+                  <EditableField label={config.numberLabel} value={extractedData.invoiceNumber} onChange={v => updateField('invoiceNumber', v)} />
+                  <EditableField label={config.dateLabel} value={extractedData.invoiceDate} onChange={v => updateField('invoiceDate', v)} type="date" />
                   <EditableField label="Due Date" value={extractedData.dueDate} onChange={v => updateField('dueDate', v)} type="date" />
-                  <EditableField label="Client Name" value={extractedData.clientName} onChange={v => updateField('clientName', v)} />
+                  {targetType === 'income' && (
+                    <EditableField label="Vendor / Issuer" value={extractedData.vendorName} onChange={v => updateField('vendorName', v)} />
+                  )}
+                  <EditableField label={config.primaryPartyLabel} value={targetType === 'expense' ? extractedData.vendorName : extractedData.clientName} onChange={v => updateField(targetType === 'expense' ? 'vendorName' : 'clientName', v)} />
+                  {targetType === 'expense' && (
+                    <EditableField label="Client / Buyer" value={extractedData.clientName} onChange={v => updateField('clientName', v)} />
+                  )}
                   <EditableField label="Client GSTIN" value={extractedData.clientGST} onChange={v => updateField('clientGST', v)} />
                   <EditableField label="Place of Supply" value={extractedData.placeOfSupply} onChange={v => updateField('placeOfSupply', v)} />
                   <EditableField label="Payment Mode" value={extractedData.paymentMode} onChange={v => updateField('paymentMode', v)} />
@@ -473,11 +565,11 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess }) => {
                 </button>
                 <button
                   onClick={handleSaveToForm}
-                  disabled={extractedData.status === 'rejected' && extractedData.items.length === 0}
+                  disabled={extractedData.status === 'rejected' && (extractedData.items || []).length === 0}
                   className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <FaCheckCircle size={16} />
-                  Send to Invoice Form
+                  {config.sendLabel}
                 </button>
               </div>
             </>

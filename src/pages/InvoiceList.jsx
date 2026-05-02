@@ -181,10 +181,8 @@ const InvoiceList = () => {
   };
   
   const getStatusBadge = (status, balance) => {
-      // Logic for status if not explicit in DB (or use DB status)
-      // Assuming 'status' field exists or derived
-      let finalStatus = status || 'SENT';
-      if (balance === 0) finalStatus = 'PAID';
+      const normalizedBalance = Number(balance) || 0;
+      const finalStatus = status || (normalizedBalance === 0 ? 'PAID' : 'SENT');
       
       const styles = {
           'PAID': 'bg-green-100 text-green-700 border-green-200',
@@ -193,6 +191,7 @@ const InvoiceList = () => {
           'OVERDUE': 'bg-red-100 text-red-700 border-red-200',
           'PARTIAL': 'bg-yellow-100 text-yellow-700 border-yellow-200',
           'UNPAID': 'bg-orange-100 text-orange-700 border-orange-200',
+          'CANCELLED': 'bg-red-100 text-red-700 border-red-200',
       };
       
       return (

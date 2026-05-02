@@ -10,6 +10,8 @@ import CsvUploader from '../components/CsvUploader';
 import ItemSelect from '../components/ItemSelect';
 
 const INVOICE_TYPES = ['Invoice', 'Retail Invoice', 'Tax Invoice', 'Excise Invoice'];
+const STANDARD_TAX_RATES = [0, 5, 12, 18, 28];
+const MAX_GST_RATE = 28;
 
 const TAX_TYPES = {
   'Invoice': false,
@@ -83,6 +85,32 @@ const normalizeCatalogName = (value = '') => String(value || '')
   .trim()
   .replace(/\s+/g, ' ')
   .toLowerCase();
+
+const normalizeTaxRate = (value = '') => {
+  const numeric = Number.parseFloat(String(value ?? '').replace('%', '').trim());
+  if (!Number.isFinite(numeric) || numeric < 0) return 0;
+  return numeric;
+};
+
+const sanitizeGstRate = (value = '') => {
+  const numeric = normalizeTaxRate(value);
+  return numeric > MAX_GST_RATE ? 0 : numeric;
+};
+
+const isCustomTaxRate = (value = '') => !STANDARD_TAX_RATES.includes(sanitizeGstRate(value));
+
+const getCatalogItemTaxRate = (item = {}) => {
+  const candidates = [item.defaultTaxRate, item.taxRate, item.salesInfo?.taxRate];
+
+  for (const candidate of candidates) {
+    const rate = sanitizeGstRate(candidate);
+    if (rate > 0 || String(candidate).trim() === '0') {
+      return rate;
+    }
+  }
+
+  return 0;
+};
 
 const InvoiceForm = () => {
   const navigate = useNavigate();
@@ -207,9 +235,9 @@ const InvoiceForm = () => {
               unit: item.unit || 'pcs',
               qty: item.qty || 1,
               rate: item.rate || 0,
-              taxRate: item.taxRate || 0,
+              taxRate: sanitizeGstRate(item.taxRate),
               discount: item.discount || 0,
-              isCustom: true,
+              isCustom: isCustomTaxRate(item.taxRate),
             }))
           : prev.items,
       }));
@@ -364,7 +392,7 @@ const InvoiceForm = () => {
       const inv = res.data;
       const fmt = (d) => d ? new Date(d).toISOString().split('T')[0] : '';
       
-      setFormData({
+        setFormData({
         ...inv,
         invoiceType: inv.invoiceType || 'Tax Invoice',
         clientRef: inv.client?.clientRef || inv.clientRef || '',
@@ -431,10 +459,11 @@ const InvoiceForm = () => {
           qty: i.qty || 0,
           rate: i.rate || 0,
           discount: i.discount || 0,
-          taxRate: i.taxRate || 0,
+          taxRate: sanitizeGstRate(i.taxRate),
           bedPercent: i.bedPercent || 0,
           sedPercent: i.sedPercent || 0,
           cessPercent: i.cessPercent || 0,
+          isCustom: isCustomTaxRate(i.taxRate),
         })),
       });
 
@@ -461,7 +490,8 @@ const InvoiceForm = () => {
   // Returns full row amount including tax/excise (for display in the items table)
   const calcRow = (item) => {
     const taxable = calcTaxableRow(item);
-    const gst = hasTax ? taxable * (Number(item.taxRate) / 100) : 0;
+    const gstRate = sanitizeGstRate(item.taxRate);
+    const gst = hasTax ? taxable * (gstRate / 100) : 0;
     let excise = 0;
     if (hasExcise) {
       const bed = taxable * (Number(item.bedPercent) / 100);
@@ -485,7 +515,7 @@ const InvoiceForm = () => {
     );
     formData.items.forEach(item => {
       const taxable = calcTaxableRow(item);
-      const tax = taxable * (Number(item.taxRate) / 100);
+      const tax = taxable * (sanitizeGstRate(item.taxRate) / 100);
       if (isInterState) {
         igst += tax;
       } else {
@@ -519,12 +549,14 @@ const InvoiceForm = () => {
     if (field === 'name') {
       const found = itemsList.find(i => i.name === value);
       if (found) {
+        const taxRate = getCatalogItemTaxRate(found);
         newItems[index].description = found.description || found.salesInfo?.description || '';
         newItems[index].rate = found.salesInfo?.price || found.rate || 0;
         newItems[index].unit = found.unit || 'pcs';
-        newItems[index].taxRate = found.salesInfo?.taxRate || found.defaultTaxRate || 0;
+        newItems[index].taxRate = taxRate;
         newItems[index].hsnCode = found.hsnCode || '';
         newItems[index].itemRef = found._id;
+        newItems[index].isCustom = isCustomTaxRate(taxRate);
       }
     }
     setFormData({ ...formData, items: newItems });
@@ -547,8 +579,9 @@ const InvoiceForm = () => {
       it.rate = Number(row.Price || row.price || row.Rate || row.rate) || 0;
       it.discount = Number(row.Discount || row.discount || row.Disc || row.disc) || 0;
       
-      const taxParam = Number(row.TaxRate || row.taxRate || row.Tax || row.tax) || 0;
+      const taxParam = sanitizeGstRate(row.TaxRate || row.taxRate || row.Tax || row.tax);
       it.taxRate = taxParam;
+      it.isCustom = isCustomTaxRate(taxParam);
       
       if (hasExcise) {
         it.bedPercent = Number(row.BED || row.bed || row.bedPercent) || 0;
@@ -612,6 +645,37 @@ const InvoiceForm = () => {
   const pendingPdfClientName = formData.importSource === 'pdf' && !formData.clientRef
     ? formData.clientName?.trim()
     : '';
+
+  useEffect(() => {
+    if (!id || itemsList.length === 0) return;
+
+    let hasChanges = false;
+    const normalizedItems = formData.items.map(item => {
+      const currentRate = normalizeTaxRate(item.taxRate);
+      if (currentRate <= MAX_GST_RATE) {
+        const sanitizedRate = sanitizeGstRate(item.taxRate);
+        const nextIsCustom = isCustomTaxRate(sanitizedRate);
+        if (sanitizedRate === item.taxRate && nextIsCustom === !!item.isCustom) {
+          return item;
+        }
+        hasChanges = true;
+        return { ...item, taxRate: sanitizedRate, isCustom: nextIsCustom };
+      }
+
+      const catalogItem = itemsList.find(entry => entry._id === item.itemRef);
+      const fallbackRate = catalogItem ? getCatalogItemTaxRate(catalogItem) : 0;
+      hasChanges = true;
+      return {
+        ...item,
+        taxRate: fallbackRate,
+        isCustom: isCustomTaxRate(fallbackRate),
+      };
+    });
+
+    if (hasChanges) {
+      setFormData(prev => ({ ...prev, items: normalizedItems }));
+    }
+  }, [id, itemsList, formData.items]);
   
   if (loading && id) {
       return (
@@ -883,6 +947,7 @@ const InvoiceForm = () => {
                     displayValue={item.name || ''}
                     testId={`invoice-item-select-${index}`}
                     onChange={(found) => {
+                      const taxRate = getCatalogItemTaxRate(found);
                       const newItems = [...formData.items];
                       newItems[index] = {
                         ...newItems[index],
@@ -891,8 +956,9 @@ const InvoiceForm = () => {
                         description: found.description || found.salesInfo?.description || '',
                         rate: found.salesInfo?.price || found.rate || 0,
                         unit: found.unit || 'pcs',
-                        taxRate: found.salesInfo?.taxRate || found.defaultTaxRate || 0,
+                        taxRate,
                         hsnCode: found.hsnCode || '',
+                        isCustom: isCustomTaxRate(taxRate),
                       };
                       setFormData({ ...formData, items: newItems });
                     }}
@@ -954,7 +1020,7 @@ const InvoiceForm = () => {
                   <div>
                     {!item.isCustom ? (
                       <select className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white"
-                        value={item.taxRate}
+                        value={String(sanitizeGstRate(item.taxRate))}
                         onChange={(e) => {
                           if (e.target.value === 'custom') {
                             const ni = [...formData.items];
@@ -973,7 +1039,7 @@ const InvoiceForm = () => {
                       <div className="relative">
                         <input type="number" min="0" autoFocus placeholder="Tax %"
                           className="w-full border border-blue-400 rounded px-2 py-1.5 text-sm bg-blue-50 outline-none pr-6"
-                          value={item.taxRate} onChange={(e) => updateItem(index, 'taxRate', e.target.value)} />
+                          value={item.taxRate} onChange={(e) => updateItem(index, 'taxRate', sanitizeGstRate(e.target.value))} />
                         <button onClick={() => { const ni = [...formData.items]; ni[index] = { ...ni[index], isCustom: false, taxRate: 0 }; setFormData({ ...formData, items: ni }); }}
                           className="absolute right-1 top-2 text-gray-400 hover:text-red-500">
                           <FaTrash size={12} />
