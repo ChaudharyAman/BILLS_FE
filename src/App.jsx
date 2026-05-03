@@ -81,6 +81,8 @@ function App() {
   // Background Sync for Subscription Status
   useEffect(() => {
     const syncSubscription = async () => {
+      if (document.visibilityState !== 'visible') return;
+
       const userStr = localStorage.getItem('user');
       if (!userStr) return;
       
@@ -117,6 +119,13 @@ function App() {
     };
     
     syncSubscription();
+    const intervalId = window.setInterval(syncSubscription, 5 * 60 * 1000);
+    document.addEventListener('visibilitychange', syncSubscription);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', syncSubscription);
+    };
   }, []);
 
   return (

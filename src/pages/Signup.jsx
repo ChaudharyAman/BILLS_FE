@@ -38,8 +38,7 @@ const Signup = () => {
         password: formData.password
       });
 
-      // store the whole response data (user + token)
-      localStorage.setItem('user', JSON.stringify(response.data));
+      localStorage.setItem('user', JSON.stringify({ user: response.data.user }));
       
       navigate('/invoices');
     } catch (err) {

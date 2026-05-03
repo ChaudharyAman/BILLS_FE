@@ -78,7 +78,7 @@ const ProfitLossStatement = () => {
             <span>{fmtMoney(report.netIncome)}</span>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
