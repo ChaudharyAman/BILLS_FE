@@ -12,8 +12,18 @@ const BalanceSheet = () => {
       .catch(() => alert('Failed to load balance sheet'));
   }, []);
 
-  const rightSide = (report?.totalLiabilities || 0) + (report?.equity || 0);
-  const balanced = Math.abs((report?.totalAssets || 0) - rightSide) < 0.01;
+  const assetsRows = Array.isArray(report?.assets)
+    ? report.assets.map(item => [item.category, item.total])
+    : [];
+  const liabilitiesRows = Array.isArray(report?.liabilities)
+    ? report.liabilities.map(item => [item.type, item.total])
+    : [];
+
+  const totalAssets = report?.totalAssets ?? 0;
+  const totalLiabilities = report?.totalLiabilities ?? 0;
+  const equity = report?.equity ?? 0;
+  const rightSide = totalLiabilities + equity;
+  const balanced = Math.abs(totalAssets - rightSide) < 0.01;
 
   return (
     <div className="container mx-auto p-6 font-sans text-gray-900">
@@ -29,12 +39,12 @@ const BalanceSheet = () => {
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
           {!balanced && <div className="mb-6 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg p-3 text-sm font-semibold">Balance warning: Assets do not equal liabilities plus equity.</div>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Panel title="Assets" total={report.totalAssets} rows={report.assets.map(item => [item.category, item.total])} />
+            <Panel title="Assets" total={totalAssets} rows={assetsRows} />
             <div>
-              <Panel title="Liabilities" total={report.totalLiabilities} rows={report.liabilities.map(item => [item.type, item.total])} />
+              <Panel title="Liabilities" total={totalLiabilities} rows={liabilitiesRows} />
               <div className="mt-6 bg-gray-50 border border-gray-200 rounded-xl p-5 flex justify-between font-bold">
                 <span>Equity</span>
-                <span>{fmtMoney(report.equity)}</span>
+                <span>{fmtMoney(equity)}</span>
               </div>
             </div>
           </div>

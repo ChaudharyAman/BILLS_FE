@@ -13,22 +13,26 @@ const PayrollDashboard = () => {
   const [payrolls, setPayrolls] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchPayrolls();
-  }, [month, year]);
-
-  const fetchPayrolls = async () => {
+  const fetchPayrolls = async (signal) => {
     try {
       setLoading(true);
-      const res = await api.get(`/payroll?month=${month}&year=${year}&limit=100`);
+      const params = new URLSearchParams({ month, year, limit: 100 });
+      const res = await api.get(`/payroll?${params.toString()}`, { signal });
       setPayrolls(res.data.data || []);
     } catch (error) {
+      if (error.name === 'CanceledError' || error.name === 'AbortError') return;
       console.error(error);
       alert('Failed to load payroll');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchPayrolls(controller.signal);
+    return () => controller.abort();
+  }, [month, year]);
 
   const stats = useMemo(() => ({
     total: payrolls.reduce((sum, p) => sum + (Number(p.netSalary) || 0), 0),
@@ -39,11 +43,16 @@ const PayrollDashboard = () => {
 
   const markPaid = async (payroll) => {
     if (!window.confirm(`Mark salary for ${payroll.employee?.firstName || 'employee'} as paid?`)) return;
-    await api.post(`/payroll/${payroll._id}/mark-paid`, {
-      paymentDate: new Date().toISOString().substring(0, 10),
-      paymentMethod: 'Bank Transfer',
-    });
-    fetchPayrolls();
+    try {
+      await api.post(`/payroll/${payroll._id}/mark-paid`, {
+        paymentDate: new Date().toISOString().substring(0, 10),
+        paymentMethod: 'Bank Transfer',
+      });
+      fetchPayrolls();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || 'Failed to mark payroll as paid');
+    }
   };
 
   const generatePayslip = async (payroll) => {
@@ -121,7 +130,11 @@ const PayrollDashboard = () => {
                   <td className="px-6 py-4 text-right text-sm">{fmtMoney(payroll.deductions?.totalDeductions)}</td>
                   <td className="px-6 py-4 text-right font-bold">{fmtMoney(payroll.netSalary)}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${payroll.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
+                      payroll.status === 'paid' ? 'bg-green-100 text-green-700' :
+                      payroll.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                      'bg-blue-100 text-blue-700'}
+                    `}>
                       {payroll.status}
                     </span>
                   </td>

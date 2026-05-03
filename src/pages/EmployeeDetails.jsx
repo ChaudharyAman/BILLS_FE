@@ -4,17 +4,54 @@ import api from '../api/axios';
 import { FaEdit } from 'react-icons/fa';
 
 const fmtMoney = (value) => `₹${(Number(value) || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
-const fmtDate = (value) => value ? new Date(value).toLocaleDateString('en-IN') : '-';
+const fmtDate = (value) => {
+  if (!value) return '-';
+  const d = new Date(value);
+  return Number.isFinite(d.getTime()) ? d.toLocaleDateString('en-IN') : '-';
+};
 
 const EmployeeDetails = () => {
   const { id } = useParams();
   const [employee, setEmployee] = useState(null);
   const [payrolls, setPayrolls] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    api.get(`/employees/${id}`).then(res => setEmployee(res.data)).catch(() => alert('Failed to load employee'));
-    api.get(`/payroll?employeeId=${id}&limit=10`).then(res => setPayrolls(res.data.data || [])).catch(() => {});
+    const controller = new AbortController();
+    let mounted = true;
+
+    const fetchEmployee = async () => {
+      try {
+        const res = await api.get(`/employees/${id}`, { signal: controller.signal });
+        if (mounted) setEmployee(res.data);
+      } catch (fetchError) {
+        if (fetchError.name === 'CanceledError' || fetchError.name === 'AbortError') return;
+        setError('Failed to load employee');
+      }
+    };
+
+    const fetchPayrolls = async () => {
+      try {
+        const res = await api.get(`/payroll?employeeId=${id}&limit=10`, { signal: controller.signal });
+        if (mounted) setPayrolls(res.data.data || []);
+      } catch (fetchError) {
+        if (fetchError.name === 'CanceledError' || fetchError.name === 'AbortError') return;
+        console.error(fetchError);
+      }
+    };
+
+    fetchEmployee();
+    fetchPayrolls();
+
+    return () => {
+      mounted = false;
+      controller.abort();
+    };
   }, [id]);
+
+  if (error) {
+    return <div className="container mx-auto p-6 text-red-600">{error}</div>;
+  }
 
   if (!employee) {
     return <div className="container mx-auto p-6 text-gray-500">Loading employee...</div>;
@@ -74,7 +111,11 @@ const EmployeeDetails = () => {
               <tr><td colSpan="4" className="px-6 py-8 text-center text-gray-500">No payroll records yet.</td></tr>
             ) : payrolls.map(payroll => (
               <tr key={payroll._id}>
-                <td className="px-6 py-4">{new Date(0, payroll.month - 1).toLocaleString('en-US', { month: 'long' })} {payroll.year}</td>
+                <td className="px-6 py-4">
+                  {Number.isInteger(payroll?.month) && payroll.month >= 1 && payroll.month <= 12
+                    ? new Date(0, payroll.month - 1).toLocaleString('en-US', { month: 'long' })
+                    : 'Unknown month'} {payroll?.year || ''}
+                </td>
                 <td className="px-6 py-4 text-right font-semibold">{fmtMoney(payroll.netSalary)}</td>
                 <td className="px-6 py-4 capitalize">{payroll.status}</td>
                 <td className="px-6 py-4 text-center">

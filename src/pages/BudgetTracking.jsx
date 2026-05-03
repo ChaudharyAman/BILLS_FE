@@ -46,27 +46,32 @@ const BudgetTracking = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {budgets.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-gray-500 md:col-span-2">No active budgets found.</div>
-        ) : budgets.map(budget => (
-          <button
-            key={budget._id}
-            type="button"
-            onClick={() => {
-              if (budget.category?._id) window.location.href = `/expenses?category=${budget.category._id}`;
-            }}
-            className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 text-left hover:border-blue-300"
-          >
-            <div className="flex justify-between gap-4 mb-3">
-              <div>
-                <div className="font-bold">{budget.category?.name || budget.name}</div>
-                <div className="text-sm text-gray-500">{fmtMoney(budget.spentAmount)} / {fmtMoney(budget.budgetAmount)}</div>
+        ) : budgets.map((budget, index) => {
+          const pct = Number(budget.utilizationPct);
+          const safePct = Number.isFinite(pct) ? pct : 0;
+          const clampedPct = Math.max(0, Math.min(safePct, 100));
+          return (
+            <button
+              key={budget._id || budget.id || `budget-${index}`}
+              type="button"
+              onClick={() => {
+                if (budget.category?._id) window.location.href = `/expenses?category=${budget.category._id}`;
+              }}
+              className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 text-left hover:border-blue-300"
+            >
+              <div className="flex justify-between gap-4 mb-3">
+                <div>
+                  <div className="font-bold">{budget.category?.name || budget.name}</div>
+                  <div className="text-sm text-gray-500">{fmtMoney(budget.spentAmount)} / {fmtMoney(budget.budgetAmount)}</div>
+                </div>
+                <div className="font-bold">{safePct}%</div>
               </div>
-              <div className="font-bold">{budget.utilizationPct}%</div>
-            </div>
-            <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-              <div className={`h-full ${colorFor(budget.utilizationPct)}`} style={{ width: `${Math.min(budget.utilizationPct, 100)}%` }} />
-            </div>
-          </button>
-        ))}
+              <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                <div className={`h-full ${colorFor(safePct)}`} style={{ width: `${clampedPct}%` }} />
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

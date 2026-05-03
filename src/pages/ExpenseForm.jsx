@@ -165,6 +165,7 @@ const ExpenseForm = () => {
   }, [formData.items, calculateTotals]);
 
   useEffect(() => {
+    let active = true;
     const fetchBudget = async () => {
       if (!formData.category) {
         setBudgetInfo(null);
@@ -172,13 +173,17 @@ const ExpenseForm = () => {
       }
       try {
         const res = await api.get(`/budgets?category=${formData.category}&limit=1`);
-        setBudgetInfo(res.data.data?.[0] || null);
+        if (active) setBudgetInfo(res.data.data?.[0] || null);
       } catch (error) {
+        if (error.name === 'CanceledError' || error.name === 'AbortError') return;
         console.warn('Failed to load budget for category', error);
-        setBudgetInfo(null);
+        if (active) setBudgetInfo(null);
       }
     };
     fetchBudget();
+    return () => {
+      active = false;
+    };
   }, [formData.category]);
 
   const handleItemChange = (index, field, value) => {
@@ -409,7 +414,7 @@ const ExpenseForm = () => {
                   step="0.01"
                   className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
                   value={formData.amountPaid}
-                  onChange={e => setFormData(p => ({ ...p, amountPaid: e.target.value }))}
+                  onChange={e => setFormData(p => ({ ...p, amountPaid: Number(e.target.value) || 0 }))}
                   placeholder="0.00"
                 />
               </div>

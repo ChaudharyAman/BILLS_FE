@@ -19,11 +19,18 @@ const money = (value, digits = 0) => `${'\u20b9'}${(Number(value) || 0).toLocale
   maximumFractionDigits: digits,
 })}`;
 
+const formatLocalDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const getMonthRange = () => {
   const now = new Date();
   return {
-    startDate: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10),
-    endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10),
+    startDate: formatLocalDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+    endDate: formatLocalDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
   };
 };
 
@@ -33,22 +40,29 @@ const FinancialDashboard = () => {
   const [range, setRange] = useState(getMonthRange);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchDashboard = async () => {
       setLoading(true);
+      setError(null);
       try {
         const params = new URLSearchParams(range);
-        const res = await api.get(`/reports/tax-dashboard?${params.toString()}`);
+        const res = await api.get(`/reports/tax-dashboard?${params.toString()}`, { signal: controller.signal });
         setData(res.data);
-      } catch (error) {
-        console.error('Failed to load tax dashboard:', error);
+      } catch (fetchError) {
+        if (fetchError.name === 'CanceledError' || fetchError.name === 'AbortError') return;
+        console.error('Failed to load tax dashboard:', fetchError);
+        setError(fetchError.response?.data?.message || 'Failed to load tax dashboard');
       } finally {
         setLoading(false);
       }
     };
 
     fetchDashboard();
+    return () => controller.abort();
   }, [range]);
 
   const summary = data?.summary || {};
@@ -77,15 +91,21 @@ const FinancialDashboard = () => {
 
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-white/10 bg-white/5 p-2">
             <FaCalendarDays className="ml-1 text-cyan-300" />
+            <label htmlFor="dashboard-start-date" className="sr-only">Start date</label>
             <input
+              id="dashboard-start-date"
               type="date"
+              aria-label="Start date"
               value={range.startDate}
               onChange={(event) => setRange((prev) => ({ ...prev, startDate: event.target.value }))}
               className="rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
             />
             <span className="text-slate-500">to</span>
+            <label htmlFor="dashboard-end-date" className="sr-only">End date</label>
             <input
+              id="dashboard-end-date"
               type="date"
+              aria-label="End date"
               value={range.endDate}
               onChange={(event) => setRange((prev) => ({ ...prev, endDate: event.target.value }))}
               className="rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
@@ -96,6 +116,8 @@ const FinancialDashboard = () => {
         <div className="rounded-lg border border-cyan-300/30 bg-slate-900/80 p-4 shadow-[0_0_35px_rgba(34,211,238,0.12)] sm:p-6">
           {loading ? (
             <LoadingState />
+          ) : error ? (
+            <div className="p-8 text-center text-red-400">{error}</div>
           ) : (
             <>
               <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr_1.1fr]">
@@ -262,7 +284,8 @@ const Metric = ({ label, value, tone }) => {
 };
 
 const TaxRow = ({ label, value, total }) => {
-  const pct = total > 0 ? Math.min((Number(value) / Number(total)) * 100, 100) : 0;
+  const rawPct = total > 0 ? (Number(value) / Number(total)) * 100 : 0;
+  const pct = Math.max(0, Math.min(Number.isFinite(rawPct) ? rawPct : 0, 100));
 
   return (
     <div>

@@ -46,8 +46,13 @@ const EmployeeList = () => {
 
   const markInactive = async (employee) => {
     if (!window.confirm(`Mark ${employee.firstName} ${employee.lastName} inactive?`)) return;
-    await api.put(`/employees/${employee._id}`, { status: 'inactive' });
-    fetchEmployees();
+    try {
+      await api.put(`/employees/${employee._id}`, { status: 'inactive' });
+      fetchEmployees();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || 'Failed to mark employee inactive');
+    }
   };
 
   return (
@@ -65,18 +70,19 @@ const EmployeeList = () => {
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <div className="p-4 border-b border-gray-200 bg-gray-50/60 grid grid-cols-1 md:grid-cols-4 gap-3">
           <input
+            aria-label="Search employees"
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search name, ID, email..."
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm md:col-span-2"
           />
-          <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+          <select aria-label="Filter by status" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
             <option value="">All Statuses</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
             <option value="terminated">Terminated</option>
           </select>
-          <select value={department} onChange={e => { setDepartment(e.target.value); setPage(1); }} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+          <select aria-label="Filter by department" value={department} onChange={e => { setDepartment(e.target.value); setPage(1); }} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
             <option value="">All Departments</option>
             {departments.map(dept => <option key={dept._id} value={dept._id}>{dept.name}</option>)}
           </select>

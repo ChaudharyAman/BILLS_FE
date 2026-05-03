@@ -9,17 +9,31 @@ const PayslipGeneration = () => {
   const { id } = useParams();
   const printRef = useRef(null);
   const [slip, setSlip] = useState(null);
+  const [error, setError] = useState(null);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
-    api.post(`/payroll/${id}/generate-payslip`)
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
+    const controller = new AbortController();
+
+    api.post(`/payroll/${id}/generate-payslip`, null, { signal: controller.signal })
       .then(res => setSlip(res.data.payslip))
-      .catch(() => alert('Failed to load payslip'));
+      .catch((fetchError) => {
+        if (fetchError.name === 'CanceledError' || fetchError.name === 'AbortError') return;
+        console.error(fetchError);
+        setError('Failed to load payslip');
+      });
+
+    return () => controller.abort();
   }, [id]);
 
   const downloadPdf = () => {
     window.print();
   };
 
+  if (error) return <div className="container mx-auto p-6 text-red-600">{error}</div>;
   if (!slip) return <div className="container mx-auto p-6 text-gray-500">Loading payslip...</div>;
 
   const earnings = slip.earnings || {};
@@ -37,18 +51,18 @@ const PayslipGeneration = () => {
       <div ref={printRef} className="bg-white border border-gray-200 rounded-xl shadow-sm p-8 max-w-4xl mx-auto print:shadow-none print:border-0">
         <div className="border-b border-gray-200 pb-5 mb-6">
           <h2 className="text-2xl font-bold text-[#1a2e44]">MyBill</h2>
-          <p className="text-gray-500">Salary Slip for {slip.period.monthName} {slip.period.year}</p>
+          <p className="text-gray-500">Salary Slip for {slip?.period?.monthName ?? '-'} {slip?.period?.year ?? ''}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-8 text-sm">
-          <Info label="Employee" value={`${slip.employee.firstName} ${slip.employee.lastName}`} />
-          <Info label="Employee ID" value={slip.employee.employeeId} />
-          <Info label="Designation" value={slip.employee.designation || '-'} />
-          <Info label="Department" value={slip.employee.department?.name || '-'} />
-          <Info label="Working Days" value={slip.workingDays} />
-          <Info label="Present Days" value={slip.presentDays} />
-          <Info label="Payment Date" value={slip.paymentDate ? new Date(slip.paymentDate).toLocaleDateString('en-IN') : '-'} />
-          <Info label="Status" value={slip.status} />
+          <Info label="Employee" value={`${slip?.employee?.firstName ?? '-'} ${slip?.employee?.lastName ?? ''}`} />
+          <Info label="Employee ID" value={slip?.employee?.employeeId ?? '-'} />
+          <Info label="Designation" value={slip?.employee?.designation || '-'} />
+          <Info label="Department" value={slip?.employee?.department?.name || '-'} />
+          <Info label="Working Days" value={slip?.workingDays ?? '-'} />
+          <Info label="Present Days" value={slip?.presentDays ?? '-'} />
+          <Info label="Payment Date" value={slip?.paymentDate ? new Date(slip.paymentDate).toLocaleDateString('en-IN') : '-'} />
+          <Info label="Status" value={slip?.status || '-'} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -103,8 +117,8 @@ const AmountTable = ({ title, rows, total }) => (
     <div className="bg-gray-50 px-4 py-3 font-bold">{title}</div>
     <table className="w-full text-sm">
       <tbody>
-        {rows.filter(([, amount]) => Number(amount) > 0).map(([label, amount]) => (
-          <tr key={label} className="border-t border-gray-100">
+        {rows.filter(([, amount]) => Number(amount) > 0).map(([label, amount], idx) => (
+          <tr key={`${label}-${idx}`} className="border-t border-gray-100">
             <td className="px-4 py-2 text-gray-600">{label}</td>
             <td className="px-4 py-2 text-right font-semibold">{fmtMoney(amount)}</td>
           </tr>

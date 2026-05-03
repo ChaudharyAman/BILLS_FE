@@ -80,9 +80,15 @@ const EmployeeForm = () => {
     if (!name) return;
     const code = window.prompt('Department code', name.slice(0, 3).toUpperCase());
     if (!code) return;
-    const res = await api.post('/departments', { name, code });
-    setDepartments(prev => [...prev, res.data].sort((a, b) => a.name.localeCompare(b.name)));
-    setFormData(prev => ({ ...prev, department: res.data._id }));
+
+    try {
+      const res = await api.post('/departments', { name, code });
+      setDepartments(prev => [...prev, res.data].sort((a, b) => a.name.localeCompare(b.name)));
+      setFormData(prev => ({ ...prev, department: res.data._id }));
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || 'Failed to add department');
+    }
   };
 
   const submit = async (event) => {
@@ -98,6 +104,10 @@ const EmployeeForm = () => {
           conveyance: Number(formData.salaryStructure.conveyance) || 0,
           medicalAllowance: Number(formData.salaryStructure.medicalAllowance) || 0,
           specialAllowance: Number(formData.salaryStructure.specialAllowance) || 0,
+          otherAllowances: (formData.salaryStructure.otherAllowances || []).map((allowance) => ({
+            ...allowance,
+            amount: Number(allowance.amount) || 0,
+          })),
         },
         deductions: Object.fromEntries(Object.entries(formData.deductions).map(([key, value]) => [key, Number(value) || 0])),
       };

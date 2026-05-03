@@ -2,12 +2,18 @@ import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
 
 const fmtMoney = (value) => `₹${(Number(value) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substring(0, 10);
-const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().substring(0, 10);
+const getLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+const getMonthStart = () => getLocalDateString(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+const getMonthEnd = () => getLocalDateString(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0));
 
 const CashFlowStatement = () => {
-  const [startDate, setStartDate] = useState(monthStart);
-  const [endDate, setEndDate] = useState(monthEnd);
+  const [startDate, setStartDate] = useState(getMonthStart);
+  const [endDate, setEndDate] = useState(getMonthEnd);
   const [openingBalance, setOpeningBalance] = useState(0);
   const [report, setReport] = useState(null);
 
@@ -16,6 +22,9 @@ const CashFlowStatement = () => {
       .then(res => setReport(res.data))
       .catch(() => alert('Failed to load cash flow'));
   }, [startDate, endDate]);
+
+  const normalizedNetCashFlow = Number(report?.netCashFlow);
+  const netCashFlow = Number.isFinite(normalizedNetCashFlow) ? normalizedNetCashFlow : 0;
 
   return (
     <div className="container mx-auto p-6 font-sans text-gray-900">
@@ -37,9 +46,9 @@ const CashFlowStatement = () => {
           <Row label="Cash from Investing Activities" value={report.investing} />
           <Row label="Cash from Financing Activities" value={report.financing} />
           <div className="border-t my-4" />
-          <Row label="Net Cash Flow" value={report.netCashFlow} strong />
+          <Row label="Net Cash Flow" value={netCashFlow} strong />
           <Row label="Opening Balance" value={openingBalance} />
-          <Row label="Closing Balance" value={openingBalance + report.netCashFlow} strong />
+          <Row label="Closing Balance" value={openingBalance + netCashFlow} strong />
         </div>
       )}
     </div>

@@ -42,6 +42,7 @@ const CategoryManagement = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -132,6 +133,10 @@ const CategoryManagement = () => {
   };
 
   const handleDelete = async (category) => {
+    if (category?.isSystem) {
+      alert('Cannot delete system category');
+      return;
+    }
     if (!window.confirm(`Delete ${category.name}?`)) return;
     try {
       await api.delete(`/categories/${category._id}`);
@@ -142,14 +147,15 @@ const CategoryManagement = () => {
   };
 
   const initializeDefaults = async () => {
+    if (isInitializing) return;
     try {
-      setLoading(true);
+      setIsInitializing(true);
       await api.post('/categories/initialize-defaults');
       fetchCategories();
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to initialize defaults');
     } finally {
-      setLoading(false);
+      setIsInitializing(false);
     }
   };
 
@@ -169,7 +175,8 @@ const CategoryManagement = () => {
           <button
             type="button"
             onClick={initializeDefaults}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold bg-white hover:bg-gray-50"
+            disabled={isInitializing}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Initialize Defaults
           </button>

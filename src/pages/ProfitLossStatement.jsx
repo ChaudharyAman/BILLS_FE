@@ -2,18 +2,45 @@ import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
 
 const fmtMoney = (value) => `₹${(Number(value) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substring(0, 10);
-const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().substring(0, 10);
+const getLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+const getDefaultDateRange = () => {
+  const today = new Date();
+  return {
+    startDate: getLocalDateString(new Date(today.getFullYear(), today.getMonth(), 1)),
+    endDate: getLocalDateString(new Date(today.getFullYear(), today.getMonth() + 1, 0)),
+  };
+};
 
 const ProfitLossStatement = () => {
-  const [startDate, setStartDate] = useState(monthStart);
-  const [endDate, setEndDate] = useState(monthEnd);
+  const [startDate, setStartDate] = useState(getDefaultDateRange().startDate);
+  const [endDate, setEndDate] = useState(getDefaultDateRange().endDate);
   const [report, setReport] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    api.get(`/reports/profit-loss?startDate=${startDate}&endDate=${endDate}`)
-      .then(res => setReport(res.data))
-      .catch(() => alert('Failed to load P&L report'));
+    const controller = new AbortController();
+    const fetchReport = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await api.get(`/reports/profit-loss?startDate=${startDate}&endDate=${endDate}`, { signal: controller.signal });
+        setReport(res.data);
+      } catch (fetchError) {
+        if (fetchError.name === 'CanceledError' || fetchError.name === 'AbortError') return;
+        console.error(fetchError);
+        setError('Failed to load P&L report');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchReport();
+    return () => controller.abort();
   }, [startDate, endDate]);
 
   return (
@@ -26,12 +53,22 @@ const ProfitLossStatement = () => {
         <button onClick={() => window.print()} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">Export PDF</button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6 print:hidden flex gap-3">
-        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6 print:hidden flex flex-wrap gap-3">
+        <div>
+          <label htmlFor="pl-start-date" className="sr-only">Start date</label>
+          <input id="pl-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label htmlFor="pl-end-date" className="sr-only">End date</label>
+          <input id="pl-end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+        </div>
       </div>
 
-      {report && (
+      {isLoading ? (
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center text-gray-500">Loading report...</div>
+      ) : error ? (
+        <div className="bg-white border border-red-200 rounded-xl shadow-sm p-8 text-center text-red-600">{error}</div>
+      ) : report ? (
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8 print:shadow-none print:border-0">
           <StatementSection title="Revenue" rows={report.revenue} totalLabel="Total Revenue" total={report.totalRevenue} />
           <div className="my-6 border-t border-gray-200" />
