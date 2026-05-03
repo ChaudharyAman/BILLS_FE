@@ -13,17 +13,24 @@ const ExpenseForm = () => {
   const [vendors, setVendors] = useState([]);
   const [clients, setClients] = useState([]);
   const [inventory, setInventory] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [budgetInfo, setBudgetInfo] = useState(null);
 
   // Form State matching Sleekbills screenshot
   const [formData, setFormData] = useState({
     expenseNumberPrefix: 'EXP-',
     expenseNumberSuffix: '',
     date: new Date().toISOString().substring(0, 10),
+    dueDate: '',
     paymentMethod: '',
+    amountPaid: 0,
+    status: 'UNPAID',
     vendorRef: '',
     vendorName: '',
     clientRef: '',
     clientName: '',
+    category: '',
+    subCategory: '',
     items: [
       { itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }
     ],
@@ -41,17 +48,20 @@ const ExpenseForm = () => {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [vRes, cRes, iRes] = await Promise.all([
+      const [vRes, cRes, iRes, catRes] = await Promise.all([
         api.get('/vendors?limit=1000'),
         api.get('/clients?limit=1000'),
-        api.get('/items?limit=1000')
+        api.get('/items?limit=1000'),
+        api.get('/categories?type=expense')
       ]);
       const loadedVendors = vRes.data.data || [];
       const loadedClients = cRes.data.data || [];
       const loadedInventory = iRes.data.data || [];
+      const loadedCategories = catRes.data || [];
       setVendors(loadedVendors);
       setClients(loadedClients);
       setInventory(loadedInventory);
+      setCategories(loadedCategories);
 
       if (id) {
         const eRes = await api.get(`/expenses/${id}`);
@@ -69,11 +79,16 @@ const ExpenseForm = () => {
             expenseNumberPrefix: prefix,
             expenseNumberSuffix: suffix,
             date: data.date ? new Date(data.date).toISOString().substring(0, 10) : '',
+            dueDate: data.dueDate ? new Date(data.dueDate).toISOString().substring(0, 10) : '',
             paymentMethod: data.paymentMethod || '',
+            amountPaid: data.amountPaid || 0,
+            status: data.status || 'UNPAID',
             vendorRef: data.vendor?.vendorRef || '',
             vendorName: data.vendor?.name || '',
             clientRef: data.client?.clientRef || '',
             clientName: data.client?.name || '',
+            category: data.category?._id || data.category || '',
+            subCategory: data.subCategory?._id || data.subCategory || '',
             items: data.items?.length > 0 ? data.items : [{ itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }],
             reverseCharge: data.reverseCharge || false,
             terms: data.terms || '',
@@ -112,6 +127,7 @@ const ExpenseForm = () => {
         ...prev,
         expenseNumberSuffix: patch.numberSuffix || prev.expenseNumberSuffix,
         date: patch.date || prev.date,
+        dueDate: patch.dueDate || prev.dueDate,
         paymentMethod: patch.paymentMethod || prev.paymentMethod,
         vendorRef: patch.vendorRef || prev.vendorRef,
         vendorName: patch.vendorName || prev.vendorName,
@@ -147,6 +163,23 @@ const ExpenseForm = () => {
   useEffect(() => {
     calculateTotals();
   }, [formData.items, calculateTotals]);
+
+  useEffect(() => {
+    const fetchBudget = async () => {
+      if (!formData.category) {
+        setBudgetInfo(null);
+        return;
+      }
+      try {
+        const res = await api.get(`/budgets?category=${formData.category}&limit=1`);
+        setBudgetInfo(res.data.data?.[0] || null);
+      } catch (error) {
+        console.warn('Failed to load budget for category', error);
+        setBudgetInfo(null);
+      }
+    };
+    fetchBudget();
+  }, [formData.category]);
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...formData.items];
@@ -194,13 +227,18 @@ const ExpenseForm = () => {
       const payload = {
         expenseNumber: `${formData.expenseNumberPrefix}${formData.expenseNumberSuffix}`,
         date: formData.date,
+        dueDate: formData.dueDate || null,
         paymentMethod: formData.paymentMethod,
+        amountPaid: Number(formData.amountPaid) || 0,
+        status: formData.status,
         vendor: selectedVendor._id
           ? { vendorRef: selectedVendor._id, name: selectedVendor.name }
           : { name: scannedVendorName },
         client: selectedClient._id
           ? { clientRef: selectedClient._id, name: selectedClient.name }
           : (scannedClientName ? { name: scannedClientName } : null),
+        category: formData.category || null,
+        subCategory: formData.subCategory || null,
         reverseCharge: formData.reverseCharge,
         items: formData.items,
         subTotal: totals.subTotal,
@@ -230,6 +268,11 @@ const ExpenseForm = () => {
   const inputBaseCls = "w-full border border-gray-200 rounded text-sm px-3 py-2 text-gray-700 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans";
   const labelCls = "text-xs font-semibold text-gray-600 tracking-wide mb-1.5 inline-block";
   const rowBorder = "border-b border-gray-200";
+  const rootCategories = categories.filter(cat => !cat.parent);
+  const subCategories = categories.filter(cat => (cat.parent?._id || cat.parent) === formData.category);
+  const budgetRemaining = budgetInfo ? Number(budgetInfo.remainingAmount) || 0 : null;
+  const budgetExceededBy = budgetInfo && totals.grandTotal > budgetRemaining ? totals.grandTotal - budgetRemaining : 0;
+  const payableBalance = Math.max(totals.grandTotal - (Number(formData.amountPaid) || 0), 0);
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#f3f6f9] py-8">
@@ -343,6 +386,57 @@ const ExpenseForm = () => {
                   </div>
               </div>
 
+              {/* Due Date */}
+              <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
+                  <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Due date</span>
+                  <div className="relative flex-1">
+                    <FaCalendarAlt className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input
+                      type="date"
+                      className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                      value={formData.dueDate}
+                      onChange={e => setFormData(p => ({ ...p, dueDate: e.target.value }))}
+                    />
+                  </div>
+              </div>
+
+              {/* Amount Paid */}
+              <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
+                <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Amount paid</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
+                  value={formData.amountPaid}
+                  onChange={e => setFormData(p => ({ ...p, amountPaid: e.target.value }))}
+                  placeholder="0.00"
+                />
+              </div>
+
+              {/* Payment Status */}
+              <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
+                <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Status</span>
+                <select
+                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
+                  value={formData.status}
+                  onChange={e => {
+                    const nextStatus = e.target.value;
+                    setFormData(p => ({
+                      ...p,
+                      status: nextStatus,
+                      amountPaid: nextStatus === 'PAID' ? totals.grandTotal : nextStatus === 'UNPAID' ? 0 : p.amountPaid,
+                    }));
+                  }}
+                >
+                  <option value="UNPAID">Unpaid</option>
+                  <option value="PARTIAL">Partial</option>
+                  <option value="PAID">Paid</option>
+                  <option value="DRAFT">Draft</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </div>
+
               {/* Client Reference */}
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Client</span>
@@ -366,6 +460,46 @@ const ExpenseForm = () => {
                   )}
                 </div>
               </div>
+
+              <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
+                <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Category</span>
+                <select
+                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
+                  value={formData.category}
+                  onChange={e => setFormData(p => ({ ...p, category: e.target.value, subCategory: '' }))}
+                >
+                  <option value="">Select Category</option>
+                  {rootCategories.map(cat => (
+                    <option key={cat._id} value={cat._id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
+                <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Sub-category</span>
+                <select
+                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
+                  value={formData.subCategory}
+                  onChange={e => setFormData(p => ({ ...p, subCategory: e.target.value }))}
+                  disabled={!formData.category || subCategories.length === 0}
+                >
+                  <option value="">None</option>
+                  {subCategories.map(cat => (
+                    <option key={cat._id} value={cat._id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {budgetInfo && (
+                <div className="md:col-span-2 rounded border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                  Budget remaining: <span className="font-bold">₹{budgetRemaining.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                  {budgetExceededBy > 0 && (
+                    <div className="mt-1 text-amber-700 font-semibold">
+                      This will exceed your budget by ₹{budgetExceededBy.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                    </div>
+                  )}
+                </div>
+              )}
 
             </div>
           </div>
@@ -513,6 +647,14 @@ const ExpenseForm = () => {
                  <div className="bg-[#f2f9f5] flex justify-between items-center px-4 py-3 rounded border border-[#e1eee6]">
                    <span className="text-sm font-bold text-[#28a745]">Total:</span>
                    <span className="text-sm font-bold text-[#28a745]">₹ {totals.grandTotal.toFixed(2)}</span>
+                 </div>
+                 <div className="flex justify-between items-center px-4">
+                   <span className="text-sm text-gray-500">Paid:</span>
+                   <span className="text-sm text-gray-800">₹ {(Number(formData.amountPaid) || 0).toFixed(2)}</span>
+                 </div>
+                 <div className="flex justify-between items-center px-4">
+                   <span className="text-sm font-bold text-[#2d4b6b]">Payable:</span>
+                   <span className="text-sm font-bold text-[#2d4b6b]">₹ {payableBalance.toFixed(2)}</span>
                  </div>
                </div>
             </div>

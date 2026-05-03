@@ -4,7 +4,7 @@ import {
   FaThLarge, FaUsers, FaBox, FaFileInvoice,
   FaClipboardList, FaCog, FaSignOutAlt,
   FaChevronDown, FaChevronRight, FaMinus, FaPlus, FaStar,
-  FaChartBar, FaWallet, FaLock, FaTimes, FaTruck, FaShoppingCart
+  FaChartBar, FaWallet, FaLock, FaTimes, FaTruck, FaShoppingCart, FaTags, FaMoneyBillWave, FaBalanceScale, FaRedo, FaProjectDiagram
 } from 'react-icons/fa';
 import api from '../api/axios';
 
@@ -131,6 +131,11 @@ const Layout = ({ children }) => {
         {/* Nav */}
         <nav className="flex-1 py-3 overflow-y-auto">
 
+          {/* Dashboard */}
+          <Link to="/dashboard" className={linkCls('/dashboard')}>
+            <FaThLarge size={ICON_SIZE} /> Dashboard
+          </Link>
+
           {/* Clients */}
           <Link to="/clients" className={linkCls('/clients')}>
             <FaUsers size={ICON_SIZE} /> Clients / Customers
@@ -154,6 +159,30 @@ const Layout = ({ children }) => {
           {/* Expenses */}
           <Link to="/expenses" className={linkCls('/expenses')}>
             <FaMinus size={ICON_SIZE} /> Expenses
+          </Link>
+
+          <Link to="/categories" className={linkCls('/categories')}>
+            <FaTags size={ICON_SIZE} /> Categories
+          </Link>
+
+          <Link to="/employees" className={linkCls('/employees')}>
+            <FaUsers size={ICON_SIZE} /> Employees
+          </Link>
+
+          <Link to="/payroll" className={linkCls('/payroll')}>
+            <FaMoneyBillWave size={ICON_SIZE} /> Payroll
+          </Link>
+
+          <Link to="/budgets" className={linkCls('/budgets')}>
+            <FaBalanceScale size={ICON_SIZE} /> Budgets
+          </Link>
+
+          <Link to="/recurring" className={linkCls('/recurring')}>
+            <FaRedo size={ICON_SIZE} /> Recurring
+          </Link>
+
+          <Link to="/projects" className={linkCls('/projects')}>
+            <FaProjectDiagram size={ICON_SIZE} /> Projects
           </Link>
 
           {/* Items / Inventory */}
@@ -220,6 +249,15 @@ const Layout = ({ children }) => {
               </Link>
               <Link to="/reports/revenue" className={subLinkCls('/reports/revenue')}>
                 <FaMinus size={12} className="text-slate-500" /> Revenue Reports
+              </Link>
+              <Link to="/reports/profit-loss" className={subLinkCls('/reports/profit-loss')}>
+                <FaMinus size={12} className="text-slate-500" /> Profit &amp; Loss
+              </Link>
+              <Link to="/reports/balance-sheet" className={subLinkCls('/reports/balance-sheet')}>
+                <FaMinus size={12} className="text-slate-500" /> Balance Sheet
+              </Link>
+              <Link to="/reports/cash-flow" className={subLinkCls('/reports/cash-flow')}>
+                <FaMinus size={12} className="text-slate-500" /> Cash Flow
               </Link>
             </div>
           )}

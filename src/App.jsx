@@ -28,6 +28,22 @@ const ExpenseList = lazy(() => import('./pages/ExpenseList'));
 const ExpenseForm = lazy(() => import('./pages/ExpenseForm'));
 const IncomeList = lazy(() => import('./pages/IncomeList'));
 const IncomeForm = lazy(() => import('./pages/IncomeForm'));
+const CategoryManagement = lazy(() => import('./pages/CategoryManagement'));
+const EmployeeList = lazy(() => import('./pages/EmployeeList'));
+const EmployeeForm = lazy(() => import('./pages/EmployeeForm'));
+const EmployeeDetails = lazy(() => import('./pages/EmployeeDetails'));
+const PayrollDashboard = lazy(() => import('./pages/PayrollDashboard'));
+const PayrollProcessing = lazy(() => import('./pages/PayrollProcessing'));
+const PayslipGeneration = lazy(() => import('./pages/PayslipGeneration'));
+const BudgetManager = lazy(() => import('./pages/BudgetManager'));
+const BudgetTracking = lazy(() => import('./pages/BudgetTracking'));
+const RecurringTransactions = lazy(() => import('./pages/RecurringTransactions'));
+const FinancialDashboard = lazy(() => import('./pages/FinancialDashboard'));
+const ProfitLossStatement = lazy(() => import('./pages/ProfitLossStatement'));
+const BalanceSheet = lazy(() => import('./pages/BalanceSheet'));
+const CashFlowStatement = lazy(() => import('./pages/CashFlowStatement'));
+const ProjectManager = lazy(() => import('./pages/ProjectManager'));
+const ProjectDashboard = lazy(() => import('./pages/ProjectDashboard'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Subscription = lazy(() => import('./pages/Subscription'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
@@ -118,7 +134,8 @@ function App() {
               <PrivateRoute>
                 <Layout>
                 <Routes>
-                  <Route path="/" element={<Navigate to="/invoices" replace />} />
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={<FinancialDashboard />} />
 
                   {/* Invoices */}
                   <Route path="/invoices" element={<InvoiceList />} />
@@ -168,9 +185,27 @@ function App() {
                   <Route path="/expenses/new" element={<ExpenseForm />} />
                   <Route path="/expenses/edit/:id" element={<ExpenseForm />} />
 
+                  {/* Finance Setup */}
+                  <Route path="/categories" element={<CategoryManagement />} />
+                  <Route path="/employees" element={<EmployeeList />} />
+                  <Route path="/employees/new" element={<EmployeeForm />} />
+                  <Route path="/employees/:id" element={<EmployeeDetails />} />
+                  <Route path="/employees/:id/edit" element={<EmployeeForm />} />
+                  <Route path="/payroll" element={<PayrollDashboard />} />
+                  <Route path="/payroll/process" element={<PayrollProcessing />} />
+                  <Route path="/payroll/:id/payslip" element={<PayslipGeneration />} />
+                  <Route path="/budgets" element={<BudgetManager />} />
+                  <Route path="/budgets/tracking" element={<BudgetTracking />} />
+                  <Route path="/recurring" element={<RecurringTransactions />} />
+                  <Route path="/projects" element={<ProjectManager />} />
+                  <Route path="/projects/dashboard" element={<ProjectDashboard />} />
+
                   {/* Reports */}
                   <Route path="/reports/gst" element={<GstReport />} />
                   <Route path="/reports/revenue" element={<RevenueReport />} />
+                  <Route path="/reports/profit-loss" element={<ProfitLossStatement />} />
+                  <Route path="/reports/balance-sheet" element={<BalanceSheet />} />
+                  <Route path="/reports/cash-flow" element={<CashFlowStatement />} />
 
                   {/* Accounts */}
                   <Route path="/accounts/payments" element={<PaymentCollection />} />

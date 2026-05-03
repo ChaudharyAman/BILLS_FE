@@ -13,6 +13,7 @@ const IncomeForm = () => {
   const [vendors, setVendors] = useState([]);
   const [clients, setClients] = useState([]);
   const [inventory, setInventory] = useState([]);
+  const [categories, setCategories] = useState([]);
 
   // Form State matching Sleekbills screenshot
   const [formData, setFormData] = useState({
@@ -24,6 +25,8 @@ const IncomeForm = () => {
     vendorName: '',
     clientRef: '',
     clientName: '',
+    category: '',
+    subCategory: '',
     items: [
       { itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }
     ],
@@ -41,17 +44,20 @@ const IncomeForm = () => {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [vRes, cRes, iRes] = await Promise.all([
+      const [vRes, cRes, iRes, catRes] = await Promise.all([
         api.get('/vendors?limit=1000'),
         api.get('/clients?limit=1000'),
-        api.get('/items?limit=1000')
+        api.get('/items?limit=1000'),
+        api.get('/categories?type=income')
       ]);
       const loadedVendors = vRes.data.data || [];
       const loadedClients = cRes.data.data || [];
       const loadedInventory = iRes.data.data || [];
+      const loadedCategories = catRes.data || [];
       setVendors(loadedVendors);
       setClients(loadedClients);
       setInventory(loadedInventory);
+      setCategories(loadedCategories);
 
       if (id) {
         const eRes = await api.get(`/incomes/${id}`);
@@ -80,6 +86,8 @@ const IncomeForm = () => {
             vendorName: data.vendor?.name || '',
             clientRef: data.client?.clientRef || '',
             clientName: data.client?.name || '',
+            category: data.category?._id || data.category || '',
+            subCategory: data.subCategory?._id || data.subCategory || '',
             items: data.items?.length > 0 ? data.items : [{ itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }],
             reverseCharge: data.reverseCharge || false,
             terms: data.terms || '',
@@ -207,6 +215,8 @@ const IncomeForm = () => {
         client: selectedClient._id
           ? { clientRef: selectedClient._id, name: selectedClient.name }
           : (scannedClientName ? { name: scannedClientName } : null),
+        category: formData.category || null,
+        subCategory: formData.subCategory || null,
         reverseCharge: formData.reverseCharge,
         items: formData.items,
         subTotal: totals.subTotal,
@@ -236,6 +246,8 @@ const IncomeForm = () => {
   const inputBaseCls = "w-full border border-gray-200 rounded text-sm px-3 py-2 text-gray-700 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans";
   const labelCls = "text-xs font-semibold text-gray-600 tracking-wide mb-1.5 inline-block";
   const rowBorder = "border-b border-gray-200";
+  const rootCategories = categories.filter(cat => !cat.parent);
+  const subCategories = categories.filter(cat => (cat.parent?._id || cat.parent) === formData.category);
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#f3f6f9] py-8">
@@ -371,6 +383,35 @@ const IncomeForm = () => {
                     <p className="mt-1 text-xs text-amber-600">Scanned: {formData.clientName}</p>
                   )}
                 </div>
+              </div>
+
+              <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
+                <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Category</span>
+                <select
+                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
+                  value={formData.category}
+                  onChange={e => setFormData(p => ({ ...p, category: e.target.value, subCategory: '' }))}
+                >
+                  <option value="">Select Category</option>
+                  {rootCategories.map(cat => (
+                    <option key={cat._id} value={cat._id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
+                <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Sub-category</span>
+                <select
+                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
+                  value={formData.subCategory}
+                  onChange={e => setFormData(p => ({ ...p, subCategory: e.target.value }))}
+                  disabled={!formData.category || subCategories.length === 0}
+                >
+                  <option value="">None</option>
+                  {subCategories.map(cat => (
+                    <option key={cat._id} value={cat._id}>{cat.name}</option>
+                  ))}
+                </select>
               </div>
 
             </div>
