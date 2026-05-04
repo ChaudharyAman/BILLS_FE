@@ -157,7 +157,7 @@ const QuoteList = () => {
             <ExportDropdown 
                 disabled={!isPro}
                 data={selectedIds.length > 0 ? displayed.filter(q => selectedIds.includes(q._id)) : displayed}
-                filename="MyBill_Quotes"
+                filename="Flance_Quotes"
                 columns={[
                    { header: 'Quote No', key: 'quoteNo' },
                    { header: 'Client Name', key: 'client.name' },

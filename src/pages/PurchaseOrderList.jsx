@@ -156,7 +156,7 @@ const PurchaseOrderList = () => {
         <div className="flex gap-3">
           <ExportDropdown 
               data={selectedIds.length > 0 ? displayed.filter(q => selectedIds.includes(q._id)) : displayed}
-              filename="MyBill_Purchase_Orders"
+              filename="Flance_Purchase_Orders"
               columns={[
                  { header: 'PurchaseOrder No', key: 'poNumber' },
                  { header: 'Vendor Name', key: 'vendor.name' },

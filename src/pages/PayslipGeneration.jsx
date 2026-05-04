@@ -10,20 +10,15 @@ const PayslipGeneration = () => {
   const printRef = useRef(null);
   const [slip, setSlip] = useState(null);
   const [error, setError] = useState(null);
-  const hasFetched = useRef(false);
-
   useEffect(() => {
-    if (hasFetched.current) return;
-    hasFetched.current = true;
-
     const controller = new AbortController();
 
-    api.post(`/payroll/${id}/generate-payslip`, null, { signal: controller.signal })
+    api.get(`/payroll/${id}/generate-payslip`, { signal: controller.signal })
       .then(res => setSlip(res.data.payslip))
       .catch((fetchError) => {
         if (fetchError.name === 'CanceledError' || fetchError.name === 'AbortError') return;
         console.error(fetchError);
-        setError('Failed to load payslip');
+        setError(fetchError.response?.data?.message || 'Failed to load payslip');
       });
 
     return () => controller.abort();
@@ -50,7 +45,7 @@ const PayslipGeneration = () => {
 
       <div ref={printRef} className="bg-white border border-gray-200 rounded-xl shadow-sm p-8 max-w-4xl mx-auto print:shadow-none print:border-0">
         <div className="border-b border-gray-200 pb-5 mb-6">
-          <h2 className="text-2xl font-bold text-[#1a2e44]">MyBill</h2>
+          <h2 className="text-2xl font-bold text-[#1a2e44]">Flance</h2>
           <p className="text-gray-500">Salary Slip for {slip?.period?.monthName ?? '-'} {slip?.period?.year ?? ''}</p>
         </div>
 

@@ -90,7 +90,7 @@ const ExpenseList = () => {
         <div className="flex gap-3">
           <ExportDropdown 
               data={selectedIds.length > 0 ? displayed.filter(e => selectedIds.includes(e._id)) : displayed}
-              filename="MyBill_Expenses"
+              filename="Flance_Expenses"
               columns={[
                  { header: 'Expense No', key: 'expenseNumber' },
                  { header: 'Vendor Name', key: 'vendor.name' },

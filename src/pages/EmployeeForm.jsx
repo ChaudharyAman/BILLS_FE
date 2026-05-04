@@ -93,6 +93,11 @@ const EmployeeForm = () => {
 
   const submit = async (event) => {
     event.preventDefault();
+    if (step < 4) {
+      setStep(currentStep => Math.min(4, currentStep + 1));
+      return;
+    }
+
     try {
       setSaving(true);
       const payload = {

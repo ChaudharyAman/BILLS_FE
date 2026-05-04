@@ -118,7 +118,7 @@ const Layout = ({ children }) => {
           <div className="flex flex-col">
             <h1 className="text-lg font-bold text-white flex items-center gap-2 tracking-wide">
               <FaThLarge size={20} className="text-blue-400" />
-              MyBill
+              Flance
             </h1>
             {hasPremiumAccess && (
               <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase ml-7 mt-0.5">

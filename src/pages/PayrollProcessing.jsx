@@ -77,7 +77,10 @@ const PayrollProcessing = () => {
       };
       const res = await api.post('/payroll/process', payload);
       if (res.data.errors?.length) {
-        alert(`Processed ${res.data.success.length}. ${res.data.errors.length} skipped or failed.`);
+        const errorDetails = res.data.errors.map(err => 
+          `${err.employeeName || 'Unknown Employee'}: ${err.error}`
+        ).join('\n');
+        alert(`Processed ${res.data.success.length}. ${res.data.errors.length} skipped or failed:\n\n${errorDetails}`);
       }
       navigate('/payroll');
     } catch (error) {

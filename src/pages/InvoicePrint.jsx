@@ -94,7 +94,7 @@ const InvoicePrint = () => {
 
   useEffect(() => {
     if (invoice) document.title = `${invoice.invoiceNo} – ${invoice.client?.name || 'Invoice'}`;
-    return () => { document.title = 'MyBill'; };
+    return () => { document.title = 'Flance'; };
   }, [invoice]);
 
   if (loading) return (
@@ -115,19 +115,18 @@ const InvoicePrint = () => {
   const bank        = invoice.bankDetails || {}; // FIX #3: read from invoice, not settings
   const items       = invoice.items  || [];
   const invType     = invoice.invoiceType || 'Tax Invoice';
+  const hasTax      = invType === 'Tax Invoice' || invType === 'Excise Invoice';
   const hasExcise   = invType === 'Excise Invoice';
   const isIntra     = !invoice.totalIGST || invoice.totalIGST === 0;
-
-  // Show tax cols only if there is any actual tax amount applied
-  const hasTax = (Number(invoice.totalCGST) > 0) || (Number(invoice.totalSGST) > 0) || (Number(invoice.totalIGST) > 0)
-    || items.some(it => Number(it.cgst) > 0 || Number(it.sgst) > 0 || Number(it.igst) > 0 || Number(it.taxRate) > 0);
   const hasDiscount = items.some(it => Number(it.discount) > 0);
 
   const grandTotal  = Number(invoice.grandTotal)  || 0;
   const balanceDue  = Number(invoice.balanceDue)  || 0;
   const advancePaid = Number(invoice.advancePaid) || 0;
+  const tds         = Number(invoice.tds)         || 0;
   const rounded     = Math.round(grandTotal) - grandTotal;
   const taxRate     = items[0]?.taxRate || 0;
+  const amountDue   = advancePaid > 0 || tds > 0 ? balanceDue : grandTotal;
 
   // Address helpers
   const addrStr = (a) => {
@@ -218,7 +217,7 @@ const InvoicePrint = () => {
               width: '100%', minWidth: '260px'
             }}>
               <span>Amount Due:</span>
-              <span>₹ {fmt(advancePaid > 0 ? balanceDue : grandTotal)}</span>
+              <span>₹ {fmt(amountDue)}</span>
             </div>
 
             {/* Meta: right-label + right-value grid */}
@@ -410,7 +409,8 @@ const InvoicePrint = () => {
             )}
             <SummaryRow label="Total Value (in figure)"  value={`₹ ${Math.round(grandTotal).toLocaleString('en-IN')}`} isBoldValue vWidth="220px" />
             {advancePaid > 0 && <SummaryRow label="Advance Paid"  value={`(-) ₹ ${fmt(advancePaid)}`} green isBoldValue vWidth="220px" />}
-            {advancePaid > 0 && <SummaryRow label="Balance Due"   value={`₹ ${fmt(balanceDue)}`}    red isBoldValue vWidth="220px" />}
+            {tds > 0 && <SummaryRow label="TDS Deducted"  value={`(-) ₹ ${fmt(tds)}`} red isBoldValue vWidth="220px" />}
+            {(advancePaid > 0 || tds > 0) && <SummaryRow label="Balance Due"   value={`₹ ${fmt(balanceDue)}`}    red isBoldValue vWidth="220px" />}
             
             <SummaryRow 
               label="Total Value (in words)" 

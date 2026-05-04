@@ -82,10 +82,6 @@ const FinancialDashboard = () => {
       <div className="mx-auto max-w-7xl">
         <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300">
-              <FaShieldHalved />
-              Fintech India
-            </div>
             <h1 className="text-2xl font-bold text-white sm:text-3xl">Tax & Revenue Dashboard</h1>
           </div>
 

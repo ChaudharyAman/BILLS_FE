@@ -56,7 +56,7 @@ const PayrollDashboard = () => {
   };
 
   const generatePayslip = async (payroll) => {
-    const res = await api.post(`/payroll/${payroll._id}/generate-payslip`);
+    const res = await api.get(`/payroll/${payroll._id}/generate-payslip`);
     const slip = res.data.payslip;
     alert(`Payslip ready for ${slip.employee.firstName} ${slip.employee.lastName}\nNet Salary: ${fmtMoney(slip.netSalary)}`);
   };
