@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../api/axios';
+import api, { storeAuthSession } from '../api/axios';
 import { FaEye, FaEyeSlash, FaExclamationCircle } from 'react-icons/fa';
 
 const Login = () => {
@@ -24,7 +24,7 @@ const Login = () => {
 
     try {
       const response = await api.post('/auth/login', formData);
-      localStorage.setItem('user', JSON.stringify({ user: response.data.user }));
+      storeAuthSession(response.data);
       navigate('/invoices');
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid credentials');

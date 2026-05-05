@@ -6,7 +6,7 @@ import {
   FaChevronDown, FaChevronRight, FaMinus, FaPlus, FaStar,
   FaChartBar, FaWallet, FaLock, FaTimes, FaTruck, FaShoppingCart, FaTags, FaMoneyBillWave, FaBalanceScale, FaRedo, FaProjectDiagram
 } from 'react-icons/fa';
-import api from '../api/axios';
+import api, { clearAuthSession } from '../api/axios';
 
 const NAV = [
   { label: 'Dashboard',          icon: FaThLarge,       path: '/dashboard' },
@@ -322,7 +322,7 @@ const Layout = ({ children }) => {
               } catch (err) {
                 console.error('Logout failed', err);
               }
-              localStorage.removeItem('user');
+              clearAuthSession();
               window.location.href = '/login';
             }}
             data-testid="logout-button"

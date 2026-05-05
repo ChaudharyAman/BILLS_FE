@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import PageLoader from './components/PageLoader';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
-import api from './api/axios';
+import api, { clearAuthSession, storeAuthSession } from './api/axios';
 
 // Lazy Load Pages
 const InvoiceList = lazy(() => import('./pages/InvoiceList'));
@@ -125,6 +125,36 @@ function App() {
     return () => {
       window.clearInterval(intervalId);
       document.removeEventListener('visibilitychange', syncSubscription);
+    };
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const restoreSession = async () => {
+      const rawUser = localStorage.getItem('user');
+      const authToken = localStorage.getItem('authToken');
+
+      if (!rawUser && !authToken) return;
+      if (rawUser && authToken) return;
+
+      try {
+        const response = await api.get('/auth/me');
+        if (!isCancelled) {
+          storeAuthSession(response.data);
+          window.dispatchEvent(new Event('auth-sync'));
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          clearAuthSession();
+        }
+      }
+    };
+
+    restoreSession();
+
+    return () => {
+      isCancelled = true;
     };
   }, []);
 

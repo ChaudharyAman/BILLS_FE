@@ -1,20 +1,26 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
+import { clearAuthSession } from '../api/axios';
 
 const PrivateRoute = ({ children }) => {
   let isAuthenticated = false;
+
   try {
-    const raw = localStorage.getItem('user');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      // Require a proper wrapped user object with an _id
+    const rawUser = localStorage.getItem('user');
+    const authToken = localStorage.getItem('authToken');
+
+    if (rawUser) {
+      const parsed = JSON.parse(rawUser);
       if (parsed?.user?._id) {
         isAuthenticated = true;
       }
     }
-  } catch (e) {
-    // Malformed JSON in localStorage — treat as logged out
-    localStorage.removeItem('user');
+
+    if (!isAuthenticated && authToken) {
+      isAuthenticated = true;
+    }
+  } catch (error) {
+    clearAuthSession();
   }
 
   if (!isAuthenticated) {
