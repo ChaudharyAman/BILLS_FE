@@ -132,7 +132,7 @@ const Subscription = () => {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'dummy_key_id',
         amount: order.amount,
         currency: order.currency,
-        name: 'MyBill',
+        name: 'Flance',
         description: `Pro Plan - ${billingCycle.charAt(0).toUpperCase() + billingCycle.slice(1)}`,
         order_id: order.id,
         handler: async function (response) {

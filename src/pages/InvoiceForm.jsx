@@ -99,6 +99,8 @@ const sanitizeGstRate = (value = '') => {
 
 const isCustomTaxRate = (value = '') => !STANDARD_TAX_RATES.includes(sanitizeGstRate(value));
 
+const roundTwo = (value) => Math.round((Number(value) || 0) * 100) / 100;
+
 const getCatalogItemTaxRate = (item = {}) => {
   const candidates = [item.defaultTaxRate, item.taxRate, item.salesInfo?.taxRate];
 
@@ -483,63 +485,75 @@ const InvoiceForm = () => {
   const calcTaxableRow = (item) => {
     const qty = Number(item.qty) || 0;
     const rate = Number(item.rate) || 0;
-    const disc = Number(item.discount) || 0;
-    return qty * rate * (1 - disc / 100);
+    const disc = Math.min(100, Math.max(0, Number(item.discount) || 0));
+    return roundTwo(qty * rate * (1 - disc / 100));
   };
 
   // Returns full row amount including tax/excise (for display in the items table)
   const calcRow = (item) => {
     const taxable = calcTaxableRow(item);
     const gstRate = sanitizeGstRate(item.taxRate);
-    const gst = hasTax ? taxable * (gstRate / 100) : 0;
+    const gst = hasTax ? roundTwo(taxable * (gstRate / 100)) : 0;
     let excise = 0;
     if (hasExcise) {
-      const bed = taxable * (Number(item.bedPercent) / 100);
-      const sed = taxable * (Number(item.sedPercent) / 100);
-      const cess = (bed + sed) * (Number(item.cessPercent) / 100);
-      excise = bed + sed + cess;
+      const bed = roundTwo(taxable * (Number(item.bedPercent) / 100 || 0));
+      const sed = roundTwo(taxable * (Number(item.sedPercent) / 100 || 0));
+      const cess = roundTwo((bed + sed) * (Number(item.cessPercent) / 100 || 0));
+      excise = roundTwo(bed + sed + cess);
     }
-    return taxable + gst + excise;
+    return roundTwo(taxable + gst + excise);
   };
 
   // Subtotal = sum of taxable values only (pre-tax)
-  const getSubTotal = () => formData.items.reduce((a, i) => a + calcTaxableRow(i), 0);
+  const getSubTotal = () => roundTwo(formData.items.reduce((a, i) => a + calcTaxableRow(i), 0));
+
+  const getExciseTotal = () => {
+    if (!hasExcise) return 0;
+    return roundTwo(formData.items.reduce((total, item) => {
+      const taxable = calcTaxableRow(item);
+      const bed = roundTwo(taxable * (Number(item.bedPercent) / 100 || 0));
+      const sed = roundTwo(taxable * (Number(item.sedPercent) / 100 || 0));
+      const cess = roundTwo((bed + sed) * (Number(item.cessPercent) / 100 || 0));
+      return total + bed + sed + cess;
+    }, 0));
+  };
 
   const getTaxBreakdown = () => {
     let cgst = 0, sgst = 0, igst = 0;
-    if (!hasTax) return { cgst, sgst, igst };
-    const isInterState = isInterStateSupply(
+    let isInterState = false;
+    if (!hasTax) return { cgst, sgst, igst, isInterState };
+    isInterState = isInterStateSupply(
       formData.placeOfSupply,
       companyTaxProfile.state,
       companyTaxProfile.gstin
     );
     formData.items.forEach(item => {
       const taxable = calcTaxableRow(item);
-      const tax = taxable * (sanitizeGstRate(item.taxRate) / 100);
+      const tax = roundTwo(taxable * (sanitizeGstRate(item.taxRate) / 100));
       if (isInterState) {
-        igst += tax;
+        igst = roundTwo(igst + tax);
       } else {
-        cgst += tax / 2;
-        sgst += tax / 2;
+        cgst = roundTwo(cgst + roundTwo(tax / 2));
+        sgst = roundTwo(sgst + roundTwo(tax / 2));
       }
     });
-    return { cgst, sgst, igst };
+    return { cgst, sgst, igst, isInterState };
   };
 
   const getGrandTotal = () => {
     const sub = getSubTotal();
     const { cgst, sgst, igst } = getTaxBreakdown();
     const totalTax = cgst + sgst + igst;
+    const totalExcise = getExciseTotal();
     const ship = Number(formData.shippingCharges) || 0;
     const custom = Number(formData.packagingCharges) || 0;
     const disc = Number(formData.discountTotal) || 0;
-    const tds = Number(formData.tds) || 0;
     const tcs = Number(formData.tcs) || 0;
     // Grand Total typically = Subtotal + Tax + Shipping + Custom - Discount
     // TDS/TCS are usually handled as adjustments to the final amount or separate markers.
     // For this app, we'll keep Grand Total as the payable amount before TDS deduction (commonly).
     // But we'll add TCS to Grand Total if present.
-    return sub + totalTax + ship + custom - disc + tcs;
+    return roundTwo(sub + totalTax + totalExcise + ship + custom - disc + tcs);
   };
 
   // ── Item helpers ──────────────────────────────────────────────
@@ -641,7 +655,7 @@ const InvoiceForm = () => {
   const inp = 'w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white';
   const lbl = 'block text-xs font-medium text-gray-500 mb-1';
 
-  const { cgst, sgst, igst } = getTaxBreakdown();
+  const { cgst, sgst, igst, isInterState } = getTaxBreakdown();
   const pendingPdfClientName = formData.importSource === 'pdf' && !formData.clientRef
     ? formData.clientName?.trim()
     : '';
@@ -1267,13 +1281,13 @@ const InvoiceForm = () => {
                 <span className="font-semibold">₹ {getSubTotal().toFixed(2)}</span>
               </div>
 
-              {hasTax && igst > 0 && (
+              {hasTax && isInterState && (
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>IGST</span>
                   <span>₹ {igst.toFixed(2)}</span>
                 </div>
               )}
-              {hasTax && cgst > 0 && (
+              {hasTax && !isInterState && (
                 <>
                   <div className="flex justify-between text-sm text-gray-600">
                     <span>CGST</span>
@@ -1284,6 +1298,12 @@ const InvoiceForm = () => {
                     <span>₹ {sgst.toFixed(2)}</span>
                   </div>
                 </>
+              )}
+              {hasExcise && getExciseTotal() > 0 && (
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Excise Duty</span>
+                  <span>₹ {getExciseTotal().toFixed(2)}</span>
+                </div>
               )}
 
               {showShipping && Number(formData.shippingCharges) > 0 && (
@@ -1316,29 +1336,25 @@ const InvoiceForm = () => {
                 <span className="text-lg font-bold text-blue-700">₹ {getGrandTotal().toFixed(2)}</span>
               </div>
 
-              {showAdvance && Number(formData.advancePaid) > 0 && (
+              {(Number(formData.advancePaid) > 0 || Number(formData.tds) > 0) && (
                 <>
-                  <div className="flex justify-between text-sm text-emerald-600">
-                    <span>Advance Paid</span>
-                    <span>- ₹ {Number(formData.advancePaid).toFixed(2)}</span>
-                  </div>
+                  {Number(formData.advancePaid) > 0 && (
+                    <div className="flex justify-between text-sm text-emerald-600">
+                      <span>Advance Paid</span>
+                      <span>- ₹ {Number(formData.advancePaid).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {Number(formData.tds) > 0 && (
+                    <div className="flex justify-between text-sm text-red-500">
+                      <span>TDS Deducted</span>
+                      <span>- ₹ {Number(formData.tds).toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm font-bold text-gray-800 border-t border-gray-200 pt-2">
                     <span>Balance Due</span>
                     <span>₹ {Math.max(0, getGrandTotal() - Number(formData.advancePaid) - Number(formData.tds)).toFixed(2)}</span>
                   </div>
                 </>
-              )}
-              {Number(formData.tds) > 0 && !showAdvance && (
-                 <div className="flex justify-between text-sm text-red-500">
-                    <span>TDS Deducted</span>
-                    <span>- ₹ {Number(formData.tds).toFixed(2)}</span>
-                 </div>
-              )}
-              {Number(formData.tds) > 0 && showAdvance && (
-                 <div className="flex justify-between text-sm text-red-500">
-                    <span>TDS Deducted</span>
-                    <span>- ₹ {Number(formData.tds).toFixed(2)}</span>
-                 </div>
               )}
             </div>
           </div>

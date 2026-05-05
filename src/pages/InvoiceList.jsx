@@ -215,7 +215,7 @@ const InvoiceList = () => {
              <ExportDropdown 
                 disabled={!isPro}
                 data={selectedInvoices.length > 0 ? displayedInvoices.filter(i => selectedInvoices.includes(i._id)) : displayedInvoices}
-                filename="MyBill_Invoices"
+                filename="Flance_Invoices"
                 columns={[
                    { header: 'Client Name', key: 'client.name' },
                    { header: 'Client GSTIN', key: 'client.gstin' },

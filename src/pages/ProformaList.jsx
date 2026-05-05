@@ -156,7 +156,7 @@ const ProformaList = () => {
             <ExportDropdown 
                 disabled={!isPro}
                 data={selectedIds.length > 0 ? displayed.filter(p => selectedIds.includes(p._id)) : displayed}
-                filename="MyBill_Proformas"
+                filename="Flance_Proformas"
                 columns={[
                    { header: 'Proforma No', key: 'proformaNo' },
                    { header: 'Client Name', key: 'client.name' },

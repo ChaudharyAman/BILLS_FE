@@ -24,8 +24,7 @@ const Login = () => {
 
     try {
       const response = await api.post('/auth/login', formData);
-      // store the whole response data (user + token)
-      localStorage.setItem('user', JSON.stringify(response.data));
+      localStorage.setItem('user', JSON.stringify({ user: response.data.user }));
       navigate('/invoices');
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid credentials');

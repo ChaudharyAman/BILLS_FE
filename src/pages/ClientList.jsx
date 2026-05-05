@@ -183,7 +183,7 @@ const ClientList = () => {
                   disabled={!isPro}
                   testId="clients-export"
                   data={filteredClients} 
-                  filename="MyBill_Clients_Export" 
+                  filename="Flance_Clients_Export" 
                   columns={[
                      { header: 'Company Name', key: 'name' },
                      { header: 'Email', key: 'email' },

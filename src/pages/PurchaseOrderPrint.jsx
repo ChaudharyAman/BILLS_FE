@@ -68,7 +68,7 @@ const PurchaseOrderPrint = () => {
 
   useEffect(() => {
     if (doc) document.title = `${doc.poNumber||'PO'} – ${doc.vendor?.name||'Vendor'}`;
-    return () => { document.title = 'MyBill'; };
+    return () => { document.title = 'Flance'; };
   }, [doc]);
 
   const handleConvert = async () => {

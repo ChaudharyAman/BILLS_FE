@@ -173,7 +173,7 @@ const VendorList = () => {
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
              <ExportDropdown 
                 data={filteredVendors} 
-                filename="MyBill_Vendors_Export" 
+                filename="Flance_Vendors_Export" 
                 columns={[
                    { header: 'Company Name', key: 'name' },
                    { header: 'Email', key: 'email' },

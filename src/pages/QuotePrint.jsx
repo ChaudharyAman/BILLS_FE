@@ -78,7 +78,7 @@ const QuotePrint = ({ docType = 'quote' }) => {
       const no = isProforma ? doc.proformaNo : doc.quoteNo;
       document.title = `${no||'Document'} – ${doc.client?.name||'Client'}`;
     }
-    return () => { document.title = 'MyBill'; };
+    return () => { document.title = 'Flance'; };
   }, [doc, isProforma]);
 
   const handleConvert = async () => {

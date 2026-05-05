@@ -63,7 +63,7 @@ const UnitSelector = ({ value, onChange }) => {
 
   // Load custom units from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('mybill_custom_units');
+    const saved = localStorage.getItem('flance_custom_units');
     if (saved) {
       try {
         setCustomUnits(JSON.parse(saved));
@@ -124,7 +124,7 @@ const UnitSelector = ({ value, onChange }) => {
 
     const updatedCustomUnits = [...customUnits, newUnit];
     setCustomUnits(updatedCustomUnits);
-    localStorage.setItem('mybill_custom_units', JSON.stringify(updatedCustomUnits));
+    localStorage.setItem('flance_custom_units', JSON.stringify(updatedCustomUnits));
     
     onChange(newUnit.code);
     setIsAdding(false);

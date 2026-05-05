@@ -24,7 +24,7 @@ const TaxRateSelector = ({ value, onChange }) => {
 
   // Load custom rates from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('mybill_custom_tax_rates');
+    const saved = localStorage.getItem('flance_custom_tax_rates');
     if (saved) {
       try {
         setCustomRates(JSON.parse(saved));
@@ -99,7 +99,7 @@ const TaxRateSelector = ({ value, onChange }) => {
     if (!customRates.find(r => r.value === rateValue)) {
         const updatedCustomRates = [...customRates, newCustomRate].sort((a,b) => a.value - b.value);
         setCustomRates(updatedCustomRates);
-        localStorage.setItem('mybill_custom_tax_rates', JSON.stringify(updatedCustomRates));
+        localStorage.setItem('flance_custom_tax_rates', JSON.stringify(updatedCustomRates));
     }
     
     onChange(rateValue);

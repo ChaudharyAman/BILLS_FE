@@ -9,9 +9,11 @@ import PdfInvoiceImporter from '../components/PdfInvoiceImporter';
 
 const ExpenseList = () => {
   const navigate = useNavigate();
+  const initialCategory = new URLSearchParams(window.location.search).get('category') || '';
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter] = useState(initialCategory);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -35,7 +37,9 @@ const ExpenseList = () => {
   const fetchExpenses = async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/expenses?page=${page}&limit=${rowsPerPage}&search=${encodeURIComponent(searchTerm)}`);
+      const params = new URLSearchParams({ page, limit: rowsPerPage, search: searchTerm });
+      if (categoryFilter) params.set('category', categoryFilter);
+      const res = await api.get(`/expenses?${params.toString()}`);
       setExpenses(res.data.data || []);
       setTotalPages(res.data.totalPages || 1);
       setTotalRecords(res.data.total || 0);
@@ -70,6 +74,7 @@ const ExpenseList = () => {
   const STATUS_STYLES = {
     DRAFT: 'bg-gray-100 text-gray-700 border-gray-200',
     PAID: 'bg-green-100 text-green-700 border-green-200',
+    PARTIAL: 'bg-amber-100 text-amber-700 border-amber-200',
     UNPAID: 'bg-red-100 text-red-700 border-red-200',
     CANCELLED: 'bg-gray-200 text-gray-500 border-gray-300',
   };
@@ -85,13 +90,15 @@ const ExpenseList = () => {
         <div className="flex gap-3">
           <ExportDropdown 
               data={selectedIds.length > 0 ? displayed.filter(e => selectedIds.includes(e._id)) : displayed}
-              filename="MyBill_Expenses"
+              filename="Flance_Expenses"
               columns={[
                  { header: 'Expense No', key: 'expenseNumber' },
                  { header: 'Vendor Name', key: 'vendor.name' },
                  { header: 'Date', key: 'date' },
                  { header: 'Status', key: 'status' },
-                 { header: 'Amount', key: 'grandTotal' }
+                 { header: 'Amount', key: 'grandTotal' },
+                 { header: 'Paid', key: 'amountPaid' },
+                 { header: 'Payable', key: 'balanceDue' }
               ]}
           />
           <button
@@ -132,6 +139,7 @@ const ExpenseList = () => {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Reference Client</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Payable</th>
                 <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -146,11 +154,12 @@ const ExpenseList = () => {
                     <td className="px-6 py-4"><Skeleton width="100px" height="20px" /></td>
                     <td className="px-6 py-4"><Skeleton width="80px" height="24px" className="rounded-full" /></td>
                     <td className="px-6 py-4 text-right"><Skeleton width="80px" height="20px" className="ml-auto" /></td>
+                    <td className="px-6 py-4 text-right"><Skeleton width="80px" height="20px" className="ml-auto" /></td>
                     <td className="px-6 py-4 text-center"><Skeleton width="100px" height="20px" className="mx-auto" /></td>
                   </tr>
                 ))
               ) : displayed.length === 0 ? (
-                <tr><td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">No expenses found.</td></tr>
+                <tr><td colSpan="9" className="px-6 py-12 text-center text-gray-500 text-sm">No expenses found.</td></tr>
               ) : displayed.map(exp => (
                 <tr key={exp._id} className="hover:bg-blue-50/50 transition-colors">
                   <td className="px-6 py-4 text-center">
@@ -177,6 +186,9 @@ const ExpenseList = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
                     ₹{fmt(exp.grandTotal)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-red-600">
+                    ₹{fmt(exp.balanceDue)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <div className="flex justify-center gap-3 items-center">

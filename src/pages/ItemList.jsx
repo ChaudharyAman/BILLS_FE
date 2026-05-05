@@ -47,7 +47,6 @@ const ItemList = () => {
     setIsImporting(true);
     try {
       const formattedItems = data.map(row => {
-        // Helper function to find a value by checking multiple possible keys
         const getVal = (keys) => {
            for (const key of keys) {
              if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
@@ -84,7 +83,7 @@ const ItemList = () => {
           defaultTaxRate: Number(getVal(['Tax (%)', 'TaxRate', 'taxRate', 'Tax', 'tax', 'GST', 'IGST'])) || 0,
           openingQuantity: Number(getVal(['Quantity', 'QTY', 'Qty', 'qty', 'quantity'])) || 0,
         };
-      }).filter(item => item.name); // ensure a name exists
+      }).filter(item => item.name);
 
       if (formattedItems.length === 0) {
         alert('No valid items found in the file. Please ensure the "Name" column exists.');
@@ -118,12 +117,9 @@ const ItemList = () => {
     }
   };
 
-  const filteredItems = items;
-  const paginatedItems = items; // Backend pagination
-
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedItems(paginatedItems.map(i => i._id));
+      setSelectedItems(items.map(i => i._id));
     } else {
       setSelectedItems([]);
     }
@@ -156,25 +152,23 @@ const ItemList = () => {
         <div className="flex gap-3">
           <ExportDropdown 
               testId="items-export"
-              data={filteredItems} 
-              filename="MyBill_Items_Master" 
+              data={items} 
+              filename="Flance_Items_Master" 
               columns={[
                  { header: 'Name', key: 'name' },
                  { header: 'Description', key: 'description' },
                  { header: 'SKU', key: 'sku' },
-                 { header: 'HSN Code', key: 'hsnCode' },
                  { header: 'Type', key: 'type' },
+                 { header: 'Price', key: 'salesInfo.price' },
                  { header: 'Unit', key: 'unit' },
-                 { header: 'Sales Price', key: 'salesInfo.price' },
-                 { header: 'Opening Qty', key: 'openingQuantity' },
-                 { header: 'Default Tax Rate', key: 'defaultTaxRate' }
+                 { header: 'Qty', key: 'openingQuantity' }
               ]}
           />
           <button
             onClick={() => setIsCsvModalOpen(true)}
             className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
           >
-            <FaUpload size={16} /> Bulk Import Info
+            <FaUpload size={16} /> Bulk Import
           </button>
           <Link
             to="/items/new"
@@ -188,48 +182,14 @@ const ItemList = () => {
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {loading ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                   <th className="px-4 py-3 w-10"><Skeleton width="16px" height="16px" /></th>
-                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Name</th>
-                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Description</th>
-                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">SKU</th>
-                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Type</th>
-                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Price</th>
-                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Unit</th>
-                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider text-right">Quantity</th>
-                   <th className="px-4 py-3 w-8"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {[...Array(5)].map((_, i) => (
-                  <tr key={i} className="bg-white">
-                    <td className="px-4 py-3"><Skeleton width="16px" height="16px" /></td>
-                    <td className="px-4 py-3"><Skeleton width="120px" height="20px" /></td>
-                    <td className="px-4 py-3"><Skeleton width="180px" height="20px" /></td>
-                    <td className="px-4 py-3"><Skeleton width="60px" height="20px" /></td>
-                    <td className="px-4 py-3"><Skeleton width="60px" height="20px" /></td>
-                    <td className="px-4 py-3"><Skeleton width="80px" height="20px" /></td>
-                    <td className="px-4 py-3"><Skeleton width="40px" height="20px" /></td>
-                    <td className="px-4 py-3"><Skeleton width="40px" height="20px" className="ml-auto" /></td>
-                    <td className="px-4 py-3"><Skeleton width="20px" height="20px" /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : filteredItems.length === 0 ? (          <div className="text-center py-16">
+          <div className="p-10 text-center"><Skeleton width="100%" height="200px" /></div>
+        ) : items.length === 0 ? (
+          <div className="text-center py-16">
             <FaBox size={40} className="mx-auto text-slate-300 mb-3" />
             <p className="text-slate-500 font-medium">No inventory found</p>
-            <p className="text-slate-400 text-sm mt-1">Create your first inventory item to get started</p>
-            <Link to="/items/new" className="mt-4 inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-              <FaPlus size={16} /> New Item
-            </Link>
           </div>
         ) : (
-          <>
+          <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
@@ -237,148 +197,50 @@ const ItemList = () => {
                     <input
                       type="checkbox"
                       className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                      checked={selectedItems.length === paginatedItems.length && paginatedItems.length > 0}
+                      checked={selectedItems.length === items.length && items.length > 0}
                       onChange={handleSelectAll}
                     />
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    <span className="flex items-center gap-1">Name <span className="text-slate-400">↕</span></span>
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Description</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Name</th>
                   <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">SKU</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Type</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    <span className="flex items-center gap-1">Price <span className="text-slate-400">↕</span></span>
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    <span className="flex items-center gap-1">Unit <span className="text-slate-400">↕</span></span>
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider text-right">
-                    <span className="flex items-center gap-1 justify-end">Quantity <span className="text-slate-400">↕</span></span>
-                  </th>
-                  <th className="px-4 py-3 w-8"></th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Price</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider text-right">Quantity</th>
+                  <th className="px-4 py-3 w-20">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {paginatedItems.map((item) => (
-                  <tr
-                    key={item._id}
-                    onClick={() => navigate(`/items/edit/${item._id}`)}
-                    className={`hover:bg-slate-50 transition-colors cursor-pointer ${selectedItems.includes(item._id) ? 'bg-teal-50/30' : ''}`}
-                  >
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                {items.map((item) => (
+                  <tr key={item._id} className="hover:bg-slate-50 cursor-pointer">
+                    <td className="px-4 py-3">
                       <input
                         type="checkbox"
-                        className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
                         checked={selectedItems.includes(item._id)}
                         onChange={() => handleSelectOne(item._id)}
+                        className="h-4 w-4 rounded"
                       />
                     </td>
+                    <td className="px-4 py-3 text-sm font-medium text-slate-800" onClick={() => navigate(`/items/edit/${item._id}`)}>
+                      {item.name}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-500">{item.sku || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700 font-medium">{formatCurrency(item.salesInfo?.price || item.rate)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700 text-right font-medium">{item.openingQuantity ?? 0}</td>
                     <td className="px-4 py-3">
-                      <Link
-                        to={`/items/edit/${item._id}`}
-                        className="text-sm font-medium text-slate-800 hover:text-teal-600 transition-colors"
-                      >
-                        {item.name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-orange-500 max-w-[180px] truncate">
-                      {item.description || <span className="text-slate-300">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-500">
-                      {item.sku || <span className="text-slate-300">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-500">
-                      {item.type === 'Service' ? 'Service' : 'Product'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-700 font-medium">
-                      {formatCurrency(item.salesInfo?.price || item.rate)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-500">
-                      {item.unit || <span className="text-slate-300">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-700 text-right font-medium">
-                      {item.openingQuantity ?? 0}
-                    </td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-center gap-3">
-                        <button
-                          onClick={() => navigate(`/items/edit/${item._id}`)}
-                          className="text-slate-400 hover:text-teal-600 transition-colors"
-                          title="Edit"
-                        >
-                          <FaPencilAlt size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item._id)}
-                          className="text-slate-300 hover:text-red-500 transition-colors font-bold text-lg leading-none"
-                          title="Delete"
-                        >
-                          ×
-                        </button>
+                      <div className="flex gap-2">
+                        <button onClick={() => navigate(`/items/edit/${item._id}`)} className="text-blue-500 hover:text-blue-700"><FaPencilAlt size={14} /></button>
+                        <button onClick={() => handleDelete(item._id)} className="text-red-500 hover:text-red-700 text-lg">×</button>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-
-            {/* Pagination Footer */}
-            <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-              <div className="flex items-center gap-2">
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                  className="border border-slate-200 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-teal-500"
-                >
-                  {ITEMS_PER_PAGE_OPTIONS.map(n => (
-                    <option key={n} value={n}>{n} per page</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex items-center gap-3">
-                <span>{totalRecords} inventory items total</span>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage <= 1}
-                    className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <FaChevronLeft size={14} />
-                  </button>
-                  <span className="px-2">Page {currentPage} of {totalPages || 1}</span>
-                  <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage >= totalPages || totalPages === 0}
-                    className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <FaChevronRight size={14} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </>
+          </div>
         )}
       </div>
 
-      {/* Bulk Upload CSV Modal */}
-      <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Inventory to Database">
-        <CsvAndExcelUploader 
-          onDataParsed={handleCsvParsed} 
-          isLoading={isImporting}
-          title="Upload Items Master List"
-          subtitle="Upload a CSV, .xlsx, or .xls file with columns like Name, Description, SKU, Price, Tax Rate."
-        />
-        <div className="mt-4 flex justify-end">
-          <button 
-            type="button" 
-            onClick={() => setIsCsvModalOpen(false)} 
-            disabled={isImporting}
-            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        </div>
+      <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Inventory">
+        <CsvAndExcelUploader onDataParsed={handleCsvParsed} isLoading={isImporting} />
       </Modal>
     </div>
   );
