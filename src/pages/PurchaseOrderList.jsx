@@ -1,18 +1,21 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { FaPlus, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaChevronDown, FaFileAlt, FaArrowRight } from 'react-icons/fa';
+import { FaPlus, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaChevronDown, FaFileAlt, FaArrowRight, FaFilePdf } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 import ExportDropdown from '../components/ExportDropdown';
 import Modal from '../components/Modal';
 import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
 import QuotaIndicator from '../components/QuotaIndicator';
+import PdfInvoiceImporter from '../components/PdfInvoiceImporter';
 
 const PurchaseOrderList = () => {
   const navigate = useNavigate();
+  const STATUS_OPTIONS = ['ALL', 'DRAFT', 'SENT', 'ACCEPTED', 'RECEIVED', 'REJECTED', 'BILLED', 'CANCELLED'];
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -21,6 +24,7 @@ const PurchaseOrderList = () => {
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [isPdfScannerOpen, setIsPdfScannerOpen] = useState(false);
 
   const userStr = localStorage.getItem('user');
   let userObj = null;
@@ -32,12 +36,12 @@ const PurchaseOrderList = () => {
       fetchPurchaseOrders();
     }, 300);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, page, rowsPerPage]);
+  }, [searchTerm, statusFilter, page, rowsPerPage]);
 
   const fetchPurchaseOrders = async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/purchase-orders?page=${page}&limit=${rowsPerPage}&search=${encodeURIComponent(searchTerm)}`);
+      const res = await api.get(`/purchase-orders?page=${page}&limit=${rowsPerPage}&search=${encodeURIComponent(searchTerm)}&status=${encodeURIComponent(statusFilter)}`);
       setPurchaseOrders(res.data.data || []);
       setTotalPages(res.data.totalPages || 1);
       setTotalRecords(res.data.total || 0);
@@ -85,14 +89,37 @@ const PurchaseOrderList = () => {
             vendorName: getVal(['Vendor Name', 'Vendor', 'Customer Name', 'Customer']),
             vendorEmail: getVal(['Vendor Email', 'Email', 'Customer Email']) || '',
             vendorPhone: getVal(['Vendor Phone', 'Phone', 'Customer Phone', 'Contact']) || '',
+            vendorGST: getVal(['Vendor GSTIN', 'Vendor GST', 'GSTIN']) || '',
             vendorState: getVal(['Vendor State', 'State', 'Place of Supply']) || '',
             placeOfSupply: getVal(['Place of Supply', 'Vendor State', 'State']) || '',
             invoiceType: getVal(['Invoice Type', 'Type', 'Document Type']) || 'Tax Invoice',
+            refNumber: getVal(['Reference Number', 'Ref Number', 'Reference']) || '',
             date: getVal(['Date', 'PurchaseOrder Date', 'Issue Date']) || undefined,
             validUntil: getVal(['Valid Until', 'Valid']) || undefined,
+            paymentMode: getVal(['Payment Mode']) || '',
+            paymentTerms: getVal(['Payment Terms']) || '',
+            status: getVal(['Status']) || 'DRAFT',
             shippingCharges: Number(getVal(['Shipping Charges', 'Shipping', 'Freight'])) || 0,
             packagingCharges: Number(getVal(['Packaging Charges', 'Packaging'])) || 0,
+            customChargeLabel: getVal(['Custom Charge Label']) || 'Custom Amount',
             discountTotal: Number(getVal(['Discount Total', 'Discount'])) || 0,
+            notes: getVal(['Notes']) || '',
+            privateNotes: getVal(['Private Notes']) || '',
+            terms: getVal(['Terms']) || '',
+            shippingAddress: {
+              line1: getVal(['Shipping Address Line 1', 'Shipping Line 1']) || '',
+              line2: getVal(['Shipping Address Line 2', 'Shipping Line 2']) || '',
+              city: getVal(['Shipping City']) || '',
+              state: getVal(['Shipping State']) || '',
+              zip: getVal(['Shipping ZIP', 'Shipping Zip']) || '',
+            },
+            transport: {
+              mode: getVal(['Transport Mode']) || '',
+              vehicleNumber: getVal(['Vehicle Number']) || '',
+              poNumber: getVal(['Transport PO Number', 'PO Number']) || '',
+              poDate: getVal(['Transport PO Date', 'PO Date']) || undefined,
+              eWayBillNo: getVal(['E-Way Bill No', 'EWay Bill No', 'E Way Bill No']) || '',
+            },
             items: []
           };
         }
@@ -102,6 +129,8 @@ const PurchaseOrderList = () => {
            grouped[id].items.push({
              name: itemName,
              description: getVal(['Item Description', 'Desc', 'Details']) || '',
+             hsnCode: getVal(['HSN/SAC', 'HSN Code', 'HSN']) || '',
+             unit: getVal(['Unit']) || 'pcs',
              qty: Number(getVal(['Qty', 'QTY', 'Quantity', 'Quantity '])) || 1,
              rate: Number(getVal(['Rate', 'Price', 'Unit Price'])) || 0,
              taxRate: Number(getVal(['Tax Rate', 'Tax', 'Tax %', 'GST', 'IGST'])) || 0,
@@ -132,6 +161,24 @@ const PurchaseOrderList = () => {
   };
 
   const displayed = purchaseOrders; // Backend pagination
+  const exportRows = (selectedIds.length > 0 ? displayed.filter(q => selectedIds.includes(q._id)) : displayed)
+    .flatMap((purchaseOrder) => {
+      const items = purchaseOrder.items?.length ? purchaseOrder.items : [{}];
+      return items.map((item, index) => ({
+        ...purchaseOrder,
+        exportItemIndex: index + 1,
+        exportItemName: item.name || '',
+        exportItemDescription: item.description || '',
+        exportItemHsnCode: item.hsnCode || '',
+        exportItemUnit: item.unit || '',
+        exportItemQty: item.qty || 0,
+        exportItemRate: item.rate || 0,
+        exportItemDiscount: item.discount || 0,
+        exportItemTaxRate: item.taxRate || 0,
+        exportItemTaxAmount: item.taxAmount || 0,
+        exportItemAmount: item.amount || 0,
+      }));
+    });
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const fmt = (v) => (Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
@@ -140,10 +187,68 @@ const PurchaseOrderList = () => {
     DRAFT: 'bg-gray-100 text-gray-700 border-gray-200',
     SENT: 'bg-blue-100 text-blue-700 border-blue-200',
     ACCEPTED: 'bg-green-100 text-green-700 border-green-200',
+    RECEIVED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     REJECTED: 'bg-red-100 text-red-700 border-red-200',
     BILLED: 'bg-purple-100 text-purple-700 border-purple-200',
     CANCELLED: 'bg-slate-100 text-slate-700 border-slate-200',
   };
+  const EXPORT_COLUMNS = [
+    { header: 'PurchaseOrder No', key: 'poNumber' },
+    { header: 'Reference Number', key: 'refNumber' },
+    { header: 'Date', key: 'date' },
+    { header: 'Valid Until', key: 'validUntil' },
+    { header: 'Status', key: 'status' },
+    { header: 'Invoice Type', key: 'invoiceType' },
+    { header: 'Payment Mode', key: 'paymentMode' },
+    { header: 'Payment Terms', key: 'paymentTerms' },
+    { header: 'Place of Supply', key: 'placeOfSupply' },
+    { header: 'Reverse Charge', key: 'reverseCharge' },
+    { header: 'Vendor Name', key: 'vendor.name' },
+    { header: 'Vendor GSTIN', key: 'vendor.gstin' },
+    { header: 'Vendor Phone', key: 'vendor.phone' },
+    { header: 'Vendor Email', key: 'vendor.email' },
+    { header: 'Vendor Address Line 1', key: 'vendor.address.line1' },
+    { header: 'Vendor Address Line 2', key: 'vendor.address.line2' },
+    { header: 'Vendor City', key: 'vendor.address.city' },
+    { header: 'Vendor State', key: 'vendor.address.state' },
+    { header: 'Vendor ZIP', key: 'vendor.address.zip' },
+    { header: 'Shipping Address Line 1', key: 'shippingAddress.line1' },
+    { header: 'Shipping Address Line 2', key: 'shippingAddress.line2' },
+    { header: 'Shipping City', key: 'shippingAddress.city' },
+    { header: 'Shipping State', key: 'shippingAddress.state' },
+    { header: 'Shipping ZIP', key: 'shippingAddress.zip' },
+    { header: 'Transport Mode', key: 'transport.mode' },
+    { header: 'Vehicle Number', key: 'transport.vehicleNumber' },
+    { header: 'Transport PO Number', key: 'transport.poNumber' },
+    { header: 'Transport PO Date', key: 'transport.poDate' },
+    { header: 'E-Way Bill No', key: 'transport.eWayBillNo' },
+    { header: 'Sub Total', key: 'subTotal' },
+    { header: 'Tax Total', key: 'taxTotal' },
+    { header: 'Total CGST', key: 'totalCGST' },
+    { header: 'Total SGST', key: 'totalSGST' },
+    { header: 'Total IGST', key: 'totalIGST' },
+    { header: 'Shipping Charges', key: 'shippingCharges' },
+    { header: 'Packaging Charges', key: 'packagingCharges' },
+    { header: 'Custom Charge Label', key: 'customChargeLabel' },
+    { header: 'Discount Total', key: 'discountTotal' },
+    { header: 'Grand Total', key: 'grandTotal' },
+    { header: 'Advance Paid', key: 'advancePaid' },
+    { header: 'Balance Due', key: 'balanceDue' },
+    { header: 'Notes', key: 'notes' },
+    { header: 'Private Notes', key: 'privateNotes' },
+    { header: 'Terms', key: 'terms' },
+    { header: 'Item Line', key: 'exportItemIndex' },
+    { header: 'Item Name', key: 'exportItemName' },
+    { header: 'Item Description', key: 'exportItemDescription' },
+    { header: 'HSN/SAC', key: 'exportItemHsnCode' },
+    { header: 'Unit', key: 'exportItemUnit' },
+    { header: 'Qty', key: 'exportItemQty' },
+    { header: 'Rate', key: 'exportItemRate' },
+    { header: 'Item Discount', key: 'exportItemDiscount' },
+    { header: 'Tax Rate', key: 'exportItemTaxRate' },
+    { header: 'Tax Amount', key: 'exportItemTaxAmount' },
+    { header: 'Item Amount', key: 'exportItemAmount' },
+  ];
 
   return (
     <div className="container mx-auto p-6 font-sans text-gray-900">
@@ -155,17 +260,16 @@ const PurchaseOrderList = () => {
         </div>
         <div className="flex gap-3">
           <ExportDropdown 
-              data={selectedIds.length > 0 ? displayed.filter(q => selectedIds.includes(q._id)) : displayed}
+              data={exportRows}
               filename="Flance_Purchase_Orders"
-              columns={[
-                 { header: 'PurchaseOrder No', key: 'poNumber' },
-                 { header: 'Vendor Name', key: 'vendor.name' },
-                 { header: 'Date', key: 'date' },
-                 { header: 'Valid Until', key: 'validUntil' },
-                 { header: 'Status', key: 'status' },
-                 { header: 'Grand Total', key: 'grandTotal' }
-              ]}
+              columns={EXPORT_COLUMNS}
           />
+          <button
+             onClick={() => setIsPdfScannerOpen(true)}
+             className="bg-violet-50 hover:bg-violet-100 text-violet-600 border border-violet-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+           >
+             <FaFilePdf size={16} /> Scan PDF
+           </button>
           <button
              onClick={() => setIsCsvModalOpen(true)}
              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
@@ -185,9 +289,22 @@ const PurchaseOrderList = () => {
       {/* Table */}
       <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
         <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-          <input type="text" placeholder="Search purchaseOrders..."
-            className="w-full max-w-sm pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setPage(1); }} />
+          <div className="flex w-full items-center gap-3">
+            <input type="text" placeholder="Search purchaseOrders..."
+              className="w-full max-w-sm pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setPage(1); }} />
+            <select
+              value={statusFilter}
+              onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+              className="min-w-[160px] border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {STATUS_OPTIONS.map(status => (
+                <option key={status} value={status}>
+                  {status === 'ALL' ? 'All Statuses' : status}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="text-sm text-gray-500 ml-4">Showing {displayed.length} of {totalRecords}</div>
         </div>
 
@@ -249,7 +366,7 @@ const PurchaseOrderList = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{fmtDate(q.date)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {q.validUntil ? (
-                      <span className={new Date(q.validUntil) < new Date() && q.status !== 'BILLED' ? 'text-red-500 font-medium' : ''}>
+                      <span className={new Date(q.validUntil) < new Date() && !['BILLED', 'RECEIVED', 'CANCELLED'].includes(q.status) ? 'text-red-500 font-medium' : ''}>
                         {fmtDate(q.validUntil)}
                       </span>
                     ) : '—'}
@@ -327,7 +444,7 @@ const PurchaseOrderList = () => {
           onDataParsed={handleCsvParsed} 
           isLoading={isImporting}
           title="Upload Purchase Orders File"
-          subtitle="Group rows by 'PurchaseOrder No'. Columns must include 'Vendor Name', 'Item Name', 'Qty', 'Rate'."
+          subtitle="Group rows by 'PurchaseOrder No'. You can import the full exported Excel/CSV with vendor, totals, transport, notes, and item-level columns."
         />
         <div className="mt-4 flex justify-end">
           <button 
@@ -361,6 +478,13 @@ const PurchaseOrderList = () => {
           </div>
         </div>
       </Modal>
+
+      <PdfInvoiceImporter
+        isOpen={isPdfScannerOpen}
+        onClose={() => setIsPdfScannerOpen(false)}
+        onImportSuccess={() => setIsPdfScannerOpen(false)}
+        targetType="purchaseOrder"
+      />
 
     </div>
   );

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { FaPrint, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import { FaPrint, FaArrowLeft, FaArrowRight, FaBoxOpen } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -82,6 +82,14 @@ const PurchaseOrderPrint = () => {
     finally { setConverting(false); }
   };
 
+  const handleReceive = async () => {
+    if (!window.confirm('Mark this Purchase Order as received?')) return;
+    try {
+      const res = await api.post(`/purchase-orders/${id}/receive`);
+      setDoc(res.data);
+    } catch (e) { alert(e.response?.data?.message || 'Failed to mark as received'); }
+  };
+
   if (loading) return (
     <div style={{ background:'#eee', minHeight:'100vh', padding:'20px 0' }}>
       <div style={{ maxWidth:860, margin:'0 auto', background:'#fff', padding:'40px' }}>
@@ -120,6 +128,12 @@ const PurchaseOrderPrint = () => {
           <FaArrowLeft size={13}/> Back
         </button>
         <div style={{ display:'flex',gap:8 }}>
+          {!['RECEIVED', 'BILLED', 'CANCELLED'].includes(doc.status) && (
+            <button onClick={handleReceive}
+              style={{ display:'flex',alignItems:'center',gap:6,padding:'7px 14px',background:'#059669',color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontSize:13,fontWeight:700 }}>
+              <FaBoxOpen size={13}/> Mark as Received
+            </button>
+          )}
           {doc.status !== 'BILLED' && (
             <button onClick={handleConvert} disabled={converting}
               style={{ display:'flex',alignItems:'center',gap:6,padding:'7px 14px',background:'#7c3aed',color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontSize:13,fontWeight:700 }}>
