@@ -53,6 +53,20 @@ const TARGET_CONFIG = {
     dateLabel: 'Reference Date',
     primaryPartyLabel: 'Customer / Payer',
   },
+  purchaseOrder: {
+    title: 'PDF Purchase Order Scanner',
+    subtitle: 'Upload a purchase order PDF to prefill the form',
+    uploadText: 'Drag & drop a purchase order PDF here',
+    extractLabel: 'Extract Purchase Order Data',
+    extractingLabel: 'Extracting purchase order data...',
+    detailsTitle: 'Purchase Order Details',
+    sendLabel: 'Send to Purchase Order Form',
+    storageKey: 'purchaseOrderPdfImportData',
+    navigateTo: '/purchase-orders/new?source=pdf',
+    numberLabel: 'Reference Number',
+    dateLabel: 'Purchase Order Date',
+    primaryPartyLabel: 'Vendor Name',
+  },
 };
 
 const calculateItemTaxable = (item) => {
@@ -238,7 +252,16 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'in
           customChargeLabel: roundOff ? 'Round Off' : '',
           packagingCharges: roundOff,
         }
-      : commonPayload;
+      : targetType === 'purchaseOrder'
+        ? {
+            ...commonPayload,
+            refNumber: extractedData.invoiceNumber || '',
+            date: extractedData.invoiceDate || '',
+            validUntil: extractedData.dueDate || '',
+            customChargeLabel: roundOff ? 'Round Off' : '',
+            packagingCharges: roundOff,
+          }
+        : commonPayload;
 
     sessionStorage.setItem(config.storageKey, JSON.stringify(payload));
     onClose();
@@ -431,7 +454,11 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'in
                   {targetType === 'income' && (
                     <EditableField label="Vendor / Issuer" value={extractedData.vendorName} onChange={v => updateField('vendorName', v)} />
                   )}
-                  <EditableField label={config.primaryPartyLabel} value={targetType === 'expense' ? extractedData.vendorName : extractedData.clientName} onChange={v => updateField(targetType === 'expense' ? 'vendorName' : 'clientName', v)} />
+                  <EditableField
+                    label={config.primaryPartyLabel}
+                    value={targetType === 'expense' || targetType === 'purchaseOrder' ? extractedData.vendorName : extractedData.clientName}
+                    onChange={v => updateField(targetType === 'expense' || targetType === 'purchaseOrder' ? 'vendorName' : 'clientName', v)}
+                  />
                   {targetType === 'expense' && (
                     <EditableField label="Client / Buyer" value={extractedData.clientName} onChange={v => updateField('clientName', v)} />
                   )}

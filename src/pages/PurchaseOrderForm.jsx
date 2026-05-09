@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import api from '../api/axios';
-import { FaTrash, FaPlus, FaUpload } from 'react-icons/fa';
+import { FaTrash, FaPlus, FaUpload, FaBoxOpen } from 'react-icons/fa';
 import Modal from '../components/Modal';
 import VendorForm from './VendorForm';
 import ItemForm from './ItemForm';
@@ -29,16 +29,22 @@ const parseDocumentNumberParts = (value, prefix) => {
   };
 };
 
+const normalizeCatalogName = (value = '') => String(value || '')
+  .trim()
+  .replace(/\s+/g, ' ')
+  .toLowerCase();
+
 const PurchaseOrderForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const location = useLocation();
 
   const apiBase = '/purchase-orders';
   const listPath = '/purchase-orders';
   const docLabel = 'Purchase Order';
   const docNoLabel = 'Purchase Order no';
 
-  const STATUSES = ['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'BILLED', 'CANCELLED'];
+  const STATUSES = ['DRAFT', 'SENT', 'ACCEPTED', 'RECEIVED', 'REJECTED', 'BILLED', 'CANCELLED'];
 
   const [vendors, setVendors] = useState([]);
   const [itemsList, setItemsList] = useState([]);
@@ -50,6 +56,9 @@ const PurchaseOrderForm = () => {
   const [vendorPending, setVendorPending] = useState(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [premiumMessage, setPremiumMessage] = useState('');
+  const [currentStatus, setCurrentStatus] = useState('DRAFT');
+  const [receivingOrder, setReceivingOrder] = useState(false);
+  const [pendingPdfVendorName, setPendingPdfVendorName] = useState('');
 
   // Optional add-ons
   const [showShipping, setShowShipping] = useState(false);
@@ -58,6 +67,8 @@ const PurchaseOrderForm = () => {
   const [discountToAll, setDiscountToAll] = useState('');
   const [showCustomAmount, setShowCustomAmount] = useState(false);
   const [prefixes, setPrefixes] = useState({ purchaseOrder: 'PO' });
+  const [catalogReady, setCatalogReady] = useState(false);
+  const [isSyncingPdfItems, setIsSyncingPdfItems] = useState(false);
 
   const emptyItem = () => ({
     name: '', description: '', hsnCode: '', unit: 'pcs',
@@ -67,6 +78,7 @@ const PurchaseOrderForm = () => {
   const [formData, setFormData] = useState({
     invoiceType: 'Tax Invoice',
     vendorRef: '',
+    importSource: '',
     docNo: '',
     docNoSuffix: '',
     poNumber: '',
@@ -96,6 +108,158 @@ const PurchaseOrderForm = () => {
     load();
   }, [id]);
 
+  useEffect(() => {
+    const source = new URLSearchParams(location.search).get('source');
+    if (source !== 'pdf' || id) return;
+
+    try {
+      const raw = sessionStorage.getItem('purchaseOrderPdfImportData');
+      if (!raw) return;
+
+      const pdf = JSON.parse(raw);
+      sessionStorage.removeItem('purchaseOrderPdfImportData');
+
+      if (!pdf._fromPdfImport) return;
+
+      setFormData(prev => ({
+        ...prev,
+        importSource: 'pdf',
+        refNumber: pdf.refNumber || pdf.documentNumber || prev.refNumber,
+        date: pdf.date || pdf.documentDate || prev.date,
+        validUntil: pdf.validUntil || pdf.dueDate || prev.validUntil,
+        placeOfSupply: pdf.placeOfSupply || prev.placeOfSupply,
+        paymentMode: pdf.paymentMode || prev.paymentMode,
+        customChargeLabel: pdf.customChargeLabel || prev.customChargeLabel,
+        customChargeAmount: pdf.packagingCharges ?? prev.customChargeAmount,
+        items: pdf.items?.length > 0
+          ? pdf.items.map(item => ({
+              ...emptyItem(),
+              name: item.name || '',
+              description: item.description || '',
+              unit: item.unit || 'pcs',
+              qty: item.qty || 1,
+              rate: item.rate || 0,
+              taxRate: Number(item.taxRate) || 0,
+              taxSelect: [0, 5, 12, 18, 28].includes(Number(item.taxRate)) ? String(Number(item.taxRate)) : ((Number(item.taxRate) || 0) > 0 ? 'custom' : '0'),
+              customTaxRate: [0, 5, 12, 18, 28].includes(Number(item.taxRate)) ? '' : String(item.taxRate || ''),
+            }))
+          : prev.items,
+      }));
+
+      if (Number(pdf.packagingCharges) !== 0) {
+        setShowCustomAmount(true);
+      }
+
+      if (pdf.vendorName) {
+        setPendingPdfVendorName(pdf.vendorName);
+        const match = vendors.find(v => v.name?.toLowerCase().trim() === pdf.vendorName.toLowerCase().trim());
+        if (match) {
+          setFormData(prev => ({
+            ...prev,
+            vendorRef: match._id,
+            placeOfSupply: prev.placeOfSupply || match.billingAddress?.state || '',
+          }));
+          setPendingPdfVendorName('');
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load purchase order PDF import data:', e);
+    }
+  }, [location.search, id, vendors]);
+
+  useEffect(() => {
+    if (!pendingPdfVendorName || vendors.length === 0) return;
+
+    const match = vendors.find(v => v.name?.toLowerCase().trim() === pendingPdfVendorName.toLowerCase().trim());
+    if (!match) return;
+
+    setFormData(prev => ({
+      ...prev,
+      vendorRef: prev.vendorRef || match._id,
+      placeOfSupply: prev.placeOfSupply || match.billingAddress?.state || '',
+    }));
+    setPendingPdfVendorName('');
+  }, [vendors, pendingPdfVendorName]);
+
+  useEffect(() => {
+    if (id || formData.importSource !== 'pdf' || !catalogReady || isSyncingPdfItems) return;
+
+    const missingItems = formData.items.filter(item => !item.itemRef && normalizeCatalogName(item.name));
+    if (missingItems.length === 0) return;
+
+    let isCancelled = false;
+
+    const syncPdfItemsToCatalog = async () => {
+      setIsSyncingPdfItems(true);
+
+      try {
+        const knownItems = new Map(
+          itemsList
+            .filter(item => normalizeCatalogName(item.name))
+            .map(item => [normalizeCatalogName(item.name), item])
+        );
+
+        const createdItems = [];
+
+        for (const item of missingItems) {
+          const itemKey = normalizeCatalogName(item.name);
+          if (!itemKey || knownItems.has(itemKey)) continue;
+
+          const response = await api.post('/items', {
+            name: item.name,
+            description: item.description || '',
+            hsnCode: item.hsnCode || '',
+            unit: item.unit || 'pcs',
+            rate: Number(item.rate) || 0,
+            sellingPrice: Number(item.rate) || 0,
+            purchasePrice: Number(item.rate) || 0,
+            taxRate: Number(item.taxRate) || 0,
+            defaultTaxRate: Number(item.taxRate) || 0,
+          });
+
+          const createdItem = response.data;
+          knownItems.set(itemKey, createdItem);
+          createdItems.push(createdItem);
+        }
+
+        if (isCancelled) return;
+
+        if (createdItems.length > 0) {
+          setItemsList(prev => [...createdItems, ...prev]);
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          items: prev.items.map(item => {
+            if (item.itemRef) return item;
+
+            const matchedItem = knownItems.get(normalizeCatalogName(item.name));
+            if (!matchedItem) return item;
+
+            return {
+              ...item,
+              itemRef: matchedItem._id,
+            };
+          }),
+        }));
+      } catch (e) {
+        if (!isCancelled) {
+          console.error('Failed to sync PDF purchase order items to catalog:', e);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsSyncingPdfItems(false);
+        }
+      }
+    };
+
+    syncPdfItemsToCatalog();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [id, formData.items, itemsList, catalogReady, isSyncingPdfItems]);
+
   const fetchDependencies = async () => {
     try {
       const [vr, ir, sr] = await Promise.all([
@@ -111,6 +275,7 @@ const PurchaseOrderForm = () => {
       setPrefixes(loadedPrefixes);
       return loadedPrefixes;
     } catch (e) { console.error(e); }
+    finally { setCatalogReady(true); }
     return prefixes;
   };
 
@@ -119,9 +284,11 @@ const PurchaseOrderForm = () => {
       const res = await api.get(`${apiBase}/${docId}`);
       const d = res.data;
       const parsedDocNumber = parseDocumentNumberParts(d.poNumber, prefixMap.purchaseOrder);
+      setCurrentStatus(d.status || 'DRAFT');
       setFormData({
         invoiceType: d.invoiceType || 'Tax Invoice',
         vendorRef: d.vendor?.vendorRef || '',
+        importSource: '',
         docNo: parsedDocNumber.docNo,
         docNoSuffix: parsedDocNumber.docNoSuffix,
         poNumber: d.transport?.poNumber || '',
@@ -290,6 +457,17 @@ const PurchaseOrderForm = () => {
     } finally { setLoading(false); }
   };
 
+  const handleReceive = async () => {
+    if (!window.confirm('Mark this Purchase Order as received?')) return;
+    setReceivingOrder(true);
+    try {
+      await api.post(`${apiBase}/${id}/receive`);
+      navigate(`${listPath}/${id}/print`);
+    } catch (e) {
+      alert(e.response?.data?.message || 'Failed to mark as received');
+    } finally { setReceivingOrder(false); }
+  };
+
   // ── Styles ───────────────────────────────────────────────────────────────────
   const inp = 'border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white w-full';
   const th = 'px-3 py-2.5 text-left text-xs font-semibold text-gray-600 bg-gray-100 border-b border-gray-200 whitespace-nowrap';
@@ -430,6 +608,22 @@ const PurchaseOrderForm = () => {
                   data-testid="purchase-order-valid-until"
                   onChange={e => setFormData(f => ({ ...f, validUntil: e.target.value }))}
                   className={`${inp} flex-1`} />
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-gray-600 w-28 flex-shrink-0">Status</label>
+                <select
+                  value={formData.status}
+                  onChange={e => {
+                    const nextStatus = e.target.value;
+                    setFormData(f => ({ ...f, status: nextStatus }));
+                    setCurrentStatus(nextStatus);
+                  }}
+                  className={`${inp} w-[calc(50%-0.375rem)]`}
+                >
+                  {STATUSES.map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -739,6 +933,12 @@ const PurchaseOrderForm = () => {
             className="px-5 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60">
             Save as draft
           </button>
+          {id && !['RECEIVED', 'BILLED', 'CANCELLED'].includes(currentStatus) && (
+            <button type="button" onClick={handleReceive} disabled={receivingOrder}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded text-sm font-semibold transition-colors disabled:opacity-60">
+              <FaBoxOpen size={14} /> Mark as Received
+            </button>
+          )}
           <button type="button" onClick={() => navigate(listPath)}
             className="px-5 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
             Cancel
