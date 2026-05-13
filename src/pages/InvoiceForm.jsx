@@ -92,6 +92,16 @@ const normalizeTaxRate = (value = '') => {
   return numeric;
 };
 
+const clampPercent = (value = '') => {
+  const numeric = normalizeTaxRate(value);
+  return Math.min(100, Math.max(0, numeric));
+};
+
+const clampPercentInput = (value = '') => {
+  if (value === '') return '';
+  return String(clampPercent(value));
+};
+
 const sanitizeGstRate = (value = '') => {
   const numeric = normalizeTaxRate(value);
   return numeric > MAX_GST_RATE ? 0 : numeric;
@@ -1010,14 +1020,14 @@ const InvoiceForm = () => {
 
                 {/* Qty */}
                 <div>
-                  <input type="number" min="0" className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                  <input type="number" min="0" step="0.01" className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
                     data-testid={`invoice-item-qty-${index}`}
                     value={item.qty} onChange={(e) => updateItem(index, 'qty', e.target.value)} />
                 </div>
 
                 {/* Price */}
                 <div>
-                  <input type="number" min="0" className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                  <input type="number" min="0" step="0.01" className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
                     data-testid={`invoice-item-rate-${index}`}
                     value={item.rate} onChange={(e) => updateItem(index, 'rate', e.target.value)} />
                 </div>
@@ -1051,9 +1061,9 @@ const InvoiceForm = () => {
                       </select>
                     ) : (
                       <div className="relative">
-                        <input type="number" min="0" autoFocus placeholder="Tax %"
+                        <input type="text" inputMode="decimal" autoFocus placeholder="Tax %"
                           className="w-full border border-blue-400 rounded px-2 py-1.5 text-sm bg-blue-50 outline-none pr-6"
-                          value={item.taxRate} onChange={(e) => updateItem(index, 'taxRate', sanitizeGstRate(e.target.value))} />
+                          value={item.taxRate} onChange={(e) => updateItem(index, 'taxRate', clampPercentInput(e.target.value))} />
                         <button onClick={() => { const ni = [...formData.items]; ni[index] = { ...ni[index], isCustom: false, taxRate: 0 }; setFormData({ ...formData, items: ni }); }}
                           className="absolute right-1 top-2 text-gray-400 hover:text-red-500">
                           <FaTrash size={12} />
@@ -1067,19 +1077,19 @@ const InvoiceForm = () => {
                 {hasExcise && (
                   <>
                     <div>
-                      <input type="number" min="0" placeholder="0"
+                      <input type="number" min="0" max="100" placeholder="0"
                         className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
-                        value={item.bedPercent} onChange={(e) => updateItem(index, 'bedPercent', e.target.value)} />
+                        value={item.bedPercent} onChange={(e) => updateItem(index, 'bedPercent', clampPercent(e.target.value))} />
                     </div>
                     <div>
-                      <input type="number" min="0" placeholder="0"
+                      <input type="number" min="0" max="100" placeholder="0"
                         className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
-                        value={item.sedPercent} onChange={(e) => updateItem(index, 'sedPercent', e.target.value)} />
+                        value={item.sedPercent} onChange={(e) => updateItem(index, 'sedPercent', clampPercent(e.target.value))} />
                     </div>
                     <div>
-                      <input type="number" min="0" placeholder="0"
+                      <input type="number" min="0" max="100" placeholder="0"
                         className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
-                        value={item.cessPercent} onChange={(e) => updateItem(index, 'cessPercent', e.target.value)} />
+                        value={item.cessPercent} onChange={(e) => updateItem(index, 'cessPercent', clampPercent(e.target.value))} />
                     </div>
                   </>
                 )}
@@ -1151,7 +1161,7 @@ const InvoiceForm = () => {
                       </div>
                     )}
                   </div>
-                  <input type="number" placeholder="Amount" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500"
+                  <input type="number" min="0" step="0.01" placeholder="Amount" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500"
                     value={formData.shippingCharges} onChange={(e) => setFormData({ ...formData, shippingCharges: e.target.value })} />
                 </div>
               )}
@@ -1170,7 +1180,7 @@ const InvoiceForm = () => {
               </label>
               {showDiscountTotal && (
                 <div className="mt-2 pl-6">
-                  <input type="number" placeholder="0" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500"
+                  <input type="number" min="0" step="0.01" placeholder="0" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500"
                     value={formData.discountTotal} onChange={(e) => setFormData({ ...formData, discountTotal: e.target.value })} />
                   <p className="text-[10px] text-gray-400 mt-1">Note: Enabling this may affect GSTR-1 report accuracy.</p>
                 </div>
@@ -1222,7 +1232,7 @@ const InvoiceForm = () => {
                 <div className="mt-2 pl-6 flex gap-3">
                   <input type="text" placeholder="Label" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-44 outline-none focus:border-blue-500"
                     value={formData.customChargeLabel} onChange={(e) => setFormData({ ...formData, customChargeLabel: e.target.value })} />
-                  <input type="number" placeholder="Amount" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500"
+                  <input type="number" step="0.01" placeholder="Amount" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500"
                     value={formData.packagingCharges} onChange={(e) => setFormData({ ...formData, packagingCharges: e.target.value })} />
                 </div>
               )}
@@ -1238,7 +1248,7 @@ const InvoiceForm = () => {
                 <div className="mt-2 pl-6 flex items-center gap-4">
                   <div>
                     <label className="text-[10px] text-gray-500 uppercase block">Amount Paid:</label>
-                    <input type="number" className="border border-blue-200 rounded px-2 py-1.5 text-sm w-36 outline-none bg-blue-50 focus:border-blue-500"
+                    <input type="number" min="0" step="0.01" className="border border-blue-200 rounded px-2 py-1.5 text-sm w-36 outline-none bg-blue-50 focus:border-blue-500"
                       value={formData.advancePaid} onChange={(e) => setFormData({ ...formData, advancePaid: e.target.value })} />
                   </div>
                 </div>

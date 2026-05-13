@@ -266,7 +266,11 @@ const QuoteList = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <div className="flex justify-center gap-2 items-center">
                       <Link to={`/quotes/${q._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View"><FaEye size={17} /></Link>
-                      <Link to={`/quotes/edit/${q._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={17} /></Link>
+                      {q.status !== 'CONVERTED' ? (
+                        <Link to={`/quotes/edit/${q._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={17} /></Link>
+                      ) : (
+                        <span className="text-gray-200 cursor-not-allowed" title="Converted quotations cannot be edited"><FaEdit size={17} /></span>
+                      )}
                       {q.status !== 'CONVERTED' && (
                         <button onClick={() => handleConvert(q._id)} className="text-gray-400 hover:text-purple-600 transition-colors" title="Convert to Invoice">
                           <FaArrowRight size={17} />
