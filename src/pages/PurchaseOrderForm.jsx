@@ -29,6 +29,17 @@ const parseDocumentNumberParts = (value, prefix) => {
   };
 };
 
+const clampPercent = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.min(100, Math.max(0, numeric));
+};
+
+const clampPercentInput = (value) => {
+  if (value === '') return '';
+  return String(clampPercent(value));
+};
+
 const normalizeCatalogName = (value = '') => String(value || '')
   .trim()
   .replace(/\s+/g, ' ')
@@ -139,7 +150,7 @@ const PurchaseOrderForm = () => {
               unit: item.unit || 'pcs',
               qty: item.qty || 1,
               rate: item.rate || 0,
-              taxRate: Number(item.taxRate) || 0,
+              taxRate: clampPercent(item.taxRate),
               taxSelect: [0, 5, 12, 18, 28].includes(Number(item.taxRate)) ? String(Number(item.taxRate)) : ((Number(item.taxRate) || 0) > 0 ? 'custom' : '0'),
               customTaxRate: [0, 5, 12, 18, 28].includes(Number(item.taxRate)) ? '' : String(item.taxRate || ''),
             }))
@@ -213,8 +224,8 @@ const PurchaseOrderForm = () => {
             rate: Number(item.rate) || 0,
             sellingPrice: Number(item.rate) || 0,
             purchasePrice: Number(item.rate) || 0,
-            taxRate: Number(item.taxRate) || 0,
-            defaultTaxRate: Number(item.taxRate) || 0,
+            taxRate: clampPercent(item.taxRate),
+            defaultTaxRate: clampPercent(item.taxRate),
           });
 
           const createdItem = response.data;
@@ -380,7 +391,7 @@ const PurchaseOrderForm = () => {
       it.rate = Number(row.Price || row.price || row.Rate || row.rate) || 0;
       it.discount = Number(row.Discount || row.discount || row.Disc || row.disc) || 0;
       
-      const taxParam = Number(row.TaxRate || row.taxRate || row.Tax || row.tax) || 0;
+      const taxParam = clampPercent(row.TaxRate || row.taxRate || row.Tax || row.tax);
       it.taxRate = taxParam;
       it.taxSelect = [0,5,12,18,28].includes(taxParam) ? String(taxParam) : (taxParam > 0 ? 'custom' : '0');
       it.customTaxRate = [0,5,12,18,28].includes(taxParam) ? '' : String(taxParam || '');
@@ -685,13 +696,13 @@ const PurchaseOrderForm = () => {
                         className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400" />
                     </td>
                     <td className="px-2 py-2 align-top">
-                      <input type="number" min="0" value={item.qty}
+                      <input type="number" min="0" step="0.01" value={item.qty}
                         data-testid={`purchase-order-item-qty-${idx}`}
                         onChange={e => updateItem(idx, 'qty', e.target.value)}
                         className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400" />
                     </td>
                     <td className="px-2 py-2 align-top">
-                      <input type="number" min="0" placeholder="Price" value={item.rate || ''}
+                      <input type="number" min="0" step="0.01" placeholder="Price" value={item.rate || ''}
                         data-testid={`purchase-order-item-rate-${idx}`}
                         onChange={e => updateItem(idx, 'rate', e.target.value)}
                         className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400" />
@@ -711,7 +722,7 @@ const PurchaseOrderForm = () => {
                             items[idx] = {
                               ...items[idx],
                               taxSelect: val,
-                              taxRate: val === 'custom' ? (Number(items[idx].customTaxRate) || 0) : Number(val),
+                              taxRate: val === 'custom' ? clampPercent(items[idx].customTaxRate) : Number(val),
                             };
                             items[idx].amount = calcRow(items[idx]);
                             setFormData(f => ({ ...f, items }));
@@ -723,14 +734,14 @@ const PurchaseOrderForm = () => {
                         </select>
                         {item.taxSelect === 'custom' && (
                           <input
-                            type="number" min="0" max="100" placeholder="Rate %"
+                            type="text" inputMode="decimal" placeholder="Rate %"
                             value={item.customTaxRate ?? ''}
                             onChange={e => {
                               const items = [...formData.items];
                               items[idx] = {
                                 ...items[idx],
-                                customTaxRate: e.target.value,
-                                taxRate: Number(e.target.value) || 0,
+                                customTaxRate: clampPercentInput(e.target.value),
+                                taxRate: clampPercent(e.target.value),
                               };
                               items[idx].amount = calcRow(items[idx]);
                               setFormData(f => ({ ...f, items }));
@@ -784,7 +795,7 @@ const PurchaseOrderForm = () => {
             {showShipping && (
               <div className="ml-6 flex items-center gap-2">
                 <span className="text-sm text-gray-600">₹</span>
-                <input type="number" min="0" value={formData.shippingCharges}
+                <input type="number" min="0" step="0.01" value={formData.shippingCharges}
                   onChange={e => setFormData(f => ({ ...f, shippingCharges: e.target.value }))}
                   className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-36 focus:outline-none focus:ring-1 focus:ring-blue-400" />
               </div>
@@ -799,7 +810,7 @@ const PurchaseOrderForm = () => {
             {showDiscountTotal && (
               <div className="ml-6 flex items-center gap-2">
                 <span className="text-sm text-gray-600">₹</span>
-                <input type="number" min="0" value={formData.discountTotal}
+                <input type="number" min="0" step="0.01" value={formData.discountTotal}
                   onChange={e => setFormData(f => ({ ...f, discountTotal: e.target.value }))}
                   className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-36 focus:outline-none focus:ring-1 focus:ring-blue-400" />
               </div>
@@ -856,7 +867,7 @@ const PurchaseOrderForm = () => {
                   onChange={e => setFormData(f => ({ ...f, customChargeLabel: e.target.value }))}
                   className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-32 focus:outline-none focus:ring-1 focus:ring-blue-400" />
                 <span className="text-sm text-gray-600">₹</span>
-                <input type="number" min="0" value={formData.customChargeAmount}
+                <input type="number" min="0" step="0.01" value={formData.customChargeAmount}
                   onChange={e => setFormData(f => ({ ...f, customChargeAmount: e.target.value }))}
                   className="border border-gray-300 rounded px-2.5 py-1.5 text-sm w-28 focus:outline-none focus:ring-1 focus:ring-blue-400" />
               </div>
