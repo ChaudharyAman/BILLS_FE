@@ -216,7 +216,7 @@ const ExpenseList = () => {
             <span className="text-sm text-gray-500">Rows per page:</span>
             <select value={rowsPerPage} onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
               className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
-              <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option>
+              <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option>
             </select>
           </div>
           <div className="flex items-center gap-4">
