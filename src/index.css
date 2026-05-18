@@ -28,3 +28,113 @@
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* ── Glass Theme ─────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.15); }
+  50%       { box-shadow: 0 0 40px rgba(56, 189, 248, 0.35); }
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes count-up {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.glass-card {
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(56,189,248,0.18);
+}
+.glass-card-bright {
+  background: rgba(255,255,255,0.10);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 20px;
+}
+.animate-rise-in {
+  animation: rise-in 0.5s ease-out both;
+}
+.animate-count-up {
+  animation: count-up 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+.shimmer-text {
+  background: linear-gradient(90deg, #38bdf8, #a78bfa, #34d399, #38bdf8);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 4s linear infinite;
+}
+.water-bg {
+  background: radial-gradient(ellipse at 20% 50%, rgba(56,189,248,0.12) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.10) 0%, transparent 55%),
+              radial-gradient(ellipse at 60% 80%, rgba(52,211,153,0.09) 0%, transparent 50%),
+              #050e1e;
+}
+
+/* ── Light Glass Water Theme ─────────────────── */
+.glass-water-bg {
+  background:
+    radial-gradient(ellipse at 15% 30%, rgba(99,102,241,0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 10%, rgba(6,182,212,0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 85%, rgba(16,185,129,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 55%, rgba(168,85,247,0.07) 0%, transparent 50%),
+    linear-gradient(135deg, #eef6ff 0%, #e8f4fb 35%, #f0ebff 70%, #e6f9f3 100%);
+  min-height: 100%;
+}
+
+.glass-water-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(240,248,255,0.60) 50%, rgba(245,240,255,0.68) 100%);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.85);
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(99,102,241,0.07), 0 1px 4px rgba(255,255,255,0.9) inset;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.glass-water-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 40px rgba(99,102,241,0.13), 0 1px 4px rgba(255,255,255,0.9) inset;
+}
+
+.glass-water-pill {
+  background: linear-gradient(135deg, rgba(255,255,255,0.80) 0%, rgba(238,246,255,0.70) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.90);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(99,102,241,0.06);
+}
+
+.glass-water-inner {
+  background: linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(230,245,255,0.45) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.75);
+  border-radius: 14px;
+}
+
+.glass-water-highlight {
+  background: linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(236,250,255,0.78) 100%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.95);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(99,102,241,0.10), 0 1px 0 rgba(255,255,255,1) inset;
+}
