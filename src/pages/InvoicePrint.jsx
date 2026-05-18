@@ -229,6 +229,7 @@ const InvoicePrint = () => {
                 invoice.transport?.poDate   ? ['PO Date:',   fmtDate(invoice.transport.poDate)] : null,
                 invoice.placeOfSupply       ? ['Place of Supply:', invoice.placeOfSupply]       : null,
                 invoice.paymentMode         ? ['Payment Mode:',    invoice.paymentMode]         : null,
+                hasTax                      ? ['Reverse Charge:',  invoice.reverseCharge ? 'Yes' : 'No'] : null,
               ].filter(Boolean).map(([lbl, val]) => (
                 <React.Fragment key={lbl}>
                   <div style={{ textAlign:'right', color: MUTED, whiteSpace: 'nowrap' }}>{lbl}</div>

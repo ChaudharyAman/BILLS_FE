@@ -156,9 +156,9 @@ const ExpenseForm = () => {
     setTotals({
       subTotal: sub,
       taxTotal: tax,
-      grandTotal: sub + tax
+      grandTotal: sub + (formData.reverseCharge ? 0 : tax)
     });
-  }, [formData.items]);
+  }, [formData.items, formData.reverseCharge]);
 
   useEffect(() => {
     calculateTotals();
@@ -297,8 +297,8 @@ const ExpenseForm = () => {
             {/* Vendor Col */}
             <div className="w-full md:w-1/3 p-6 border-r border-gray-200">
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
-                <span className={`${labelCls} !mb-0 min-w-[90px] shrink-0`}>Vendor name</span>
-                <div className="flex-1">
+                <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Vendor name</span>
+                <div className="flex-1 min-w-0">
                   <select 
                     data-testid="expense-vendor-select"
                     className={`${inputBaseCls} w-full`}
@@ -325,8 +325,8 @@ const ExpenseForm = () => {
                 
               {/* Number */}
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
-                <span className={`${labelCls} !mb-0 w-[70px] shrink-0`}>Number</span>
-                <div className="flex flex-1 gap-2 items-center text-gray-500 font-bold">
+                <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Number</span>
+                <div className="flex-1 min-w-0 flex gap-2 items-center text-gray-500 font-bold">
                   <input 
                     type="text" 
                     className="w-24 border border-gray-200 rounded text-sm px-3 py-2 text-gray-900 text-center uppercase focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans bg-[#f8f9fa] shadow-sm font-normal" 
@@ -337,7 +337,7 @@ const ExpenseForm = () => {
                   <input 
                     type="text" 
                     data-testid="expense-number-suffix"
-                    className="flex-1 border border-gray-200 rounded text-sm px-3 py-2 text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans bg-[#f8f9fa] shadow-sm font-normal" 
+                    className="w-full min-w-0 flex-1 border border-gray-200 rounded text-sm px-3 py-2 text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans bg-[#f8f9fa] shadow-sm font-normal" 
                     value={formData.expenseNumberSuffix}
                     onChange={e => setFormData(p => ({ ...p, expenseNumberSuffix: e.target.value }))}
                     placeholder="e.g. 4567"
@@ -349,9 +349,10 @@ const ExpenseForm = () => {
               {/* Payment Method */}
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Payment method</span>
-                <select 
+                <div className="flex-1 min-w-0">
+                  <select 
                   data-testid="expense-payment-method"
-                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
+                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
                   value={formData.paymentMethod}
                   onChange={e => setFormData(p => ({ ...p, paymentMethod: e.target.value }))}
                 >
@@ -361,13 +362,14 @@ const ExpenseForm = () => {
                   <option value="Credit Card">Credit Card</option>
                   <option value="Cheque">Cheque</option>
                   <option value="UPI">UPI</option>
-                </select>
+                  </select>
+                </div>
               </div>
 
               {/* Date */}
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
-                  <span className={`${labelCls} !mb-0 w-[70px] shrink-0`}>Date</span>
-                  <div className="relative flex-1">
+                  <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Date</span>
+                  <div className="relative flex-1 min-w-0">
                     <FaCalendarAlt className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input 
                       type="date" 
@@ -394,7 +396,7 @@ const ExpenseForm = () => {
               {/* Due Date */}
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                   <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Due date</span>
-                  <div className="relative flex-1">
+                  <div className="relative flex-1 min-w-0">
                     <FaCalendarAlt className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input
                       type="date"
@@ -408,22 +410,25 @@ const ExpenseForm = () => {
               {/* Amount Paid */}
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Amount paid</span>
-                <input
+                <div className="flex-1 min-w-0">
+                  <input
                   type="number"
                   min="0"
                   step="0.01"
-                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
+                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
                   value={formData.amountPaid}
                   onChange={e => setFormData(p => ({ ...p, amountPaid: Number(e.target.value) || 0 }))}
                   placeholder="0.00"
                 />
+                </div>
               </div>
 
               {/* Payment Status */}
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Status</span>
-                <select
-                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
+                <div className="flex-1 min-w-0">
+                  <select
+                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
                   value={formData.status}
                   onChange={e => {
                     const nextStatus = e.target.value;
@@ -439,13 +444,14 @@ const ExpenseForm = () => {
                   <option value="PAID">Paid</option>
                   <option value="DRAFT">Draft</option>
                   <option value="CANCELLED">Cancelled</option>
-                </select>
+                  </select>
+                </div>
               </div>
 
               {/* Client Reference */}
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Client</span>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <select 
                     data-testid="expense-client-select"
                     className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
@@ -468,8 +474,9 @@ const ExpenseForm = () => {
 
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Category</span>
-                <select
-                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
+                <div className="flex-1 min-w-0">
+                  <select
+                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
                   value={formData.category}
                   onChange={e => setFormData(p => ({ ...p, category: e.target.value, subCategory: '' }))}
                 >
@@ -477,13 +484,15 @@ const ExpenseForm = () => {
                   {rootCategories.map(cat => (
                     <option key={cat._id} value={cat._id}>{cat.name}</option>
                   ))}
-                </select>
+                  </select>
+                </div>
               </div>
 
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Sub-category</span>
-                <select
-                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm flex-1`}
+                <div className="flex-1 min-w-0">
+                  <select
+                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
                   value={formData.subCategory}
                   onChange={e => setFormData(p => ({ ...p, subCategory: e.target.value }))}
                   disabled={!formData.category || subCategories.length === 0}
@@ -492,7 +501,8 @@ const ExpenseForm = () => {
                   {subCategories.map(cat => (
                     <option key={cat._id} value={cat._id}>{cat.name}</option>
                   ))}
-                </select>
+                  </select>
+                </div>
               </div>
 
               {budgetInfo && (
@@ -639,6 +649,12 @@ const ExpenseForm = () => {
             {/* Totals Pane */}
             <div className="p-6 md:w-1/2 xl:w-1/3">
                <div className="space-y-3">
+                 {formData.reverseCharge && (
+                   <div className="bg-amber-50 border border-amber-200 text-amber-800 text-[10px] rounded-lg p-2.5 font-medium flex flex-col gap-0.5 mb-2 mx-4 leading-relaxed animate-fade-in">
+                     <span className="font-bold flex items-center gap-1 text-[11px] text-amber-900">⚠️ Reverse Charge Active</span>
+                     <span className="text-gray-600">GST is calculated but not added to the payable Total. The customer is liable to pay GST directly to the government.</span>
+                   </div>
+                 )}
                  <div className="flex justify-between items-center px-4">
                    <span className="text-sm font-bold text-[#2d4b6b]">Subtotal:</span>
                    <span className="text-sm font-bold text-gray-800">₹ {totals.subTotal.toFixed(2)}</span>

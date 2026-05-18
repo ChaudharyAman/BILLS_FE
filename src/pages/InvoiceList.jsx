@@ -9,6 +9,7 @@ import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
 import QuotaIndicator from '../components/QuotaIndicator';
 import PdfInvoiceImporter from '../components/PdfInvoiceImporter';
 import { FaFileAlt } from 'react-icons/fa';
+import { mapInvoiceImportRows } from '../utils/invoiceImport';
 
 const DOC_TYPES = [
   {
@@ -99,59 +100,10 @@ const InvoiceList = () => {
   const handleCsvParsed = async (data) => {
     setIsImporting(true);
     try {
-      const grouped = {};
-      data.forEach(row => {
-        const getVal = (keys) => {
-           for (const key of keys) {
-             if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
-               return row[key];
-             }
-           }
-           return undefined;
-        };
-
-        const id = getVal(['Invoice No', 'Draft No', 'ID', 'Id', 'id', 'Invoice Number']) || Math.random().toString();
-        if (!grouped[id]) {
-          grouped[id] = {
-            clientName: getVal(['Client Name', 'Client', 'Customer Name', 'Customer']),
-            clientEmail: getVal(['Client Email', 'Email', 'Customer Email']) || '',
-            clientPhone: getVal(['Client Phone', 'Phone', 'Customer Phone', 'Contact']) || '',
-            clientState: getVal(['Client State', 'State', 'Place of Supply']) || '',
-            placeOfSupply: getVal(['Place of Supply', 'Client State', 'State']) || '',
-            invoiceType: getVal(['Invoice Type', 'Type', 'Document Type']) || 'Tax Invoice',
-            date: getVal(['Date', 'Invoice Date', 'Issue Date']) || undefined,
-            dueDate: getVal(['Due Date']) || undefined,
-            shippingCharges: Number(getVal(['Shipping Charges', 'Shipping', 'Freight'])) || 0,
-            packagingCharges: Number(getVal(['Packaging Charges', 'Packaging'])) || 0,
-            discountTotal: Number(getVal(['Discount Total', 'Discount'])) || 0,
-            advancePaid: Number(getVal(['Advance Paid', 'Advance', 'Paid Amount', 'Amount Paid'])) || 0,
-            tds: Number(getVal(['TDS'])) || 0,
-            tcs: Number(getVal(['TCS'])) || 0,
-            currency: getVal(['Currency']) || 'INR',
-            fy: getVal(['Financial Year', 'FY']) || undefined,
-            drCr: getVal(['Dr. / Cr.', 'Dr/Cr']) || 'Dr.',
-            notes: getVal(['Private notes', 'Notes']) || '',
-            items: []
-          };
-        }
-        
-        const itemName = getVal(['Item Name', 'Item', 'Product Name', 'Product', 'Description']);
-        if (itemName) {
-           grouped[id].items.push({
-             name: itemName,
-             description: getVal(['Item Description', 'Desc', 'Details']) || '',
-             qty: Number(getVal(['Qty', 'QTY', 'Quantity', 'Quantity '])) || 1,
-             rate: Number(getVal(['Rate', 'Price', 'Unit Price'])) || 0,
-             taxRate: Number(getVal(['Tax Rate', 'Tax', 'Tax %', 'GST', 'IGST'])) || 0,
-             discount: Number(getVal(['Item Discount', 'Disc'])) || 0 
-           });
-        }
-      });
-
-      const formattedInvoices = Object.values(grouped).filter(inv => inv.clientName);
+      const formattedInvoices = mapInvoiceImportRows(data);
 
       if (formattedInvoices.length === 0) {
-        alert('No valid invoices found. Ensure the "Client Name" column exists.');
+        alert('No valid invoices found. Make sure the file contains invoice rows and not only summary totals.');
         setIsImporting(false);
         return;
       }
@@ -509,7 +461,7 @@ const InvoiceList = () => {
           onDataParsed={handleCsvParsed} 
           isLoading={isImporting}
           title="Upload Invoices File"
-          subtitle="Group rows by 'Invoice No'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
+          subtitle="Supports invoice exports with summary totals or itemized rows. Summary rows like 'Total invoices' are ignored automatically."
         />
         <div className="mt-4 flex justify-end">
           <button 

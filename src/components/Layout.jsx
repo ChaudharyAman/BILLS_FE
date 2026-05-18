@@ -107,10 +107,10 @@ const Layout = ({ children }) => {
       : 'text-slate-400 hover:text-white'}`;
 
   return (
-    <div className="flex min-h-screen bg-gray-100 font-sans">
+    <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
 
       {/* ── Sidebar ── */}
-      <aside className="w-56 flex-shrink-0 hidden md:flex flex-col"
+      <aside className="w-56 h-full flex-shrink-0 hidden md:flex flex-col"
         style={{ background: '#1a2e44' }}>
 
         {/* Logo */}
@@ -129,7 +129,7 @@ const Layout = ({ children }) => {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-3 overflow-y-auto">
+        <nav className="flex-1 py-3 overflow-y-auto no-scrollbar">
 
           {/* Dashboard */}
           <Link to="/dashboard" className={linkCls('/dashboard')}>
@@ -334,7 +334,7 @@ const Layout = ({ children }) => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 h-full overflow-y-auto no-scrollbar">
         {children}
       </main>
 
