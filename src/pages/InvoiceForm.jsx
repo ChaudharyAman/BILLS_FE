@@ -554,6 +554,7 @@ const InvoiceForm = () => {
     const sub = getSubTotal();
     const { cgst, sgst, igst } = getTaxBreakdown();
     const totalTax = cgst + sgst + igst;
+    const taxToAdd = formData.reverseCharge ? 0 : totalTax;
     const totalExcise = getExciseTotal();
     const ship = Number(formData.shippingCharges) || 0;
     const custom = Number(formData.packagingCharges) || 0;
@@ -563,7 +564,7 @@ const InvoiceForm = () => {
     // TDS/TCS are usually handled as adjustments to the final amount or separate markers.
     // For this app, we'll keep Grand Total as the payable amount before TDS deduction (commonly).
     // But we'll add TCS to Grand Total if present.
-    return roundTwo(sub + totalTax + totalExcise + ship + custom - disc + tcs);
+    return roundTwo(sub + taxToAdd + totalExcise + ship + custom - disc + tcs);
   };
 
   // ── Item helpers ──────────────────────────────────────────────
@@ -1286,6 +1287,12 @@ const InvoiceForm = () => {
           {/* Right: Totals */}
           <div className="col-span-5">
             <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 space-y-2">
+              {formData.reverseCharge && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 text-[11px] rounded-lg p-2.5 font-medium flex flex-col gap-0.5 mb-2 leading-relaxed">
+                  <span className="font-bold flex items-center gap-1 text-[12px] text-amber-900">⚠️ Reverse Charge Mechanism (RCM)</span>
+                  <span>GST is calculated but not added to the payable Grand Total. The customer is liable to pay GST directly to the government.</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Subtotal</span>
                 <span className="font-semibold">₹ {getSubTotal().toFixed(2)}</span>
