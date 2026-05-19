@@ -364,8 +364,8 @@ const QuotePrint = ({ docType = 'quote' }) => {
           table {
             page-break-inside: auto;
           }
-          thead { display: table-header-group !important; }
-          tfoot { display: table-footer-group !important; }
+          thead { display: table-row-group !important; }
+          tfoot { display: table-row-group !important; }
           tr, td, th {
             page-break-inside: avoid;
             break-inside: avoid;
