@@ -122,6 +122,15 @@ const InvoiceList = () => {
   };
 
 
+  const fetchInvoicesForExport = async () => {
+    if (selectedInvoices.length > 0) {
+      return displayedInvoices.filter((invoice) => selectedInvoices.includes(invoice._id));
+    }
+
+    const res = await api.get(`/invoices?all=true&search=${encodeURIComponent(searchTerm)}`);
+    return res.data.data || [];
+  };
+
   
   const displayedInvoices = invoices; // Backend handles slice/filter
 
@@ -166,7 +175,8 @@ const InvoiceList = () => {
            <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
              <ExportDropdown 
                 disabled={!isPro}
-                data={selectedInvoices.length > 0 ? displayedInvoices.filter(i => selectedInvoices.includes(i._id)) : displayedInvoices}
+                data={displayedInvoices}
+                getExportData={fetchInvoicesForExport}
                 filename="Flance_Invoices"
                 columns={[
                    { header: 'Client Name', key: 'client.name' },
