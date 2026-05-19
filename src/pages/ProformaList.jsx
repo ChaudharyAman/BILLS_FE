@@ -133,6 +133,20 @@ const ProformaList = () => {
   };
 
   const displayed = proformas; // Backend pagination
+  const fetchProformasForExport = async () => {
+    const params = new URLSearchParams({
+      all: 'true',
+      search: searchTerm,
+    });
+    const res = await api.get(`/proformas?${params.toString()}`);
+    const exportProformas = res.data.data || [];
+
+    if (selectedIds.length > 0) {
+      return exportProformas.filter((proforma) => selectedIds.includes(proforma._id));
+    }
+
+    return exportProformas;
+  };
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const fmt = (v) => (Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
@@ -155,7 +169,8 @@ const ProformaList = () => {
           <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
             <ExportDropdown 
                 disabled={!isPro}
-                data={selectedIds.length > 0 ? displayed.filter(p => selectedIds.includes(p._id)) : displayed}
+                data={displayed}
+                getExportData={fetchProformasForExport}
                 filename="Flance_Proformas"
                 columns={[
                    { header: 'Proforma No', key: 'proformaNo' },

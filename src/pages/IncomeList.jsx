@@ -63,6 +63,20 @@ const IncomeList = () => {
     setSelectedIds(selectedIds.length === incomes.length ? [] : incomes.map(e => e._id));
 
   const displayed = incomes; // Backend pagination
+  const fetchIncomesForExport = async () => {
+    const params = new URLSearchParams({
+      all: 'true',
+      search: searchTerm,
+    });
+    const res = await api.get(`/incomes?${params.toString()}`);
+    const exportIncomes = res.data.data || [];
+
+    if (selectedIds.length > 0) {
+      return exportIncomes.filter((income) => selectedIds.includes(income._id));
+    }
+
+    return exportIncomes;
+  };
   const isInvoiceSynced = (income) => income?.sourceType === 'invoice' && income?.sourceInvoice;
   const getEditPath = (income) => (
     isInvoiceSynced(income) ? `/invoices/edit/${income.sourceInvoice}` : `/incomes/edit/${income._id}`
@@ -88,7 +102,8 @@ const IncomeList = () => {
         </div>
         <div className="flex gap-3">
           <ExportDropdown 
-              data={selectedIds.length > 0 ? displayed.filter(e => selectedIds.includes(e._id)) : displayed}
+              data={displayed}
+              getExportData={fetchIncomesForExport}
               filename="Flance_Incomes"
               columns={[
                  { header: 'Income No', key: 'incomeNumber' },

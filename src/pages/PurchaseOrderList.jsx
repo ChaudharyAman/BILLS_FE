@@ -161,8 +161,8 @@ const PurchaseOrderList = () => {
   };
 
   const displayed = purchaseOrders; // Backend pagination
-  const exportRows = (selectedIds.length > 0 ? displayed.filter(q => selectedIds.includes(q._id)) : displayed)
-    .flatMap((purchaseOrder) => {
+  const buildPurchaseOrderExportRows = (rows) =>
+    (rows || []).flatMap((purchaseOrder) => {
       const items = purchaseOrder.items?.length ? purchaseOrder.items : [{}];
       return items.map((item, index) => ({
         ...purchaseOrder,
@@ -179,6 +179,24 @@ const PurchaseOrderList = () => {
         exportItemAmount: item.amount || 0,
       }));
     });
+  const exportRows = buildPurchaseOrderExportRows(
+    selectedIds.length > 0 ? displayed.filter(q => selectedIds.includes(q._id)) : displayed
+  );
+  const fetchPurchaseOrdersForExport = async () => {
+    const params = new URLSearchParams({
+      all: 'true',
+      search: searchTerm,
+      status: statusFilter,
+    });
+    const res = await api.get(`/purchase-orders?${params.toString()}`);
+    let exportPurchaseOrders = res.data.data || [];
+
+    if (selectedIds.length > 0) {
+      exportPurchaseOrders = exportPurchaseOrders.filter((purchaseOrder) => selectedIds.includes(purchaseOrder._id));
+    }
+
+    return buildPurchaseOrderExportRows(exportPurchaseOrders);
+  };
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const fmt = (v) => (Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
@@ -261,6 +279,7 @@ const PurchaseOrderList = () => {
         <div className="flex gap-3">
           <ExportDropdown 
               data={exportRows}
+              getExportData={fetchPurchaseOrdersForExport}
               filename="Flance_Purchase_Orders"
               columns={EXPORT_COLUMNS}
           />

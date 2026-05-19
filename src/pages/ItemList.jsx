@@ -131,6 +131,21 @@ const ItemList = () => {
     );
   };
 
+  const fetchItemsForExport = async () => {
+    const params = new URLSearchParams({
+      all: 'true',
+      search: searchTerm,
+    });
+    const res = await api.get(`/items?${params.toString()}`);
+    const exportItems = res.data.data || [];
+
+    if (selectedItems.length > 0) {
+      return exportItems.filter((item) => selectedItems.includes(item._id));
+    }
+
+    return exportItems;
+  };
+
   const formatCurrency = (val) =>
     `₹ ${(val || 0).toFixed(2)}`;
 
@@ -152,7 +167,8 @@ const ItemList = () => {
         <div className="flex gap-3">
           <ExportDropdown 
               testId="items-export"
-              data={items} 
+              data={items}
+              getExportData={fetchItemsForExport}
               filename="Flance_Items_Master" 
               columns={[
                  { header: 'Name', key: 'name' },
