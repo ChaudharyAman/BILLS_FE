@@ -132,6 +132,20 @@ const QuoteList = () => {
   };
 
   const displayed = quotes; // Handled by backend
+  const fetchQuotesForExport = async () => {
+    const params = new URLSearchParams({
+      all: 'true',
+      search: searchTerm,
+    });
+    const res = await api.get(`/quotes?${params.toString()}`);
+    const exportQuotes = res.data.data || [];
+
+    if (selectedIds.length > 0) {
+      return exportQuotes.filter((quote) => selectedIds.includes(quote._id));
+    }
+
+    return exportQuotes;
+  };
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const fmt = (v) => (Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
@@ -156,7 +170,8 @@ const QuoteList = () => {
           <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
             <ExportDropdown 
                 disabled={!isPro}
-                data={selectedIds.length > 0 ? displayed.filter(q => selectedIds.includes(q._id)) : displayed}
+                data={displayed}
+                getExportData={fetchQuotesForExport}
                 filename="Flance_Quotes"
                 columns={[
                    { header: 'Quote No', key: 'quoteNo' },

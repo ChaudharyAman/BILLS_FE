@@ -67,6 +67,22 @@ const ExpenseList = () => {
     setSelectedIds(selectedIds.length === expenses.length ? [] : expenses.map(e => e._id));
 
   const displayed = expenses; // Backend pagination
+  const fetchExpensesForExport = async () => {
+    const params = new URLSearchParams({
+      all: 'true',
+      search: searchTerm,
+    });
+    if (categoryFilter) params.set('category', categoryFilter);
+
+    const res = await api.get(`/expenses?${params.toString()}`);
+    const exportExpenses = res.data.data || [];
+
+    if (selectedIds.length > 0) {
+      return exportExpenses.filter((expense) => selectedIds.includes(expense._id));
+    }
+
+    return exportExpenses;
+  };
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   const fmt = (v) => (Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
@@ -89,7 +105,8 @@ const ExpenseList = () => {
         </div>
         <div className="flex gap-3">
           <ExportDropdown 
-              data={selectedIds.length > 0 ? displayed.filter(e => selectedIds.includes(e._id)) : displayed}
+              data={displayed}
+              getExportData={fetchExpensesForExport}
               filename="Flance_Expenses"
               columns={[
                  { header: 'Expense No', key: 'expenseNumber' },
