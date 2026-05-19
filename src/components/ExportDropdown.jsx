@@ -9,8 +9,9 @@ import * as XLSX from 'xlsx';
  * @param {String} filename - The base name for the downloaded file (without extension).
  * @param {Array} columns - (Optional) Array of column keys to include, or an array of { header, key } objects.
  */
-const ExportDropdown = ({ data, filename = 'export', columns = null, testId = '' }) => {
+const ExportDropdown = ({ data, filename = 'export', columns = null, testId = '', getExportData = null, disabled = false }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const dropdownRef = useRef(null);
 
   // Close dropdown when clicking outside
@@ -24,14 +25,14 @@ const ExportDropdown = ({ data, filename = 'export', columns = null, testId = ''
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const prepareData = () => {
-    if (!data || data.length === 0) return [];
+  const prepareData = (sourceData = data) => {
+    if (!sourceData || sourceData.length === 0) return [];
 
     // If no explicit columns map is given, just return the raw data
-    if (!columns) return data;
+    if (!columns) return sourceData;
 
     // Map data to the requested columns
-    return data.map((item) => {
+    return sourceData.map((item) => {
       const row = {};
       columns.forEach(col => {
         if (typeof col === 'string') {
@@ -56,8 +57,22 @@ const ExportDropdown = ({ data, filename = 'export', columns = null, testId = ''
     });
   };
 
-  const handleExportCSV = () => {
-    const exportData = prepareData();
+  const resolveExportData = async () => {
+    if (typeof getExportData !== 'function') {
+      return prepareData();
+    }
+
+    setIsExporting(true);
+    try {
+      const exportSource = await getExportData();
+      return prepareData(exportSource);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportCSV = async () => {
+    const exportData = await resolveExportData();
     if (exportData.length === 0) {
       alert("No data available to export.");
       return;
@@ -77,8 +92,8 @@ const ExportDropdown = ({ data, filename = 'export', columns = null, testId = ''
     setIsOpen(false);
   };
 
-  const handleExportExcel = () => {
-    const exportData = prepareData();
+  const handleExportExcel = async () => {
+    const exportData = await resolveExportData();
     if (exportData.length === 0) {
        alert("No data available to export.");
        return;
@@ -97,22 +112,24 @@ const ExportDropdown = ({ data, filename = 'export', columns = null, testId = ''
   return (
     <div className="relative inline-block text-left" ref={dropdownRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => !disabled && !isExporting && setIsOpen(!isOpen)}
         data-testid={testId || undefined}
-        className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+        disabled={disabled || isExporting}
+        className="bg-white hover:bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
       >
         <FaDownload size={14} className="text-slate-400" /> 
-        Export
+        {isExporting ? 'Exporting...' : 'Export'}
         <FaChevronDown size={12} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
           <div className="py-1" role="menu" aria-orientation="vertical">
             <button
               onClick={handleExportCSV}
+              disabled={isExporting}
               data-testid={testId ? `${testId}-csv` : undefined}
-              className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-colors"
+              className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 disabled:text-slate-400 disabled:bg-white flex items-center gap-2 transition-colors"
               role="menuitem"
             >
               <FaFileCsv size={16} className="text-emerald-600" />
@@ -120,8 +137,9 @@ const ExportDropdown = ({ data, filename = 'export', columns = null, testId = ''
             </button>
             <button
               onClick={handleExportExcel}
+              disabled={isExporting}
               data-testid={testId ? `${testId}-excel` : undefined}
-              className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-colors"
+              className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 disabled:text-slate-400 disabled:bg-white flex items-center gap-2 transition-colors"
               role="menuitem"
             >
               <FaFileExcel size={16} className="text-green-600" />
