@@ -121,7 +121,7 @@ const QuotePrint = ({ docType = 'quote' }) => {
   const shortNo = docNo?.replace(/^(PRF-|PRO-|QT-|QUOT-)/,'') || docNo;
 
   return (
-    <div style={{ background:'#eee', minHeight:'100vh', padding:'20px 0', fontFamily:'Arial, Helvetica, sans-serif' }}>
+    <div className="quote-print-page" style={{ background:'#eee', minHeight:'100vh', padding:'20px 0', fontFamily:'Arial, Helvetica, sans-serif' }}>
 
       {/* toolbar */}
       <div style={{ maxWidth:860, margin:'0 auto 12px', display:'flex', justifyContent:'space-between' }}
@@ -325,12 +325,52 @@ const QuotePrint = ({ docType = 'quote' }) => {
 
       <style>{`
         @media print {
-          body { background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+          html, body, #root {
+            height: auto !important;
+            overflow: visible !important;
+            background: #fff !important;
+          }
+          body {
+            margin: 0 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          #root > div {
+            display: block !important;
+            height: auto !important;
+            overflow: visible !important;
+            background: #fff !important;
+          }
+          aside {
+            display: none !important;
+          }
+          main {
+            height: auto !important;
+            overflow: visible !important;
+          }
           .print\\:hidden { display:none !important; }
-          #doc-print { box-shadow:none !important; }
+          .quote-print-page {
+            min-height: auto !important;
+            padding: 0 !important;
+            background: #fff !important;
+          }
+          #doc-print {
+            max-width: none !important;
+            width: 100% !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            break-inside: auto;
+          }
+          table {
+            page-break-inside: auto;
+          }
+          thead { display: table-row-group !important; }
+          tfoot { display: table-row-group !important; }
+          tr, td, th {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
           @page { size:A4; margin:0; }
-          thead { display: table-row-group; }
-          tfoot { display: table-row-group; }
         }
       `}</style>
     </div>

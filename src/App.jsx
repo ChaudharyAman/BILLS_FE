@@ -167,6 +167,38 @@ function App() {
             {/* Auth Routes - No Layout */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route
+              path="/invoices/:id/print"
+              element={
+                <PrivateRoute>
+                  <InvoicePrint />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/quotes/:id/print"
+              element={
+                <PrivateRoute>
+                  <QuotePrint docType="quote" />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/proformas/:id/print"
+              element={
+                <PrivateRoute>
+                  <QuotePrint docType="proforma" />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/purchase-orders/:id/print"
+              element={
+                <PrivateRoute>
+                  <PurchaseOrderPrint />
+                </PrivateRoute>
+              }
+            />
 
             {/* Main App Routes - With Layout & Protected */}
             <Route path="/*" element={
@@ -180,19 +212,16 @@ function App() {
                   <Route path="/invoices" element={<InvoiceList />} />
                   <Route path="/invoices/new" element={<InvoiceForm />} />
                   <Route path="/invoices/edit/:id" element={<InvoiceForm />} />
-                  <Route path="/invoices/:id/print" element={<InvoicePrint />} />
 
                   {/* Quotes */}
                   <Route path="/quotes" element={<QuoteList />} />
                   <Route path="/quotes/new" element={<QuoteForm docType="quote" />} />
                   <Route path="/quotes/edit/:id" element={<QuoteForm docType="quote" />} />
-                  <Route path="/quotes/:id/print" element={<QuotePrint docType="quote" />} />
 
                   {/* Proformas */}
                   <Route path="/proformas" element={<ProformaList />} />
                   <Route path="/proformas/new" element={<QuoteForm docType="proforma" />} />
                   <Route path="/proformas/edit/:id" element={<QuoteForm docType="proforma" />} />
-                  <Route path="/proformas/:id/print" element={<QuotePrint docType="proforma" />} />
 
                   {/* Clients */}
                   <Route path="/clients" element={<ClientList />} />
@@ -212,7 +241,6 @@ function App() {
                   <Route path="/purchase-orders" element={<PurchaseOrderList />} />
                   <Route path="/purchase-orders/new" element={<PurchaseOrderForm />} />
                   <Route path="/purchase-orders/edit/:id" element={<PurchaseOrderForm />} />
-                  <Route path="/purchase-orders/:id/print" element={<PurchaseOrderPrint />} />
 
                   {/* Incomes */}
                   <Route path="/incomes" element={<IncomeList />} />
