@@ -14,6 +14,36 @@ const ExportDropdown = ({ data, filename = 'export', columns = null, testId = ''
   const [isExporting, setIsExporting] = useState(false);
   const dropdownRef = useRef(null);
 
+  const formatDateForExport = (value) => {
+    if (!value) return '';
+
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      const day = String(value.getDate()).padStart(2, '0');
+      const month = String(value.getMonth() + 1).padStart(2, '0');
+      const year = value.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+
+    if (typeof value === 'string') {
+      const trimmedValue = value.trim();
+      const isoDateMatch = trimmedValue.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+      if (isoDateMatch) {
+        const [, year, month, day] = isoDateMatch;
+        return `${day}/${month}/${year}`;
+      }
+
+      const parsedDate = new Date(trimmedValue);
+      if (!Number.isNaN(parsedDate.getTime())) {
+        const day = String(parsedDate.getDate()).padStart(2, '0');
+        const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+        const year = parsedDate.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
+    }
+
+    return value;
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -45,9 +75,8 @@ const ExportDropdown = ({ data, filename = 'export', columns = null, testId = ''
             val = val ? val[part] : undefined;
           }
 
-          // Format ISO date strings perfectly into Excel/CSV friendly format
-          if (typeof val === 'string' && val.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$/)) {
-             val = new Date(val).toLocaleDateString();
+          if (/date/i.test(col.key) || /date/i.test(col.header)) {
+            val = formatDateForExport(val);
           }
 
           row[col.header] = val !== undefined && val !== null ? val : '';
