@@ -115,9 +115,11 @@ const getCatalogItemTaxRate = (item = {}) => {
   const candidates = [item.defaultTaxRate, item.taxRate, item.salesInfo?.taxRate];
 
   for (const candidate of candidates) {
-    const rate = sanitizeGstRate(candidate);
-    if (rate > 0 || String(candidate).trim() === '0') {
-      return rate;
+    if (candidate !== undefined && candidate !== null) {
+      const numeric = parseFloat(String(candidate).replace('%', '').trim());
+      if (!isNaN(numeric) && (numeric > 0 || String(candidate).trim() === '0')) {
+        return sanitizeGstRate(numeric);
+      }
     }
   }
 

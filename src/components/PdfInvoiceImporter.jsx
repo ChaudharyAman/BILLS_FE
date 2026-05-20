@@ -114,7 +114,7 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'in
     setIsDragging(false);
     const droppedFile = e.dataTransfer?.files?.[0];
     handleFileSelect(droppedFile);
-  }, []);
+  }, [targetType]);
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
@@ -137,13 +137,9 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'in
 
       // We use a dedicated axios instance to avoid global header interference (like Content-Type: application/json)
       // which can break FormData/Multer boundary detection.
-      const token = localStorage.getItem('authToken');
       const uploadApi = await import('axios').then(m => m.default.create({
         baseURL: api.defaults.baseURL,
-        headers: {
-          ...api.defaults.headers,
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: api.defaults.headers, // Inherit auth but we will override Content-Type
         withCredentials: true
       }));
 
@@ -256,16 +252,7 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'in
           customChargeLabel: roundOff ? 'Round Off' : '',
           packagingCharges: roundOff,
         }
-      : targetType === 'purchaseOrder'
-        ? {
-            ...commonPayload,
-            refNumber: extractedData.invoiceNumber || '',
-            date: extractedData.invoiceDate || '',
-            validUntil: extractedData.dueDate || '',
-            customChargeLabel: roundOff ? 'Round Off' : '',
-            packagingCharges: roundOff,
-          }
-        : commonPayload;
+      : commonPayload;
 
     sessionStorage.setItem(config.storageKey, JSON.stringify(payload));
     onClose();
@@ -469,8 +456,12 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'in
                   <EditableField label="Client GSTIN" value={extractedData.clientGST} onChange={v => updateField('clientGST', v)} />
                   <EditableField label="Place of Supply" value={extractedData.placeOfSupply} onChange={v => updateField('placeOfSupply', v)} />
                   <EditableField label="Payment Mode" value={extractedData.paymentMode} onChange={v => updateField('paymentMode', v)} />
-                  <EditableField label="P.O. Number" value={extractedData.poNumber} onChange={v => updateField('poNumber', v)} />
-                  <EditableField label="P.O. Date" value={extractedData.poDate} onChange={v => updateField('poDate', v)} type="date" />
+                  {targetType === 'invoice' && (
+                    <>
+                      <EditableField label="P.O. Number" value={extractedData.poNumber} onChange={v => updateField('poNumber', v)} />
+                      <EditableField label="P.O. Date" value={extractedData.poDate} onChange={v => updateField('poDate', v)} type="date" />
+                    </>
+                  )}
                 </div>
               </div>
 

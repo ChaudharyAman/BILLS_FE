@@ -89,7 +89,7 @@ const IncomeForm = () => {
             category: data.category?._id || data.category || '',
             subCategory: data.subCategory?._id || data.subCategory || '',
             items: data.items?.length > 0 ? data.items : [{ itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }],
-            reverseCharge: data.reverseCharge || false,
+            reverseCharge: !!data.reverseCharge,
             terms: data.terms || '',
             privateNotes: data.privateNotes || ''
         });
@@ -165,9 +165,9 @@ const IncomeForm = () => {
     setTotals({
       subTotal: sub,
       taxTotal: tax,
-      grandTotal: sub + (formData.reverseCharge ? 0 : tax)
+      grandTotal: sub + tax
     });
-  }, [formData.items, formData.reverseCharge]);
+  }, [formData.items]);
 
   useEffect(() => {
     calculateTotals();
@@ -178,17 +178,38 @@ const IncomeForm = () => {
     
     if (field === 'itemRef') {
       const selectedInv = inventory.find(inv => inv._id === value);
+      const rate = selectedInv ? (selectedInv.sellingPrice !== undefined ? selectedInv.sellingPrice : (selectedInv.salesInfo?.price !== undefined ? selectedInv.salesInfo.price : (selectedInv.rate || 0))) : 0;
+      
+      let taxRate = 0;
+      if (selectedInv) {
+        const candidates = [selectedInv.defaultTaxRate, selectedInv.taxRate, selectedInv.purchaseInfo?.taxRate, selectedInv.salesInfo?.taxRate];
+        for (const candidate of candidates) {
+          if (candidate !== undefined && candidate !== null) {
+            const numeric = parseFloat(String(candidate).replace('%', '').trim());
+            if (!isNaN(numeric) && (numeric > 0 || String(candidate).trim() === '0')) {
+              taxRate = numeric;
+              break;
+            }
+          }
+        }
+      }
+      
       newItems[index] = {
         ...newItems[index],
         itemRef: value,
         name: selectedInv ? selectedInv.name : '',
-        rate: selectedInv ? selectedInv.rate : 0,
+        rate: rate,
         unit: selectedInv ? selectedInv.unit : '',
-        taxRate: selectedInv ? selectedInv.taxPreference === 'Taxable' ? 18 : 0 : 0 // Default logic
+        taxRate: taxRate
       };
     } else {
       newItems[index][field] = value;
     }
+    
+    // Recalculate amount dynamically
+    const qty = parseFloat(newItems[index].qty) || 0;
+    const rate = parseFloat(newItems[index].rate) || 0;
+    newItems[index].amount = qty * rate;
     
     setFormData(prev => ({ ...prev, items: newItems }));
   };
@@ -261,7 +282,7 @@ const IncomeForm = () => {
         placeOfSupply: formData.placeOfSupply || '',
         category: formData.category || null,
         subCategory: formData.subCategory || null,
-        reverseCharge: formData.reverseCharge,
+        reverseCharge: !!formData.reverseCharge,
         items: formData.items,
         subTotal: totals.subTotal,
         taxTotal: totals.taxTotal,
@@ -292,6 +313,7 @@ const IncomeForm = () => {
   const rowBorder = "border-b border-gray-200";
   const rootCategories = categories.filter(cat => !cat.parent);
   const subCategories = categories.filter(cat => (cat.parent?._id || cat.parent) === formData.category);
+  const payableAmount = totals.grandTotal - (!!formData.reverseCharge ? totals.taxTotal : 0);
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#f3f6f9] py-8">
@@ -585,7 +607,7 @@ const IncomeForm = () => {
                 <input 
                   type="checkbox" 
                   className="w-5 h-5 rounded border-gray-300 text-green-500 focus:ring-green-500 cursor-pointer"
-                  checked={formData.reverseCharge}
+                  checked={!!formData.reverseCharge}
                   onChange={(e) => setFormData(p => ({...p, reverseCharge: e.target.checked}))}
                 />
                 <span className="text-sm font-medium text-gray-400 group-hover:text-gray-600 transition-colors">
@@ -597,7 +619,7 @@ const IncomeForm = () => {
             {/* Totals Pane */}
             <div className="p-6 md:w-1/2 xl:w-1/3">
                <div className="space-y-3">
-                 {formData.reverseCharge && (
+                 {!!formData.reverseCharge && (
                    <div className="bg-amber-50 border border-amber-200 text-amber-800 text-[10px] rounded-lg p-2.5 font-medium flex flex-col gap-0.5 mb-2 mx-4 leading-relaxed animate-fade-in">
                      <span className="font-bold flex items-center gap-1 text-[11px] text-amber-900">⚠️ Reverse Charge Active</span>
                      <span className="text-gray-600">GST is calculated but not added to the payable Total. The customer is liable to pay GST directly to the government.</span>
@@ -617,6 +639,10 @@ const IncomeForm = () => {
                    <span className="text-sm font-bold text-[#28a745]">Total:</span>
                    <span className="text-sm font-bold text-[#28a745]">₹ {totals.grandTotal.toFixed(2)}</span>
                  </div>
+                 <div className="flex justify-between items-center px-4">
+                    <span className="text-sm font-bold text-[#2d4b6b]">Payable:</span>
+                    <span className="text-sm font-bold text-[#2d4b6b]">₹ {payableAmount.toFixed(2)}</span>
+                  </div>
                </div>
             </div>
           </div>

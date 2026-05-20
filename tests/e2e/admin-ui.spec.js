@@ -7,7 +7,7 @@ test('superadmin can open the admin dashboard and manage a user', async ({ page 
   await login(page, seeded.admin.username, seeded.password);
   await page.goto('/admin');
 
-  await expect(page.getByText('Super Admin Dashboard')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Super Admin Dashboard' })).toBeVisible();
 
   const proRow = page.locator('tr', { hasText: seeded.pro.username });
   await expect(proRow).toBeVisible();

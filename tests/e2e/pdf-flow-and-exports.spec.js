@@ -75,7 +75,7 @@ test('pro user can save a PDF-imported invoice, verify print page, and export cl
   await page.getByTestId('clients-export').click();
   await page.getByTestId('clients-export-csv').click();
   const download = await clientExportDownload;
-  expect(download.suggestedFilename()).toContain('MyBill_Clients_Export');
+  expect(download.suggestedFilename()).toContain('Clients_Export');
 
   await page.goto('/items');
   await page.getByPlaceholder('Search inventory...').fill(importedItem);

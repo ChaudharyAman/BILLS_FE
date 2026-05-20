@@ -373,7 +373,17 @@ const PurchaseOrderForm = () => {
     const found = itemsList.find(i => i._id === itemId);
     if (!found) return;
     const items = [...formData.items];
-    const taxRate = found.salesInfo?.taxRate || found.defaultTaxRate || 0;
+    let taxRate = 0;
+    const candidates = [found.defaultTaxRate, found.taxRate, found.purchaseInfo?.taxRate, found.salesInfo?.taxRate];
+    for (const candidate of candidates) {
+      if (candidate !== undefined && candidate !== null) {
+        const numeric = parseFloat(String(candidate).replace('%', '').trim());
+        if (!isNaN(numeric) && (numeric > 0 || String(candidate).trim() === '0')) {
+          taxRate = numeric;
+          break;
+        }
+      }
+    }
     items[idx] = {
       ...items[idx],
       itemRef: found._id,
