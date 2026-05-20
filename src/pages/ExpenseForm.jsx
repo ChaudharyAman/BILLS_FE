@@ -131,8 +131,19 @@ const ExpenseForm = () => {
         paymentMethod: patch.paymentMethod || prev.paymentMethod,
         vendorRef: patch.vendorRef || prev.vendorRef,
         vendorName: patch.vendorName || prev.vendorName,
+        vendorGST: patch.vendorGST || '',
+        vendorAddressObject: patch.vendorAddressObject || null,
+        vendorPhone: patch.vendorPhone || '',
+        vendorEmail: patch.vendorEmail || '',
+        vendorPAN: patch.vendorPAN || '',
         clientRef: patch.clientRef || prev.clientRef,
         clientName: patch.clientName || prev.clientName,
+        clientGST: patch.clientGST || '',
+        clientAddressObject: patch.clientAddressObject || null,
+        clientPhone: patch.clientPhone || '',
+        clientEmail: patch.clientEmail || '',
+        clientPAN: patch.clientPAN || '',
+        placeOfSupply: patch.placeOfSupply || prev.placeOfSupply,
         items: patch.items.length > 0 ? patch.items : prev.items,
         privateNotes: [prev.privateNotes, patch.privateNotes].filter(Boolean).join('\n'),
       }));
@@ -237,11 +248,44 @@ const ExpenseForm = () => {
         amountPaid: Number(formData.amountPaid) || 0,
         status: formData.status,
         vendor: selectedVendor._id
-          ? { vendorRef: selectedVendor._id, name: selectedVendor.name }
-          : { name: scannedVendorName },
+          ? {
+              vendorRef: selectedVendor._id,
+              name: selectedVendor.name,
+              gstin: selectedVendor.gstin || formData.vendorGST,
+              address: selectedVendor.billingAddress || formData.vendorAddressObject,
+              phone: selectedVendor.phone || formData.vendorPhone,
+              email: selectedVendor.email || formData.vendorEmail,
+              pan: selectedVendor.pan || formData.vendorPAN,
+            }
+          : {
+              name: scannedVendorName,
+              vendorGST: formData.vendorGST,
+              vendorAddressObject: formData.vendorAddressObject,
+              vendorPhone: formData.vendorPhone,
+              vendorEmail: formData.vendorEmail,
+              vendorPAN: formData.vendorPAN,
+            },
         client: selectedClient._id
-          ? { clientRef: selectedClient._id, name: selectedClient.name }
-          : (scannedClientName ? { name: scannedClientName } : null),
+          ? {
+              clientRef: selectedClient._id,
+              name: selectedClient.name,
+              gstin: selectedClient.gstin || formData.clientGST,
+              address: selectedClient.billingAddress || formData.clientAddressObject,
+              phone: selectedClient.phone || formData.clientPhone,
+              email: selectedClient.email || formData.clientEmail,
+              pan: selectedClient.pan || formData.clientPAN,
+            }
+          : (scannedClientName
+              ? {
+                  name: scannedClientName,
+                  clientGST: formData.clientGST,
+                  clientAddressObject: formData.clientAddressObject,
+                  clientPhone: formData.clientPhone,
+                  clientEmail: formData.clientEmail,
+                  clientPAN: formData.clientPAN,
+                }
+              : null),
+        placeOfSupply: formData.placeOfSupply || '',
         category: formData.category || null,
         subCategory: formData.subCategory || null,
         reverseCharge: formData.reverseCharge,
@@ -308,7 +352,7 @@ const ExpenseForm = () => {
                       setFormData(p => ({ ...p, vendorRef: e.target.value, vendorName: vendor?.name || p.vendorName }));
                     }}
                   >
-                    <option value="" disabled className="text-gray-400">Select Vendor</option>
+                    <option value="">{formData.vendorName && !formData.vendorRef ? `${formData.vendorName} (will be created on save)` : 'Select Vendor'}</option>
                     {vendors.map(v => (
                       <option key={v._id} value={v._id}>{v.name}</option>
                     ))}
@@ -461,7 +505,7 @@ const ExpenseForm = () => {
                       setFormData(p => ({ ...p, clientRef: e.target.value, clientName: client?.name || p.clientName }));
                     }}
                   >
-                    <option value="" className="text-gray-400">Reference client</option>
+                    <option value="">{formData.clientName && !formData.clientRef ? `${formData.clientName} (will be created on save)` : 'Reference client'}</option>
                     {clients.map(c => (
                       <option key={c._id} value={c._id}>{c.name}</option>
                     ))}

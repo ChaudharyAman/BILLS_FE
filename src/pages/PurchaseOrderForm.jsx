@@ -89,6 +89,12 @@ const PurchaseOrderForm = () => {
   const [formData, setFormData] = useState({
     invoiceType: 'Tax Invoice',
     vendorRef: '',
+    vendorName: '',
+    vendorGST: '',
+    vendorAddressObject: null,
+    vendorPhone: '',
+    vendorEmail: '',
+    vendorPAN: '',
     importSource: '',
     docNo: '',
     docNoSuffix: '',
@@ -135,6 +141,12 @@ const PurchaseOrderForm = () => {
       setFormData(prev => ({
         ...prev,
         importSource: 'pdf',
+        vendorName: pdf.vendorName || prev.vendorName,
+        vendorGST: pdf.vendorGST || prev.vendorGST,
+        vendorAddressObject: pdf.vendorAddressObject || prev.vendorAddressObject,
+        vendorPhone: pdf.vendorPhone || prev.vendorPhone,
+        vendorEmail: pdf.vendorEmail || prev.vendorEmail,
+        vendorPAN: pdf.vendorPAN || prev.vendorPAN,
         refNumber: pdf.refNumber || pdf.documentNumber || prev.refNumber,
         date: pdf.date || pdf.documentDate || prev.date,
         validUntil: pdf.validUntil || pdf.dueDate || prev.validUntil,
@@ -148,11 +160,11 @@ const PurchaseOrderForm = () => {
               name: item.name || '',
               description: item.description || '',
               unit: item.unit || 'pcs',
-              qty: item.qty || 1,
-              rate: item.rate || 0,
-              taxRate: clampPercent(item.taxRate),
-              taxSelect: [0, 5, 12, 18, 28].includes(Number(item.taxRate)) ? String(Number(item.taxRate)) : ((Number(item.taxRate) || 0) > 0 ? 'custom' : '0'),
-              customTaxRate: [0, 5, 12, 18, 28].includes(Number(item.taxRate)) ? '' : String(item.taxRate || ''),
+              qty: item.qty || item.quantity || 1,
+              rate: item.rate || item.price || 0,
+              taxRate: clampPercent(item.taxRate !== undefined ? item.taxRate : item.gst),
+              taxSelect: [0, 5, 12, 18, 28].includes(Number(item.taxRate !== undefined ? item.taxRate : item.gst)) ? String(Number(item.taxRate !== undefined ? item.taxRate : item.gst)) : ((Number(item.taxRate !== undefined ? item.taxRate : item.gst) || 0) > 0 ? 'custom' : '0'),
+              customTaxRate: [0, 5, 12, 18, 28].includes(Number(item.taxRate !== undefined ? item.taxRate : item.gst)) ? '' : String(item.taxRate !== undefined ? item.taxRate : item.gst || ''),
             }))
           : prev.items,
       }));
@@ -168,6 +180,8 @@ const PurchaseOrderForm = () => {
           setFormData(prev => ({
             ...prev,
             vendorRef: match._id,
+            vendorName: match.name,
+            vendorGST: match.gstin || '',
             placeOfSupply: prev.placeOfSupply || match.billingAddress?.state || '',
           }));
           setPendingPdfVendorName('');
@@ -187,6 +201,8 @@ const PurchaseOrderForm = () => {
     setFormData(prev => ({
       ...prev,
       vendorRef: prev.vendorRef || match._id,
+      vendorName: match.name,
+      vendorGST: match.gstin || '',
       placeOfSupply: prev.placeOfSupply || match.billingAddress?.state || '',
     }));
     setPendingPdfVendorName('');
@@ -430,7 +446,8 @@ const PurchaseOrderForm = () => {
   // ── Submit ───────────────────────────────────────────────────────────────────
   const handleSubmit = async (e, saveAsDraft = false) => {
     e.preventDefault();
-    if (!formData.vendorRef) return alert('Please select a vendor');
+    const canAutoCreatePdfVendor = formData.importSource === 'pdf' && pendingPdfVendorName?.trim();
+    if (!formData.vendorRef && !canAutoCreatePdfVendor) return alert('Please select a vendor');
     if (!formData.items.length || !formData.items[0].name) return alert('Add at least one item');
 
     setLoading(true);
@@ -566,13 +583,17 @@ const PurchaseOrderForm = () => {
                   <select value={formData.vendorRef}
                     data-testid="purchase-order-vendor-select"
                     onChange={e => {
-                      setFormData(f => ({ ...f, vendorRef: e.target.value }));
+                      const vId = e.target.value;
+                      const matchedVendor = vendors.find(v => v._id === vId);
+                      setFormData(f => ({ ...f, vendorRef: vId, vendorName: matchedVendor ? matchedVendor.name : '', vendorGST: matchedVendor ? matchedVendor.gstin : '' }));
                       // Show pending if vendor has outstanding
                       const v = vendors.find(v => v._id === e.target.value);
                       setVendorPending(v?.pendingAmount || null);
                     }}
-                    className={inp} required>
-                    <option value="">— Select Vendor —</option>
+                    className={inp} required={!(formData.importSource === 'pdf' && pendingPdfVendorName)}>
+                    <option value="">
+                      {pendingPdfVendorName ? `${pendingPdfVendorName} (will be created on save)` : '— Select Vendor —'}
+                    </option>
                     {vendors.map(v => <option key={v._id} value={v._id}>{v.name}</option>)}
                   </select>
                   <button type="button" onClick={() => setIsVendorModalOpen(true)}

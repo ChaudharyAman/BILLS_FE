@@ -114,6 +114,16 @@ export default function FinancialDashboard() {
   const s = data?.summary || {};
   const gst = data?.gst || {};
   const trend = data?.trend || [];
+  const overdue = data?.overdueInvoices || { total: 0, count: 0, aging: {} };
+  const topClients = data?.topClients || [];
+  const drafts = data?.draftCounts || { invoices: 0, expenses: 0, total: 0 };
+  const prev = data?.previousPeriod || { revenue: 0, expenses: 0 };
+
+  const delta = (curr, prior) => {
+    if (!prior) return null;
+    const pct = ((curr - prior) / prior) * 100;
+    return { pct: Math.abs(pct).toFixed(1), up: pct >= 0 };
+  };
 
   const catData = useMemo(() =>
     (data?.categories || []).map((c, i) => ({ ...c, fill: PALETTE[i % PALETTE.length] }))
@@ -135,14 +145,18 @@ export default function FinancialDashboard() {
     else setCustomVisible(true);
   };
 
+  const revDelta  = delta(s.totalRevenue, prev.revenue);
+  const expDelta  = delta(s.totalExpenses, prev.expenses);
+
   const KPIs = [
-    { label: 'Total Revenue',  value: fmt(s.totalRevenue),    icon: FaArrowTrendUp,      iconBg: 'rgba(16,185,129,0.12)',  iconColor: '#10b981', sub: `Tax: ${fmt(s.gstLiability)}` },
-    { label: 'Total Expenses', value: fmt(s.totalExpenses),   icon: FaReceipt,            iconBg: 'rgba(236,72,153,0.12)',  iconColor: '#ec4899', sub: `Credit: ${fmt(s.gstCredit)}` },
-    { label: 'Receivable',     value: fmt(s.receivables, 2),  icon: FaWallet,             iconBg: 'rgba(6,182,212,0.12)',   iconColor: '#06b6d4', sub: 'Unpaid invoices' },
-    { label: 'Payable',        value: fmt(s.payables, 2),     icon: FaFileInvoiceDollar,  iconBg: 'rgba(245,158,11,0.12)', iconColor: '#f59e0b', sub: 'Unpaid expenses' },
-    { label: 'GST Liability',  value: fmt(s.gstLiability),    icon: FaShieldHalved,       iconBg: 'rgba(139,92,246,0.12)', iconColor: '#8b5cf6', sub: `Net: ${fmt(s.netGstPayable)}` },
-    { label: 'TDS Deducted',   value: fmt(s.tdsDeducted),     icon: FaChartLine,          iconBg: 'rgba(99,102,241,0.12)', iconColor: '#6366f1', sub: null },
-    { label: 'TDS Payable',    value: fmt(s.tdsPayable),      icon: FaChartPie,           iconBg: 'rgba(236,72,153,0.12)', iconColor: '#ec4899', sub: null },
+    { label: 'Total Revenue',  value: fmt(s.totalRevenue),    icon: FaArrowTrendUp,      iconBg: 'rgba(16,185,129,0.12)',  iconColor: '#10b981', sub: `Tax: ${fmt(s.gstLiability)}`,  delta: revDelta,  deltaInvert: false },
+    { label: 'Total Expenses', value: fmt(s.totalExpenses),   icon: FaReceipt,            iconBg: 'rgba(236,72,153,0.12)',  iconColor: '#ec4899', sub: `Credit: ${fmt(s.gstCredit)}`, delta: expDelta,  deltaInvert: true  },
+    { label: 'Receivable',     value: fmt(s.receivables, 2),  icon: FaWallet,             iconBg: 'rgba(6,182,212,0.12)',   iconColor: '#06b6d4', sub: 'Unpaid invoices',             delta: null },
+    { label: 'Payable',        value: fmt(s.payables, 2),     icon: FaFileInvoiceDollar,  iconBg: 'rgba(245,158,11,0.12)', iconColor: '#f59e0b', sub: 'Unpaid expenses',             delta: null },
+    { label: 'GST Liability',  value: fmt(s.gstLiability),    icon: FaShieldHalved,       iconBg: 'rgba(139,92,246,0.12)', iconColor: '#8b5cf6', sub: `Net: ${fmt(s.netGstPayable)}`, delta: null },
+    { label: 'TDS Deducted',   value: fmt(s.tdsDeducted),     icon: FaChartLine,          iconBg: 'rgba(99,102,241,0.12)', iconColor: '#6366f1', sub: null,                          delta: null },
+    { label: 'TDS Payable',    value: fmt(s.tdsPayable),      icon: FaChartPie,           iconBg: 'rgba(236,72,153,0.12)', iconColor: '#ec4899', sub: null,                          delta: null },
+    { label: 'Pending POs',    value: fmt(s.pendingPO),       icon: FaFileInvoiceDollar,  iconBg: 'rgba(245,158,11,0.12)', iconColor: '#f59e0b', sub: `${s.pendingPOCount || 0} orders`, delta: null },
   ];
 
   return (
@@ -181,18 +195,39 @@ export default function FinancialDashboard() {
         <GW className="text-center text-rose-500">{error}</GW>
       ) : (
         <>
-          {/* ── 7 KPI Cards ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-5">
-            {KPIs.map((k, i) => (
-              <div key={k.label} className="glass-water-card p-4 animate-rise-in" style={{ animationDelay: `${i * 60}ms` }}>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: k.iconBg }}>
-                  <k.icon size={16} style={{ color: k.iconColor }} />
+      {/* ── Draft Warning Banner ── */}
+      {drafts.total > 0 && (
+        <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-2xl animate-rise-in" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.30)' }}>
+          <span className="text-amber-500 text-lg">⚠️</span>
+          <span className="text-sm font-semibold text-amber-700">
+            You have <strong>{drafts.invoices}</strong> draft invoice{drafts.invoices !== 1 ? 's' : ''}
+            {drafts.expenses > 0 ? ` and <strong>${drafts.expenses}</strong> draft expense${drafts.expenses !== 1 ? 's' : ''}` : ''} that are excluded from reports.
+          </span>
+        </div>
+      )}
+
+          {/* ── 8 KPI Cards ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-5">
+            {KPIs.map((k, i) => {
+              const good = k.delta ? (k.deltaInvert ? !k.delta.up : k.delta.up) : null;
+              return (
+                <div key={k.label} className="glass-water-card p-4 animate-rise-in" style={{ animationDelay: `${i * 55}ms` }}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: k.iconBg }}>
+                      <k.icon size={14} style={{ color: k.iconColor }} />
+                    </div>
+                    {k.delta && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg ${good ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
+                        {k.delta.up ? '↑' : '↓'}{k.delta.pct}%
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-base font-extrabold text-gray-800 animate-count-up">{k.value}</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mt-0.5">{k.label}</div>
+                  {k.sub && <div className="text-[10px] text-gray-400 mt-1">{k.sub}</div>}
                 </div>
-                <div className="text-lg font-extrabold text-gray-800 animate-count-up">{k.value}</div>
-                <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mt-0.5">{k.label}</div>
-                {k.sub && <div className="text-[10px] text-gray-400 mt-1">{k.sub}</div>}
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Net Profit highlight bar */}
@@ -217,9 +252,29 @@ export default function FinancialDashboard() {
             </div>
           </div>
 
+          {/* ── Overdue Invoices Aging ── */}
+          {overdue.total > 0 && (
+            <div className="glass-water-card p-5 mb-5 animate-rise-in" style={{ animationDelay: '480ms', border: '1px solid rgba(236,72,153,0.25)' }}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-rose-400 mb-0.5">⚡ Overdue Invoices</div>
+                  <div className="text-2xl font-black text-rose-600">{fmt(overdue.total, 2)} <span className="text-sm font-semibold text-rose-400">({overdue.count} invoice{overdue.count !== 1 ? 's' : ''})</span></div>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                {[['0–30 days', overdue.aging?.d0_30, '#f59e0b'], ['31–60 days', overdue.aging?.d31_60, '#f97316'], ['61–90 days', overdue.aging?.d61_90, '#ef4444'], ['90+ days', overdue.aging?.d90plus, '#be123c']].map(([label, val, color]) => (
+                  <div key={label} className="glass-water-inner p-3 text-center">
+                    <div className="text-sm font-extrabold" style={{ color }}>{fmt(val || 0)}</div>
+                    <div className="text-[10px] text-gray-400 font-semibold mt-0.5">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ── Tabs ── */}
           <div className="flex gap-2 mb-5">
-            {[{ id: 'overview', label: '📊 Overview' }, { id: 'gst', label: '🧾 GST' }, { id: 'ledger', label: '📋 Ledger' }].map(t => (
+            {[{ id: 'overview', label: '📊 Overview' }, { id: 'gst', label: '🧾 GST' }, { id: 'ledger', label: '📋 Ledger' }, { id: 'analytics', label: '📈 Analytics' }].map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${tab === t.id ? 'bg-indigo-500 text-white shadow-md shadow-indigo-200' : 'glass-water-pill text-gray-500 hover:text-gray-800'}`}>
                 {t.label}
@@ -402,6 +457,67 @@ export default function FinancialDashboard() {
                     <div key={m.l} className="rounded-2xl p-5 text-center" style={{ background: m.bg, border: `1px solid ${m.border}`, backdropFilter: 'blur(10px)' }}>
                       <div className="text-3xl font-black mb-2" style={{ color: m.c }}>{fmt(m.v, 2)}</div>
                       <div className="text-xs text-gray-400 font-semibold uppercase">{m.l}</div>
+                    </div>
+                  ))}
+                </div>
+              </GW>
+            </div>
+          )}
+
+          {/* ══ ANALYTICS ══ */}
+          {tab === 'analytics' && (
+            <div className="space-y-5 animate-rise-in">
+              <GW>
+                <SLabel>Top 5 Clients by Revenue</SLabel>
+                {topClients.length === 0 ? (
+                  <div className="py-8 text-center text-gray-400 text-sm">No client revenue data for this period.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {topClients.map((c, i) => {
+                      const max = topClients[0]?.total || 1;
+                      const w = Math.min((c.total / max) * 100, 100);
+                      return (
+                        <div key={c.name}>
+                          <div className="flex justify-between text-xs mb-1.5">
+                            <span className="font-semibold text-gray-600 flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white" style={{ background: PALETTE[i % PALETTE.length] }}>{i + 1}</span>
+                              {c.name}
+                            </span>
+                            <span className="font-bold text-gray-800">{fmt(c.total)}</span>
+                          </div>
+                          <div className="h-2.5 rounded-full bg-white/50 overflow-hidden border border-white/60">
+                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${w}%`, background: PALETTE[i % PALETTE.length] }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </GW>
+
+              <GW>
+                <SLabel>Monthly Invoice Volume (6 months)</SLabel>
+                <div className="h-52">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={trend} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                      <CartesianGrid stroke="rgba(99,102,241,0.08)" vertical={false} />
+                      <XAxis dataKey="month" stroke="#9ca3af" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                      <YAxis stroke="#9ca3af" tickLine={false} axisLine={false} allowDecimals={false} tick={{ fontSize: 11 }} />
+                      <Tooltip content={<TTip />} />
+                      <Bar dataKey="invoiceCount" name="Invoices" fill="#6366f1" opacity={0.85} radius={[6, 6, 0, 0]} maxBarSize={30} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </GW>
+
+              <GW className="">
+                <SLabel>Drafts Pending Review</SLabel>
+                <div className="grid grid-cols-2 gap-4">
+                  {[['Draft Invoices', drafts.invoices, '#6366f1', 'rgba(99,102,241,0.10)'], ['Draft Expenses', drafts.expenses, '#f59e0b', 'rgba(245,158,11,0.10)']].map(([label, count, color, bg]) => (
+                    <div key={label} className="rounded-2xl p-5 text-center" style={{ background: bg, border: `1px solid ${color}30` }}>
+                      <div className="text-4xl font-black" style={{ color }}>{count}</div>
+                      <div className="text-xs text-gray-400 font-semibold uppercase mt-1">{label}</div>
+                      {count > 0 && <div className="text-[10px] text-gray-400 mt-1">Not included in reports</div>}
                     </div>
                   ))}
                 </div>
