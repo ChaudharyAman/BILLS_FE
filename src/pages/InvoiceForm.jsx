@@ -245,11 +245,11 @@ const InvoiceForm = () => {
               name: item.name || '',
               description: item.description || '',
               unit: item.unit || 'pcs',
-              qty: item.qty || 1,
-              rate: item.rate || 0,
-              taxRate: sanitizeGstRate(item.taxRate),
+              qty: item.qty || item.quantity || 1,
+              rate: item.rate || item.price || 0,
+              taxRate: sanitizeGstRate(item.taxRate !== undefined ? item.taxRate : item.gst),
               discount: item.discount || 0,
-              isCustom: isCustomTaxRate(item.taxRate),
+              isCustom: isCustomTaxRate(item.taxRate !== undefined ? item.taxRate : item.gst),
             }))
           : prev.items,
       }));
