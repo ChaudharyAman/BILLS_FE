@@ -5,6 +5,7 @@ import {
   FaUsers, FaBuilding, FaBullhorn, FaBoxOpen, FaCar, FaBriefcase,
   FaLaptopCode, FaShieldAlt, FaFileInvoiceDollar, FaTools, FaEllipsisH,
   FaChartLine, FaHandshake, FaCoins, FaPlusCircle, FaQuestionCircle,
+  FaUniversity, FaUserTie, FaHeart, FaTruck, FaFileInvoice,
 } from 'react-icons/fa';
 
 const ICONS = {
@@ -25,6 +26,11 @@ const ICONS = {
   FaCoins,
   FaPlusCircle,
   FaQuestionCircle,
+  FaUniversity,
+  FaUserTie,
+  FaHeart,
+  FaTruck,
+  FaFileInvoice,
 };
 
 const emptyForm = {
@@ -307,7 +313,8 @@ const CategoryManagement = () => {
                   value={formData.name}
                   onChange={(event) => setFormData(prev => ({ ...prev, name: event.target.value }))}
                   required
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  disabled={Boolean(editingCategory?.isSystem)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100"
                 />
               </div>
               <div>
