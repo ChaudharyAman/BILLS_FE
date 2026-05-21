@@ -687,7 +687,7 @@ const PurchaseOrderForm = () => {
                   <th className={`${th} w-16`}>QTY</th>
                   <th className={`${th} w-24`}>Price</th>
                   <th className={`${th} w-24`}>Discount (%)</th>
-                  {hasTax && <th className={`${th} w-28`}>Tax</th>}
+                  {hasTax && <th className={`${th} w-28`}>GST</th>}
                   <th className={`${th} w-24 text-right`}>Total</th>
                   <th className={`${th} w-10`}></th>
                 </tr>
@@ -759,7 +759,7 @@ const PurchaseOrderForm = () => {
                             setFormData(f => ({ ...f, items }));
                           }}
                           className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400">
-                          <option value="">Select Tax</option>
+                          <option value="">Select GST</option>
                           {[0, 5, 12, 18, 28].map(r => <option key={r} value={r}>GST {r}%</option>)}
                           <option value="custom">Custom %</option>
                         </select>
@@ -914,7 +914,7 @@ const PurchaseOrderForm = () => {
               </div>
               {hasTax && taxTotal > 0 && (
                 <div className="flex justify-between py-2 border-b border-gray-200 text-sm text-gray-600">
-                  <span>Tax:</span>
+                  <span>GST:</span>
                   <span>₹ {taxTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
               )}

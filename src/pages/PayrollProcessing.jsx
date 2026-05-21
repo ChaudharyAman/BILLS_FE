@@ -37,7 +37,9 @@ const PayrollProcessing = () => {
     const row = rows[emp._id] || {};
     const gross = Number(emp.salaryStructure?.grossSalary) || 0;
     const additions = (Number(row.overtime) || 0) + (Number(row.bonus) || 0) + (Number(row.incentives) || 0);
-    const pf = Number(emp.deductions?.pf) || (Number(emp.salaryStructure?.basic) || 0) * 0.12;
+    const pf = (emp.deductions?.pf !== undefined && emp.deductions?.pf !== null && emp.deductions?.pf !== '')
+      ? Number(emp.deductions.pf)
+      : (Number(emp.salaryStructure?.basic) || 0) * 0.12;
     const baseDeductions = pf + (Number(emp.deductions?.esi) || 0) + (Number(emp.deductions?.professionalTax) || 0) + (Number(emp.deductions?.tds) || 0);
     const adjustments = (Number(row.loanDeduction) || 0) + (Number(row.advanceDeduction) || 0);
     return gross + additions - baseDeductions - adjustments;

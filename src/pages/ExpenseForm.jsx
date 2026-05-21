@@ -671,7 +671,7 @@ const ExpenseForm = () => {
                     value={item.taxRate}
                     onChange={(e) => handleItemChange(idx, 'taxRate', e.target.value)}
                   >
-                    <option value="0">Select Tax</option>
+                    <option value="0">Select GST</option>
                     <option value="5">GST 5%</option>
                     <option value="12">GST 12%</option>
                     <option value="18">GST 18%</option>
@@ -728,7 +728,7 @@ const ExpenseForm = () => {
                  </div>
                  {totals.taxTotal > 0 && (
                    <div className="flex justify-between items-center px-4">
-                     <span className="text-sm text-gray-500">Tax Total:</span>
+                     <span className="text-sm text-gray-500">GST:</span>
                      <span className="text-sm text-gray-800">₹ {totals.taxTotal.toFixed(2)}</span>
                    </div>
                  )}
