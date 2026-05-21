@@ -194,7 +194,18 @@ const QuoteForm = ({ docType = 'quote' }) => {
         items[idx].description = found.description || found.salesInfo?.description || '';
         items[idx].rate = found.salesInfo?.price || found.rate || 0;
         items[idx].unit = found.unit || 'pcs';
-        items[idx].taxRate = found.salesInfo?.taxRate || found.defaultTaxRate || 0;
+        let taxRate = 0;
+        const candidates = [found.defaultTaxRate, found.taxRate, found.salesInfo?.taxRate, found.purchaseInfo?.taxRate];
+        for (const candidate of candidates) {
+          if (candidate !== undefined && candidate !== null) {
+            const numeric = parseFloat(String(candidate).replace('%', '').trim());
+            if (!isNaN(numeric) && (numeric > 0 || String(candidate).trim() === '0')) {
+              taxRate = numeric;
+              break;
+            }
+          }
+        }
+        items[idx].taxRate = taxRate;
         items[idx].hsnCode = found.hsnCode || '';
         items[idx].itemRef = found._id;
       }
@@ -211,7 +222,17 @@ const QuoteForm = ({ docType = 'quote' }) => {
     const found = itemsList.find(i => i._id === itemId);
     if (!found) return;
     const items = [...formData.items];
-    const taxRate = found.salesInfo?.taxRate || found.defaultTaxRate || 0; // Use salesInfo taxRate if available
+    let taxRate = 0;
+    const candidates = [found.defaultTaxRate, found.taxRate, found.salesInfo?.taxRate, found.purchaseInfo?.taxRate];
+    for (const candidate of candidates) {
+      if (candidate !== undefined && candidate !== null) {
+        const numeric = parseFloat(String(candidate).replace('%', '').trim());
+        if (!isNaN(numeric) && (numeric > 0 || String(candidate).trim() === '0')) {
+          taxRate = numeric;
+          break;
+        }
+      }
+    }
     items[idx] = {
       ...items[idx],
       itemRef: found._id,
