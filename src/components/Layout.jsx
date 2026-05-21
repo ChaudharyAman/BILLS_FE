@@ -40,7 +40,7 @@ const NAV = [
   { label: 'Settings',           icon: FaCog,    path: '/settings' },
 ];
 
-const ICON_SIZE = 18;
+const ICON_SIZE = 13;
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -95,13 +95,13 @@ const Layout = ({ children }) => {
   };
 
   const linkCls = (path) =>
-    `flex items-center gap-3 px-5 py-2.5 text-sm font-medium transition-colors cursor-pointer w-full text-left
+    `flex items-center gap-[9px] px-[18px] py-[5px] text-[12px] font-medium transition-colors cursor-pointer w-full text-left
     ${isActive(path)
       ? 'bg-white/10 text-white border-l-2 border-blue-400'
       : 'text-slate-300 hover:bg-white/5 hover:text-white border-l-2 border-transparent'}`;
 
   const subLinkCls = (path) =>
-    `flex items-center gap-2 pl-10 pr-5 py-2 text-sm transition-colors w-full text-left
+    `flex items-center gap-[7px] pl-[34px] pr-[18px] py-[4px] text-[11px] transition-colors w-full text-left
     ${isActive(path)
       ? 'text-white font-semibold'
       : 'text-slate-400 hover:text-white'}`;
@@ -110,18 +110,18 @@ const Layout = ({ children }) => {
     <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
 
       {/* ── Sidebar ── */}
-      <aside className="w-56 h-full flex-shrink-0 hidden md:flex flex-col"
+      <aside className="w-[216px] h-full flex-shrink-0 hidden md:flex flex-col"
         style={{ background: '#1a2e44' }}>
 
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-white/10">
+        <div className="px-[18px] py-[16px] border-b border-white/10">
           <div className="flex flex-col">
-            <h1 className="text-lg font-bold text-white flex items-center gap-2 tracking-wide">
-              <FaThLarge size={20} className="text-blue-400" />
+            <h1 className="text-[17px] font-bold text-white flex items-center gap-2 tracking-wide">
+              <FaThLarge size={18} className="text-blue-400" />
               Flance
             </h1>
             {hasPremiumAccess && (
-              <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase ml-7 mt-0.5">
+              <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase ml-[26px] mt-[2px]">
                 {isSuperAdmin ? 'Super Admin' : 'Pro Member'}
               </span>
             )}
@@ -131,15 +131,72 @@ const Layout = ({ children }) => {
         {/* Nav */}
         <nav className="flex-1 py-3 overflow-y-auto no-scrollbar">
 
+          {/* Group 1: Overview & Analytics */}
+          <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
+            Overview
+          </div>
+
           {/* Dashboard */}
           <Link to="/dashboard" className={linkCls('/dashboard')}>
             <FaThLarge size={ICON_SIZE} /> Dashboard
           </Link>
 
+          {/* Group 2: Sales & Receivables */}
+          <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
+            Sales &amp; Receivables
+          </div>
+
           {/* Clients */}
           <Link to="/clients" className={linkCls('/clients')}>
             <FaUsers size={ICON_SIZE} /> Clients / Customers
           </Link>
+
+          {/* Invoices */}
+          <Link to="/invoices" className={linkCls('/invoices')}>
+            <FaFileInvoice size={ICON_SIZE} /> Invoices
+          </Link>
+
+          {/* Quotes & Proformas (collapsible) */}
+          <button
+            onClick={() => setQuotesOpen(o => !o)}
+            className={`flex items-center justify-between px-[18px] py-[5px] text-[12px] font-medium transition-colors w-full border-l-2
+              ${(isActive('/quotes') || isActive('/proformas'))
+                ? 'bg-white/10 text-white border-blue-400'
+                : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
+          >
+            <span className="flex items-center gap-[9px]">
+               <FaClipboardList size={ICON_SIZE} /> Quotes &amp; Proformas
+            </span>
+            {quotesOpen
+              ? <FaChevronDown size={10} className="text-slate-400" />
+              : <FaChevronRight size={10} className="text-slate-400" />}
+          </button>
+
+          {quotesOpen && (
+            <div className="bg-black/10">
+              <Link to="/quotes" className={subLinkCls('/quotes')}>
+                <FaMinus size={9} className="text-slate-500" /> Quotes
+              </Link>
+              <Link to="/proformas" className={subLinkCls('/proformas')}>
+                <FaMinus size={9} className="text-slate-500" /> Proformas
+              </Link>
+            </div>
+          )}
+
+          {/* Incomes */}
+          <Link to="/incomes" className={linkCls('/incomes')}>
+            <FaPlus size={ICON_SIZE} /> Incomes
+          </Link>
+
+          {/* Recurring */}
+          <Link to="/recurring" className={linkCls('/recurring')}>
+            <FaRedo size={ICON_SIZE} /> Recurring
+          </Link>
+
+          {/* Group 3: Purchases & Payables */}
+          <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
+            Purchases &amp; Payables
+          </div>
 
           {/* Vendors */}
           <Link to="/vendors" className={linkCls('/vendors')}>
@@ -151,73 +208,83 @@ const Layout = ({ children }) => {
             <FaShoppingCart size={ICON_SIZE} /> Purchase Orders
           </Link>
 
-          {/* Incomes */}
-          <Link to="/incomes" className={linkCls('/incomes')}>
-            <FaPlus size={ICON_SIZE} /> Incomes
-          </Link>
-
           {/* Expenses */}
           <Link to="/expenses" className={linkCls('/expenses')}>
             <FaMinus size={ICON_SIZE} /> Expenses
           </Link>
 
-          <Link to="/categories" className={linkCls('/categories')}>
-            <FaTags size={ICON_SIZE} /> Categories
-          </Link>
-
-          <Link to="/employees" className={linkCls('/employees')}>
-            <FaUsers size={ICON_SIZE} /> Employees
-          </Link>
-
-          <Link to="/payroll" className={linkCls('/payroll')}>
-            <FaMoneyBillWave size={ICON_SIZE} /> Payroll
-          </Link>
-
-          <Link to="/budgets" className={linkCls('/budgets')}>
-            <FaBalanceScale size={ICON_SIZE} /> Budgets
-          </Link>
-
-          <Link to="/recurring" className={linkCls('/recurring')}>
-            <FaRedo size={ICON_SIZE} /> Recurring
-          </Link>
-
-          <Link to="/projects" className={linkCls('/projects')}>
-            <FaProjectDiagram size={ICON_SIZE} /> Projects
-          </Link>
+          {/* Group 4: Operations & Assets */}
+          <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
+            Operations &amp; Assets
+          </div>
 
           {/* Items / Inventory */}
           <Link to="/items" className={linkCls('/items')}>
             <FaBox size={ICON_SIZE} /> Inventory
           </Link>
 
-          {/* Invoices */}
-          <Link to="/invoices" className={linkCls('/invoices')}>
-            <FaFileInvoice size={ICON_SIZE} /> Invoices
+          {/* Projects */}
+          <Link to="/projects" className={linkCls('/projects')}>
+            <FaProjectDiagram size={ICON_SIZE} /> Projects
           </Link>
 
-          {/* Quotes & Proformas (collapsible) */}
+          {/* Group 5: Human Resources */}
+          <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
+            Human Resources
+          </div>
+
+          {/* Employees */}
+          <Link to="/employees" className={linkCls('/employees')}>
+            <FaUsers size={ICON_SIZE} /> Employees
+          </Link>
+
+          {/* Payroll */}
+          <Link to="/payroll" className={linkCls('/payroll')}>
+            <FaMoneyBillWave size={ICON_SIZE} /> Payroll
+          </Link>
+
+          {/* Group 6: Financial Control */}
+          <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
+            Financial Control
+          </div>
+
+          {/* Budgets */}
+          <Link to="/budgets" className={linkCls('/budgets')}>
+            <FaBalanceScale size={ICON_SIZE} /> Budgets
+          </Link>
+
+          {/* Categories */}
+          <Link to="/categories" className={linkCls('/categories')}>
+            <FaTags size={ICON_SIZE} /> Categories
+          </Link>
+
+          {/* Accounts (collapsible, Premium) */}
           <button
-            onClick={() => setQuotesOpen(o => !o)}
-            className={`flex items-center justify-between px-5 py-2.5 text-sm font-medium transition-colors w-full border-l-2
-              ${(isActive('/quotes') || isActive('/proformas'))
+            onClick={(e) => {
+               if (!hasPremiumAccess) { handlePremiumClick(e); }
+               else { setAccountsOpen(o => !o); }
+            }}
+            className={`flex items-center justify-between px-[18px] py-[5px] text-[12px] font-medium transition-colors w-full border-l-2
+              ${isActive('/accounts')
                 ? 'bg-white/10 text-white border-blue-400'
                 : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
           >
-            <span className="flex items-center gap-3">
-               <FaClipboardList size={ICON_SIZE} /> Quotes &amp; Proformas
+            <span className="flex items-center gap-[9px]">
+              <FaWallet size={ICON_SIZE} /> Accounts
+              {!hasPremiumAccess && <span className="text-[8px] font-bold bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded uppercase ml-1">Pro</span>}
             </span>
-            {quotesOpen
-              ? <FaChevronDown size={14} className="text-slate-400" />
-              : <FaChevronRight size={14} className="text-slate-400" />}
+            {accountsOpen
+              ? <FaChevronDown size={10} className="text-slate-400" />
+              : <FaChevronRight size={10} className="text-slate-400" />}
           </button>
 
-          {quotesOpen && (
+          {accountsOpen && hasPremiumAccess && (
             <div className="bg-black/10">
-              <Link to="/quotes" className={subLinkCls('/quotes')}>
-                <FaMinus size={12} className="text-slate-500" /> Quotes
+              <Link to="/accounts/payments" className={subLinkCls('/accounts/payments')}>
+                <FaMinus size={9} className="text-slate-500" /> Payment Collection
               </Link>
-              <Link to="/proformas" className={subLinkCls('/proformas')}>
-                <FaMinus size={12} className="text-slate-500" /> Proformas
+              <Link to="/accounts/statements" className={subLinkCls('/accounts/statements')}>
+                <FaMinus size={9} className="text-slate-500" /> Account Statements
               </Link>
             </div>
           )}
@@ -228,74 +295,48 @@ const Layout = ({ children }) => {
                if (!hasPremiumAccess) { handlePremiumClick(e); }
                else { setReportsOpen(o => !o); }
             }}
-            className={`flex items-center justify-between px-5 py-2.5 text-sm font-medium transition-colors w-full border-l-2
+            className={`flex items-center justify-between px-[18px] py-[5px] text-[12px] font-medium transition-colors w-full border-l-2
               ${isActive('/reports')
                 ? 'bg-white/10 text-white border-blue-400'
                 : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
           >
-            <span className="flex items-center gap-3">
+            <span className="flex items-center gap-[9px]">
               <FaChartBar size={ICON_SIZE} /> Reports
-              {!hasPremiumAccess && <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded uppercase ml-1">Pro</span>}
+              {!hasPremiumAccess && <span className="text-[8px] font-bold bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded uppercase ml-1">Pro</span>}
             </span>
             {reportsOpen
-              ? <FaChevronDown size={14} className="text-slate-400" />
-              : <FaChevronRight size={14} className="text-slate-400" />}
+              ? <FaChevronDown size={10} className="text-slate-400" />
+              : <FaChevronRight size={10} className="text-slate-400" />}
           </button>
 
           {reportsOpen && hasPremiumAccess && (
             <div className="bg-black/10">
               <Link to="/reports/gst" className={subLinkCls('/reports/gst')}>
-                <FaMinus size={12} className="text-slate-500" /> GST Reports
+                <FaMinus size={9} className="text-slate-500" /> GST Reports
               </Link>
               <Link to="/reports/revenue" className={subLinkCls('/reports/revenue')}>
-                <FaMinus size={12} className="text-slate-500" /> Revenue Reports
+                <FaMinus size={9} className="text-slate-500" /> Revenue Reports
               </Link>
               <Link to="/reports/profit-loss" className={subLinkCls('/reports/profit-loss')}>
-                <FaMinus size={12} className="text-slate-500" /> Profit &amp; Loss
+                <FaMinus size={9} className="text-slate-500" /> Profit &amp; Loss
               </Link>
               <Link to="/reports/balance-sheet" className={subLinkCls('/reports/balance-sheet')}>
-                <FaMinus size={12} className="text-slate-500" /> Balance Sheet
+                <FaMinus size={9} className="text-slate-500" /> Balance Sheet
               </Link>
               <Link to="/reports/cash-flow" className={subLinkCls('/reports/cash-flow')}>
-                <FaMinus size={12} className="text-slate-500" /> Cash Flow
+                <FaMinus size={9} className="text-slate-500" /> Cash Flow
               </Link>
             </div>
           )}
 
-          {/* Accounts (collapsible, Premium) */}
-          <button
-            onClick={(e) => {
-               if (!hasPremiumAccess) { handlePremiumClick(e); }
-               else { setAccountsOpen(o => !o); }
-            }}
-            className={`flex items-center justify-between px-5 py-2.5 text-sm font-medium transition-colors w-full border-l-2
-              ${isActive('/accounts')
-                ? 'bg-white/10 text-white border-blue-400'
-                : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
-          >
-            <span className="flex items-center gap-3">
-              <FaWallet size={ICON_SIZE} /> Accounts
-              {!hasPremiumAccess && <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded uppercase ml-1">Pro</span>}
-            </span>
-            {accountsOpen
-              ? <FaChevronDown size={14} className="text-slate-400" />
-              : <FaChevronRight size={14} className="text-slate-400" />}
-          </button>
-
-          {accountsOpen && hasPremiumAccess && (
-            <div className="bg-black/10">
-              <Link to="/accounts/payments" className={subLinkCls('/accounts/payments')}>
-                <FaMinus size={12} className="text-slate-500" /> Payment Collection
-              </Link>
-              <Link to="/accounts/statements" className={subLinkCls('/accounts/statements')}>
-                <FaMinus size={12} className="text-slate-500" /> Account Statements
-              </Link>
-            </div>
-          )}
+          {/* Group 7: System & Settings */}
+          <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
+            System &amp; Settings
+          </div>
 
           {/* Subscription */}
           <Link to="/subscription" className={linkCls('/subscription')}>
-            <div className="flex items-center gap-3 text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 font-bold tracking-wide">
+            <div className="flex items-center gap-[9px] text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 font-bold tracking-wide">
               <FaStar size={ICON_SIZE} className="text-amber-400" /> Upgrade
             </div>
           </Link>
@@ -314,7 +355,7 @@ const Layout = ({ children }) => {
         </nav>
 
         {/* Logout */}
-        <div className="border-t border-white/10 p-3">
+        <div className="border-t border-white/10 p-[10px]">
           <button
             onClick={async () => {
               try {
@@ -326,7 +367,7 @@ const Layout = ({ children }) => {
               window.location.href = '/login';
             }}
             data-testid="logout-button"
-            className="flex items-center gap-3 px-4 py-2.5 rounded text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors w-full"
+            className="flex items-center gap-[9px] px-[16px] py-[8px] rounded text-[12px] font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors w-full"
           >
             <FaSignOutAlt size={ICON_SIZE} /> Logout
           </button>
