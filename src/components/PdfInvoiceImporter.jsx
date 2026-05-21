@@ -137,9 +137,13 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'in
 
       // We use a dedicated axios instance to avoid global header interference (like Content-Type: application/json)
       // which can break FormData/Multer boundary detection.
+      const token = localStorage.getItem('authToken');
       const uploadApi = await import('axios').then(m => m.default.create({
         baseURL: api.defaults.baseURL,
-        headers: api.defaults.headers, // Inherit auth but we will override Content-Type
+        headers: {
+          ...api.defaults.headers,
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         withCredentials: true
       }));
 
