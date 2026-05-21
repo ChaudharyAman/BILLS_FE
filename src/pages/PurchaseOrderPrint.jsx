@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { FaPrint, FaArrowLeft, FaArrowRight, FaBoxOpen } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
+import ClassicBusinessDocumentPrint from '../components/ClassicBusinessDocumentPrint';
 
 // ── Helpers ─────────────────────────────────────────────────────
 function numberToWords(num) {
@@ -51,6 +52,7 @@ const PurchaseOrderPrint = () => {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [converting, setConverting] = useState(false);
+  const [template, setTemplate] = useState('classic');
 
   useEffect(() => {
     (async () => {
@@ -128,6 +130,14 @@ const PurchaseOrderPrint = () => {
           <FaArrowLeft size={13}/> Back
         </button>
         <div style={{ display:'flex',gap:8 }}>
+          <select
+            value={template}
+            onChange={(e) => setTemplate(e.target.value)}
+            style={{ padding:'7px 12px',borderRadius:'6px',border:'1px solid #d0d0d0',fontSize:'13px',outline:'none',cursor:'pointer',background:'#fff' }}
+          >
+            <option value="modern">Modern Template</option>
+            <option value="classic">Classic GST Template</option>
+          </select>
           {!['RECEIVED', 'BILLED', 'CANCELLED'].includes(doc.status) && (
             <button onClick={handleReceive}
               style={{ display:'flex',alignItems:'center',gap:6,padding:'7px 14px',background:'#059669',color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontSize:13,fontWeight:700 }}>
@@ -147,6 +157,37 @@ const PurchaseOrderPrint = () => {
         </div>
       </div>
 
+      {template === 'classic' ? (
+        <ClassicBusinessDocumentPrint
+          documentTitle="PURCHASE ORDER"
+          documentNumberLabel="PO No."
+          documentNumber={doc.poNumber}
+          company={company}
+          leftPartyTitle="Ordered by   :"
+          leftParty={{ name: company.companyName, address: company.address, gstin: company.gstin }}
+          rightPartyTitle="Vendor   :"
+          rightParty={vendor}
+          documentDate={doc.date}
+          validUntil={doc.validUntil || doc.dueDate}
+          placeOfSupply={doc.placeOfSupply}
+          reverseCharge={doc.reverseCharge}
+          items={items}
+          hasTax={hasTax}
+          isIntra={isIntra}
+          subTotal={doc.subTotal}
+          totalCGST={doc.totalCGST}
+          totalSGST={doc.totalSGST}
+          totalIGST={doc.totalIGST}
+          shippingCharges={doc.shippingCharges}
+          packagingCharges={doc.packagingCharges}
+          customChargeLabel={doc.customChargeLabel}
+          discountTotal={doc.discountTotal}
+          grandTotal={grandTotal}
+          terms={doc.terms}
+          notes={doc.notes}
+        />
+      ) : (
+      <>
       {/* ════ A4 WHITE SHEET ════ */}
       <div id="doc-print" style={{
         maxWidth:860, margin:'0 auto', background:'#fff',
@@ -310,6 +351,8 @@ const PurchaseOrderPrint = () => {
 
 
       </div>{/* end A4 */}
+      </>
+      )}
 
       <style>{`
         @media print {
