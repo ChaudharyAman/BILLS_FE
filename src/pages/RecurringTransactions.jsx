@@ -5,6 +5,7 @@ import { FaPause, FaPlay, FaPlus, FaTrash } from 'react-icons/fa';
 const emptyForm = {
   type: 'expense',
   category: '',
+  subCategory: '',
   name: '',
   amount: 0,
   description: '',
@@ -40,8 +41,17 @@ const RecurringTransactions = () => {
 
   const fetchCategories = async () => {
     const res = await api.get(`/categories?type=${activeTab}`);
-    setCategories((res.data || []).filter(cat => !cat.parent));
+    setCategories(res.data || []);
   };
+
+  const rootCategories = useMemo(() => {
+    return categories.filter(cat => !cat.parent);
+  }, [categories]);
+
+  const subCategories = useMemo(() => {
+    if (!formData.category) return [];
+    return categories.filter(cat => cat.parent === formData.category || cat.parent?._id === formData.category);
+  }, [categories, formData.category]);
 
   const previewDates = useMemo(() => {
     const dates = [];
@@ -69,6 +79,7 @@ const RecurringTransactions = () => {
     setFormData({
       type: rt.type,
       category: rt.category?._id || rt.category || '',
+      subCategory: rt.subCategory?._id || rt.subCategory || '',
       name: rt.name || '',
       amount: rt.amount || 0,
       description: rt.description || '',
@@ -88,6 +99,7 @@ const RecurringTransactions = () => {
     const payload = {
       ...formData,
       category: formData.category,
+      subCategory: formData.subCategory || null,
       amount: Number(formData.amount) || 0,
       dayOfMonth: Number(formData.dayOfMonth) || undefined,
       dayOfWeek: Number(formData.dayOfWeek),
@@ -141,11 +153,20 @@ const RecurringTransactions = () => {
           </div>
           <div>
             <label className={labelCls}>Category</label>
-            <select required value={formData.category} onChange={e => setFormData(p => ({ ...p, category: e.target.value }))} className={inputCls}>
+            <select required value={formData.category} onChange={e => setFormData(p => ({ ...p, category: e.target.value, subCategory: '' }))} className={inputCls}>
               <option value="">Select Category</option>
-              {categories.map(cat => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
+              {rootCategories.map(cat => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
             </select>
           </div>
+          {subCategories.length > 0 && (
+            <div>
+              <label className={labelCls}>Subcategory</label>
+              <select value={formData.subCategory} onChange={e => setFormData(p => ({ ...p, subCategory: e.target.value }))} className={inputCls}>
+                <option value="">Select Subcategory</option>
+                {subCategories.map(cat => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
+              </select>
+            </div>
+          )}
           <div>
             <label className={labelCls}>Amount</label>
             <input type="number" min="0" required value={formData.amount} onChange={e => setFormData(p => ({ ...p, amount: e.target.value }))} className={inputCls} />
@@ -206,7 +227,14 @@ const RecurringTransactions = () => {
             ) : transactions.map(rt => (
               <tr key={rt._id} className="hover:bg-blue-50/40">
                 <td className="px-6 py-4 font-semibold">{rt.name}</td>
-                <td className="px-6 py-4 text-sm">{rt.category?.name || '-'}</td>
+                 <td className="px-6 py-4 text-sm">
+                  <div className="font-semibold text-slate-800">{rt.category?.name || '-'}</div>
+                  {rt.subCategory && (
+                    <div className="text-xs text-slate-400 font-semibold mt-0.5 capitalize">
+                      › {rt.subCategory.name}
+                    </div>
+                  )}
+                </td>
                 <td className="px-6 py-4 text-right font-semibold">{fmtMoney(rt.amount)}</td>
                 <td className="px-6 py-4 text-sm capitalize">{rt.frequency}</td>
                 <td className="px-6 py-4 text-sm">{fmtDate(rt.nextProcessDate)}</td>
