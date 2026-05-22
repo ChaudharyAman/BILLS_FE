@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import {
   FaCalendarAlt, FaDownload, FaChartLine, FaCalculator, FaPercent,
@@ -8,6 +9,7 @@ import Skeleton from '../../components/Skeleton';
 import ExportDropdown from '../../components/ExportDropdown';
 
 const GstReport = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
@@ -318,7 +320,7 @@ const GstReport = () => {
               ) : (
                 <>
                   {data.details.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/60 transition-all duration-150 group">
+                    <tr key={idx} onClick={() => navigate(`/invoices/edit/${row._id}`)} className="hover:bg-slate-50/60 transition-all duration-150 group cursor-pointer">
                       <td className="px-6 py-4.5 whitespace-nowrap">
                         <div className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{row.invoiceNo}</div>
                         <div className="text-[11px] font-semibold text-slate-400 mt-1 flex items-center gap-1.5">

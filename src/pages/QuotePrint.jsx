@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { FaPrint, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
+import ClassicBusinessDocumentPrint from '../components/ClassicBusinessDocumentPrint';
 
 // ── Helpers ─────────────────────────────────────────────────────
 function numberToWords(num) {
@@ -58,6 +59,7 @@ const QuotePrint = ({ docType = 'quote' }) => {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [converting, setConverting] = useState(false);
+  const [template, setTemplate] = useState('classic');
 
   useEffect(() => {
     (async () => {
@@ -121,7 +123,7 @@ const QuotePrint = ({ docType = 'quote' }) => {
   const shortNo = docNo?.replace(/^(PRF-|PRO-|QT-|QUOT-)/,'') || docNo;
 
   return (
-    <div className="quote-print-page" style={{ background:'#eee', minHeight:'100vh', padding:'20px 0', fontFamily:'Arial, Helvetica, sans-serif' }}>
+    <div className="print-page-container" style={{ background:'#eee', minHeight:'100vh', padding:'20px 0', fontFamily:'Arial, Helvetica, sans-serif' }}>
 
       {/* toolbar */}
       <div style={{ maxWidth:860, margin:'0 auto 12px', display:'flex', justifyContent:'space-between' }}
@@ -131,6 +133,14 @@ const QuotePrint = ({ docType = 'quote' }) => {
           <FaArrowLeft size={13}/> Back
         </button>
         <div style={{ display:'flex',gap:8 }}>
+          <select
+            value={template}
+            onChange={(e) => setTemplate(e.target.value)}
+            style={{ padding:'7px 12px',borderRadius:'6px',border:'1px solid #d0d0d0',fontSize:'13px',outline:'none',cursor:'pointer',background:'#fff' }}
+          >
+            <option value="modern">Modern Template</option>
+            <option value="classic">Classic GST Template</option>
+          </select>
           {doc.status!=='CONVERTED' && (
             <button onClick={handleConvert} disabled={converting}
               style={{ display:'flex',alignItems:'center',gap:6,padding:'7px 14px',background:'#7c3aed',color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontSize:13,fontWeight:700 }}>
@@ -144,6 +154,41 @@ const QuotePrint = ({ docType = 'quote' }) => {
         </div>
       </div>
 
+      {template === 'classic' ? (
+        <ClassicBusinessDocumentPrint
+          documentTitle={docLabel}
+          documentNumberLabel={isProforma ? 'Proforma No.' : 'Quote No.'}
+          documentNumber={docNo}
+          company={company}
+          leftPartyTitle="Billed to   :"
+          leftParty={client}
+          rightPartyTitle="Shipped to  :"
+          rightParty={{
+            name: client.name,
+            address: doc.shippingAddress?.line1 ? doc.shippingAddress : client.address,
+            gstin: client.gstin,
+          }}
+          documentDate={doc.date}
+          validUntil={doc.validUntil || doc.dueDate}
+          placeOfSupply={doc.placeOfSupply}
+          reverseCharge={doc.reverseCharge}
+          items={items}
+          hasTax={hasTax}
+          isIntra={isIntra}
+          subTotal={doc.subTotal}
+          totalCGST={doc.totalCGST}
+          totalSGST={doc.totalSGST}
+          totalIGST={doc.totalIGST}
+          shippingCharges={doc.shippingCharges}
+          packagingCharges={doc.packagingCharges}
+          customChargeLabel={doc.customChargeLabel}
+          discountTotal={doc.discountTotal}
+          grandTotal={grandTotal}
+          terms={doc.terms}
+          notes={doc.notes}
+        />
+      ) : (
+      <>
       {/* ════ A4 WHITE SHEET ════ */}
       <div id="doc-print" style={{
         maxWidth:860, margin:'0 auto', background:'#fff',
@@ -322,55 +367,44 @@ const QuotePrint = ({ docType = 'quote' }) => {
 
 
       </div>{/* end A4 */}
+      </>
+      )}
 
       <style>{`
         @media print {
-          html, body, #root {
+          html, body, #root, [class*="bg-gray-"], .min-h-screen, .print-page-container { 
+            background: #fff !important; 
+            background-color: #fff !important;
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+            min-height: auto !important;
             height: auto !important;
-            overflow: visible !important;
-            background: #fff !important;
           }
           body {
-            margin: 0 !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            margin: 0 !important; 
+            padding: 10mm !important; /* Beautiful custom safe margin on all sides */
           }
-          #root > div {
-            display: block !important;
-            height: auto !important;
-            overflow: visible !important;
-            background: #fff !important;
-          }
-          aside {
-            display: none !important;
-          }
-          main {
-            height: auto !important;
-            overflow: visible !important;
-          }
-          .print\\:hidden { display:none !important; }
-          .quote-print-page {
+          .print-page-container { 
+            padding: 0 !important; 
             min-height: auto !important;
-            padding: 0 !important;
+            height: auto !important;
             background: #fff !important;
           }
-          #doc-print {
-            max-width: none !important;
-            width: 100% !important;
-            margin: 0 !important;
-            box-shadow: none !important;
-            break-inside: auto;
-          }
-          table {
-            page-break-inside: auto;
-          }
-          thead { display: table-row-group !important; }
-          tfoot { display: table-row-group !important; }
-          tr, td, th {
+          .print\\:hidden { display: none !important; }
+          #doc-print, #invoice-print-classic { 
+            box-shadow: none !important; 
             page-break-inside: avoid;
-            break-inside: avoid;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+            background: #fff !important;
           }
-          @page { size:A4; margin:0; }
+          @page { 
+            size: A4; 
+            margin: 0; /* Hides default browser header and footer */
+          }
+          thead { display: table-row-group; }
+          tfoot { display: table-row-group; }
         }
       `}</style>
     </div>

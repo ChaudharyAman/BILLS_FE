@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import { 
   FaCalendarAlt, FaDownload, FaChartPie, FaCoins, FaHandHoldingUsd, 
@@ -8,6 +9,7 @@ import Skeleton from '../../components/Skeleton';
 import ExportDropdown from '../../components/ExportDropdown';
 
 const RevenueReport = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
@@ -287,7 +289,7 @@ const RevenueReport = () => {
               ) : (
                 <>
                   {data.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/60 transition-all duration-150 group">
+                    <tr key={idx} onClick={() => navigate(`/clients/edit/${row._id}`)} className="hover:bg-slate-50/60 transition-all duration-150 group cursor-pointer">
                       <td className="px-6 py-4.5 whitespace-nowrap">
                         <div className="text-sm font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">{row.clientName || 'N/A'}</div>
                         <div className="text-[11px] font-semibold text-slate-400 mt-1">
@@ -399,4 +401,4 @@ const StatCard = ({ title, amount, color, icon: Icon, subtitle, isCount = false 
   );
 };
 
-export default RevenueReport;eport;
+export default RevenueReport;
