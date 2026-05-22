@@ -59,7 +59,7 @@ const QuotePrint = ({ docType = 'quote' }) => {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [converting, setConverting] = useState(false);
-  const [template, setTemplate] = useState('classic');
+  const [template, setTemplate] = useState('modern');
 
   useEffect(() => {
     (async () => {

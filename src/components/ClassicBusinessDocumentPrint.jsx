@@ -229,14 +229,14 @@ const ClassicBusinessDocumentPrint = ({
         <thead>
           <tr>
             <th style={{ ...th, width: '3.8%', textAlign: 'center' }}>S.N.</th>
-            <th style={{ ...th, width: '29.2%', textAlign: 'left' }}>Description of Goods</th>
+            <th style={{ ...th, width: '26.7%', textAlign: 'left' }}>Description of Goods</th>
             <th style={{ ...th, width: '10%', textAlign: 'left' }}>HSN/SAC<br />Code</th>
             <th style={{ ...th, width: '7%', textAlign: 'right' }}>Qty.</th>
             <th style={{ ...th, width: '6%', textAlign: 'left' }}>Unit</th>
             <th style={{ ...th, width: '11%', textAlign: 'right' }}>List Price</th>
             <th style={{ ...th, width: '9%', textAlign: 'left' }}>Discount</th>
             <th style={{ ...th, width: '11.5%', textAlign: 'right' }}>Price</th>
-            <th style={{ ...th, width: '12.5%', textAlign: 'right', borderRight: 'none' }}>Amount(`)</th>
+            <th style={{ ...th, width: '15.0%', textAlign: 'right', borderRight: 'none' }}>Amount(`)</th>
           </tr>
         </thead>
         <tbody>
@@ -284,7 +284,7 @@ const ClassicBusinessDocumentPrint = ({
         </tbody>
       </table>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 12.5%', borderTop: rowBorder, borderBottom: rowBorder }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 15.0%', borderTop: rowBorder, borderBottom: rowBorder }}>
         <div style={{ padding: '0 0 0 12px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 86px 96px 114px', minHeight: 94 }}>
             <div />
@@ -317,7 +317,7 @@ const ClassicBusinessDocumentPrint = ({
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 12.5%', borderBottom: rowBorder }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 15.0%', borderBottom: rowBorder }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 42, padding: '10px 16px', fontSize: 17, fontWeight: 700 }}>
           <span>Grand Total</span>
           <span>{fmt(totalQty)} {unitLabel}</span>
