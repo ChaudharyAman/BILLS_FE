@@ -116,8 +116,8 @@ const ClassicBusinessDocumentPrint = ({
   terms,
   notes,
 }) => {
-  const border = '1px solid #2f2f2f';
-  const rowBorder = '1px solid #3d3d3d';
+  const border = '1px solid #000';
+  const rowBorder = '1px solid #000';
   const safeItems = items.length ? items : [{ name: '', description: '', hsnCode: '', qty: 0, unit: '', rate: 0, discount: 0 }];
   const totalQty = safeItems.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
   const unitLabel = safeItems.find((item) => item.unit)?.unit || 'Units';
@@ -176,7 +176,7 @@ const ClassicBusinessDocumentPrint = ({
     <div
       id="doc-print"
       style={{
-        maxWidth: 1120,
+        maxWidth: 800,
         margin: '0 auto',
         background: '#fff',
         boxShadow: '0 2px 20px rgba(0,0,0,0.12)',
@@ -229,14 +229,14 @@ const ClassicBusinessDocumentPrint = ({
         <thead>
           <tr>
             <th style={{ ...th, width: '3.8%', textAlign: 'center' }}>S.N.</th>
-            <th style={{ ...th, width: '29.5%', textAlign: 'left' }}>Description of Goods</th>
-            <th style={{ ...th, width: '8%', textAlign: 'left' }}>HSN/SAC<br />Code</th>
+            <th style={{ ...th, width: '29.2%', textAlign: 'left' }}>Description of Goods</th>
+            <th style={{ ...th, width: '10%', textAlign: 'left' }}>HSN/SAC<br />Code</th>
             <th style={{ ...th, width: '7%', textAlign: 'right' }}>Qty.</th>
             <th style={{ ...th, width: '6%', textAlign: 'left' }}>Unit</th>
             <th style={{ ...th, width: '11%', textAlign: 'right' }}>List Price</th>
             <th style={{ ...th, width: '9%', textAlign: 'left' }}>Discount</th>
             <th style={{ ...th, width: '11.5%', textAlign: 'right' }}>Price</th>
-            <th style={{ ...th, width: '14.2%', textAlign: 'right', borderRight: 'none' }}>Amount(`)</th>
+            <th style={{ ...th, width: '12.5%', textAlign: 'right', borderRight: 'none' }}>Amount(`)</th>
           </tr>
         </thead>
         <tbody>
@@ -284,9 +284,9 @@ const ClassicBusinessDocumentPrint = ({
         </tbody>
       </table>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', borderTop: rowBorder, borderBottom: rowBorder }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 12.5%', borderTop: rowBorder, borderBottom: rowBorder }}>
         <div style={{ padding: '0 0 0 12px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 86px 110px 114px', minHeight: 94 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 86px 96px 114px', minHeight: 94 }}>
             <div />
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 10, fontSize: 15, lineHeight: 1.35 }}>
               {adjustmentRows.map((row, index) => (
@@ -307,7 +307,7 @@ const ClassicBusinessDocumentPrint = ({
             </div>
           </div>
         </div>
-        <div style={{ borderLeft: rowBorder, padding: '10px 12px', textAlign: 'right', fontSize: 18, fontWeight: 700 }}>
+        <div style={{ borderLeft: rowBorder, padding: '10px 8px', textAlign: 'right', fontSize: 18, fontWeight: 700 }}>
           <div>{fmt(Number(subTotal) || 0)}</div>
           {adjustmentRows.map((row, index) => (
             <div key={`${row.name}-amount-${index}`} style={{ marginTop: 6, fontSize: 16, fontWeight: 400 }}>
@@ -317,33 +317,47 @@ const ClassicBusinessDocumentPrint = ({
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', borderBottom: rowBorder }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 12.5%', borderBottom: rowBorder }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 42, padding: '10px 16px', fontSize: 17, fontWeight: 700 }}>
           <span>Grand Total</span>
           <span>{fmt(totalQty)} {unitLabel}</span>
         </div>
-        <div style={{ borderLeft: rowBorder, padding: '10px 12px', textAlign: 'right', fontSize: 18, fontWeight: 700 }}>
+        <div style={{ borderLeft: rowBorder, padding: '10px 8px', textAlign: 'right', fontSize: 18, fontWeight: 700 }}>
           {fmt(grandTotal)}
         </div>
       </div>
 
       {hasTax && (
-        <div style={{ padding: '12px 10px 6px' }}>
-          <table style={{ borderCollapse: 'collapse', fontSize: 15 }}>
+        <div style={{ padding: '10px 12px 10px', borderBottom: rowBorder }}>
+          <table style={{ width: 'auto', minWidth: '480px', borderCollapse: 'collapse', fontSize: 11 }}>
             <thead>
               <tr>
-                <th style={{ padding: '0 18px 2px 0', textAlign: 'left', borderBottom: rowBorder }}>HSN/SAC</th>
-                <th style={{ padding: '0 18px 2px 0', textAlign: 'left', borderBottom: rowBorder }}>Tax Rate</th>
-                <th style={{ padding: '0 18px 2px 0', textAlign: 'right', borderBottom: rowBorder }}>Taxable Amt.</th>
+                <th style={{ padding: '4px 6px', textAlign: 'left', fontWeight: 700 }}>
+                  <span style={{ borderBottom: '1px solid #000', paddingBottom: '1px' }}>HSN/SAC</span>
+                </th>
+                <th style={{ padding: '4px 6px', textAlign: 'left', fontWeight: 700 }}>
+                  <span style={{ borderBottom: '1px solid #000', paddingBottom: '1px' }}>Tax Rate</span>
+                </th>
+                <th style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 700 }}>
+                  <span style={{ borderBottom: '1px solid #000', paddingBottom: '1px' }}>Taxable Amt.</span>
+                </th>
                 {isIntra ? (
                   <>
-                    <th style={{ padding: '0 18px 2px 0', textAlign: 'right', borderBottom: rowBorder }}>CGST Amt.</th>
-                    <th style={{ padding: '0 18px 2px 0', textAlign: 'right', borderBottom: rowBorder }}>SGST Amt.</th>
+                    <th style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 700 }}>
+                      <span style={{ borderBottom: '1px solid #000', paddingBottom: '1px' }}>CGST Amt.</span>
+                    </th>
+                    <th style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 700 }}>
+                      <span style={{ borderBottom: '1px solid #000', paddingBottom: '1px' }}>SGST Amt.</span>
+                    </th>
                   </>
                 ) : (
-                  <th style={{ padding: '0 18px 2px 0', textAlign: 'right', borderBottom: rowBorder }}>IGST Amt.</th>
+                  <th style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 700 }}>
+                    <span style={{ borderBottom: '1px solid #000', paddingBottom: '1px' }}>IGST Amt.</span>
+                  </th>
                 )}
-                <th style={{ padding: '0 0 2px', textAlign: 'right', borderBottom: rowBorder }}>Total Tax</th>
+                <th style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 700 }}>
+                  <span style={{ borderBottom: '1px solid #000', paddingBottom: '1px' }}>Total Tax</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -354,44 +368,44 @@ const ClassicBusinessDocumentPrint = ({
                 cgst: Number(totalCGST) || 0,
                 sgst: Number(totalSGST) || 0,
                 igst: Number(totalIGST) || 0,
-              }]).map((row, index) => (
-                <tr key={`${row.hsnCode}-${row.taxRate}-${index}`}>
-                  <td style={{ padding: '2px 18px 0 0' }}>{row.hsnCode}</td>
-                  <td style={{ padding: '2px 18px 0 0' }}>{row.taxRate ? `${row.taxRate}%` : '-'}</td>
-                  <td style={{ padding: '2px 18px 0 0', textAlign: 'right' }}>{fmt(row.taxable)}</td>
-                  {isIntra ? (
-                    <>
-                      <td style={{ padding: '2px 18px 0 0', textAlign: 'right' }}>{fmt(row.cgst)}</td>
-                      <td style={{ padding: '2px 18px 0 0', textAlign: 'right' }}>{fmt(row.sgst)}</td>
-                    </>
-                  ) : (
-                    <td style={{ padding: '2px 18px 0 0', textAlign: 'right' }}>{fmt(row.igst)}</td>
-                  )}
-                  <td style={{ padding: '2px 0 0', textAlign: 'right' }}>{fmt((row.cgst || 0) + (row.sgst || 0) + (row.igst || 0))}</td>
-                </tr>
-              ))}
+              }]).map((row, index) => {
+                return (
+                  <tr key={`${row.hsnCode}-${row.taxRate}-${index}`}>
+                    <td style={{ padding: '4px 6px', textAlign: 'left' }}>{row.hsnCode}</td>
+                    <td style={{ padding: '4px 6px', textAlign: 'left' }}>{row.taxRate ? `${row.taxRate}%` : '-'}</td>
+                    <td style={{ padding: '4px 6px', textAlign: 'right' }}>{fmt(row.taxable)}</td>
+                    {isIntra ? (
+                      <>
+                        <td style={{ padding: '4px 6px', textAlign: 'right' }}>{fmt(row.cgst)}</td>
+                        <td style={{ padding: '4px 6px', textAlign: 'right' }}>{fmt(row.sgst)}</td>
+                      </>
+                    ) : (
+                      <td style={{ padding: '4px 6px', textAlign: 'right' }}>{fmt(row.igst)}</td>
+                    )}
+                    <td style={{ padding: '4px 6px', textAlign: 'right' }}>{fmt((row.cgst || 0) + (row.sgst || 0) + (row.igst || 0))}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      <div style={{ padding: '18px 10px 10px', fontSize: 18, fontWeight: 700 }}>
+      <div style={{ padding: '12px 12px 10px', fontSize: 16, fontWeight: 700, borderBottom: rowBorder }}>
         Rupees {numberToWords(Math.round(grandTotal))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '44% 56%', borderTop: rowBorder }}>
-        <div style={{ borderRight: rowBorder, padding: '10px 10px 16px', minHeight: 132 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '44% 56%' }}>
+        <div style={{ borderRight: rowBorder, padding: '10px 12px 16px', minHeight: 132 }}>
           <div style={{ fontSize: 14, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3, marginBottom: 4 }}>
             Terms & Conditions
           </div>
           {termLines.length > 0 && (
-            <>
-              <div style={{ fontSize: 14, lineHeight: 1.45, marginTop: 2 }}>
-                {termLines.map((line, index) => (
-                  <div key={`term-${index}`}>{line}</div>
-                ))}
-              </div>
-            </>
+            <div style={{ fontSize: 14, lineHeight: 1.45, marginTop: 2 }}>
+              {termLines.map((line, index) => (
+                <div key={`term-${index}`}>{line}</div>
+              ))}
+            </div>
           )}
           {notes && (
             <div style={{ fontSize: 14, lineHeight: 1.45, marginTop: termLines.length > 0 ? 8 : 0 }}>

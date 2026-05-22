@@ -120,7 +120,7 @@ const PurchaseOrderPrint = () => {
   const shortNo = doc.poNumber?.replace(/^PO-/,'') || doc.poNumber;
 
   return (
-    <div style={{ background:'#eee', minHeight:'100vh', padding:'20px 0', fontFamily:'Arial, Helvetica, sans-serif' }}>
+    <div className="print-page-container" style={{ background:'#eee', minHeight:'100vh', padding:'20px 0', fontFamily:'Arial, Helvetica, sans-serif' }}>
 
       {/* toolbar */}
       <div style={{ maxWidth:860, margin:'0 auto 12px', display:'flex', justifyContent:'space-between' }}
@@ -356,10 +356,37 @@ const PurchaseOrderPrint = () => {
 
       <style>{`
         @media print {
-          body { background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-          .print\\:hidden { display:none !important; }
-          #doc-print { box-shadow:none !important; }
-          @page { size:A4; margin:0; }
+          html, body, #root, [class*="bg-gray-"], .min-h-screen, .print-page-container { 
+            background: #fff !important; 
+            background-color: #fff !important;
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+            min-height: auto !important;
+            height: auto !important;
+          }
+          body {
+            margin: 0 !important; 
+            padding: 10mm !important; /* Beautiful custom safe margin on all sides */
+          }
+          .print-page-container { 
+            padding: 0 !important; 
+            min-height: auto !important;
+            height: auto !important;
+            background: #fff !important;
+          }
+          .print\\:hidden { display: none !important; }
+          #doc-print, #invoice-print-classic { 
+            box-shadow: none !important; 
+            page-break-inside: avoid;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+            background: #fff !important;
+          }
+          @page { 
+            size: A4; 
+            margin: 0; /* Hides default browser header and footer */
+          }
           thead { display: table-row-group; }
           tfoot { display: table-row-group; }
         }

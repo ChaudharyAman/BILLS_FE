@@ -276,6 +276,9 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'in
   if (!isOpen) return null;
 
   const statusCfg = extractedData ? STATUS_CONFIG[extractedData.status] || STATUS_CONFIG['rejected'] : null;
+  const parserLabel = extractedData?.metadata?.reconciledWithBuiltIn
+    ? 'Hybrid'
+    : (extractionSource || (extractedData?.metadata?.parsedWithAI ? 'AI' : 'Standard'));
   const computedSubTotal = extractedData
     ? Number((extractedData.items || []).reduce((sum, item) => sum + calculateItemTaxable(item), 0).toFixed(2))
     : 0;
@@ -396,7 +399,7 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'in
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-gray-900">{statusCfg?.label}</span>
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
-                      {extractionSource || (extractedData.metadata?.parsedWithAI ? 'AI' : 'Standard')} parser
+                      {parserLabel} parser
                     </span>
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full
                       ${extractedData.confidence >= 90 ? 'bg-emerald-200 text-emerald-800' :

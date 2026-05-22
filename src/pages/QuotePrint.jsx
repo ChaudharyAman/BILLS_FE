@@ -123,7 +123,7 @@ const QuotePrint = ({ docType = 'quote' }) => {
   const shortNo = docNo?.replace(/^(PRF-|PRO-|QT-|QUOT-)/,'') || docNo;
 
   return (
-    <div className="quote-print-page" style={{ background:'#eee', minHeight:'100vh', padding:'20px 0', fontFamily:'Arial, Helvetica, sans-serif' }}>
+    <div className="print-page-container" style={{ background:'#eee', minHeight:'100vh', padding:'20px 0', fontFamily:'Arial, Helvetica, sans-serif' }}>
 
       {/* toolbar */}
       <div style={{ maxWidth:860, margin:'0 auto 12px', display:'flex', justifyContent:'space-between' }}
@@ -372,52 +372,39 @@ const QuotePrint = ({ docType = 'quote' }) => {
 
       <style>{`
         @media print {
-          html, body, #root {
+          html, body, #root, [class*="bg-gray-"], .min-h-screen, .print-page-container { 
+            background: #fff !important; 
+            background-color: #fff !important;
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+            min-height: auto !important;
             height: auto !important;
-            overflow: visible !important;
-            background: #fff !important;
           }
           body {
-            margin: 0 !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            margin: 0 !important; 
+            padding: 10mm !important; /* Beautiful custom safe margin on all sides */
           }
-          #root > div {
-            display: block !important;
-            height: auto !important;
-            overflow: visible !important;
-            background: #fff !important;
-          }
-          aside {
-            display: none !important;
-          }
-          main {
-            height: auto !important;
-            overflow: visible !important;
-          }
-          .print\\:hidden { display:none !important; }
-          .quote-print-page {
+          .print-page-container { 
+            padding: 0 !important; 
             min-height: auto !important;
-            padding: 0 !important;
+            height: auto !important;
             background: #fff !important;
           }
-          #doc-print {
-            max-width: none !important;
-            width: 100% !important;
-            margin: 0 !important;
-            box-shadow: none !important;
-            break-inside: auto;
-          }
-          table {
-            page-break-inside: auto;
-          }
-          thead { display: table-row-group !important; }
-          tfoot { display: table-row-group !important; }
-          tr, td, th {
+          .print\\:hidden { display: none !important; }
+          #doc-print, #invoice-print-classic { 
+            box-shadow: none !important; 
             page-break-inside: avoid;
-            break-inside: avoid;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+            background: #fff !important;
           }
-          @page { size:A4; margin:0; }
+          @page { 
+            size: A4; 
+            margin: 0; /* Hides default browser header and footer */
+          }
+          thead { display: table-row-group; }
+          tfoot { display: table-row-group; }
         }
       `}</style>
     </div>

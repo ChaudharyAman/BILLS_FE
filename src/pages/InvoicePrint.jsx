@@ -563,13 +563,11 @@ const ClassicTemplateOld = ({ invoice, company, client, items, hasTax, isIntra, 
       {/* Footer */}
       <div style={{ display: 'flex' }}>
         <div style={{ width: '60%', padding: '4px 8px', fontSize: '10px', borderRight: '1px solid #000' }}>
+          <div style={{ textDecoration: 'underline', fontWeight: 'bold', marginBottom: '4px' }}>Terms & Conditions</div>
           {invoice.terms && (
-            <>
-              <div style={{ textDecoration: 'underline', fontWeight: 'bold', marginBottom: '4px' }}>Terms & Conditions</div>
-              <div style={{ whiteSpace: 'pre-wrap', marginBottom: '8px' }}>
-                {invoice.terms}
-              </div>
-            </>
+            <div style={{ whiteSpace: 'pre-wrap', marginBottom: '8px' }}>
+              {invoice.terms}
+            </div>
           )}
           
           <div style={{ marginTop: '10px' }}>
@@ -603,9 +601,9 @@ const ClassicTemplateOld = ({ invoice, company, client, items, hasTax, isIntra, 
 
 
 // ── Main Component ───────────────────────────────────────────────
-const ClassicTemplate = ({ invoice, company, client, items, hasTax, isIntra, grandTotal, invType }) => {
-  const border = '1px solid #2b2b2b';
-  const rowBorder = '1px solid #3a3a3a';
+const ClassicTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra, grandTotal, invType }) => {
+  const border = '1px solid #000';
+  const rowBorder = '1px solid #000';
   const companyPAN = (company.pan || (company.gstin && company.gstin.length >= 12 ? company.gstin.substring(2, 12) : '') || '').toUpperCase();
   const companyAddr = addrStr(company.address);
   const clientAddr = addrStr(client.address);
@@ -692,7 +690,7 @@ const ClassicTemplate = ({ invoice, company, client, items, hasTax, isIntra, gra
       id="invoice-print-classic"
       className="classic-template"
       style={{
-        maxWidth: 1120,
+        maxWidth: 800,
         margin: '0 auto',
         background: '#fff',
         fontFamily: 'Arial, Helvetica, sans-serif',
@@ -749,14 +747,14 @@ const ClassicTemplate = ({ invoice, company, client, items, hasTax, isIntra, gra
         <thead>
           <tr>
             <th style={{ ...tableHead, width: '3.8%', textAlign: 'center' }}>S.N.</th>
-            <th style={{ ...tableHead, width: '29.5%', textAlign: 'left' }}>Description of Goods</th>
-            <th style={{ ...tableHead, width: '8%', textAlign: 'left' }}>HSN/SAC<br />Code</th>
+            <th style={{ ...tableHead, width: '29.2%', textAlign: 'left' }}>Description of Goods</th>
+            <th style={{ ...tableHead, width: '10%', textAlign: 'left' }}>HSN/SAC<br />Code</th>
             <th style={{ ...tableHead, width: '7%', textAlign: 'right' }}>Qty.</th>
             <th style={{ ...tableHead, width: '6%', textAlign: 'left' }}>Unit</th>
             <th style={{ ...tableHead, width: '11%', textAlign: 'right' }}>List Price</th>
             <th style={{ ...tableHead, width: '9%', textAlign: 'left' }}>Discount</th>
             <th style={{ ...tableHead, width: '11.5%', textAlign: 'right' }}>Price</th>
-            <th style={{ ...tableHead, width: '14.2%', textAlign: 'right', borderRight: 'none' }}>Amount(`)</th>
+            <th style={{ ...tableHead, width: '12.5%', textAlign: 'right', borderRight: 'none' }}>Amount(`)</th>
           </tr>
         </thead>
         <tbody>
@@ -805,7 +803,7 @@ const ClassicTemplate = ({ invoice, company, client, items, hasTax, isIntra, gra
         </tbody>
       </table>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', borderTop: rowBorder, borderBottom: rowBorder }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 12.5%', borderTop: rowBorder, borderBottom: rowBorder }}>
         <div style={{ padding: '0 0 0 12px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 86px 96px 114px', minHeight: 94 }}>
             <div />
@@ -828,7 +826,7 @@ const ClassicTemplate = ({ invoice, company, client, items, hasTax, isIntra, gra
             </div>
           </div>
         </div>
-        <div style={{ borderLeft: rowBorder, padding: '10px 12px', textAlign: 'right', fontSize: 18, fontWeight: 700 }}>
+        <div style={{ borderLeft: rowBorder, padding: '10px 8px', textAlign: 'right', fontSize: 18, fontWeight: 700 }}>
           <div>{fmt(Number(invoice.subTotal) || 0)}</div>
           {adjustmentRows.map((row, index) => (
             <div key={`${row.name}-amount-${index}`} style={{ marginTop: 6, fontSize: 16, fontWeight: 400 }}>
@@ -838,33 +836,47 @@ const ClassicTemplate = ({ invoice, company, client, items, hasTax, isIntra, gra
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', borderBottom: rowBorder }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 12.5%', borderBottom: rowBorder }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 42, padding: '10px 16px', fontSize: 17, fontWeight: 700 }}>
           <span>Grand Total</span>
           <span>{fmt(totalQty)} {summaryUnit}</span>
         </div>
-        <div style={{ borderLeft: rowBorder, padding: '10px 12px', textAlign: 'right', fontSize: 18, fontWeight: 700 }}>
+        <div style={{ borderLeft: rowBorder, padding: '10px 8px', textAlign: 'right', fontSize: 18, fontWeight: 700 }}>
           {fmt(grandTotal)}
         </div>
       </div>
 
       {hasTax && (
-        <div style={{ padding: '12px 10px 6px' }}>
-          <table style={{ borderCollapse: 'collapse', fontSize: 15 }}>
+        <div style={{ padding: '10px 12px 10px', borderBottom: rowBorder }}>
+          <table style={{ width: 'auto', minWidth: '480px', borderCollapse: 'collapse', fontSize: 11 }}>
             <thead>
               <tr>
-                <th style={{ padding: '0 18px 2px 0', textAlign: 'left', borderBottom: rowBorder }}>HSN/SAC</th>
-                <th style={{ padding: '0 18px 2px 0', textAlign: 'left', borderBottom: rowBorder }}>Tax Rate</th>
-                <th style={{ padding: '0 18px 2px 0', textAlign: 'right', borderBottom: rowBorder }}>Taxable Amt.</th>
+                <th style={{ padding: '4px 6px', textAlign: 'left', fontWeight: 700 }}>
+                  <span style={{ borderBottom: '1px solid #000', paddingBottom: '1px' }}>HSN/SAC</span>
+                </th>
+                <th style={{ padding: '4px 6px', textAlign: 'left', fontWeight: 700 }}>
+                  <span style={{ borderBottom: '1px solid #000', paddingBottom: '1px' }}>Tax Rate</span>
+                </th>
+                <th style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 700 }}>
+                  <span style={{ borderBottom: '1px solid #000', paddingBottom: '1px' }}>Taxable Amt.</span>
+                </th>
                 {isIntra ? (
                   <>
-                    <th style={{ padding: '0 18px 2px 0', textAlign: 'right', borderBottom: rowBorder }}>CGST Amt.</th>
-                    <th style={{ padding: '0 18px 2px 0', textAlign: 'right', borderBottom: rowBorder }}>SGST Amt.</th>
+                    <th style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 700 }}>
+                      <span style={{ borderBottom: '1px solid #000', paddingBottom: '1px' }}>CGST Amt.</span>
+                    </th>
+                    <th style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 700 }}>
+                      <span style={{ borderBottom: '1px solid #000', paddingBottom: '1px' }}>SGST Amt.</span>
+                    </th>
                   </>
                 ) : (
-                  <th style={{ padding: '0 18px 2px 0', textAlign: 'right', borderBottom: rowBorder }}>IGST Amt.</th>
+                  <th style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 700 }}>
+                    <span style={{ borderBottom: '1px solid #000', paddingBottom: '1px' }}>IGST Amt.</span>
+                  </th>
                 )}
-                <th style={{ padding: '0 0 2px', textAlign: 'right', borderBottom: rowBorder }}>Total Tax</th>
+                <th style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 700 }}>
+                  <span style={{ borderBottom: '1px solid #000', paddingBottom: '1px' }}>Total Tax</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -875,42 +887,56 @@ const ClassicTemplate = ({ invoice, company, client, items, hasTax, isIntra, gra
                 cgst: Number(invoice.totalCGST) || 0,
                 sgst: Number(invoice.totalSGST) || 0,
                 igst: Number(invoice.totalIGST) || 0,
-              }]).map((row, index) => (
-                <tr key={`${row.hsnCode}-${row.taxRate}-${index}`}>
-                  <td style={{ padding: '2px 18px 0 0' }}>{row.hsnCode}</td>
-                  <td style={{ padding: '2px 18px 0 0' }}>{row.taxRate ? `${row.taxRate}%` : '-'}</td>
-                  <td style={{ padding: '2px 18px 0 0', textAlign: 'right' }}>{fmt(row.taxable)}</td>
-                  {isIntra ? (
-                    <>
-                      <td style={{ padding: '2px 18px 0 0', textAlign: 'right' }}>{fmt(row.cgst)}</td>
-                      <td style={{ padding: '2px 18px 0 0', textAlign: 'right' }}>{fmt(row.sgst)}</td>
-                    </>
-                  ) : (
-                    <td style={{ padding: '2px 18px 0 0', textAlign: 'right' }}>{fmt(row.igst)}</td>
-                  )}
-                  <td style={{ padding: '2px 0 0', textAlign: 'right' }}>{fmt((row.cgst || 0) + (row.sgst || 0) + (row.igst || 0))}</td>
-                </tr>
-              ))}
+              }]).map((row, index) => {
+                return (
+                  <tr key={`${row.hsnCode}-${row.taxRate}-${index}`}>
+                    <td style={{ padding: '4px 6px', textAlign: 'left' }}>{row.hsnCode}</td>
+                    <td style={{ padding: '4px 6px', textAlign: 'left' }}>{row.taxRate ? `${row.taxRate}%` : '-'}</td>
+                    <td style={{ padding: '4px 6px', textAlign: 'right' }}>{fmt(row.taxable)}</td>
+                    {isIntra ? (
+                      <>
+                        <td style={{ padding: '4px 6px', textAlign: 'right' }}>{fmt(row.cgst)}</td>
+                        <td style={{ padding: '4px 6px', textAlign: 'right' }}>{fmt(row.sgst)}</td>
+                      </>
+                    ) : (
+                      <td style={{ padding: '4px 6px', textAlign: 'right' }}>{fmt(row.igst)}</td>
+                    )}
+                    <td style={{ padding: '4px 6px', textAlign: 'right' }}>{fmt((row.cgst || 0) + (row.sgst || 0) + (row.igst || 0))}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      <div style={{ padding: '18px 10px 10px', fontSize: 18, fontWeight: 700 }}>
+      <div style={{ padding: '12px 12px 10px', fontSize: 16, fontWeight: 700, borderBottom: rowBorder }}>
         Rupees {numberToWords(Math.round(grandTotal))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '44% 56%', borderTop: rowBorder }}>
-        <div style={{ borderRight: rowBorder, padding: '10px 10px 16px', minHeight: 132 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '44% 56%' }}>
+        <div style={{ borderRight: rowBorder, padding: '10px 12px 16px', minHeight: 132 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3, marginBottom: 4 }}>
+            Terms & Conditions
+          </div>
           {invoice.terms && (
-            <>
+            <div style={{ fontSize: 14, lineHeight: 1.45, marginTop: 2, whiteSpace: 'pre-wrap', marginBottom: 12 }}>
+              {invoice.terms}
+            </div>
+          )}
+          {bank && (bank.bankName || bank.accountNumber) && (
+            <div>
               <div style={{ fontSize: 14, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3, marginBottom: 4 }}>
-                Terms & Conditions
+                Bank Details
               </div>
-              <div style={{ fontSize: 14, lineHeight: 1.45, marginTop: 2, whiteSpace: 'pre-wrap' }}>
-                {invoice.terms}
+              <div style={{ fontSize: 14, lineHeight: 1.45, marginTop: 2 }}>
+                {bank.accountName && <div><b>Account Holder:</b> {bank.accountName.toUpperCase()}</div>}
+                {bank.bankName && <div><b>Bank Name:</b> {bank.bankName.toUpperCase()}</div>}
+                {bank.accountNumber && <div><b>Account Number:</b> {bank.accountNumber}</div>}
+                {bank.branch && <div><b>Branch Name:</b> {bank.branch.toUpperCase()}</div>}
+                {bank.ifscCode && <div><b>IFSC Code:</b> {bank.ifscCode}</div>}
               </div>
-            </>
+            </div>
           )}
         </div>
         <div>
@@ -996,7 +1022,7 @@ const InvoicePrint = () => {
 
   // ── Render ───────────────────────────────────────────────────────
   return (
-    <div style={{ background: '#eee', minHeight: '100vh', padding: '0', fontFamily: 'Calibri, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+    <div className="print-page-container" style={{ background: '#eee', minHeight: '100vh', padding: '0', fontFamily: 'Calibri, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
       {/* Screen toolbar */}
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '20px 0 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
         className="print:hidden">
@@ -1042,10 +1068,37 @@ const InvoicePrint = () => {
 
       <style>{`
         @media print {
-          body { background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-          .print\\:hidden { display:none !important; }
-          #invoice-print-modern, #invoice-print-classic { box-shadow:none !important; }
-          @page { size:A4; margin:0; }
+          html, body, #root, [class*="bg-gray-"], .min-h-screen, .print-page-container { 
+            background: #fff !important; 
+            background-color: #fff !important;
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+            min-height: auto !important;
+            height: auto !important;
+          }
+          body {
+            margin: 0 !important; 
+            padding: 10mm !important; /* Beautiful custom safe margin on all sides */
+          }
+          .print-page-container { 
+            padding: 0 !important; 
+            min-height: auto !important;
+            height: auto !important;
+            background: #fff !important;
+          }
+          .print\\:hidden { display: none !important; }
+          #invoice-print-modern, #invoice-print-classic, #doc-print { 
+            box-shadow: none !important; 
+            page-break-inside: avoid;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+            background: #fff !important;
+          }
+          @page { 
+            size: A4; 
+            margin: 0; /* Hides default browser header and footer */
+          }
           thead { display: table-row-group; }
           tfoot { display: table-row-group; }
         }
