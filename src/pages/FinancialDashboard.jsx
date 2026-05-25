@@ -9,6 +9,7 @@ import {
   FaReceipt, FaShieldHalved, FaWallet, FaChartLine, FaChartPie,
 } from 'react-icons/fa6';
 import api from '../api/axios';
+import { Link } from 'react-router-dom';
 
 const fmt = (v, d = 0) =>
   `₹${(Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: d, maximumFractionDigits: d })}`;
@@ -100,6 +101,96 @@ export default function FinancialDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState('overview');
+
+  const [payrollSummary, setPayrollSummary] = useState(null);
+  const [payrollLoadingState, setPayrollLoadingState] = useState(false);
+
+  useEffect(() => {
+    if (tab !== 'payroll') return;
+    
+    let isCancelled = false;
+    const fetchPayrollDashboardData = async () => {
+      try {
+        setPayrollLoadingState(true);
+        const [empRes, payrollRes, loanRes, claimRes] = await Promise.all([
+          api.get('/employees'),
+          api.get('/payroll?limit=200'),
+          api.get('/loans'),
+          api.get('/reimbursements')
+        ]);
+        
+        if (isCancelled) return;
+        
+        const employees = empRes.data?.data || empRes.data || [];
+        const payrolls = payrollRes.data?.data || payrollRes.data || [];
+        const loans = loanRes.data || [];
+        const claims = claimRes.data || [];
+        
+        // Compute statistics
+        const activeEmployees = employees.filter(e => !e.leavingDate || new Date(e.leavingDate) > new Date());
+        const totalHeadcount = activeEmployees.length;
+        
+        // Sum payroll net salary in the selected/current month
+        const currentMonthPayrolls = payrolls.filter(p => p.month === (new Date().getMonth() + 1));
+        const totalMonthlyNetSalary = currentMonthPayrolls.reduce((sum, p) => sum + (Number(p.netSalary) || 0), 0);
+        const totalMonthlyCTC = currentMonthPayrolls.reduce((sum, p) => sum + (Number(p.monthlyCTC) || 0), 0);
+        
+        // Loans statistics
+        const activeLoans = loans.filter(l => l.status === 'active');
+        const pendingLoans = loans.filter(l => l.status === 'pending_approval');
+        const totalOutstandingLoans = activeLoans.reduce((sum, l) => sum + (Number(l.remainingBalance) || 0), 0);
+        
+        // Claims statistics
+        const approvedClaims = claims.filter(c => c.status === 'approved');
+        const pendingClaims = claims.filter(c => c.status === 'pending');
+        const totalApprovedClaims = approvedClaims.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+        const totalPendingClaims = pendingClaims.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+        
+        // Payroll history by month (last 6 months)
+        const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const getMName = (m) => MONTHS[(m - 1) % 12] || '';
+        const trendMap = {};
+        payrolls.forEach(p => {
+          const key = `${p.monthName || getMName(p.month)} ${p.year}`;
+          if (!trendMap[key]) {
+            trendMap[key] = { month: key, netSalary: 0, ctc: 0 };
+          }
+          trendMap[key].netSalary += (Number(p.netSalary) || 0);
+          trendMap[key].ctc += (Number(p.monthlyCTC) || 0);
+        });
+        
+        const trendData = Object.values(trendMap).slice(-6);
+        
+        setPayrollSummary({
+          totalHeadcount,
+          totalMonthlyNetSalary,
+          totalMonthlyCTC,
+          activeLoansCount: activeLoans.length,
+          pendingLoansCount: pendingLoans.length,
+          totalOutstandingLoans,
+          approvedClaimsCount: approvedClaims.length,
+          pendingClaimsCount: pendingClaims.length,
+          totalApprovedClaims,
+          totalPendingClaims,
+          trendData,
+          employees: employees.slice(0, 5), // top 5 employees for listing
+          recentLoans: loans.slice(0, 5),
+          recentClaims: claims.slice(0, 5)
+        });
+      } catch (err) {
+        console.error('Error fetching payroll dashboard data:', err);
+      } finally {
+        if (!isCancelled) {
+          setPayrollLoadingState(false);
+        }
+      }
+    };
+    
+    fetchPayrollDashboardData();
+    return () => {
+      isCancelled = true;
+    };
+  }, [tab]);
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -274,7 +365,13 @@ export default function FinancialDashboard() {
 
           {/* ── Tabs ── */}
           <div className="flex gap-2 mb-5">
-            {[{ id: 'overview', label: '📊 Overview' }, { id: 'gst', label: '🧾 GST' }, { id: 'ledger', label: '📋 Ledger' }, { id: 'analytics', label: '📈 Analytics' }].map(t => (
+            {[
+              { id: 'overview', label: '📊 Overview' },
+              { id: 'gst', label: '🧾 GST' },
+              { id: 'ledger', label: '📋 Ledger' },
+              { id: 'analytics', label: '📈 Analytics' },
+              { id: 'payroll', label: '💼 Payroll' }
+            ].map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${tab === t.id ? 'bg-indigo-500 text-white shadow-md shadow-indigo-200' : 'glass-water-pill text-gray-500 hover:text-gray-800'}`}>
                 {t.label}
@@ -522,6 +619,165 @@ export default function FinancialDashboard() {
                   ))}
                 </div>
               </GW>
+            </div>
+          )}
+
+          {/* ══ PAYROLL ══ */}
+          {tab === 'payroll' && (
+            <div className="space-y-5 animate-rise-in">
+              {payrollLoadingState ? (
+                <div className="h-60 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+                </div>
+              ) : !payrollSummary ? (
+                <div className="py-8 text-center text-gray-400 text-sm">No payroll data available. Ensure employees are created and payroll processed.</div>
+              ) : (
+                <>
+                  {/* KPI cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="glass-water-card p-4">
+                      <div className="text-2xl font-black text-indigo-600">{payrollSummary.totalHeadcount}</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mt-1">Active Headcount</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5">Staff on active payroll</div>
+                    </div>
+                    <div className="glass-water-card p-4">
+                      <div className="text-2xl font-black text-emerald-600">{fmt(payrollSummary.totalMonthlyNetSalary)}</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mt-1">Monthly Payroll Cost</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5">Current month net salary paid</div>
+                    </div>
+                    <div className="glass-water-card p-4">
+                      <div className="text-2xl font-black text-rose-500">{fmt(payrollSummary.totalOutstandingLoans)}</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mt-1">Outstanding Loans</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5">{payrollSummary.activeLoansCount} active advances</div>
+                    </div>
+                    <div className="glass-water-card p-4">
+                      <div className="text-2xl font-black text-cyan-600">{fmt(payrollSummary.totalApprovedClaims)}</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mt-1">Approved Claims</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5">{payrollSummary.approvedClaimsCount} reimbursement claims</div>
+                    </div>
+                  </div>
+
+                  {/* Pending alerts if any */}
+                  {(payrollSummary.pendingLoansCount > 0 || payrollSummary.pendingClaimsCount > 0) && (
+                    <div className="flex items-center justify-between px-4 py-3 rounded-2xl" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.30)' }}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-amber-500 text-lg">⚠️</span>
+                        <span className="text-sm font-semibold text-amber-700">
+                          Approvals Pending: You have <strong>{payrollSummary.pendingLoansCount} pending loan request(s)</strong> and <strong>{payrollSummary.pendingClaimsCount} pending reimbursement claim(s)</strong> requiring attention.
+                        </span>
+                      </div>
+                      <Link to="/payroll" className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-all">
+                        Go to Approvals Hub
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Chart and Employees list */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <GW>
+                      <SLabel>Monthly Payroll Trend (6 months)</SLabel>
+                      {payrollSummary.trendData.length === 0 ? (
+                        <div className="h-56 flex items-center justify-center text-gray-400 text-sm">No historical runs processed.</div>
+                      ) : (
+                        <div className="h-56">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={payrollSummary.trendData}>
+                              <CartesianGrid stroke="rgba(99,102,241,0.08)" vertical={false} />
+                              <XAxis dataKey="month" stroke="#9ca3af" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                              <YAxis stroke="#9ca3af" tickLine={false} axisLine={false} tickFormatter={v => `${Math.round(v / 1000)}k`} tick={{ fontSize: 11 }} />
+                              <Tooltip content={<TTip />} />
+                              <Bar dataKey="netSalary" name="Net Salary Payout" fill="#6366f1" radius={[6, 6, 0, 0]} maxBarSize={30} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+                    </GW>
+
+                    <GW>
+                      <SLabel>Active Workforce Overview</SLabel>
+                      {payrollSummary.employees.length === 0 ? (
+                        <div className="py-8 text-center text-gray-400 text-sm">No employees created yet.</div>
+                      ) : (
+                        <div className="space-y-3 max-h-56 overflow-y-auto no-scrollbar pr-1">
+                          {payrollSummary.employees.map(emp => (
+                            <div key={emp._id} className="flex items-center justify-between text-xs glass-water-inner p-3 rounded-xl">
+                              <div>
+                                <div className="font-bold text-gray-700">{emp.firstName} {emp.lastName}</div>
+                                <div className="text-[10px] text-gray-400">{emp.designation || 'Staff'} · {emp.department?.name || 'No Dept'}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-bold text-gray-800">{fmt(emp.monthlyCTC)}/mo</div>
+                                <div className="text-[9px] text-indigo-500 font-semibold uppercase tracking-wide">CTC</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </GW>
+                  </div>
+
+                  {/* Reimbursement Claims & Loans Summary Lists */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <GW>
+                      <SLabel>Recent Reimbursements</SLabel>
+                      {payrollSummary.recentClaims.length === 0 ? (
+                        <div className="py-8 text-center text-gray-400 text-sm">No claims submitted.</div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {payrollSummary.recentClaims.map(claim => (
+                            <div key={claim._id} className="flex items-center justify-between py-2 border-b border-white/40 last:border-0">
+                              <div>
+                                <div className="text-sm font-semibold text-gray-700">
+                                  {claim.employee ? `${claim.employee.firstName} ${claim.employee.lastName}` : 'Employee'}
+                                </div>
+                                <div className="text-[10px] text-gray-400 capitalize">{claim.category} Claim</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-bold text-gray-800">{fmt(claim.amount)}</div>
+                                <div className={`text-[10px] font-bold uppercase ${
+                                  claim.status === 'approved' ? 'text-emerald-500' :
+                                  claim.status === 'pending' ? 'text-amber-500' : 'text-rose-500'
+                                }`}>
+                                  {claim.status}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </GW>
+
+                    <GW>
+                      <SLabel>Recent Loans & Advances</SLabel>
+                      {payrollSummary.recentLoans.length === 0 ? (
+                        <div className="py-8 text-center text-gray-400 text-sm">No loan requests.</div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {payrollSummary.recentLoans.map(loan => (
+                            <div key={loan._id} className="flex items-center justify-between py-2 border-b border-white/40 last:border-0">
+                              <div>
+                                <div className="text-sm font-semibold text-gray-700">
+                                  {loan.employee ? `${loan.employee.firstName} ${loan.employee.lastName}` : 'Employee'}
+                                </div>
+                                <div className="text-[10px] text-gray-400">EMI: {fmt(loan.emiAmount)}/mo</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-bold text-gray-800">{fmt(loan.principalAmount)}</div>
+                                <div className={`text-[10px] font-bold uppercase ${
+                                  loan.status === 'active' ? 'text-emerald-500' :
+                                  loan.status === 'pending_approval' ? 'text-amber-500' : 'text-rose-500'
+                                }`}>
+                                  {loan.status === 'active' ? 'active' : loan.status === 'pending_approval' ? 'pending' : loan.status}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </GW>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </>
