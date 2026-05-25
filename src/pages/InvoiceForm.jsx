@@ -132,6 +132,7 @@ const InvoiceForm = () => {
   const location = useLocation();
   const queryType = new URLSearchParams(location.search).get('type') || 'Tax Invoice';
   const [clients, setClients] = useState([]);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [itemsList, setItemsList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
@@ -200,6 +201,7 @@ const InvoiceForm = () => {
     tds: 0,
     tcs: 0,
     drCr: 'Dr.',
+    purchaseOrderRef: '',
   });
 
   const invoiceType = formData.invoiceType;
@@ -370,13 +372,15 @@ const InvoiceForm = () => {
 
   const fetchDependencies = async () => {
     try {
-      const [cr, ir, sr] = await Promise.all([
+      const [cr, ir, sr, por] = await Promise.all([
         api.get('/clients?limit=1000'),
         api.get('/items?limit=1000'),
-        api.get('/settings')
+        api.get('/settings'),
+        api.get('/purchase-orders?limit=1000')
       ]);
       setClients(cr.data.data || []);
       setItemsList(ir.data.data || []);
+      setPurchaseOrders(por.data.data || []);
       setCompanyTaxProfile({
         state: sr.data?.address?.state || '',
         gstin: sr.data?.gstin || '',
@@ -463,6 +467,7 @@ const InvoiceForm = () => {
         tds: inv.tds || 0,
         tcs: inv.tcs || 0,
         drCr: inv.drCr || 'Dr.',
+        purchaseOrderRef: inv.purchaseOrderRef || '',
         items: (inv.items || []).map(i => ({ 
           ...emptyItem(), 
           ...i,
@@ -854,17 +859,121 @@ const InvoiceForm = () => {
               </div>
             </div>
             <div>
+              <label className={lbl}>Link Purchase Order (PO)</label>
+              <select
+                className={inp}
+                value={formData.purchaseOrderRef}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) {
+                    setFormData({
+                      ...formData,
+                      purchaseOrderRef: '',
+                      poNumber: '',
+                      poDate: '',
+                    });
+                  } else {
+                    const selectedPo = purchaseOrders.find(po => po._id === val);
+                    if (selectedPo) {
+                      const matchedClient = clients.find(c => c.name?.toLowerCase().trim() === selectedPo.vendor?.name?.toLowerCase().trim() || c._id === selectedPo.vendor?.vendorRef);
+                      
+                      const updatedItems = selectedPo.items && selectedPo.items.length > 0 ? selectedPo.items.map(item => ({
+                        ...emptyItem(),
+                        name: item.name || '',
+                        description: item.description || '',
+                        hsnCode: item.hsnCode || '',
+                        unit: item.unit || 'pcs',
+                        qty: item.qty || 1,
+                        rate: item.rate || 0,
+                        taxRate: sanitizeGstRate(item.taxRate),
+                        discount: item.discount || 0,
+                        amount: calcRow({
+                          ...emptyItem(),
+                          qty: item.qty || 1,
+                          rate: item.rate || 0,
+                          taxRate: sanitizeGstRate(item.taxRate),
+                          discount: item.discount || 0,
+                        }),
+                      })) : formData.items;
+
+                      setFormData({
+                        ...formData,
+                        purchaseOrderRef: val,
+                        poNumber: selectedPo.poNumber || '',
+                        poDate: selectedPo.date ? new Date(selectedPo.date).toISOString().split('T')[0] : '',
+                        clientRef: matchedClient ? matchedClient._id : formData.clientRef,
+                        items: updatedItems,
+                        shippingCharges: selectedPo.shippingCharges || 0,
+                        packagingCharges: selectedPo.packagingCharges || 0,
+                        discountTotal: selectedPo.discountTotal || 0,
+                        notes: selectedPo.notes || '',
+                        terms: selectedPo.terms || '',
+                      });
+                      if (selectedPo.shippingCharges > 0) setShowShipping(true);
+                      if (selectedPo.packagingCharges > 0) setShowCustomAmount(true);
+                      if (selectedPo.discountTotal > 0) setShowDiscountTotal(true);
+                    }
+                  }
+                }}
+              >
+                <option value="">None (Enter Manually)</option>
+                {purchaseOrders.filter(po => po.status !== 'BILLED' || po._id === formData.purchaseOrderRef).map(po => (
+                  <option key={po._id} value={po._id}>
+                    {po.poNumber} - {po.vendor?.name} (₹{po.grandTotal})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className={lbl}>PO No.</label>
               <input className={inp} value={formData.poNumber}
+                disabled={!!formData.purchaseOrderRef}
+                placeholder={formData.purchaseOrderRef ? 'Linked to PO' : 'Enter PO No.'}
                 onChange={(e) => setFormData({ ...formData, poNumber: e.target.value })} />
             </div>
             <div>
               <label className={lbl}>PO Date</label>
               <div className="relative">
                 <input type="date" className={inp} value={formData.poDate}
+                  disabled={!!formData.purchaseOrderRef}
                   onChange={(e) => setFormData({ ...formData, poDate: e.target.value })} />
               </div>
             </div>
+            {formData.purchaseOrderRef && (
+              <div className="col-span-3 bg-blue-50 border border-blue-200 rounded-lg p-3 my-1 flex flex-col justify-between shadow-sm">
+                <div>
+                  <h4 className="text-xs font-bold text-blue-900 mb-1.5 flex justify-between">
+                    <span>Linked Purchase Order Summary</span>
+                    <span className="text-[10px] uppercase font-extrabold tracking-wider bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                      {purchaseOrders.find(po => po._id === formData.purchaseOrderRef)?.status || 'ACTIVE'}
+                    </span>
+                  </h4>
+                  {(() => {
+                    const currentPo = purchaseOrders.find(po => po._id === formData.purchaseOrderRef);
+                    if (!currentPo) return null;
+                    const billed = currentPo.billedAmount || 0;
+                    const total = currentPo.grandTotal || 0;
+                    const remaining = Math.max(0, total - billed);
+                    return (
+                      <div className="grid grid-cols-3 gap-4 text-xs text-blue-800">
+                        <div>
+                          <span className="block text-[10px] text-blue-600 font-semibold uppercase">PO Total</span>
+                          <span className="text-sm font-bold text-blue-950">₹{total.toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-blue-600 font-semibold uppercase">Already Invoiced</span>
+                          <span className="text-sm font-bold text-blue-950 text-amber-700">₹{billed.toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-blue-600 font-semibold uppercase">Unbilled Balance</span>
+                          <span className="text-sm font-bold text-emerald-700">₹{remaining.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
             <div>
               <label className={lbl}>Status</label>
               <select className={inp} value={formData.status}

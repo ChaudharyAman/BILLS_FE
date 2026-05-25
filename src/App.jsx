@@ -35,6 +35,10 @@ const EmployeeDetails = lazy(() => import('./pages/EmployeeDetails'));
 const PayrollDashboard = lazy(() => import('./pages/PayrollDashboard'));
 const PayrollProcessing = lazy(() => import('./pages/PayrollProcessing'));
 const PayslipGeneration = lazy(() => import('./pages/PayslipGeneration'));
+const SalaryCalculator = lazy(() => import('./pages/SalaryCalculator'));
+const PayrollReports = lazy(() => import('./pages/PayrollReports'));
+const PayrollSettings = lazy(() => import('./pages/PayrollSettings'));
+const EmployeePortal = lazy(() => import('./pages/EmployeePortal'));
 const BudgetManager = lazy(() => import('./pages/BudgetManager'));
 const BudgetTracking = lazy(() => import('./pages/BudgetTracking'));
 const RecurringTransactions = lazy(() => import('./pages/RecurringTransactions'));
@@ -260,6 +264,10 @@ function App() {
                   <Route path="/employees/:id/edit" element={<EmployeeForm />} />
                   <Route path="/payroll" element={<PayrollDashboard />} />
                   <Route path="/payroll/process" element={<PayrollProcessing />} />
+                  <Route path="/payroll/calculator" element={<SalaryCalculator />} />
+                  <Route path="/payroll/reports" element={<PayrollReports />} />
+                  <Route path="/payroll/settings" element={<PayrollSettings />} />
+                  <Route path="/payroll/portal" element={<EmployeePortal />} />
                   <Route path="/payroll/:id/payslip" element={<PayslipGeneration />} />
                   <Route path="/budgets" element={<BudgetManager />} />
                   <Route path="/budgets/tracking" element={<BudgetTracking />} />

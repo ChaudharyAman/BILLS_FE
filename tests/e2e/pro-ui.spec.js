@@ -57,7 +57,7 @@ test('pro user can create client, item, invoice, and open major app pages', asyn
   await expect(page.getByRole('button', { name: /^Save$/i })).toBeVisible();
 
   await page.goto('/reports/gst');
-  await expect(page.getByRole('heading', { name: 'GST Report' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'GST Return Ledger' })).toBeVisible();
 
   await page.goto('/reports/revenue');
   await expect(page.getByText('Client Revenue Report')).toBeVisible();
