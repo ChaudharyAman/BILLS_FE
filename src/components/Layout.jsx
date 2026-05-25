@@ -9,17 +9,17 @@ import {
 import api, { clearAuthSession } from '../api/axios';
 
 const NAV = [
-  { label: 'Dashboard',          icon: FaThLarge,       path: '/dashboard' },
-  { label: 'Clients / Customers',icon: FaUsers,           path: '/clients' },
-  { label: 'Vendors / Suppliers',icon: FaTruck,           path: '/vendors' },
-  { label: 'Inventory',          icon: FaBox,         path: '/items' },
+  { label: 'Dashboard', icon: FaThLarge, path: '/dashboard' },
+  { label: 'Clients / Customers', icon: FaUsers, path: '/clients' },
+  { label: 'Vendors / Suppliers', icon: FaTruck, path: '/vendors' },
+  { label: 'Inventory', icon: FaBox, path: '/items' },
   {
     label: 'Invoices', icon: FaFileInvoice, path: '/invoices',
   },
   {
     label: 'Quotes & Proformas', icon: FaClipboardList,
     children: [
-      { label: 'Quotes',    path: '/quotes' },
+      { label: 'Quotes', path: '/quotes' },
       { label: 'Proformas', path: '/proformas' },
     ],
   },
@@ -37,7 +37,7 @@ const NAV = [
       { label: 'Account Statements', path: '/accounts/statements' },
     ],
   },
-  { label: 'Settings',           icon: FaCog,    path: '/settings' },
+  { label: 'Settings', icon: FaCog, path: '/settings' },
 ];
 
 const ICON_SIZE = 13;
@@ -73,7 +73,12 @@ const Layout = ({ children }) => {
   void syncTick; // ensure syncTick is in the dependency chain for linters
   const hasPremiumAccess = isPro || isSuperAdmin;
 
-  const isActive = (path) => location.pathname.startsWith(path);
+  const isActive = (path, exact = false) => {
+    if (exact) {
+      return location.pathname === path;
+    }
+    return location.pathname.startsWith(path);
+  };
 
   const [quotesOpen, setQuotesOpen] = useState(
     location.pathname.startsWith('/quotes') || location.pathname.startsWith('/proformas')
@@ -83,6 +88,9 @@ const Layout = ({ children }) => {
   );
   const [accountsOpen, setAccountsOpen] = useState(
     location.pathname.startsWith('/accounts')
+  );
+  const [payrollOpen, setPayrollOpen] = useState(
+    location.pathname.startsWith('/payroll')
   );
 
   const handlePremiumClick = (e, path) => {
@@ -102,7 +110,7 @@ const Layout = ({ children }) => {
 
   const subLinkCls = (path) =>
     `flex items-center gap-[7px] pl-[34px] pr-[18px] py-[4px] text-[11px] transition-colors w-full text-left
-    ${isActive(path)
+    ${isActive(path, path === '/payroll')
       ? 'text-white font-semibold'
       : 'text-slate-400 hover:text-white'}`;
 
@@ -113,7 +121,6 @@ const Layout = ({ children }) => {
       <aside className="w-[216px] h-full flex-shrink-0 hidden md:flex flex-col"
         style={{ background: '#1a2e44' }}>
 
-        {/* Logo */}
         <div className="px-[18px] py-[16px] border-b border-white/10">
           <div className="flex flex-col">
             <h1 className="text-[17px] font-bold text-white flex items-center gap-2 tracking-wide">
@@ -165,7 +172,7 @@ const Layout = ({ children }) => {
                 : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
           >
             <span className="flex items-center gap-[9px]">
-               <FaClipboardList size={ICON_SIZE} /> Quotes &amp; Proformas
+              <FaClipboardList size={ICON_SIZE} /> Quotes &amp; Proformas
             </span>
             {quotesOpen
               ? <FaChevronDown size={10} className="text-slate-400" />
@@ -238,10 +245,43 @@ const Layout = ({ children }) => {
             <FaUsers size={ICON_SIZE} /> Employees
           </Link>
 
-          {/* Payroll */}
-          <Link to="/payroll" className={linkCls('/payroll')}>
-            <FaMoneyBillWave size={ICON_SIZE} /> Payroll
-          </Link>
+          <button
+            onClick={() => setPayrollOpen(o => !o)}
+            className={`flex items-center justify-between px-[18px] py-[5px] text-[12px] font-medium transition-colors w-full border-l-2
+              ${isActive('/payroll')
+                ? 'bg-white/10 text-white border-blue-400'
+                : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
+          >
+            <span className="flex items-center gap-[9px]">
+              <FaMoneyBillWave size={ICON_SIZE} /> Payroll
+            </span>
+            {payrollOpen
+              ? <FaChevronDown size={10} className="text-slate-400" />
+              : <FaChevronRight size={10} className="text-slate-400" />}
+          </button>
+
+          {payrollOpen && (
+            <div className="bg-black/10">
+              <Link to="/payroll" className={subLinkCls('/payroll')}>
+                <FaMinus size={9} className="text-slate-500" /> Dashboard
+              </Link>
+              <Link to="/payroll/process" className={subLinkCls('/payroll/process')}>
+                <FaMinus size={9} className="text-slate-500" /> Process Payroll
+              </Link>
+              <Link to="/payroll/calculator" className={subLinkCls('/payroll/calculator')}>
+                <FaMinus size={9} className="text-slate-500" /> Salary Calculator
+              </Link>
+              <Link to="/payroll/reports" className={subLinkCls('/payroll/reports')}>
+                <FaMinus size={9} className="text-slate-500" /> Reports
+              </Link>
+              <Link to="/payroll/settings" className={subLinkCls('/payroll/settings')}>
+                <FaMinus size={9} className="text-slate-500" /> Settings
+              </Link>
+              <Link to="/payroll/portal" className={subLinkCls('/payroll/portal')}>
+                <FaMinus size={9} className="text-slate-500" /> Employee Portal (ESS)
+              </Link>
+            </div>
+          )}
 
           {/* Group 6: Financial Control */}
           <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
@@ -261,8 +301,8 @@ const Layout = ({ children }) => {
           {/* Accounts (collapsible, Premium) */}
           <button
             onClick={(e) => {
-               if (!hasPremiumAccess) { handlePremiumClick(e); }
-               else { setAccountsOpen(o => !o); }
+              if (!hasPremiumAccess) { handlePremiumClick(e); }
+              else { setAccountsOpen(o => !o); }
             }}
             className={`flex items-center justify-between px-[18px] py-[5px] text-[12px] font-medium transition-colors w-full border-l-2
               ${isActive('/accounts')
@@ -292,8 +332,8 @@ const Layout = ({ children }) => {
           {/* Reports (collapsible, Premium) */}
           <button
             onClick={(e) => {
-               if (!hasPremiumAccess) { handlePremiumClick(e); }
-               else { setReportsOpen(o => !o); }
+              if (!hasPremiumAccess) { handlePremiumClick(e); }
+              else { setReportsOpen(o => !o); }
             }}
             className={`flex items-center justify-between px-[18px] py-[5px] text-[12px] font-medium transition-colors w-full border-l-2
               ${isActive('/reports')
@@ -384,7 +424,7 @@ const Layout = ({ children }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden animate-fade-in-up">
             <div className="relative h-32 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
-              <button 
+              <button
                 onClick={() => setShowPremiumModal(false)}
                 className="absolute top-4 right-4 text-white/80 hover:text-white bg-black/10 hover:bg-black/20 p-1.5 rounded-full transition-colors"
               >
@@ -399,8 +439,8 @@ const Layout = ({ children }) => {
               <p className="text-sm text-slate-500 mb-8 leading-relaxed">
                 Advanced reporting, payment collections, and account statements are exclusively available to our Professional tier users.
               </p>
-              
-              <button 
+
+              <button
                 onClick={() => {
                   setShowPremiumModal(false);
                   navigate('/subscription');
@@ -412,8 +452,8 @@ const Layout = ({ children }) => {
                   Upgrade Now <FaChevronRight className="w-3 h-3" />
                 </span>
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => setShowPremiumModal(false)}
                 className="w-full mt-4 py-3 text-sm font-semibold text-slate-400 hover:text-slate-600 transition-colors"
               >

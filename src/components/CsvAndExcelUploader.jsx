@@ -12,6 +12,7 @@ import { FaFileCsv, FaFileExcel, FaUpload, FaSpinner } from 'react-icons/fa';
  */
 const CsvAndExcelUploader = ({ 
   onDataParsed, 
+  onFileSelected,
   isLoading = false,
   title = "Upload File",
   subtitle = "Drag & drop a .csv, .xlsx, or .xls file here, or click to select",
@@ -51,8 +52,8 @@ const CsvAndExcelUploader = ({
            setError('The CSV file appears to be empty.');
            return;
         }
-
         onDataParsed(results.data);
+        onFileSelected?.(file, results.data);
       },
       error: (err) => {
         setError(`Failed to read file: ${err.message}`);
@@ -78,8 +79,8 @@ const CsvAndExcelUploader = ({
           setError('The Excel file appears to be empty.');
           return;
         }
-
         onDataParsed(results);
+        onFileSelected?.(file, results);
       } catch (err) {
         console.error("Excel Parse Error:", err);
         setError(`Error parsing Excel: ${err.message}`);
