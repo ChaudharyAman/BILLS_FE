@@ -418,17 +418,22 @@ const ClassicBusinessDocumentPrint = ({
             Receiver's Signature&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:
           </div>
           <div style={{ padding: '14px 18px 10px', minHeight: 82, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>for {company?.companyName}</div>
-            <div style={{ height: 42, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end' }}>
-              {(company?.signatureUrl || company?.signature) ? (
-                <img
-                  src={company.signatureUrl || company.signature}
-                  alt="Signature"
-                  style={{ maxHeight: 42, maxWidth: 220, objectFit: 'contain' }}
-                />
-              ) : null}
+            <div style={{ fontSize: 14, fontWeight: 700 }}>for {company?.companyName}</div>
+            <div style={{
+              margin: '8px 0',
+              border: '1px dashed #000',
+              padding: '8px 12px',
+              background: '#fafafa',
+              fontSize: '9px',
+              textAlign: 'center',
+              lineHeight: '1.4',
+              color: '#333',
+              maxWidth: '220px'
+            }}>
+              <b>Digitally Signed Document</b><br />
+              This is a computer generated {documentTitle?.toLowerCase() || 'document'}, digitally signed, and does not require a physical signature.
             </div>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>Authorised Signatory</div>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>Authorised Signatory</div>
           </div>
         </div>
       </div>

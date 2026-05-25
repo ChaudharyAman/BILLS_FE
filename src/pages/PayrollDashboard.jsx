@@ -270,6 +270,14 @@ const PayrollDashboard = () => {
                 <tr><td colSpan="10" className="px-6 py-10 text-center text-gray-500">No payroll processed for this period.</td></tr>
               ) : filteredPayrolls.map((payroll) => {
                 const employerContribution = (Number(payroll.employerContributions?.grossTotalSalary) || 0) - (Number(payroll.earnings?.totalEarnings) || 0);
+                const pfEnabled = payroll.employeeSnapshot?.pfEnabled !== undefined ? payroll.employeeSnapshot.pfEnabled : (payroll.employee?.pfEnabled !== false);
+                const esiEnabled = payroll.employeeSnapshot?.esiEnabled !== undefined ? payroll.employeeSnapshot.esiEnabled : (payroll.employee?.esiEnabled !== false);
+                const ptEnabled = payroll.employeeSnapshot?.ptEnabled !== undefined ? payroll.employeeSnapshot.ptEnabled : (payroll.employee?.ptEnabled !== false);
+                const lwfEnabled = payroll.employeeSnapshot?.lwfEnabled !== undefined ? payroll.employeeSnapshot.lwfEnabled : (payroll.employee?.lwfEnabled !== false);
+                const gratuityEnabled = payroll.employeeSnapshot?.gratuityEnabled !== undefined ? payroll.employeeSnapshot.gratuityEnabled : (payroll.employee?.gratuityEnabled !== false);
+                const basicPercent = payroll.employeeSnapshot?.basicPercent !== undefined ? payroll.employeeSnapshot.basicPercent : (payroll.employee?.basicPercent);
+                const hraPercent = payroll.employeeSnapshot?.hraPercent !== undefined ? payroll.employeeSnapshot.hraPercent : (payroll.employee?.hraPercent);
+
                 return (
                   <tr key={payroll._id} className="hover:bg-blue-50/40 cursor-pointer" onClick={() => openPayslipDrawer(payroll._id)}>
                     <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
@@ -278,6 +286,25 @@ const PayrollDashboard = () => {
                     <td className="px-6 py-4">
                       <div className="font-semibold">{payroll.employee?.firstName} {payroll.employee?.lastName}</div>
                       <div className="text-xs text-gray-500">{payroll.employee?.employeeId} · {payroll.employee?.department?.name || '-'}</div>
+                      
+                      {/* Statutory Settings Badges */}
+                      <div className="flex flex-wrap gap-1 mt-1.5 font-mono">
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${pfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={pfEnabled !== false ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${esiEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={esiEnabled !== false ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${ptEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={ptEnabled !== false ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${lwfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={lwfEnabled !== false ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${gratuityEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={gratuityEnabled !== false ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
+                        {basicPercent !== undefined && basicPercent !== null && Number(basicPercent) !== 50 && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" title="Basic Salary Overridden percentage">
+                            B:{basicPercent}%
+                          </span>
+                        )}
+                        {hraPercent !== undefined && hraPercent !== null && Number(hraPercent) !== 50 && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm" title="HRA Overridden percentage">
+                            H:{hraPercent}%
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right text-sm">{payroll.paidDays}</td>
                     <td className="px-6 py-4 text-right text-sm">{payroll.workingDays}</td>

@@ -354,13 +354,34 @@ const QuotePrint = ({ docType = 'quote' }) => {
             {doc.terms && <div style={{ marginTop:6, fontSize:10, color: MUTED }}><b style={{ color: TEXT }}>Terms & Conditions:</b><br/><span style={{whiteSpace:'pre-wrap'}}>{doc.terms}</span></div>}
           </div>
           {/* Right: summary */}
-          <div style={{ width:'52%', fontSize:12 }}>
-            <Row label="Total Taxable Value" value={`₹ ${fmt(doc.subTotal)}`} />
-            {doc.shippingCharges>0 && <Row label="Shipping Charges" value={`(+) ₹ ${fmt(doc.shippingCharges)}`}/>}
-            {doc.packagingCharges>0 && <Row label={doc.customChargeLabel || 'Custom Charge'} value={`(+) ₹ ${fmt(doc.packagingCharges)}`}/>}
-            {doc.discountTotal>0   && <Row label="Discount"          value={`(-) ₹ ${fmt(doc.discountTotal)}`}/>}
-            <Row label="Total Value (in figure)"  value={`₹ ${fmt(Math.round(grandTotal))}`} />
-            <Row label="Total Value (in words)"   value={`₹ ${numberToWords(Math.round(grandTotal))}`} />
+          <div style={{ width:'52%', fontSize:12, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <div style={{ width: '100%' }}>
+              <Row label="Total Taxable Value" value={`₹ ${fmt(doc.subTotal)}`} />
+              {doc.shippingCharges>0 && <Row label="Shipping Charges" value={`(+) ₹ ${fmt(doc.shippingCharges)}`}/>}
+              {doc.packagingCharges>0 && <Row label={doc.customChargeLabel || 'Custom Charge'} value={`(+) ₹ ${fmt(doc.packagingCharges)}`}/>}
+              {doc.discountTotal>0   && <Row label="Discount"          value={`(-) ₹ ${fmt(doc.discountTotal)}`}/>}
+              <Row label="Total Value (in figure)"  value={`₹ ${fmt(Math.round(grandTotal))}`} />
+              <Row label="Total Value (in words)"   value={`₹ ${numberToWords(Math.round(grandTotal))}`} />
+            </div>
+
+            <div style={{ marginTop: 20, alignSelf: 'flex-end' }}>
+              <div style={{
+                border: `1px dashed ${PRIMARY}`,
+                borderRadius: '6px',
+                padding: '10px 14px',
+                background: '#f8fafc',
+                textAlign: 'center',
+                fontSize: '10px',
+                color: '#334155',
+                maxWidth: '280px',
+                lineHeight: '1.5',
+              }}>
+                <div style={{ fontWeight: 'bold', color: PRIMARY, textTransform: 'uppercase', fontSize: '9px', marginBottom: '4px', letterSpacing: '0.5px' }}>
+                  Digitally Signed Document
+                </div>
+                This is a computer generated {docLabel.toLowerCase()}, digitally signed, and does not require a physical signature.
+              </div>
+            </div>
           </div>
         </div>
 

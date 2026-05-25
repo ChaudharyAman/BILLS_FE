@@ -219,7 +219,6 @@ const EmployeeList = () => {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Department</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Location</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">PAN / Aadhar</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">DOL</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Monthly CTC</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
                 <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Actions</th>
@@ -229,13 +228,13 @@ const EmployeeList = () => {
               {loading ? (
                 Array.from({ length: 6 }).map((_, index) => (
                   <tr key={`employee-skeleton-${index}`}>
-                    <td className="px-6 py-4" colSpan="8">
+                    <td className="px-6 py-4" colSpan="7">
                       <Skeleton className="h-10 w-full" />
                     </td>
                   </tr>
                 ))
               ) : employees.length === 0 ? (
-                <tr><td colSpan="8" className="px-6 py-10 text-center text-gray-500">No employees found.</td></tr>
+                <tr><td colSpan="7" className="px-6 py-10 text-center text-gray-500">No employees found.</td></tr>
               ) : employees.map((employee) => (
                 <tr key={employee._id} className="hover:bg-blue-50/40">
                   <td className="px-6 py-4">
@@ -249,7 +248,6 @@ const EmployeeList = () => {
                     <div>{employee.panNumber || '-'}</div>
                     <div className="text-xs text-gray-400">{employee.aadharNumber || '-'}</div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{fmtDate(employee.dateOfLeaving)}</td>
                   <td className="px-6 py-4 text-right text-sm font-semibold">{fmtMoney(employee.monthlyCTC)}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${

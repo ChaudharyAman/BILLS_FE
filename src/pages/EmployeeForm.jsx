@@ -32,6 +32,13 @@ const defaultForm = {
   joiningBonus: 0,
   basicPercent: null,
   hraPercent: null,
+  pfEnabled: true,
+  esiEnabled: true,
+  ptEnabled: true,
+  lwfEnabled: true,
+  gratuityEnabled: true,
+  includePfInCTC: true,
+  includeGratuityInCTC: true,
   salaryStructure: {
     basic: 0,
     hra: 0,
@@ -104,6 +111,13 @@ const EmployeeForm = () => {
           bankDetails: { ...defaultForm.bankDetails, ...(data.bankDetails || {}) },
           taxRegime: data.taxRegime || 'new',
           declarations: { ...defaultForm.declarations, ...(data.declarations || {}) },
+          pfEnabled: data.pfEnabled !== false,
+          esiEnabled: data.esiEnabled !== false,
+          ptEnabled: data.ptEnabled !== false,
+          lwfEnabled: data.lwfEnabled !== false,
+          gratuityEnabled: data.gratuityEnabled !== false,
+          includePfInCTC: data.includePfInCTC !== false,
+          includeGratuityInCTC: data.includeGratuityInCTC !== false,
         });
       } catch (error) {
         if (error.name === 'CanceledError' || error.name === 'AbortError') return;
@@ -156,6 +170,13 @@ const EmployeeForm = () => {
           name: allowance.name,
           amount: Number(allowance.amount) || 0,
         })),
+        pfEnabled: formData.pfEnabled !== false,
+        esiEnabled: formData.esiEnabled !== false,
+        ptEnabled: formData.ptEnabled !== false,
+        lwfEnabled: formData.lwfEnabled !== false,
+        gratuityEnabled: formData.gratuityEnabled !== false,
+        includePfInCTC: formData.includePfInCTC !== false,
+        includeGratuityInCTC: formData.includeGratuityInCTC !== false,
       });
       const master = res.data.master;
       setFormData((prev) => ({
@@ -210,6 +231,13 @@ const EmployeeForm = () => {
         monthlyCTC: Number(formData.monthlyCTC) || 0,
         basicPercent: formData.basicPercent === null || formData.basicPercent === '' ? null : Number(formData.basicPercent),
         hraPercent: formData.hraPercent === null || formData.hraPercent === '' ? null : Number(formData.hraPercent),
+        pfEnabled: formData.pfEnabled !== false,
+        esiEnabled: formData.esiEnabled !== false,
+        ptEnabled: formData.ptEnabled !== false,
+        lwfEnabled: formData.lwfEnabled !== false,
+        gratuityEnabled: formData.gratuityEnabled !== false,
+        includePfInCTC: formData.includePfInCTC !== false,
+        includeGratuityInCTC: formData.includeGratuityInCTC !== false,
         flexiAmount: Number(formData.flexiAmount) || 0,
         broadband: Number(formData.broadband) || 0,
         petrol: Number(formData.petrol) || 0,
@@ -274,7 +302,7 @@ const EmployeeForm = () => {
       <form onSubmit={submit} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <div className="border-b border-gray-200 bg-gray-50 p-4 flex flex-wrap gap-2">
           {['Personal', 'Employment', 'Salary', 'Bank & Tax'].map((label, idx) => (
-            <button key={label} type="button" onClick={() => setStep(idx + 1)} className={`px-4 py-2 rounded-lg text-sm font-semibold ${step === idx + 1 ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600'}`}>
+            <button key={label} type="button" onClick={(e) => { e.preventDefault(); setStep(idx + 1); }} className={`px-4 py-2 rounded-lg text-sm font-semibold ${step === idx + 1 ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600'}`}>
               {idx + 1}. {label}
             </button>
           ))}
@@ -291,7 +319,6 @@ const EmployeeForm = () => {
                 ['phone', 'Phone'],
                 ['dateOfBirth', 'Date of Birth', 'date'],
                 ['location', 'Location'],
-                ['dateOfLeaving', 'Date of Leaving', 'date'],
               ].map(([name, label, type = 'text', required]) => (
                 <div key={name}>
                   <label className={labelCls}>{label}{required ? ' *' : ''}</label>
@@ -335,6 +362,10 @@ const EmployeeForm = () => {
               <div>
                 <label className={labelCls}>Joining Date *</label>
                 <input type="date" required value={formData.joiningDate} onChange={(e) => setField('joiningDate', e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Date of Leaving</label>
+                <input type="date" value={formData.dateOfLeaving} onChange={(e) => setField('dateOfLeaving', e.target.value)} className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Employment Type</label>
@@ -417,6 +448,144 @@ const EmployeeForm = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Statutory & Contribution Switches */}
+              <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+                <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <span>Statutory Components & Contribution Toggles</span>
+                  <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-full font-semibold">Statutory Toggles</span>
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Enable or disable specific statutory contributions for this employee. Disabling a component will zero out its values in salary calculations immediately.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* PF Toggle */}
+                  <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                    <label className="flex items-center justify-between cursor-pointer select-none">
+                      <span className="text-sm font-semibold text-gray-800">Provident Fund (PF)</span>
+                      <input
+                        type="checkbox"
+                        checked={formData.pfEnabled ?? true}
+                        onChange={(e) => {
+                          setField('pfEnabled', e.target.checked);
+                          setTimeout(refreshSalaryFromCTC, 0);
+                        }}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                      />
+                    </label>
+                    <span className="text-[10px] text-gray-400 mt-1">Both Employee & Employer PF contributions</span>
+                  </div>
+
+                  {/* ESI Toggle */}
+                  <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                    <label className="flex items-center justify-between cursor-pointer select-none">
+                      <span className="text-sm font-semibold text-gray-800">State Insurance (ESI)</span>
+                      <input
+                        type="checkbox"
+                        checked={formData.esiEnabled ?? true}
+                        onChange={(e) => {
+                          setField('esiEnabled', e.target.checked);
+                          setTimeout(refreshSalaryFromCTC, 0);
+                        }}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                      />
+                    </label>
+                    <span className="text-[10px] text-gray-400 mt-1">Employee State Insurance (ESI) deductions</span>
+                  </div>
+
+                  {/* Professional Tax Toggle */}
+                  <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                    <label className="flex items-center justify-between cursor-pointer select-none">
+                      <span className="text-sm font-semibold text-gray-800">Professional Tax (PT)</span>
+                      <input
+                        type="checkbox"
+                        checked={formData.ptEnabled ?? true}
+                        onChange={(e) => {
+                          setField('ptEnabled', e.target.checked);
+                          setTimeout(refreshSalaryFromCTC, 0);
+                        }}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                      />
+                    </label>
+                    <span className="text-[10px] text-gray-400 mt-1">State Professional Tax deduction</span>
+                  </div>
+
+                  {/* LWF Toggle */}
+                  <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                    <label className="flex items-center justify-between cursor-pointer select-none">
+                      <span className="text-sm font-semibold text-gray-800">Welfare Fund (LWF)</span>
+                      <input
+                        type="checkbox"
+                        checked={formData.lwfEnabled ?? true}
+                        onChange={(e) => {
+                          setField('lwfEnabled', e.target.checked);
+                          setTimeout(refreshSalaryFromCTC, 0);
+                        }}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                      />
+                    </label>
+                    <span className="text-[10px] text-gray-400 mt-1">Labour Welfare Fund contributions</span>
+                  </div>
+
+                  {/* Gratuity Toggle */}
+                  <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                    <label className="flex items-center justify-between cursor-pointer select-none">
+                      <span className="text-sm font-semibold text-gray-800">Gratuity Provision</span>
+                      <input
+                        type="checkbox"
+                        checked={formData.gratuityEnabled ?? true}
+                        onChange={(e) => {
+                          setField('gratuityEnabled', e.target.checked);
+                          setTimeout(refreshSalaryFromCTC, 0);
+                        }}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                      />
+                    </label>
+                    <span className="text-[10px] text-gray-400 mt-1">Accrual of statutory gratuity amount</span>
+                  </div>
+                </div>
+
+                {/* Additional CTC Settings if statutory components enabled */}
+                {((formData.pfEnabled !== false) || (formData.gratuityEnabled !== false)) && (
+                  <div className="border-t border-gray-100 pt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(formData.pfEnabled !== false) && (
+                      <label className="flex items-center gap-2.5 cursor-pointer select-none border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                        <input
+                          type="checkbox"
+                          checked={formData.includePfInCTC ?? true}
+                          onChange={(e) => {
+                            setField('includePfInCTC', e.target.checked);
+                            setTimeout(refreshSalaryFromCTC, 0);
+                          }}
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="text-xs font-semibold text-gray-800 block">Include Employer PF in CTC</span>
+                          <span className="text-[10px] text-gray-400">Employer contribution reduces Gross take-home</span>
+                        </div>
+                      </label>
+                    )}
+
+                    {(formData.gratuityEnabled !== false) && (
+                      <label className="flex items-center gap-2.5 cursor-pointer select-none border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                        <input
+                          type="checkbox"
+                          checked={formData.includeGratuityInCTC ?? true}
+                          onChange={(e) => {
+                            setField('includeGratuityInCTC', e.target.checked);
+                            setTimeout(refreshSalaryFromCTC, 0);
+                          }}
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="text-xs font-semibold text-gray-800 block">Include Gratuity in CTC</span>
+                          <span className="text-[10px] text-gray-400">Accrued gratuity reduces Gross take-home</span>
+                        </div>
+                      </label>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -879,9 +1048,9 @@ const EmployeeForm = () => {
         </div>
 
         <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-between">
-          <button type="button" onClick={() => setStep((current) => Math.max(1, current - 1))} disabled={step === 1} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold disabled:opacity-50">Previous</button>
+          <button type="button" onClick={(e) => { e.preventDefault(); setStep((current) => Math.max(1, current - 1)); }} disabled={step === 1} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold disabled:opacity-50">Previous</button>
           {step < 4 ? (
-            <button type="button" onClick={() => setStep((current) => current + 1)} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold">Next</button>
+            <button type="button" onClick={(e) => { e.preventDefault(); setStep((current) => current + 1); }} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold">Next</button>
           ) : (
             <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60">
               <FaCheck /> Save Employee
