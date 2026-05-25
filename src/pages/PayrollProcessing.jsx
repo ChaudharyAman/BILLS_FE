@@ -78,7 +78,7 @@ const PayrollProcessing = () => {
       try {
         setLoading(true);
         const [employeesRes, configRes] = await Promise.all([
-          api.get('/employees/active', { signal: controller.signal }),
+          api.get(`/employees/active?month=${month}&year=${year}`, { signal: controller.signal }),
           api.get('/payroll/config', { signal: controller.signal }),
         ]);
 
@@ -90,13 +90,34 @@ const PayrollProcessing = () => {
         setSelected(Object.fromEntries(activeEmployees.map((emp) => [emp._id, true])));
         setRows(Object.fromEntries(activeEmployees.map((emp) => {
           const joiningDate = emp.joiningDate ? new Date(emp.joiningDate) : null;
+          const dateOfLeaving = emp.dateOfLeaving ? new Date(emp.dateOfLeaving) : null;
           const autoJoiningBonus = joiningDate && joiningDate.getMonth() + 1 === month && joiningDate.getFullYear() === year
             ? Number(emp.joiningBonus) || 0
             : 0;
 
+          // Proration Calculation for mid-month joining and leaving
+          const startOfMonth = new Date(year, month - 1, 1);
+          const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+          const calendarDays = new Date(year, month, 0).getDate();
+
+          const activeStartDate = joiningDate && joiningDate > startOfMonth ? joiningDate : startOfMonth;
+          const activeEndDate = dateOfLeaving && dateOfLeaving < endOfMonth ? dateOfLeaving : endOfMonth;
+
+          let activeDays = 0;
+          if (activeStartDate <= activeEndDate) {
+            const diffTime = Math.max(0, activeEndDate.getTime() - activeStartDate.getTime());
+            activeDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+          }
+
+          const defaultDays = nextConfig.defaultWorkingDays || 26;
+          let proratedPaidDays = defaultDays;
+          if (activeDays < calendarDays) {
+            proratedPaidDays = Math.max(0, Math.min(defaultDays, Math.round(defaultDays * (activeDays / calendarDays))));
+          }
+
           return [emp._id, {
-            workingDays: nextConfig.defaultWorkingDays || 26,
-            paidDays: nextConfig.defaultWorkingDays || 26,
+            workingDays: defaultDays,
+            paidDays: proratedPaidDays,
             paidLeaves: 0,
             unpaidLeaves: 0,
             overtime: 0,
