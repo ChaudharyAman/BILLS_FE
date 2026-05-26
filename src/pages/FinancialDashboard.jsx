@@ -107,7 +107,7 @@ export default function FinancialDashboard() {
 
   useEffect(() => {
     if (tab !== 'payroll') return;
-    
+
     let isCancelled = false;
     const fetchPayrollDashboardData = async () => {
       try {
@@ -118,34 +118,34 @@ export default function FinancialDashboard() {
           api.get('/loans'),
           api.get('/reimbursements')
         ]);
-        
+
         if (isCancelled) return;
-        
+
         const employees = empRes.data?.data || empRes.data || [];
         const payrolls = payrollRes.data?.data || payrollRes.data || [];
         const loans = loanRes.data || [];
         const claims = claimRes.data || [];
-        
+
         // Compute statistics
         const activeEmployees = employees.filter(e => !e.leavingDate || new Date(e.leavingDate) > new Date());
         const totalHeadcount = activeEmployees.length;
-        
+
         // Sum payroll net salary in the selected/current month
         const currentMonthPayrolls = payrolls.filter(p => p.month === (new Date().getMonth() + 1));
         const totalMonthlyNetSalary = currentMonthPayrolls.reduce((sum, p) => sum + (Number(p.netSalary) || 0), 0);
         const totalMonthlyCTC = currentMonthPayrolls.reduce((sum, p) => sum + (Number(p.monthlyCTC) || 0), 0);
-        
+
         // Loans statistics
         const activeLoans = loans.filter(l => l.status === 'active');
         const pendingLoans = loans.filter(l => l.status === 'pending_approval');
         const totalOutstandingLoans = activeLoans.reduce((sum, l) => sum + (Number(l.remainingBalance) || 0), 0);
-        
+
         // Claims statistics
         const approvedClaims = claims.filter(c => c.status === 'approved');
         const pendingClaims = claims.filter(c => c.status === 'pending');
         const totalApprovedClaims = approvedClaims.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
         const totalPendingClaims = pendingClaims.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
-        
+
         // Payroll history by month (last 6 months)
         const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const getMName = (m) => MONTHS[(m - 1) % 12] || '';
@@ -158,9 +158,9 @@ export default function FinancialDashboard() {
           trendMap[key].netSalary += (Number(p.netSalary) || 0);
           trendMap[key].ctc += (Number(p.monthlyCTC) || 0);
         });
-        
+
         const trendData = Object.values(trendMap).slice(-6);
-        
+
         setPayrollSummary({
           totalHeadcount,
           totalMonthlyNetSalary,
@@ -185,7 +185,7 @@ export default function FinancialDashboard() {
         }
       }
     };
-    
+
     fetchPayrollDashboardData();
     return () => {
       isCancelled = true;
@@ -218,11 +218,11 @@ export default function FinancialDashboard() {
 
   const catData = useMemo(() =>
     (data?.categories || []).map((c, i) => ({ ...c, fill: PALETTE[i % PALETTE.length] }))
-  , [data]);
+    , [data]);
 
   const barData = useMemo(() =>
     trend.map(t => ({ month: t.month, Income: t.revenue, Expenses: t.expenses, Profit: Math.max(0, t.revenue - t.expenses) }))
-  , [trend]);
+    , [trend]);
 
   const radialData = [
     { name: 'CGST', value: gst.cgst || 0, fill: '#6366f1' },
@@ -236,18 +236,18 @@ export default function FinancialDashboard() {
     else setCustomVisible(true);
   };
 
-  const revDelta  = delta(s.totalRevenue, prev.revenue);
-  const expDelta  = delta(s.totalExpenses, prev.expenses);
+  const revDelta = delta(s.totalRevenue, prev.revenue);
+  const expDelta = delta(s.totalExpenses, prev.expenses);
 
   const KPIs = [
-    { label: 'Total Revenue',  value: fmt(s.totalRevenue),    icon: FaArrowTrendUp,      iconBg: 'rgba(16,185,129,0.12)',  iconColor: '#10b981', sub: `Tax: ${fmt(s.gstLiability)}`,  delta: revDelta,  deltaInvert: false },
-    { label: 'Total Expenses', value: fmt(s.totalExpenses),   icon: FaReceipt,            iconBg: 'rgba(236,72,153,0.12)',  iconColor: '#ec4899', sub: `Credit: ${fmt(s.gstCredit)}`, delta: expDelta,  deltaInvert: true  },
-    { label: 'Receivable',     value: fmt(s.receivables, 2),  icon: FaWallet,             iconBg: 'rgba(6,182,212,0.12)',   iconColor: '#06b6d4', sub: 'Unpaid invoices',             delta: null },
-    { label: 'Payable',        value: fmt(s.payables, 2),     icon: FaFileInvoiceDollar,  iconBg: 'rgba(245,158,11,0.12)', iconColor: '#f59e0b', sub: 'Unpaid expenses',             delta: null },
-    { label: 'GST Liability',  value: fmt(s.gstLiability),    icon: FaShieldHalved,       iconBg: 'rgba(139,92,246,0.12)', iconColor: '#8b5cf6', sub: `Net: ${fmt(s.netGstPayable)}`, delta: null },
-    { label: 'TDS Deducted',   value: fmt(s.tdsDeducted),     icon: FaChartLine,          iconBg: 'rgba(99,102,241,0.12)', iconColor: '#6366f1', sub: null,                          delta: null },
-    { label: 'TDS Payable',    value: fmt(s.tdsPayable),      icon: FaChartPie,           iconBg: 'rgba(236,72,153,0.12)', iconColor: '#ec4899', sub: null,                          delta: null },
-    { label: 'Pending POs',    value: fmt(s.pendingPO),       icon: FaFileInvoiceDollar,  iconBg: 'rgba(245,158,11,0.12)', iconColor: '#f59e0b', sub: `${s.pendingPOCount || 0} orders`, delta: null },
+    { label: 'Total Revenue', value: fmt(s.totalRevenue), icon: FaArrowTrendUp, iconBg: 'rgba(16,185,129,0.12)', iconColor: '#10b981', sub: `Tax: ${fmt(s.gstLiability)}`, delta: revDelta, deltaInvert: false },
+    { label: 'Total Expenses', value: fmt(s.totalExpenses), icon: FaReceipt, iconBg: 'rgba(236,72,153,0.12)', iconColor: '#ec4899', sub: `Credit: ${fmt(s.gstCredit)}`, delta: expDelta, deltaInvert: true },
+    { label: 'Receivable', value: fmt(s.receivables, 2), icon: FaWallet, iconBg: 'rgba(6,182,212,0.12)', iconColor: '#06b6d4', sub: 'Unpaid invoices', delta: null },
+    { label: 'Payable', value: fmt(s.payables, 2), icon: FaFileInvoiceDollar, iconBg: 'rgba(245,158,11,0.12)', iconColor: '#f59e0b', sub: 'Unpaid expenses', delta: null },
+    { label: 'GST Liability', value: fmt(s.gstLiability), icon: FaShieldHalved, iconBg: 'rgba(139,92,246,0.12)', iconColor: '#8b5cf6', sub: `Net: ${fmt(s.netGstPayable)}`, delta: null },
+    { label: 'TDS Deducted', value: fmt(s.tdsDeducted), icon: FaChartLine, iconBg: 'rgba(99,102,241,0.12)', iconColor: '#6366f1', sub: null, delta: null },
+    { label: 'TDS Payable', value: fmt(s.tdsPayable), icon: FaChartPie, iconBg: 'rgba(236,72,153,0.12)', iconColor: '#ec4899', sub: null, delta: null },
+    { label: 'Pending POs', value: fmt(s.pendingPO), icon: FaFileInvoiceDollar, iconBg: 'rgba(245,158,11,0.12)', iconColor: '#f59e0b', sub: `${s.pendingPOCount || 0} orders`, delta: null },
   ];
 
   return (
@@ -286,16 +286,16 @@ export default function FinancialDashboard() {
         <GW className="text-center text-rose-500">{error}</GW>
       ) : (
         <>
-      {/* ── Draft Warning Banner ── */}
-      {drafts.total > 0 && (
-        <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-2xl animate-rise-in" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.30)' }}>
-          <span className="text-amber-500 text-lg">⚠️</span>
-          <span className="text-sm font-semibold text-amber-700">
-            You have <strong>{drafts.invoices}</strong> draft invoice{drafts.invoices !== 1 ? 's' : ''}
-            {drafts.expenses > 0 ? ` and <strong>${drafts.expenses}</strong> draft expense${drafts.expenses !== 1 ? 's' : ''}` : ''} that are excluded from reports.
-          </span>
-        </div>
-      )}
+          {/* ── Draft Warning Banner ── */}
+          {drafts.total > 0 && (
+            <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-2xl animate-rise-in" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.30)' }}>
+              <span className="text-amber-500 text-lg">⚠️</span>
+              <span className="text-sm font-semibold text-amber-700">
+                You have <strong>{drafts.invoices}</strong> draft invoice{drafts.invoices !== 1 ? 's' : ''}
+                {drafts.expenses > 0 ? ` and <strong>${drafts.expenses}</strong> draft expense${drafts.expenses !== 1 ? 's' : ''}` : ''} that are excluded from reports.
+              </span>
+            </div>
+          )}
 
           {/* ── 8 KPI Cards ── */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-5">
@@ -333,7 +333,7 @@ export default function FinancialDashboard() {
               {[
                 { l: 'Net GST Payable', v: s.netGstPayable, bg: 'rgba(139,92,246,0.10)', border: 'rgba(139,92,246,0.25)', c: '#8b5cf6' },
                 { l: 'Net Tax Payable', v: s.netTaxPayable, bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)', c: '#f59e0b' },
-                { l: 'TCS Collected',   v: s.tcsCollected,  bg: 'rgba(6,182,212,0.10)',  border: 'rgba(6,182,212,0.25)',  c: '#06b6d4' },
+                { l: 'TCS Collected', v: s.tcsCollected, bg: 'rgba(6,182,212,0.10)', border: 'rgba(6,182,212,0.25)', c: '#06b6d4' },
               ].map(m => (
                 <div key={m.l} className="rounded-2xl px-4 py-3 text-center" style={{ background: m.bg, border: `1px solid ${m.border}` }}>
                   <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: m.c }}>{m.l}</div>
@@ -472,10 +472,10 @@ export default function FinancialDashboard() {
                 <SLabel>GST Summary</SLabel>
                 <div className="grid grid-cols-2 gap-3 mb-5">
                   {[
-                    { l: 'GST Liability',   v: gst.liability,    c: '#ec4899' },
-                    { l: 'GST Credit',      v: gst.credit,       c: '#10b981' },
-                    { l: 'Net GST Payable', v: gst.netPayable,   c: '#6366f1' },
-                    { l: 'Net Tax Payable', v: s.netTaxPayable,  c: '#f59e0b' },
+                    { l: 'GST Liability', v: gst.liability, c: '#ec4899' },
+                    { l: 'GST Credit', v: gst.credit, c: '#10b981' },
+                    { l: 'Net GST Payable', v: gst.netPayable, c: '#6366f1' },
+                    { l: 'Net Tax Payable', v: s.netTaxPayable, c: '#f59e0b' },
                   ].map(m => (
                     <div key={m.l} className="glass-water-inner p-3">
                       <div className="text-[10px] text-gray-400 font-bold uppercase mb-1">{m.l}</div>
@@ -549,7 +549,7 @@ export default function FinancialDashboard() {
                 <div className="grid grid-cols-2 gap-6">
                   {[
                     { l: 'Receivables (Unpaid Invoices)', v: s.receivables, c: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)' },
-                    { l: 'Payables (Unpaid Expenses)',    v: s.payables,    c: '#ec4899', bg: 'rgba(236,72,153,0.08)',  border: 'rgba(236,72,153,0.25)' },
+                    { l: 'Payables (Unpaid Expenses)', v: s.payables, c: '#ec4899', bg: 'rgba(236,72,153,0.08)', border: 'rgba(236,72,153,0.25)' },
                   ].map(m => (
                     <div key={m.l} className="rounded-2xl p-5 text-center" style={{ background: m.bg, border: `1px solid ${m.border}`, backdropFilter: 'blur(10px)' }}>
                       <div className="text-3xl font-black mb-2" style={{ color: m.c }}>{fmt(m.v, 2)}</div>
@@ -734,10 +734,9 @@ export default function FinancialDashboard() {
                               </div>
                               <div className="text-right">
                                 <div className="text-sm font-bold text-gray-800">{fmt(claim.amount)}</div>
-                                <div className={`text-[10px] font-bold uppercase ${
-                                  claim.status === 'approved' ? 'text-emerald-500' :
+                                <div className={`text-[10px] font-bold uppercase ${claim.status === 'approved' ? 'text-emerald-500' :
                                   claim.status === 'pending' ? 'text-amber-500' : 'text-rose-500'
-                                }`}>
+                                  }`}>
                                   {claim.status}
                                 </div>
                               </div>
@@ -763,10 +762,9 @@ export default function FinancialDashboard() {
                               </div>
                               <div className="text-right">
                                 <div className="text-sm font-bold text-gray-800">{fmt(loan.principalAmount)}</div>
-                                <div className={`text-[10px] font-bold uppercase ${
-                                  loan.status === 'active' ? 'text-emerald-500' :
+                                <div className={`text-[10px] font-bold uppercase ${loan.status === 'active' ? 'text-emerald-500' :
                                   loan.status === 'pending_approval' ? 'text-amber-500' : 'text-rose-500'
-                                }`}>
+                                  }`}>
                                   {loan.status === 'active' ? 'active' : loan.status === 'pending_approval' ? 'pending' : loan.status}
                                 </div>
                               </div>

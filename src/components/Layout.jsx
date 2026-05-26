@@ -6,39 +6,9 @@ import {
   FaChevronDown, FaChevronRight, FaMinus, FaPlus, FaStar,
   FaChartBar, FaWallet, FaLock, FaTimes, FaTruck, FaShoppingCart, FaTags, FaMoneyBillWave, FaBalanceScale, FaRedo, FaProjectDiagram
 } from 'react-icons/fa';
+import * as Icons from 'react-icons/fa';
 import api, { clearAuthSession } from '../api/axios';
-
-const NAV = [
-  { label: 'Dashboard', icon: FaThLarge, path: '/dashboard' },
-  { label: 'Clients / Customers', icon: FaUsers, path: '/clients' },
-  { label: 'Vendors / Suppliers', icon: FaTruck, path: '/vendors' },
-  { label: 'Inventory', icon: FaBox, path: '/items' },
-  {
-    label: 'Invoices', icon: FaFileInvoice, path: '/invoices',
-  },
-  {
-    label: 'Quotes & Proformas', icon: FaClipboardList,
-    children: [
-      { label: 'Quotes', path: '/quotes' },
-      { label: 'Proformas', path: '/proformas' },
-    ],
-  },
-  {
-    label: 'Reports', icon: FaChartBar, isPremium: true,
-    children: [
-      { label: 'GST Reports', path: '/reports/gst' },
-      { label: 'Revenue Reports', path: '/reports/revenue' },
-    ],
-  },
-  {
-    label: 'Accounts', icon: FaWallet, isPremium: true,
-    children: [
-      { label: 'Payment Collection', path: '/accounts/payments' },
-      { label: 'Account Statements', path: '/accounts/statements' },
-    ],
-  },
-  { label: 'Settings', icon: FaCog, path: '/settings' },
-];
+import { getSidebarLayout } from '../utils/sidebarConfig';
 
 const ICON_SIZE = 13;
 
@@ -48,6 +18,18 @@ const Layout = ({ children }) => {
 
   // Premium Modal State
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+
+  // Dynamic Sidebar Preferences State
+  const [sidebarLayout, setSidebarLayout] = useState([]);
+
+  useEffect(() => {
+    const loadLayout = () => {
+      setSidebarLayout(getSidebarLayout());
+    };
+    loadLayout();
+    window.addEventListener('sidebar-layout-sync', loadLayout);
+    return () => window.removeEventListener('sidebar-layout-sync', loadLayout);
+  }, []);
 
   // Tick counter — increments whenever App.jsx dispatches 'auth-sync' after a background
   // subscription refresh, causing this component to re-read localStorage.
@@ -114,6 +96,105 @@ const Layout = ({ children }) => {
       ? 'text-white font-semibold'
       : 'text-slate-400 hover:text-white'}`;
 
+  const renderIcon = (iconName, size, className) => {
+    const IconComponent = Icons[iconName];
+    if (!IconComponent) return null;
+    return <IconComponent size={size} className={className} />;
+  };
+
+  const renderSidebarItem = (item) => {
+    if (item.hidden) return null;
+
+    // Admin Panel super admin check
+    if (item.isSuperAdmin && !isSuperAdmin) return null;
+
+    // Check collapsible item
+    if (item.type === 'collapsible') {
+      const isCollapsibleActive = item.children.some(child => isActive(child.path));
+      let isOpen = false;
+      let setOpen = null;
+
+      if (item.id === 'quotes_proformas') {
+        isOpen = quotesOpen;
+        setOpen = setQuotesOpen;
+      } else if (item.id === 'payroll_group') {
+        isOpen = payrollOpen;
+        setOpen = setPayrollOpen;
+      } else if (item.id === 'accounts_group') {
+        isOpen = accountsOpen;
+        setOpen = setAccountsOpen;
+      } else if (item.id === 'reports_group') {
+        isOpen = reportsOpen;
+        setOpen = setReportsOpen;
+      }
+
+      const handleToggle = (e) => {
+        if (item.isPremium && !hasPremiumAccess) {
+          handlePremiumClick(e);
+        } else if (setOpen) {
+          setOpen(o => !o);
+        }
+      };
+
+      return (
+        <div key={item.id} className="w-full">
+          <button
+            onClick={handleToggle}
+            className={`flex items-center justify-between px-[18px] py-[5px] text-[12px] font-medium transition-colors w-full border-l-2
+              ${isCollapsibleActive
+                ? 'bg-white/10 text-white border-blue-400'
+                : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
+          >
+            <span className="flex items-center gap-[9px]">
+              {renderIcon(item.iconName, ICON_SIZE)} {item.label}
+              {item.isPremium && !hasPremiumAccess && (
+                <span className="text-[8px] font-bold bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded uppercase ml-1">Pro</span>
+              )}
+            </span>
+            {isOpen
+              ? <FaChevronDown size={10} className="text-slate-400" />
+              : <FaChevronRight size={10} className="text-slate-400" />}
+          </button>
+
+          {isOpen && (item.isPremium ? hasPremiumAccess : true) && (
+            <div className="bg-black/10">
+              {item.children.map(child => {
+                const isChildActive = isActive(child.path, child.path === '/payroll');
+                return (
+                  <Link
+                    key={child.id}
+                    to={child.path}
+                    className={subLinkCls(child.path)}
+                  >
+                    <FaMinus size={9} className="text-slate-500" /> {child.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Special styling for Upgrade
+    if (item.isSpecial) {
+      return (
+        <Link key={item.id} to={item.path} className={linkCls(item.path)}>
+          <div className="flex items-center gap-[9px] text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 font-bold tracking-wide">
+            {renderIcon(item.iconName, ICON_SIZE, "text-amber-400")} {item.label}
+          </div>
+        </Link>
+      );
+    }
+
+    // Default item
+    return (
+      <Link key={item.id} to={item.path} className={linkCls(item.path)}>
+        {renderIcon(item.iconName, ICON_SIZE)} {item.label}
+      </Link>
+    );
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
 
@@ -137,261 +218,27 @@ const Layout = ({ children }) => {
 
         {/* Nav */}
         <nav className="flex-1 py-3 overflow-y-auto no-scrollbar">
+          {sidebarLayout.map(section => {
+            if (section.hidden) return null;
+            
+            // Check if all items in this section are hidden or super admin restricted
+            const hasVisibleItems = section.items.some(item => {
+              if (item.hidden) return false;
+              if (item.isSuperAdmin && !isSuperAdmin) return false;
+              return true;
+            });
 
-          {/* Group 1: Overview & Analytics */}
-          <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
-            Overview
-          </div>
+            if (!hasVisibleItems) return null;
 
-          {/* Dashboard */}
-          <Link to="/dashboard" className={linkCls('/dashboard')}>
-            <FaThLarge size={ICON_SIZE} /> Dashboard
-          </Link>
-
-          {/* Group 2: Sales & Receivables */}
-          <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
-            Sales &amp; Receivables
-          </div>
-
-          {/* Clients */}
-          <Link to="/clients" className={linkCls('/clients')}>
-            <FaUsers size={ICON_SIZE} /> Clients / Customers
-          </Link>
-
-          {/* Invoices */}
-          <Link to="/invoices" className={linkCls('/invoices')}>
-            <FaFileInvoice size={ICON_SIZE} /> Invoices
-          </Link>
-
-          {/* Quotes & Proformas (collapsible) */}
-          <button
-            onClick={() => setQuotesOpen(o => !o)}
-            className={`flex items-center justify-between px-[18px] py-[5px] text-[12px] font-medium transition-colors w-full border-l-2
-              ${(isActive('/quotes') || isActive('/proformas'))
-                ? 'bg-white/10 text-white border-blue-400'
-                : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
-          >
-            <span className="flex items-center gap-[9px]">
-              <FaClipboardList size={ICON_SIZE} /> Quotes &amp; Proformas
-            </span>
-            {quotesOpen
-              ? <FaChevronDown size={10} className="text-slate-400" />
-              : <FaChevronRight size={10} className="text-slate-400" />}
-          </button>
-
-          {quotesOpen && (
-            <div className="bg-black/10">
-              <Link to="/quotes" className={subLinkCls('/quotes')}>
-                <FaMinus size={9} className="text-slate-500" /> Quotes
-              </Link>
-              <Link to="/proformas" className={subLinkCls('/proformas')}>
-                <FaMinus size={9} className="text-slate-500" /> Proformas
-              </Link>
-            </div>
-          )}
-
-          {/* Incomes */}
-          <Link to="/incomes" className={linkCls('/incomes')}>
-            <FaPlus size={ICON_SIZE} /> Incomes
-          </Link>
-
-          {/* Recurring */}
-          <Link to="/recurring" className={linkCls('/recurring')}>
-            <FaRedo size={ICON_SIZE} /> Recurring
-          </Link>
-
-          {/* Group 3: Purchases & Payables */}
-          <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
-            Purchases &amp; Payables
-          </div>
-
-          {/* Vendors */}
-          <Link to="/vendors" className={linkCls('/vendors')}>
-            <FaTruck size={ICON_SIZE} /> Vendors / Suppliers
-          </Link>
-
-          {/* Purchase Orders */}
-          <Link to="/purchase-orders" className={linkCls('/purchase-orders')}>
-            <FaShoppingCart size={ICON_SIZE} /> Purchase Orders
-          </Link>
-
-          {/* Expenses */}
-          <Link to="/expenses" className={linkCls('/expenses')}>
-            <FaMinus size={ICON_SIZE} /> Expenses
-          </Link>
-
-          {/* Group 4: Operations & Assets */}
-          <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
-            Operations &amp; Assets
-          </div>
-
-          {/* Items / Inventory */}
-          <Link to="/items" className={linkCls('/items')}>
-            <FaBox size={ICON_SIZE} /> Inventory
-          </Link>
-
-          {/* Projects */}
-          <Link to="/projects" className={linkCls('/projects')}>
-            <FaProjectDiagram size={ICON_SIZE} /> Projects
-          </Link>
-
-          {/* Group 5: Human Resources */}
-          <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
-            Human Resources
-          </div>
-
-          {/* Employees */}
-          <Link to="/employees" className={linkCls('/employees')}>
-            <FaUsers size={ICON_SIZE} /> Employees
-          </Link>
-
-          <button
-            onClick={() => setPayrollOpen(o => !o)}
-            className={`flex items-center justify-between px-[18px] py-[5px] text-[12px] font-medium transition-colors w-full border-l-2
-              ${isActive('/payroll')
-                ? 'bg-white/10 text-white border-blue-400'
-                : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
-          >
-            <span className="flex items-center gap-[9px]">
-              <FaMoneyBillWave size={ICON_SIZE} /> Payroll
-            </span>
-            {payrollOpen
-              ? <FaChevronDown size={10} className="text-slate-400" />
-              : <FaChevronRight size={10} className="text-slate-400" />}
-          </button>
-
-          {payrollOpen && (
-            <div className="bg-black/10">
-              <Link to="/payroll" className={subLinkCls('/payroll')}>
-                <FaMinus size={9} className="text-slate-500" /> Dashboard
-              </Link>
-              <Link to="/payroll/process" className={subLinkCls('/payroll/process')}>
-                <FaMinus size={9} className="text-slate-500" /> Process Payroll
-              </Link>
-              <Link to="/payroll/calculator" className={subLinkCls('/payroll/calculator')}>
-                <FaMinus size={9} className="text-slate-500" /> Salary Calculator
-              </Link>
-              <Link to="/payroll/reports" className={subLinkCls('/payroll/reports')}>
-                <FaMinus size={9} className="text-slate-500" /> Reports
-              </Link>
-              <Link to="/payroll/settings" className={subLinkCls('/payroll/settings')}>
-                <FaMinus size={9} className="text-slate-500" /> Settings
-              </Link>
-              <Link to="/payroll/portal" className={subLinkCls('/payroll/portal')}>
-                <FaMinus size={9} className="text-slate-500" /> Employee Portal (ESS)
-              </Link>
-            </div>
-          )}
-
-          {/* Group 6: Financial Control */}
-          <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
-            Financial Control
-          </div>
-
-          {/* Budgets */}
-          <Link to="/budgets" className={linkCls('/budgets')}>
-            <FaBalanceScale size={ICON_SIZE} /> Budgets
-          </Link>
-
-          {/* Categories */}
-          <Link to="/categories" className={linkCls('/categories')}>
-            <FaTags size={ICON_SIZE} /> Categories
-          </Link>
-
-          {/* Accounts (collapsible, Premium) */}
-          <button
-            onClick={(e) => {
-              if (!hasPremiumAccess) { handlePremiumClick(e); }
-              else { setAccountsOpen(o => !o); }
-            }}
-            className={`flex items-center justify-between px-[18px] py-[5px] text-[12px] font-medium transition-colors w-full border-l-2
-              ${isActive('/accounts')
-                ? 'bg-white/10 text-white border-blue-400'
-                : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
-          >
-            <span className="flex items-center gap-[9px]">
-              <FaWallet size={ICON_SIZE} /> Accounts
-              {!hasPremiumAccess && <span className="text-[8px] font-bold bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded uppercase ml-1">Pro</span>}
-            </span>
-            {accountsOpen
-              ? <FaChevronDown size={10} className="text-slate-400" />
-              : <FaChevronRight size={10} className="text-slate-400" />}
-          </button>
-
-          {accountsOpen && hasPremiumAccess && (
-            <div className="bg-black/10">
-              <Link to="/accounts/payments" className={subLinkCls('/accounts/payments')}>
-                <FaMinus size={9} className="text-slate-500" /> Payment Collection
-              </Link>
-              <Link to="/accounts/statements" className={subLinkCls('/accounts/statements')}>
-                <FaMinus size={9} className="text-slate-500" /> Account Statements
-              </Link>
-            </div>
-          )}
-
-          {/* Reports (collapsible, Premium) */}
-          <button
-            onClick={(e) => {
-              if (!hasPremiumAccess) { handlePremiumClick(e); }
-              else { setReportsOpen(o => !o); }
-            }}
-            className={`flex items-center justify-between px-[18px] py-[5px] text-[12px] font-medium transition-colors w-full border-l-2
-              ${isActive('/reports')
-                ? 'bg-white/10 text-white border-blue-400'
-                : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
-          >
-            <span className="flex items-center gap-[9px]">
-              <FaChartBar size={ICON_SIZE} /> Reports
-              {!hasPremiumAccess && <span className="text-[8px] font-bold bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded uppercase ml-1">Pro</span>}
-            </span>
-            {reportsOpen
-              ? <FaChevronDown size={10} className="text-slate-400" />
-              : <FaChevronRight size={10} className="text-slate-400" />}
-          </button>
-
-          {reportsOpen && hasPremiumAccess && (
-            <div className="bg-black/10">
-              <Link to="/reports/gst" className={subLinkCls('/reports/gst')}>
-                <FaMinus size={9} className="text-slate-500" /> GST Reports
-              </Link>
-              <Link to="/reports/revenue" className={subLinkCls('/reports/revenue')}>
-                <FaMinus size={9} className="text-slate-500" /> Revenue Reports
-              </Link>
-              <Link to="/reports/profit-loss" className={subLinkCls('/reports/profit-loss')}>
-                <FaMinus size={9} className="text-slate-500" /> Profit &amp; Loss
-              </Link>
-              <Link to="/reports/balance-sheet" className={subLinkCls('/reports/balance-sheet')}>
-                <FaMinus size={9} className="text-slate-500" /> Balance Sheet
-              </Link>
-              <Link to="/reports/cash-flow" className={subLinkCls('/reports/cash-flow')}>
-                <FaMinus size={9} className="text-slate-500" /> Cash Flow
-              </Link>
-            </div>
-          )}
-
-          {/* Group 7: System & Settings */}
-          <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
-            System &amp; Settings
-          </div>
-
-          {/* Subscription */}
-          <Link to="/subscription" className={linkCls('/subscription')}>
-            <div className="flex items-center gap-[9px] text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 font-bold tracking-wide">
-              <FaStar size={ICON_SIZE} className="text-amber-400" /> Upgrade
-            </div>
-          </Link>
-
-          {/* Settings */}
-          <Link to="/settings" className={linkCls('/settings')}>
-            <FaCog size={ICON_SIZE} /> Settings
-          </Link>
-
-          {/* Admin Dashboard */}
-          {isSuperAdmin && (
-            <Link to="/admin" className={linkCls('/admin')}>
-              <FaLock size={ICON_SIZE} className="text-red-400" /> Admin Panel
-            </Link>
-          )}
+            return (
+              <div key={section.id} className="mb-2">
+                <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
+                  {section.title}
+                </div>
+                {section.items.map(item => renderSidebarItem(item))}
+              </div>
+            );
+          })}
         </nav>
 
         {/* Logout */}
