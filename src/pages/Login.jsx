@@ -35,13 +35,13 @@ const Login = () => {
 
   return (
     <div className="min-h-screen w-full flex overflow-hidden font-sans">
-      
+
       {/* Left Side - Fullscreen Illustration */}
       <div className="hidden lg:flex w-[60%] bg-[#0F3D3E] relative items-center justify-center overflow-hidden p-12">
-        
+
         {/* Abstract Invoice/Receipt Pattern Background */}
         <div className="absolute inset-0 opacity-20 flex items-center justify-center">
-            {/* Pattern removed as per request to remove SVGs */}
+          {/* Pattern removed as per request to remove SVGs */}
         </div>
 
         {/* Ambient Glows */}
@@ -50,37 +50,37 @@ const Login = () => {
 
         {/* Central Composition */}
         <div className="relative z-10 text-center">
-            <div className="relative inline-block mb-8">
-                {/* Floating Invoice Graphic */}
-                <div className="w-64 h-80 bg-white rounded-lg shadow-2xl p-6 transform -rotate-6 relative z-10 mx-auto">
-                    <div className="h-4 w-24 bg-teal-500 rounded mb-4"></div>
-                    <div className="space-y-3">
-                        <div className="h-2 w-full bg-slate-100 rounded"></div>
-                        <div className="h-2 w-full bg-slate-100 rounded"></div>
-                        <div className="h-2 w-3/4 bg-slate-100 rounded"></div>
-                    </div>
-                    <div className="mt-8 space-y-2">
-                        <div className="flex justify-between"><div className="h-2 w-1/3 bg-slate-200 rounded"></div><div className="h-2 w-10 bg-slate-200 rounded"></div></div>
-                        <div className="flex justify-between"><div className="h-2 w-1/3 bg-slate-200 rounded"></div><div className="h-2 w-10 bg-slate-200 rounded"></div></div>
-                        <div className="flex justify-between"><div className="h-2 w-1/3 bg-slate-200 rounded"></div><div className="h-2 w-10 bg-slate-200 rounded"></div></div>
-                    </div>
-                    <div className="mt-8 pt-4 border-t border-slate-100 flex justify-between items-center">
-                        <div className="h-3 w-16 bg-slate-300 rounded"></div>
-                        <div className="h-5 w-20 bg-teal-600 rounded"></div>
-                    </div>
-                    
-                    {/* Stamped seal */}
-                    <div className="absolute bottom-6 right-6 w-16 h-16 border-2 border-teal-500 rounded-full opacity-20 flex items-center justify-center transform -rotate-12">
-                        <span className="text-[10px] font-bold text-teal-600 uppercase">Paid</span>
-                    </div>
-                </div>
-                
-                {/* Background stacked paper */}
-                <div className="absolute top-4 left-8 w-64 h-80 bg-slate-200 rounded-lg shadow-lg transform rotate-3 -z-10"></div>
+          <div className="relative inline-block mb-8">
+            {/* Floating Invoice Graphic */}
+            <div className="w-64 h-80 bg-white rounded-lg shadow-2xl p-6 transform -rotate-6 relative z-10 mx-auto">
+              <div className="h-4 w-24 bg-teal-500 rounded mb-4"></div>
+              <div className="space-y-3">
+                <div className="h-2 w-full bg-slate-100 rounded"></div>
+                <div className="h-2 w-full bg-slate-100 rounded"></div>
+                <div className="h-2 w-3/4 bg-slate-100 rounded"></div>
+              </div>
+              <div className="mt-8 space-y-2">
+                <div className="flex justify-between"><div className="h-2 w-1/3 bg-slate-200 rounded"></div><div className="h-2 w-10 bg-slate-200 rounded"></div></div>
+                <div className="flex justify-between"><div className="h-2 w-1/3 bg-slate-200 rounded"></div><div className="h-2 w-10 bg-slate-200 rounded"></div></div>
+                <div className="flex justify-between"><div className="h-2 w-1/3 bg-slate-200 rounded"></div><div className="h-2 w-10 bg-slate-200 rounded"></div></div>
+              </div>
+              <div className="mt-8 pt-4 border-t border-slate-100 flex justify-between items-center">
+                <div className="h-3 w-16 bg-slate-300 rounded"></div>
+                <div className="h-5 w-20 bg-teal-600 rounded"></div>
+              </div>
+
+              {/* Stamped seal */}
+              <div className="absolute bottom-6 right-6 w-16 h-16 border-2 border-teal-500 rounded-full opacity-20 flex items-center justify-center transform -rotate-12">
+                <span className="text-[10px] font-bold text-teal-600 uppercase">Paid</span>
+              </div>
             </div>
 
-            <h2 className="text-4xl font-bold text-white mb-4">Streamline Your <br/> Billing Process</h2>
-            <p className="text-teal-200 text-lg max-w-md mx-auto leading-relaxed">Create, track, and manage invoices with professional ease and artistic precision.</p>
+            {/* Background stacked paper */}
+            <div className="absolute top-4 left-8 w-64 h-80 bg-slate-200 rounded-lg shadow-lg transform rotate-3 -z-10"></div>
+          </div>
+
+          <h2 className="text-4xl font-bold text-white mb-4">Streamline Your <br /> Billing Process</h2>
+          <p className="text-teal-200 text-lg max-w-md mx-auto leading-relaxed">Create, track, and manage invoices with professional ease and artistic precision.</p>
         </div>
       </div>
 

@@ -1,15 +1,159 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { FaDownload } from 'react-icons/fa';
 import api from '../api/axios';
 import Skeleton from '../components/Skeleton';
 
+// Premium Multi-Select Dropdown Component
+const MultiSelect = ({ label, options, selected, onChange, placeholder = "Select items", searchable = false }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleOption = (value) => {
+    if (selected.includes(value)) {
+      onChange(selected.filter(item => item !== value));
+    } else {
+      onChange([...selected, value]);
+    }
+  };
+
+  const selectAll = () => {
+    onChange(options.map(o => o.value));
+  };
+
+  const deselectAll = () => {
+    onChange([]);
+  };
+
+  const filteredOptions = options.filter(o =>
+    String(o.label).toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="relative select-none" ref={containerRef}>
+      <label className="block text-xs font-bold uppercase tracking-wider text-indigo-400 mb-2">{label}</label>
+
+      {/* Trigger Area */}
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full border border-white/60 rounded-xl px-3.5 py-2.5 text-sm bg-white/90 text-gray-900 font-semibold cursor-pointer focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all flex items-center justify-between min-h-[46px]"
+      >
+        <div className="flex flex-wrap gap-1.5 max-h-[80px] overflow-y-auto no-scrollbar py-0.5">
+          {selected.length === 0 ? (
+            <span className="text-gray-500 font-medium">{placeholder}</span>
+          ) : (
+            selected.map(val => {
+              const opt = options.find(o => o.value === val);
+              return (
+                <span
+                  key={val}
+                  className="inline-flex items-center gap-1 bg-indigo-100 text-indigo-900 px-2 py-0.5 rounded-lg text-xs font-bold border border-indigo-300 shadow-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleOption(val);
+                  }}
+                >
+                  {opt ? opt.label : val}
+                  <button className="hover:text-indigo-905 font-bold focus:outline-none ml-1 text-xs">&times;</button>
+                </span>
+              );
+            })
+          )}
+        </div>
+        <span className="text-gray-500 ml-2 select-none text-[10px] font-bold">
+          {isOpen ? '▲' : '▼'}
+        </span>
+      </div>
+
+      {/* Options Dropdown Menu - Solid High Contrast Background */}
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-2 bg-white border border-gray-300 rounded-2xl shadow-2xl overflow-hidden animate-rise-in max-h-[300px] flex flex-col">
+          {/* Action Header Controls */}
+          <div className="p-2.5 border-b border-gray-200 flex items-center justify-between text-xs bg-slate-55 select-none">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); selectAll(); }}
+                className="text-indigo-700 hover:text-indigo-900 font-extrabold px-2 py-1 rounded-lg hover:bg-indigo-50 transition-all duration-150"
+              >
+                Select All
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); deselectAll(); }}
+                className="text-slate-700 hover:text-slate-900 font-extrabold px-2 py-1 rounded-lg hover:bg-slate-100 transition-all duration-150"
+              >
+                Clear
+              </button>
+            </div>
+            <span className="text-slate-700 font-extrabold bg-slate-100 px-2 py-0.5 rounded-md">{selected.length} selected</span>
+          </div>
+
+          {/* Search box if enabled */}
+          {searchable && (
+            <div className="p-2 border-b border-gray-200 bg-white">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs bg-slate-50 outline-none focus:border-indigo-500 focus:bg-white transition-all font-bold text-gray-900"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+
+          {/* Scrolling Options Panel */}
+          <div className="overflow-y-auto flex-1 no-scrollbar p-1 max-h-[200px] bg-white">
+            {filteredOptions.length === 0 ? (
+              <div className="p-3 text-center text-xs text-slate-500 font-bold">No options found</div>
+            ) : (
+              filteredOptions.map(opt => {
+                const isChecked = selected.includes(opt.value);
+                return (
+                  <div
+                    key={opt.value}
+                    onClick={(e) => { e.stopPropagation(); toggleOption(opt.value); }}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${isChecked
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-slate-900 hover:bg-slate-100 bg-white'
+                      }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => { }}
+                      className={`rounded cursor-pointer pointer-events-none ${isChecked ? 'accent-indigo-600' : 'border-gray-400 text-indigo-600'}`}
+                    />
+                    <span className="truncate">{opt.label}</span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const PayrollReports = () => {
   const today = new Date();
-  const [month, setMonth] = useState(today.getMonth() + 1);
-  const [year, setYear] = useState(today.getFullYear());
+  const [selectedMonths, setSelectedMonths] = useState([today.getMonth() + 1]);
+  const [selectedYears, setSelectedYears] = useState([today.getFullYear()]);
   const [employees, setEmployees] = useState([]);
-  const [employeeId, setEmployeeId] = useState('');
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState('');
 
@@ -32,25 +176,150 @@ const PayrollReports = () => {
     return () => controller.abort();
   }, []);
 
-  const downloadReport = async (key, url, filename) => {
+  const downloadReport = async (url, filename) => {
+    const response = await api.get(url, { responseType: 'blob' });
+    const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(downloadUrl);
+  };
+
+  const handleDownloadRegister = async () => {
+    if (selectedMonths.length === 0 || selectedYears.length === 0) {
+      toast.error('Select at least one month and one year');
+      return;
+    }
+    setDownloading('payroll-sheet');
     try {
-      setDownloading(key);
-      const response = await api.get(url, { responseType: 'blob' });
-      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const downloadUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = filename;
-      link.click();
-      URL.revokeObjectURL(downloadUrl);
-      toast.success('Report downloaded');
+      for (const y of selectedYears) {
+        for (const m of selectedMonths) {
+          const monthName = new Date(0, m - 1).toLocaleString('en-US', { month: 'short' });
+          await downloadReport(`/payroll/export?month=${m}&year=${y}`, `payroll-register-${y}-${monthName}.xlsx`);
+        }
+      }
+      toast.success('Payroll register(s) downloaded successfully');
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || 'Failed to export report');
+      toast.error('Failed to download some registers');
     } finally {
       setDownloading('');
     }
   };
+
+  const handleDownloadBankTransfer = async () => {
+    if (selectedMonths.length === 0 || selectedYears.length === 0) {
+      toast.error('Select at least one month and one year');
+      return;
+    }
+    setDownloading('bank-transfer');
+    try {
+      for (const y of selectedYears) {
+        for (const m of selectedMonths) {
+          const monthName = new Date(0, m - 1).toLocaleString('en-US', { month: 'short' });
+          await downloadReport(`/reports/payroll-summary/bank-transfer?month=${m}&year=${y}&format=excel`, `bank-transfer-${y}-${monthName}.xlsx`);
+        }
+      }
+      toast.success('Bank transfer sheet(s) downloaded successfully');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to download some transfer sheets');
+    } finally {
+      setDownloading('');
+    }
+  };
+
+  const handleDownloadPFChallan = async () => {
+    if (selectedMonths.length === 0 || selectedYears.length === 0) {
+      toast.error('Select at least one month and one year');
+      return;
+    }
+    setDownloading('pf-challan');
+    try {
+      for (const y of selectedYears) {
+        for (const m of selectedMonths) {
+          const monthName = new Date(0, m - 1).toLocaleString('en-US', { month: 'short' });
+          await downloadReport(`/reports/payroll-summary/pf-challan?month=${m}&year=${y}&format=excel`, `pf-challan-${y}-${monthName}.xlsx`);
+        }
+      }
+      toast.success('PF Challan summary downloaded');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to download PF summary');
+    } finally {
+      setDownloading('');
+    }
+  };
+
+  const handleDownloadTDSRegister = async () => {
+    if (selectedYears.length === 0) {
+      toast.error('Select at least one year');
+      return;
+    }
+    setDownloading('tds-summary');
+    try {
+      for (const y of selectedYears) {
+        await downloadReport(`/reports/payroll-summary/tds-summary?year=${y}&format=excel`, `tds-summary-fy-${y}-${y + 1}.xlsx`);
+      }
+      toast.success('TDS Register(s) downloaded');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to download TDS summary');
+    } finally {
+      setDownloading('');
+    }
+  };
+
+  const handleDownloadEmployeeSummary = async () => {
+    if (selectedEmployees.length === 0) {
+      toast.error('Select target employee(s) first');
+      return;
+    }
+    if (selectedYears.length === 0) {
+      toast.error('Select year(s) first');
+      return;
+    }
+    setDownloading('employee-summary');
+    try {
+      for (const empId of selectedEmployees) {
+        const emp = employees.find(e => e._id === empId);
+        const empName = emp ? `${emp.firstName}_${emp.lastName}`.replace(/\s+/g, '_') : empId;
+        for (const y of selectedYears) {
+          await downloadReport(`/reports/payroll-summary/annual-employee-summary?employeeId=${empId}&year=${y}&format=excel`, `annual-summary-${empName}-${y}.xlsx`);
+        }
+      }
+      toast.success('Employee summary report(s) downloaded');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to download employee summary');
+    } finally {
+      setDownloading('');
+    }
+  };
+
+  // Generate Month Options
+  const monthOptions = Array.from({ length: 12 }, (_, index) => {
+    const val = index + 1;
+    return {
+      value: val,
+      label: new Date(0, index).toLocaleString('en-US', { month: 'long' })
+    };
+  });
+
+  // Generate Dynamic Year Options (Current year - 3 to Current year + 4)
+  const currentYear = today.getFullYear();
+  const yearOptions = Array.from({ length: 8 }, (_, idx) => {
+    const y = currentYear - 3 + idx;
+    return { value: y, label: String(y) };
+  });
+
+  // Generate Employee Options
+  const employeeOptions = employees.map(emp => ({
+    value: emp._id,
+    label: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unnamed Employee'
+  }));
 
   if (loading) {
     return (
@@ -76,28 +345,37 @@ const PayrollReports = () => {
         </div>
       </div>
 
-      {/* Control Panel Card */}
-      <div className="glass-water-card p-5 mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-rise-in">
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-indigo-400 mb-2">Select Month</label>
-          <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="w-full border border-white/50 rounded-xl px-3.5 py-2.5 text-sm bg-white/70 backdrop-blur-md outline-none text-gray-700 font-semibold focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all">
-            {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => (
-              <option key={value} value={value}>{new Date(0, value - 1).toLocaleString('en-US', { month: 'long' })}</option>
-            ))}
-          </select>
+      {/* Premium Multi-Select Control Panel Card */}
+      <div className="glass-water-card p-5 mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-rise-in relative z-30">
+        <div className="relative">
+          <MultiSelect
+            label="Select Month"
+            options={monthOptions}
+            selected={selectedMonths}
+            onChange={setSelectedMonths}
+            placeholder="Select months"
+          />
         </div>
 
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-indigo-400 mb-2">Select Year</label>
-          <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-full border border-white/50 rounded-xl px-3.5 py-2.5 text-sm bg-white/70 backdrop-blur-md outline-none text-gray-700 font-semibold focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all" />
+        <div className="relative">
+          <MultiSelect
+            label="Select Year"
+            options={yearOptions}
+            selected={selectedYears}
+            onChange={setSelectedYears}
+            placeholder="Select years"
+          />
         </div>
 
-        <div className="lg:col-span-2">
-          <label className="block text-xs font-bold uppercase tracking-wider text-indigo-400 mb-2">Target Employee (For Annual Summary)</label>
-          <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-full border border-white/50 rounded-xl px-3.5 py-2.5 text-sm bg-white/70 backdrop-blur-md outline-none text-gray-700 font-semibold focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all">
-            <option value="">Select employee for annual summary</option>
-            {employees.map((employee) => <option key={employee._id} value={employee._id}>{employee.firstName} {employee.lastName}</option>)}
-          </select>
+        <div className="lg:col-span-2 relative">
+          <MultiSelect
+            label="Target Employee (For Annual Summary)"
+            options={employeeOptions}
+            selected={selectedEmployees}
+            onChange={setSelectedEmployees}
+            placeholder="Select employees for annual summary"
+            searchable={true}
+          />
         </div>
       </div>
 
@@ -105,38 +383,32 @@ const PayrollReports = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 animate-rise-in" style={{ animationDelay: '100ms' }}>
         <ReportCard
           title="📄 Payroll Register"
-          description="Complete consolidated payroll summary sheet for all active/processed employees in the selected month."
-          onClick={() => downloadReport('payroll-sheet', `/payroll/export?month=${month}&year=${year}`, `payroll-sheet-${year}-${String(month).padStart(2, '0')}.xlsx`)}
+          description="Complete consolidated payroll summary sheet for all active/processed employees in the selected months and years."
+          onClick={handleDownloadRegister}
           loading={downloading === 'payroll-sheet'}
         />
         <ReportCard
           title="🏦 Bank Transfer Sheet"
           description="Ready-to-upload Excel sheet containing employee account numbers, bank details, IFSC codes, and net salary payouts."
-          onClick={() => downloadReport('bank-transfer', `/reports/payroll-summary/bank-transfer?month=${month}&year=${year}&format=excel`, `bank-transfer-${year}-${String(month).padStart(2, '0')}.xlsx`)}
+          onClick={handleDownloadBankTransfer}
           loading={downloading === 'bank-transfer'}
         />
         <ReportCard
           title="🛡️ PF Challan Summary"
           description="Aggregated statutory Provident Fund summary report detailing processed employer and employee PF contributions."
-          onClick={() => downloadReport('pf-challan', `/reports/payroll-summary/pf-challan?month=${month}&year=${year}&format=excel`, `pf-challan-${year}-${String(month).padStart(2, '0')}.xlsx`)}
+          onClick={handleDownloadPFChallan}
           loading={downloading === 'pf-challan'}
         />
         <ReportCard
           title="📊 Monthly TDS Register"
           description="Complete log of monthly TDS deductions made per employee for tax accounting and compliance auditing."
-          onClick={() => downloadReport('tds-summary', `/reports/payroll-summary/tds-summary?year=${year}&format=excel`, `tds-summary-fy-${year}-${year + 1}.xlsx`)}
+          onClick={handleDownloadTDSRegister}
           loading={downloading === 'tds-summary'}
         />
         <ReportCard
           title="👤 Annual Employee Summary"
           description="Chronological, year-long financial ledger report detailing monthly payouts, CTC allocations, and deductions."
-          onClick={() => {
-            if (!employeeId) {
-              toast.error('Select an employee first');
-              return;
-            }
-            downloadReport('employee-summary', `/reports/payroll-summary/annual-employee-summary?employeeId=${employeeId}&year=${year}&format=excel`, `employee-summary-${year}.xlsx`);
-          }}
+          onClick={handleDownloadEmployeeSummary}
           loading={downloading === 'employee-summary'}
         />
       </div>

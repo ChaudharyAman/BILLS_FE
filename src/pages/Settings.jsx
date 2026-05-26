@@ -1,18 +1,118 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { FaSave, FaUpload, FaBuilding, FaCog, FaEye, FaEyeSlash } from 'react-icons/fa';
+import {
+  FaSave, FaUpload, FaBuilding, FaCog, FaEye, FaEyeSlash,
+  FaArrowUp, FaArrowDown, FaUndo, FaCheckCircle, FaChevronDown, FaChevronRight, FaPlus, FaMinus, FaThLarge
+} from 'react-icons/fa';
+import * as Icons from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
+import { getSidebarLayout, saveSidebarLayout, resetSidebarLayout } from '../utils/sidebarConfig';
 
 const inputCls = 'w-full border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 text-sm';
 
 const Settings = () => {
-  const [tab, setTab] = useState('company'); // 'company' | 'software'
+  const [tab, setTab] = useState('company'); // 'company' | 'software' | 'sidebar'
   const [pageLoading, setPageLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [softLoading, setSoftLoading] = useState(false);
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // ── Sidebar Preferences Settings ──────────────────────────────────────────
+  const [customLayout, setCustomLayout] = useState([]);
+
+  useEffect(() => {
+    setCustomLayout(getSidebarLayout());
+  }, []);
+
+  const moveSectionUp = (index) => {
+    if (index === 0) return;
+    const newLayout = [...customLayout];
+    const temp = newLayout[index];
+    newLayout[index] = newLayout[index - 1];
+    newLayout[index - 1] = temp;
+    setCustomLayout(newLayout);
+  };
+
+  const moveSectionDown = (index) => {
+    if (index === customLayout.length - 1) return;
+    const newLayout = [...customLayout];
+    const temp = newLayout[index];
+    newLayout[index] = newLayout[index + 1];
+    newLayout[index + 1] = temp;
+    setCustomLayout(newLayout);
+  };
+
+  const toggleSectionVisibility = (index) => {
+    const newLayout = [...customLayout];
+    newLayout[index].hidden = !newLayout[index].hidden;
+    setCustomLayout(newLayout);
+  };
+
+  const moveItemUp = (sectionIndex, itemIndex) => {
+    if (itemIndex === 0) return;
+    const newLayout = [...customLayout];
+    const items = [...newLayout[sectionIndex].items];
+    const temp = items[itemIndex];
+    items[itemIndex] = items[itemIndex - 1];
+    items[itemIndex - 1] = temp;
+    newLayout[sectionIndex].items = items;
+    setCustomLayout(newLayout);
+  };
+
+  const moveItemDown = (sectionIndex, itemIndex) => {
+    const newLayout = [...customLayout];
+    const items = [...newLayout[sectionIndex].items];
+    if (itemIndex === items.length - 1) return;
+    const temp = items[itemIndex];
+    items[itemIndex] = items[itemIndex + 1];
+    items[itemIndex + 1] = temp;
+    newLayout[sectionIndex].items = items;
+    setCustomLayout(newLayout);
+  };
+
+  const toggleItemVisibility = (sectionIndex, itemIndex) => {
+    const newLayout = [...customLayout];
+    const items = [...newLayout[sectionIndex].items];
+    items[itemIndex].hidden = !items[itemIndex].hidden;
+    newLayout[sectionIndex].items = items;
+    setCustomLayout(newLayout);
+  };
+
+  const moveItemToSection = (currentSecIdx, itemIdx, targetSecId) => {
+    const targetSecIdx = customLayout.findIndex(s => s.id === targetSecId);
+    if (targetSecIdx === -1 || targetSecIdx === currentSecIdx) return;
+
+    const newLayout = [...customLayout];
+
+    const sourceSec = { ...newLayout[currentSecIdx] };
+    const sourceItems = [...sourceSec.items];
+    const [movedItem] = sourceItems.splice(itemIdx, 1);
+    sourceSec.items = sourceItems;
+    newLayout[currentSecIdx] = sourceSec;
+
+    const targetSec = { ...newLayout[targetSecIdx] };
+    const targetItems = [...targetSec.items];
+    targetItems.push(movedItem);
+    targetSec.items = targetItems;
+    newLayout[targetSecIdx] = targetSec;
+
+    setCustomLayout(newLayout);
+  };
+
+  const handleSaveSidebarLayout = () => {
+    saveSidebarLayout(customLayout);
+    alert('Sidebar layout preferences saved successfully!');
+  };
+
+  const handleResetSidebarLayout = () => {
+    if (window.confirm('Are you sure you want to reset sidebar layout to default?')) {
+      resetSidebarLayout();
+      setCustomLayout(getSidebarLayout());
+      alert('Sidebar layout reset to defaults!');
+    }
+  };
 
   // ── Company Settings ──────────────────────────────────────────────────────
   const [formData, setFormData] = useState({
@@ -159,23 +259,24 @@ const Settings = () => {
 
   // ── Shared styles ─────────────────────────────────────────────────────────
   const tabBtn = (t) =>
-    `px-5 py-2.5 text-sm font-semibold rounded-lg transition-colors ${
-      tab === t
-        ? 'bg-teal-600 text-white shadow-sm'
-        : 'text-gray-600 hover:bg-gray-100'
+    `px-5 py-2.5 text-sm font-semibold rounded-lg transition-colors ${tab === t
+      ? 'bg-teal-600 text-white shadow-sm'
+      : 'text-gray-600 hover:bg-gray-100'
     }`;
 
   return (
     <div className="container mx-auto p-6 max-w-5xl">
 
       {/* ── Page Header + Toggle ── */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-3">
-          {tab === 'company'
-            ? <FaBuilding className="text-teal-600" size={26} />
-            : <FaCog className="text-teal-600" size={26} />}
+          {tab === 'company' && <FaBuilding className="text-teal-600" size={26} />}
+          {tab === 'software' && <FaCog className="text-teal-600" size={26} />}
+          {tab === 'sidebar' && <FaCog className="text-teal-600" size={26} />}
           <h1 className="text-2xl font-bold text-gray-800">
-            {tab === 'company' ? 'Company Settings' : 'Software Settings'}
+            {tab === 'company' && 'Company Settings'}
+            {tab === 'software' && 'Software Settings'}
+            {tab === 'sidebar' && 'Sidebar Preferences'}
           </h1>
         </div>
         <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
@@ -185,35 +286,38 @@ const Settings = () => {
           <button type="button" onClick={() => setTab('software')} data-testid="settings-software-tab" className={tabBtn('software')}>
             ⚙️ Software
           </button>
+          <button type="button" onClick={() => setTab('sidebar')} className={tabBtn('sidebar')}>
+            🧭 Sidebar Layout
+          </button>
         </div>
       </div>
 
       {/* ── COMPANY SETTINGS ── */}
       {pageLoading ? (
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-           <div className="flex flex-col md:flex-row gap-8 items-start border-b border-gray-100 pb-6 mb-6">
-              <div className="w-full md:w-1/3">
-                 <Skeleton width="100px" height="20px" className="mb-2" />
-                 <Skeleton width="100%" height="160px" className="rounded-lg" />
+          <div className="flex flex-col md:flex-row gap-8 items-start border-b border-gray-100 pb-6 mb-6">
+            <div className="w-full md:w-1/3">
+              <Skeleton width="100px" height="20px" className="mb-2" />
+              <Skeleton width="100%" height="160px" className="rounded-lg" />
+            </div>
+            <div className="w-full md:w-2/3 space-y-4">
+              <div><Skeleton width="120px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+              <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+                <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
               </div>
-              <div className="w-full md:w-2/3 space-y-4">
-                 <div><Skeleton width="120px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
-                 <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
-                    <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
-                 </div>
-              </div>
-           </div>
-           <div className="space-y-4">
-               <div><Skeleton width="150px" height="24px" className="mb-4" /></div>
-               <div><Skeleton width="120px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
-               <div className="grid grid-cols-3 gap-3">
-                   <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
-                   <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
-                   <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
-               </div>
-           </div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div><Skeleton width="150px" height="24px" className="mb-4" /></div>
+            <div><Skeleton width="120px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+            <div className="grid grid-cols-3 gap-3">
+              <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+              <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+              <div><Skeleton width="80px" height="20px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>
+            </div>
+          </div>
         </div>
       ) : tab === 'company' && (
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
@@ -250,8 +354,8 @@ const Settings = () => {
                 <p className="text-xs text-gray-500 mt-2 text-center">Appears on your invoices.</p>
               </div>
 
-               {/* Signature */}
-               <div className="w-full md:w-1/3">
+              {/* Signature */}
+              <div className="w-full md:w-1/3">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Digital Signature</label>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center min-h-[160px] bg-gray-50 hover:bg-gray-100 transition-colors relative">
                   {formData.signatureUrl ? (
@@ -486,6 +590,277 @@ const Settings = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* ── SIDEBAR SETTINGS ── */}
+      {tab === 'sidebar' && (
+        <div className="flex flex-col lg:flex-row gap-6 animate-fade-in">
+          {/* Left Column: Layout Editor */}
+          <div className="flex-1 space-y-6">
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Configure Sidebar Preferences</h3>
+                  <p className="text-xs text-gray-500 mt-1">Reorder categories, reorder tabs, or hide sections you don't use.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetSidebarLayout}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors border border-rose-200"
+                >
+                  <FaUndo size={11} /> Reset Defaults
+                </button>
+              </div>
+
+              {/* List of Custom Sections */}
+              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+                {customLayout.map((section, secIdx) => (
+                  <div
+                    key={section.id}
+                    className={`p-4 rounded-xl border transition-all ${
+                      section.hidden
+                        ? 'bg-gray-50/60 border-gray-200 opacity-60'
+                        : 'bg-gradient-to-r from-teal-500/5 to-transparent border-teal-600/20 shadow-sm'
+                    }`}
+                  >
+                    {/* Section Header */}
+                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm text-gray-800 tracking-wide uppercase">
+                          {section.title}
+                        </span>
+                        {section.hidden && (
+                          <span className="text-[10px] font-medium bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">
+                            Hidden
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-1.5">
+                        {/* Section Up/Down Arrows */}
+                        <button
+                          type="button"
+                          disabled={secIdx === 0}
+                          onClick={() => moveSectionUp(secIdx)}
+                          className="p-1 rounded bg-white hover:bg-gray-100 border border-gray-200 text-gray-600 transition-colors disabled:opacity-30 disabled:hover:bg-white"
+                          title="Move section up"
+                        >
+                          <FaArrowUp size={11} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={secIdx === customLayout.length - 1}
+                          onClick={() => moveSectionDown(secIdx)}
+                          className="p-1 rounded bg-white hover:bg-gray-100 border border-gray-200 text-gray-600 transition-colors disabled:opacity-30 disabled:hover:bg-white"
+                          title="Move section down"
+                        >
+                          <FaArrowDown size={11} />
+                        </button>
+                        {/* Visibility Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => toggleSectionVisibility(secIdx)}
+                          className={`p-1 rounded border transition-colors ${
+                            section.hidden
+                              ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-600'
+                              : 'bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-600'
+                          }`}
+                          title={section.hidden ? 'Show category' : 'Hide category'}
+                        >
+                          {section.hidden ? <FaEyeSlash size={12} /> : <FaEye size={12} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Section Items */}
+                    {!section.hidden ? (
+                      <div className="space-y-2">
+                        {section.items.map((item, itemIdx) => {
+                          const ItemIcon = Icons[item.iconName] || Icons.FaMinus;
+                          return (
+                            <div
+                              key={item.id}
+                              className={`flex items-center justify-between p-2 rounded-lg bg-white border border-gray-100 shadow-sm transition-all ${
+                                item.hidden ? 'opacity-40 border-dashed bg-gray-50' : 'hover:border-teal-500/30'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-400">
+                                  <ItemIcon size={13} className={item.isSpecial ? "text-amber-400" : "text-gray-500"} />
+                                </span>
+                                <span className="text-xs font-medium text-gray-700">
+                                  {item.label}
+                                </span>
+                                {item.isPremium && (
+                                  <span className="text-[8px] font-bold bg-amber-500/20 text-amber-500 px-1 py-0.5 rounded uppercase">
+                                    Pro
+                                  </span>
+                                )}
+                                {item.isSuperAdmin && (
+                                  <span className="text-[8px] font-bold bg-red-500/20 text-red-500 px-1 py-0.5 rounded uppercase">
+                                    Admin
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1.5">
+                                {/* Select Heading Dropdown */}
+                                <select
+                                  value={section.id}
+                                  onChange={(e) => moveItemToSection(secIdx, itemIdx, e.target.value)}
+                                  className="text-[10px] border border-gray-200 rounded px-1.5 py-0.5 bg-gray-50 text-gray-500 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 focus:outline-none max-w-[110px] truncate cursor-pointer transition-all hover:bg-gray-100 mr-1"
+                                  title="Move to another heading"
+                                >
+                                  {customLayout.map(s => (
+                                    <option key={s.id} value={s.id}>
+                                      Heading: {s.title}
+                                    </option>
+                                  ))}
+                                </select>
+
+                                {/* Item Up/Down Arrows */}
+                                <button
+                                  type="button"
+                                  disabled={itemIdx === 0}
+                                  onClick={() => moveItemUp(secIdx, itemIdx)}
+                                  className="p-1 rounded hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-20"
+                                  title="Move item up"
+                                >
+                                  <FaArrowUp size={10} />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={itemIdx === section.items.length - 1}
+                                  onClick={() => moveItemDown(secIdx, itemIdx)}
+                                  className="p-1 rounded hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-20"
+                                  title="Move item down"
+                                >
+                                  <FaArrowDown size={10} />
+                                </button>
+                                {/* Visibility Toggle */}
+                                <button
+                                  type="button"
+                                  onClick={() => toggleItemVisibility(secIdx, itemIdx)}
+                                  className={`p-1 rounded transition-colors ${
+                                    item.hidden
+                                      ? 'text-rose-400 hover:text-rose-600'
+                                      : 'text-teal-500 hover:text-teal-700'
+                                  }`}
+                                  title={item.hidden ? 'Show tab' : 'Hide tab'}
+                                >
+                                  {item.hidden ? <FaEyeSlash size={11} /> : <FaEye size={11} />}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-gray-400 text-center py-1">Items inside this section are currently hidden.</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Save Layout Action */}
+              <div className="flex justify-end pt-4 mt-6 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={handleSaveSidebarLayout}
+                  className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all hover:shadow hover:-translate-y-0.5"
+                >
+                  <FaSave size={18} /> Save Layout Preferences
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Live Interactive Sidebar Preview */}
+          <div className="hidden lg:block w-[260px] flex-shrink-0">
+            <div className="sticky top-6 bg-white rounded-xl shadow-md border border-gray-200 p-4">
+              <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-1.5">
+                <FaCheckCircle size={14} className="text-teal-600" />
+                Live Sidebar Preview
+              </h4>
+              
+              {/* Miniature Sidebar Frame */}
+              <div
+                className="w-full rounded-lg overflow-hidden border border-slate-700 flex flex-col h-[520px] shadow-lg shadow-slate-900/10"
+                style={{ background: '#1a2e44' }}
+              >
+                {/* Mini Header */}
+                <div className="px-3.5 py-3 border-b border-white/10 flex flex-col">
+                  <h1 className="text-[12px] font-bold text-white flex items-center gap-1.5 tracking-wide">
+                    <FaThLarge size={11} className="text-blue-400" />
+                    Flance
+                  </h1>
+                  <span className="text-[6px] text-slate-400 font-bold tracking-widest uppercase ml-[17px] mt-[0.5px]">
+                    Pro Member
+                  </span>
+                </div>
+
+                {/* Mini Navigation */}
+                <div className="flex-1 py-2 overflow-y-auto no-scrollbar max-h-[440px]">
+                  {customLayout.map(section => {
+                    if (section.hidden) return null;
+
+                    const visibleItems = section.items.filter(item => !item.hidden);
+                    if (visibleItems.length === 0) return null;
+
+                    return (
+                      <div key={section.id} className="mb-2">
+                        <div className="px-3.5 pt-1.5 pb-[2px] text-[7.5px] font-bold text-slate-400/80 tracking-wider uppercase">
+                          {section.title}
+                        </div>
+                        {visibleItems.map(item => {
+                          const IconComp = Icons[item.iconName] || Icons.FaMinus;
+
+                          if (item.type === 'collapsible') {
+                            return (
+                              <div
+                                key={item.id}
+                                className="flex items-center justify-between px-3.5 py-1 text-[10px] text-slate-300 font-medium w-full"
+                              >
+                                <span className="flex items-center gap-1.5">
+                                  <IconComp size={9} /> {item.label}
+                                  {item.isPremium && (
+                                    <span className="text-[6px] font-bold bg-amber-500/20 text-amber-400 px-0.5 rounded uppercase">Pro</span>
+                                  )}
+                                </span>
+                                <FaChevronRight size={7} className="text-slate-500" />
+                              </div>
+                            );
+                          }
+
+                          if (item.isSpecial) {
+                            return (
+                              <div
+                                key={item.id}
+                                className="flex items-center gap-1.5 px-3.5 py-1 text-[10px] text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 font-bold w-full"
+                              >
+                                <IconComp size={9} className="text-amber-400" /> {item.label}
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div
+                              key={item.id}
+                              className="flex items-center gap-1.5 px-3.5 py-1 text-[10px] text-slate-300 font-medium w-full"
+                            >
+                              <IconComp size={9} /> {item.label}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <p className="text-[10px] text-gray-400 mt-2 text-center">Preview dynamically shows how the sidebar updates before saving.</p>
+            </div>
+          </div>
         </div>
       )}
     </div>

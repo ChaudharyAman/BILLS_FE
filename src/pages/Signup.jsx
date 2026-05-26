@@ -39,7 +39,7 @@ const Signup = () => {
       });
 
       storeAuthSession(response.data);
-      
+
       navigate('/invoices');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create account');
@@ -50,13 +50,13 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen w-full flex overflow-hidden font-sans">
-      
+
       {/* Left Side - Fullscreen Illustration */}
       <div className="hidden lg:flex w-[60%] bg-[#0F3D3E] relative items-center justify-center overflow-hidden p-12">
-        
+
         {/* Abstract Invoice/Receipt Pattern Background */}
         <div className="absolute inset-0 opacity-20 flex items-center justify-center">
-            {/* Pattern removed as per request to remove SVGs */}
+          {/* Pattern removed as per request to remove SVGs */}
         </div>
 
         {/* Ambient Glows */}
@@ -65,37 +65,37 @@ const Signup = () => {
 
         {/* Central Composition */}
         <div className="relative z-10 text-center">
-            <div className="relative inline-block mb-8">
-                {/* Floating Invoice Graphic */}
-                <div className="w-64 h-80 bg-white rounded-lg shadow-2xl p-6 transform rotate-6 relative z-10 mx-auto">
-                    <div className="h-4 w-24 bg-teal-500 rounded mb-4"></div>
-                    <div className="space-y-3">
-                        <div className="h-2 w-full bg-slate-100 rounded"></div>
-                        <div className="h-2 w-full bg-slate-100 rounded"></div>
-                        <div className="h-2 w-3/4 bg-slate-100 rounded"></div>
-                    </div>
-                    
-                     {/* Growth Chart graphic for signup appeal */}
-                    <div className="mt-8 h-24 flex items-end justify-between px-2 gap-2">
-                        <div className="w-4 bg-teal-200 rounded-t h-[40%]"></div>
-                        <div className="w-4 bg-teal-300 rounded-t h-[60%]"></div>
-                        <div className="w-4 bg-teal-400 rounded-t h-[50%]"></div>
-                        <div className="w-4 bg-teal-500 rounded-t h-[80%]"></div>
-                         <div className="w-4 bg-teal-600 rounded-t h-[100%] shadow-lg"></div>
-                    </div>
-                    
-                    {/* Stamped seal */}
-                    <div className="absolute -top-4 -right-4 w-14 h-14 bg-teal-500 rounded-full flex items-center justify-center shadow-lg text-white font-bold">
-                        NEW
-                    </div>
-                </div>
-                
-                {/* Background stacked paper */}
-                <div className="absolute top-4 -left-6 w-64 h-80 bg-slate-200 rounded-lg shadow-lg transform -rotate-3 -z-10"></div>
+          <div className="relative inline-block mb-8">
+            {/* Floating Invoice Graphic */}
+            <div className="w-64 h-80 bg-white rounded-lg shadow-2xl p-6 transform rotate-6 relative z-10 mx-auto">
+              <div className="h-4 w-24 bg-teal-500 rounded mb-4"></div>
+              <div className="space-y-3">
+                <div className="h-2 w-full bg-slate-100 rounded"></div>
+                <div className="h-2 w-full bg-slate-100 rounded"></div>
+                <div className="h-2 w-3/4 bg-slate-100 rounded"></div>
+              </div>
+
+              {/* Growth Chart graphic for signup appeal */}
+              <div className="mt-8 h-24 flex items-end justify-between px-2 gap-2">
+                <div className="w-4 bg-teal-200 rounded-t h-[40%]"></div>
+                <div className="w-4 bg-teal-300 rounded-t h-[60%]"></div>
+                <div className="w-4 bg-teal-400 rounded-t h-[50%]"></div>
+                <div className="w-4 bg-teal-500 rounded-t h-[80%]"></div>
+                <div className="w-4 bg-teal-600 rounded-t h-[100%] shadow-lg"></div>
+              </div>
+
+              {/* Stamped seal */}
+              <div className="absolute -top-4 -right-4 w-14 h-14 bg-teal-500 rounded-full flex items-center justify-center shadow-lg text-white font-bold">
+                NEW
+              </div>
             </div>
 
-            <h2 className="text-4xl font-bold text-white mb-4">Join the Future <br/> of Invoicing</h2>
-            <p className="text-teal-200 text-lg max-w-md mx-auto leading-relaxed">Start your journey today and experience seamless financial management.</p>
+            {/* Background stacked paper */}
+            <div className="absolute top-4 -left-6 w-64 h-80 bg-slate-200 rounded-lg shadow-lg transform -rotate-3 -z-10"></div>
+          </div>
+
+          <h2 className="text-4xl font-bold text-white mb-4">Join the Future <br /> of Invoicing</h2>
+          <p className="text-teal-200 text-lg max-w-md mx-auto leading-relaxed">Start your journey today and experience seamless financial management.</p>
         </div>
       </div>
 
