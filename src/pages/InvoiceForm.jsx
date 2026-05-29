@@ -930,7 +930,7 @@ const InvoiceForm = () => {
             {(invoiceType === 'Tax Invoice' || invoiceType === 'Excise Invoice') && (
               <div>
                 <label className={lbl}>Place of Supply</label>
-                <input className={inp} placeholder="e.g. HR (26)" value={formData.placeOfSupply}
+                <input className={inp} placeholder="e.g. Haryana" value={formData.placeOfSupply}
                   data-testid="invoice-place-of-supply"
                   onChange={(e) => setFormData({ ...formData, placeOfSupply: e.target.value })} />
               </div>
