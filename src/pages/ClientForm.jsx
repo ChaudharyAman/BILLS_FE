@@ -26,6 +26,9 @@ const ClientForm = ({ onSuccess, onCancel }) => {
     currency: 'INR',
     isVendor: false,
     clientWiseItemPrice: false,
+    tds_applicable: false,
+    default_tds_section: '',
+    default_tds_rate: 0,
     
     // Addresses
     billingAddress: {
@@ -70,6 +73,23 @@ const ClientForm = ({ onSuccess, onCancel }) => {
     email: '',
     phone: '',
   });
+
+  const [panError, setPanError] = useState('');
+
+  // Sync Default TDS Rate based on Section & ClientType
+  useEffect(() => {
+    if (formData.tds_applicable) {
+      const section = formData.default_tds_section || '194C';
+      if (section === '194C') {
+        const isIndividual = formData.clientType === 'Individual';
+        setFormData(prev => ({ ...prev, default_tds_rate: isIndividual ? 1 : 2 }));
+      } else if (['194J', '194I', '194A'].includes(section)) {
+        setFormData(prev => ({ ...prev, default_tds_rate: 10 }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, default_tds_rate: 0 }));
+    }
+  }, [formData.tds_applicable, formData.default_tds_section, formData.clientType]);
 
   useEffect(() => {
     if (id && !onSuccess) { 
@@ -206,6 +226,12 @@ const ClientForm = ({ onSuccess, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const panVal = formData.pan ? formData.pan.toUpperCase() : '';
+    if (panVal && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(panVal)) {
+        setPanError('Invalid PAN format (e.g., ABCDE1234F)');
+        alert('Please enter a valid PAN number before saving.');
+        return;
+    }
     setLoading(true);
     try {
       const payload = { ...formData };
@@ -215,7 +241,6 @@ const ClientForm = ({ onSuccess, onCancel }) => {
           payload.contacts = [...payload.contacts, newContact];
       }
 
-      // Ensure place of supply is set if empty (legacy)
       // Ensure place of supply is set if empty (legacy)
       if (!payload.placeOfSupply && payload.billingAddress.state) {
           payload.placeOfSupply = payload.billingAddress.state;
@@ -333,15 +358,15 @@ const ClientForm = ({ onSuccess, onCancel }) => {
                             data-testid="client-email"
                             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                     </div>
-                     <div>
+                    <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">GST Treatment</label>
-                         <select name="gstTreatment" value={formData.gstTreatment} onChange={handleChange} 
+                        <select name="gstTreatment" value={formData.gstTreatment} onChange={handleChange} 
                              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all">
                              <option value="Registered Business">Registered Business</option>
                              <option value="Consumer">Consumer</option>
                              <option value="Overseas">Overseas</option>
                              <option value="SEZ">SEZ</option>
-                         </select>
+                        </select>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                         <div className="col-span-2">
@@ -357,8 +382,35 @@ const ClientForm = ({ onSuccess, onCancel }) => {
                     </div>
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">PAN</label>
-                        <input type="text" name="pan" value={formData.pan} onChange={handleChange}
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all uppercase" />
+                        <input 
+                            type="text" 
+                            name="pan" 
+                            maxLength={10}
+                            value={formData.pan} 
+                            onChange={(e) => {
+                                const val = e.target.value.toUpperCase();
+                                setFormData(prev => ({ ...prev, pan: val }));
+                                if (panError) {
+                                    if (/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val) || !val) {
+                                        setPanError('');
+                                    }
+                                }
+                            }}
+                            onBlur={(e) => {
+                                const val = e.target.value.toUpperCase();
+                                if (val && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val)) {
+                                    setPanError('Invalid PAN format (e.g., ABCDE1234F)');
+                                } else {
+                                    setPanError('');
+                                }
+                            }}
+                            className={`w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all uppercase ${
+                                panError ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-teal-500/20 focus:border-teal-500'
+                            }`} 
+                        />
+                        {panError && (
+                            <p className="mt-1 text-xs text-red-500 font-medium">{panError}</p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">TAN</label>
@@ -367,11 +419,95 @@ const ClientForm = ({ onSuccess, onCancel }) => {
                     </div>
                 </div>
             </div>
+
+            {/* TDS Configuration Card */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wide">TDS Configuration</h3>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200/60 shadow-sm">
+                        <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-slate-700">TDS Applicable by default</span>
+                            <span className="text-[11px] text-slate-400">Enable TDS defaults for invoices</span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const nextVal = !formData.tds_applicable;
+                                setFormData(prev => ({
+                                    ...prev,
+                                    tds_applicable: nextVal,
+                                    default_tds_section: nextVal ? prev.default_tds_section || '194C' : ''
+                                }));
+                            }}
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                formData.tds_applicable ? 'bg-teal-600' : 'bg-slate-200'
+                            }`}
+                        >
+                            <span
+                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                    formData.tds_applicable ? 'translate-x-5' : 'translate-x-0'
+                                }`}
+                            />
+                        </button>
+                    </div>
+
+                    {formData.tds_applicable && (
+                        <div className="p-3 bg-teal-50/30 rounded-lg border border-teal-100/60 space-y-3 transition-all animate-fadeIn">
+                             <div>
+                                 <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Default TDS Section *</label>
+                                 <select
+                                     name="default_tds_section"
+                                     value={formData.default_tds_section}
+                                     onChange={(e) => {
+                                         const sec = e.target.value;
+                                         setFormData(prev => ({
+                                             ...prev,
+                                             default_tds_section: sec,
+                                             default_tds_rate: sec === 'Manual' ? prev.default_tds_rate || 0 : prev.default_tds_rate
+                                         }));
+                                     }}
+                                     className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                                 >
+                                     <option value="194C">194C – Contractor (1% / 2%)</option>
+                                     <option value="194J">194J – Professional/Technical (10%)</option>
+                                     <option value="194I">194I – Rent (10%)</option>
+                                     <option value="194A">194A – Interest (10%)</option>
+                                     <option value="Manual">Manual (Custom Rate)</option>
+                                 </select>
+                             </div>
+                             <div>
+                                 <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Default TDS Rate %</label>
+                                 <input
+                                     type="number"
+                                     name="default_tds_rate"
+                                     step="0.01"
+                                     min="0"
+                                     max="100"
+                                     value={formData.default_tds_rate}
+                                     readOnly={formData.default_tds_section !== 'Manual'}
+                                     onChange={(e) => {
+                                         if (formData.default_tds_section === 'Manual') {
+                                             setFormData(prev => ({
+                                                 ...prev,
+                                                 default_tds_rate: parseFloat(e.target.value) || 0
+                                             }));
+                                         }
+                                     }}
+                                     className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all ${
+                                         formData.default_tds_section !== 'Manual' 
+                                             ? 'bg-slate-100 text-slate-500 font-medium cursor-not-allowed border-slate-200' 
+                                             : 'bg-white border-slate-200 focus:ring-teal-500/20 focus:border-teal-500'
+                                     }`}
+                                 />
+                             </div>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
 
         {/* RIGHT COLUMN - TABS & CONTENT */}
         <div className="w-full lg:w-2/3 flex flex-col gap-6">
-            
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[500px] flex flex-col">
                 {/* Tabs Header */}
                 <div className="flex border-b border-slate-100 bg-slate-50/50">
@@ -501,8 +637,8 @@ const ClientForm = ({ onSuccess, onCancel }) => {
                                                 <input type="text" name="shippingAddress.country" value={formData.shippingAddress.country} onChange={handleChange}
                                                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                              </div>
-                                        </div>
-                                    </div>
+                                         </div>
+                                     </div>
                                 )}
                              </div>
                         </div>

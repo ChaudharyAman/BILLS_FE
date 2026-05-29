@@ -13,6 +13,14 @@ const INVOICE_TYPES = ['Invoice', 'Retail Invoice', 'Tax Invoice', 'Excise Invoi
 const STANDARD_TAX_RATES = [0, 5, 12, 18, 28];
 const MAX_GST_RATE = 28;
 
+const TDS_SECTION_LABELS = {
+  '194C': 'Contractor',
+  '194J': 'Professional/Technical Fees',
+  '194I': 'Rent',
+  '194A': 'Interest',
+  'Manual': 'Manual Custom Rate'
+};
+
 const TAX_TYPES = {
   'Invoice': false,
   'Retail Invoice': false,
@@ -199,6 +207,12 @@ const InvoiceForm = () => {
     fy: '',
     currency: 'INR',
     tds: 0,
+    tdsApplicable: false,
+    tdsSection: '',
+    tdsRate: 0,
+    client_will_deduct_tds: false,
+    tds_receivable_amount: 0,
+    expected_receipt: 0,
     tcs: 0,
     drCr: 'Dr.',
     purchaseOrderRef: '',
@@ -464,7 +478,13 @@ const InvoiceForm = () => {
         },
         fy: inv.fy || '',
         currency: inv.currency || 'INR',
-        tds: inv.tds || 0,
+        tds: inv.tds_amount !== undefined ? inv.tds_amount : (inv.tds || 0),
+        tdsApplicable: inv.tds_applicable !== undefined ? inv.tds_applicable : (inv.tdsApplicable || false),
+        tdsSection: inv.tds_section !== undefined ? inv.tds_section : (inv.tdsSection || ''),
+        tdsRate: inv.tds_rate !== undefined ? inv.tds_rate : (inv.tdsRate || 0),
+        client_will_deduct_tds: inv.client_will_deduct_tds !== undefined ? inv.client_will_deduct_tds : (inv.tds_applicable !== undefined ? inv.tds_applicable : (inv.tdsApplicable || false)),
+        tds_receivable_amount: inv.tds_receivable_amount !== undefined ? inv.tds_receivable_amount : (inv.tds_amount !== undefined ? inv.tds_amount : (inv.tds || 0)),
+        expected_receipt: inv.expected_receipt !== undefined ? inv.expected_receipt : (inv.net_payable !== undefined ? inv.net_payable : 0),
         tcs: inv.tcs || 0,
         drCr: inv.drCr || 'Dr.',
         purchaseOrderRef: inv.purchaseOrderRef || '',
@@ -574,6 +594,67 @@ const InvoiceForm = () => {
     return roundTwo(sub + taxToAdd + totalExcise + ship + custom - disc + tcs);
   };
 
+  useEffect(() => {
+    const isApplicable = formData.client_will_deduct_tds || formData.tdsApplicable;
+    if (!isApplicable) {
+      if (formData.tds !== 0 || formData.tdsRate !== 0 || formData.tdsSection !== '' || formData.client_will_deduct_tds || formData.tds_receivable_amount !== 0 || formData.expected_receipt !== 0) {
+        setFormData(prev => ({
+          ...prev,
+          tds: 0,
+          tdsRate: 0,
+          tdsSection: '',
+          client_will_deduct_tds: false,
+          tdsApplicable: false,
+          tds_receivable_amount: 0,
+          expected_receipt: 0
+        }));
+      }
+      return;
+    }
+
+    const section = formData.tdsSection || '194C';
+    let rate = formData.tdsRate;
+
+    if (section !== 'Manual') {
+      const client = clients.find(c => c._id === formData.clientRef);
+      if (section === '194C') {
+        rate = client?.clientType === 'Individual' ? 1 : 2;
+      } else if (section === '194J') {
+        rate = 10;
+      } else if (section === '194I') {
+        rate = 10;
+      } else if (section === '194A') {
+        rate = 10;
+      }
+    }
+
+    const subtotal = getSubTotal();
+    const amount = roundTwo((subtotal * (Number(rate) || 0)) / 100);
+    const grand = getGrandTotal();
+    const expected = roundTwo(grand - amount);
+
+    if (
+      formData.tdsRate !== rate || 
+      formData.tds !== amount || 
+      formData.tdsSection !== section ||
+      formData.client_will_deduct_tds !== isApplicable ||
+      formData.tdsApplicable !== isApplicable ||
+      formData.tds_receivable_amount !== amount ||
+      formData.expected_receipt !== expected
+    ) {
+      setFormData(prev => ({
+        ...prev,
+        tdsSection: section,
+        tdsRate: rate,
+        tds: amount,
+        client_will_deduct_tds: isApplicable,
+        tdsApplicable: isApplicable,
+        tds_receivable_amount: amount,
+        expected_receipt: expected
+      }));
+    }
+  }, [formData.client_will_deduct_tds, formData.tdsApplicable, formData.tdsSection, formData.clientRef, clients, formData.items]);
+
   // ── Item helpers ──────────────────────────────────────────────
   const updateItem = (index, field, value) => {
     const newItems = [...formData.items];
@@ -644,8 +725,25 @@ const InvoiceForm = () => {
       return;
     }
     setLoading(true);
+    const activeTdsSectionLabel = TDS_SECTION_LABELS[formData.tdsSection] || '';
+    const activeTdsBaseAmount = getSubTotal();
+    const activeTdsAmount = formData.tdsApplicable ? Number(formData.tds) : 0;
+    const { cgst, sgst, igst } = getTaxBreakdown();
+    const gstTotal = cgst + sgst + igst;
+    const activeNetPayable = roundTwo(activeTdsBaseAmount + (formData.reverseCharge ? 0 : gstTotal) - activeTdsAmount);
+
     const payload = {
       ...formData,
+      tds_applicable: formData.client_will_deduct_tds || formData.tdsApplicable,
+      tds_section: formData.tdsSection,
+      tds_section_label: activeTdsSectionLabel,
+      tds_rate: Number(formData.tdsRate) || 0,
+      tds_base_amount: activeTdsBaseAmount,
+      tds_amount: activeTdsAmount,
+      net_payable: activeNetPayable,
+      client_will_deduct_tds: formData.client_will_deduct_tds || formData.tdsApplicable,
+      tds_receivable_amount: activeTdsAmount,
+      expected_receipt: activeNetPayable,
       transport: { ...formData.transport, poNumber: formData.poNumber, poDate: formData.poDate },
     };
     try {
@@ -795,8 +893,30 @@ const InvoiceForm = () => {
                   className={inp}
                   value={formData.clientRef}
                   onChange={(e) => {
-                    if (e.target.value === '_CREATE_NEW_') setIsClientModalOpen(true);
-                    else setFormData({ ...formData, clientRef: e.target.value });
+                    const clientId = e.target.value;
+                    if (clientId === '_CREATE_NEW_') {
+                      setIsClientModalOpen(true);
+                    } else {
+                      const selectedClient = clients.find(c => c._id === clientId);
+                      if (selectedClient) {
+                        const tdsApp = isPro ? (selectedClient.tds_applicable || false) : false;
+                        setFormData(prev => ({
+                          ...prev,
+                          clientRef: clientId,
+                          tdsApplicable: tdsApp,
+                          tdsSection: tdsApp ? (selectedClient.default_tds_section || '194C') : '',
+                          tdsRate: tdsApp ? (selectedClient.default_tds_rate || 0) : 0
+                        }));
+                      } else {
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          clientRef: clientId,
+                          tdsApplicable: false,
+                          tdsSection: '',
+                          tdsRate: 0
+                        }));
+                      }
+                    }
                   }}
                 >
                   <option value="">{pendingPdfClientName ? `${pendingPdfClientName} (will be created on save)` : 'Select Client'}</option>
@@ -1368,13 +1488,99 @@ const InvoiceForm = () => {
               )}
             </div>
 
-            {/* TDS & TCS */}
-            <div className="pt-2 grid grid-cols-2 gap-4">
-              <div>
-                <label className={lbl}>TDS Deduction {!isPro && <span className="text-[10px] font-bold text-amber-500 bg-amber-50 px-1 rounded ml-1 border border-amber-200 uppercase tracking-tighter">Pro</span>}</label>
-                <input type="number" placeholder="Amount"
-                  value={formData.tds} onChange={(e) => setFormData({ ...formData, tds: e.target.value })} disabled={!isPro} onClick={() => !isPro && setShowPremiumModal(true)} className={`${inp} ${!isPro ? "opacity-50 cursor-not-allowed bg-gray-50" : ""}`} />
+            {/* TDS Configuration Card */}
+            <div className="pt-3 pb-2 border-t border-gray-100 mt-2 space-y-3">
+              <div className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-200/60 shadow-sm">
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-gray-700">Client will deduct TDS</span>
+                  <span className="text-[11px] text-gray-400">Apply TDS Receivable credit as an asset</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isPro) {
+                      setShowPremiumModal(true);
+                      return;
+                    }
+                    const nextVal = !(formData.client_will_deduct_tds || formData.tdsApplicable);
+                    setFormData(prev => ({
+                      ...prev,
+                      client_will_deduct_tds: nextVal,
+                      tdsApplicable: nextVal,
+                      tdsSection: nextVal ? prev.tdsSection || '194C' : '',
+                      tdsRate: nextVal ? (prev.tdsRate || 2) : 0,
+                      tds: nextVal ? prev.tds : 0
+                    }));
+                  }}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    (formData.client_will_deduct_tds || formData.tdsApplicable) ? 'bg-blue-600' : 'bg-gray-200'
+                  } ${!isPro ? 'opacity-60' : ''}`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      (formData.client_will_deduct_tds || formData.tdsApplicable) ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </div>
+
+              {(formData.client_will_deduct_tds || formData.tdsApplicable) && (
+                <div className="p-3 bg-blue-50/30 rounded-lg border border-blue-100 grid grid-cols-1 gap-3 sm:grid-cols-3 transition-all">
+                  <div>
+                    <label className={lbl}>TDS Section *</label>
+                    <select
+                      className={inp}
+                      value={formData.tdsSection}
+                      onChange={(e) => {
+                        const sec = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          tdsSection: sec,
+                          tdsRate: sec === 'Manual' ? prev.tdsRate || 0 : prev.tdsRate
+                        }));
+                      }}
+                    >
+                      <option value="194C">194C – Contractor (1% / 2%)</option>
+                      <option value="194J">194J – Professional/Technical (10%)</option>
+                      <option value="194I">194I – Rent (10%)</option>
+                      <option value="194A">194A – Interest (10%)</option>
+                      <option value="Manual">Manual (Custom Rate)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={lbl}>TDS Rate %</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      className={`${inp} ${formData.tdsSection !== 'Manual' ? 'bg-gray-50 text-gray-500 font-medium cursor-not-allowed' : ''}`}
+                      value={formData.tdsRate}
+                      readOnly={formData.tdsSection !== 'Manual'}
+                      onChange={(e) => {
+                        if (formData.tdsSection === 'Manual') {
+                          const val = parseFloat(e.target.value) || 0;
+                          setFormData(prev => ({
+                            ...prev,
+                            tdsRate: val
+                          }));
+                        }
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className={lbl}>TDS Receivable Amount (₹)</label>
+                    <input
+                      type="text"
+                      className={`${inp} bg-gray-50 text-gray-500 font-semibold cursor-not-allowed`}
+                      value={Number(formData.tds).toFixed(2)}
+                      readOnly
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* TCS Collection */}
               <div>
                 <label className={lbl}>TCS Collection {!isPro && <span className="text-[10px] font-bold text-amber-500 bg-amber-50 px-1 rounded ml-1 border border-amber-200 uppercase tracking-tighter">Pro</span>}</label>
                 <input type="number" placeholder="Amount"
@@ -1460,25 +1666,34 @@ const InvoiceForm = () => {
                 </div>
               )}
 
+              {(formData.client_will_deduct_tds || formData.tdsApplicable) && (
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Invoice Total</span>
+                  <span>₹ {getGrandTotal().toFixed(2)}</span>
+                </div>
+              )}
+              {(formData.client_will_deduct_tds || formData.tdsApplicable) && (
+                <div className="flex justify-between text-sm text-red-500 font-medium">
+                  <span>TDS Receivable ({formData.tdsSection}):</span>
+                  <span>- ₹ {Number(formData.tds).toFixed(2)}</span>
+                </div>
+              )}
+
               <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
-                <span className="text-base font-bold text-gray-800">Grand Total</span>
-                <span className="text-lg font-bold text-blue-700">₹ {getGrandTotal().toFixed(2)}</span>
+                <span className="text-base font-bold text-gray-800">
+                  {(formData.client_will_deduct_tds || formData.tdsApplicable) ? "You will receive" : "Grand Total"}
+                </span>
+                <span className="text-lg font-bold text-blue-700">
+                  ₹ {(getGrandTotal() - ((formData.client_will_deduct_tds || formData.tdsApplicable) ? Number(formData.tds) : 0)).toFixed(2)}
+                </span>
               </div>
 
-              {(Number(formData.advancePaid) > 0 || Number(formData.tds) > 0) && (
+              {Number(formData.advancePaid) > 0 && (
                 <>
-                  {Number(formData.advancePaid) > 0 && (
-                    <div className="flex justify-between text-sm text-emerald-600">
-                      <span>Advance Paid</span>
-                      <span>- ₹ {Number(formData.advancePaid).toFixed(2)}</span>
-                    </div>
-                  )}
-                  {Number(formData.tds) > 0 && (
-                    <div className="flex justify-between text-sm text-red-500">
-                      <span>TDS Deducted</span>
-                      <span>- ₹ {Number(formData.tds).toFixed(2)}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between text-sm text-emerald-600">
+                    <span>Advance Paid</span>
+                    <span>- ₹ {Number(formData.advancePaid).toFixed(2)}</span>
+                  </div>
                   <div className="flex justify-between text-sm font-bold text-gray-800 border-t border-gray-200 pt-2">
                     <span>Balance Due</span>
                     <span>₹ {Math.max(0, getGrandTotal() - Number(formData.advancePaid) - Number(formData.tds)).toFixed(2)}</span>
@@ -1553,7 +1768,14 @@ const InvoiceForm = () => {
         <ClientForm
           onSuccess={(newClient) => {
             setClients([newClient, ...clients]);
-            setFormData({ ...formData, clientRef: newClient._id });
+            const tdsApp = isPro ? (newClient.tds_applicable || false) : false;
+            setFormData(prev => ({
+              ...prev,
+              clientRef: newClient._id,
+              tdsApplicable: tdsApp,
+              tdsSection: tdsApp ? (newClient.default_tds_section || '194C') : '',
+              tdsRate: tdsApp ? (newClient.default_tds_rate || 0) : 0
+            }));
             setIsClientModalOpen(false);
           }}
           onCancel={() => setIsClientModalOpen(false)}
