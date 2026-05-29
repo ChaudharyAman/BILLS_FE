@@ -224,7 +224,7 @@ const InvoiceForm = () => {
       if (!raw) return;
 
       const pdf = JSON.parse(raw);
-      sessionStorage.removeItem('pdfImportData'); // Clean up
+      // sessionStorage.removeItem('pdfImportData'); // Clean up - deferred to successful submit to avoid React double-mount race condition
 
       if (!pdf._fromPdfImport) return;
 
@@ -656,6 +656,7 @@ const InvoiceForm = () => {
         await api.post('/invoices', payload);
         alert('Invoice created successfully');
       }
+      sessionStorage.removeItem('pdfImportData');
       navigate('/invoices');
     } catch (err) {
       console.error(err.response?.data?.message || err.message);

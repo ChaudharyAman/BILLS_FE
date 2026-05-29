@@ -56,21 +56,45 @@ const InvoiceList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [parsedImportInvoices, setParsedImportInvoices] = useState([]);
+  const [importResult, setImportResult] = useState(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [isPdfScannerOpen, setIsPdfScannerOpen] = useState(false);
 
-  // Debounced Search Effect
+  // Sorting & Filtering State
+  const [statusFilter, setStatusFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [dateTypeFilter, setDateTypeFilter] = useState('date'); // 'date' or 'dueDate'
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
+
+  // Debounced Search and Direct Filter Effect
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchInvoices();
     }, 300);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, page, rowsPerPage]);
+  }, [searchTerm, page, rowsPerPage, statusFilter, typeFilter, startDate, endDate, dateTypeFilter, sortBy, sortOrder]);
 
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/invoices?page=${page}&limit=${rowsPerPage}&search=${encodeURIComponent(searchTerm)}`);
+      const queryParams = new URLSearchParams({
+        page,
+        limit: rowsPerPage,
+        search: searchTerm,
+        status: statusFilter,
+        invoiceType: typeFilter,
+        startDate,
+        endDate,
+        dateType: dateTypeFilter,
+        sortBy,
+        sortOrder,
+      }).toString();
+
+      const res = await api.get(`/invoices?${queryParams}`);
       setInvoices(res.data.data || []);
       setTotalPages(res.data.totalPages || 1);
       setTotalRecords(res.data.total || 0);
@@ -79,6 +103,25 @@ const InvoiceList = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc'); // Default to descending when switching fields
+    }
+    setPage(1);
+  };
+
+  const renderSortIcon = (field) => {
+    if (sortBy !== field) {
+      return <span className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity ml-1.5 text-xs">↕</span>;
+    }
+    return sortOrder === 'asc' 
+      ? <span className="text-blue-600 ml-1.5 text-xs font-bold">↑</span> 
+      : <span className="text-blue-600 ml-1.5 text-xs font-bold">↓</span>;
   };
 
   const toggleSelectAll = () => {
@@ -97,37 +140,117 @@ const InvoiceList = () => {
     }
   };
 
-  const handleCsvParsed = async (data) => {
+  const resetImportModal = () => {
+    if (isImporting) return;
+    setIsCsvModalOpen(false);
+    setParsedImportInvoices([]);
+    setImportResult(null);
+  };
+
+  const handleCsvParsed = (data) => {
+    const formattedInvoices = mapInvoiceImportRows(data).map((invoice, index) => ({
+      ...invoice,
+      _importRowId: `invoice-import-${Date.now()}-${index}`,
+    }));
+
+    if (formattedInvoices.length === 0) {
+      alert('No valid invoices found. Make sure the file contains invoice rows and not only summary totals.');
+      return;
+    }
+
+    setParsedImportInvoices(formattedInvoices);
+    setImportResult(null);
+  };
+
+  const handleImportParsedInvoices = async () => {
+    if (parsedImportInvoices.length === 0) return;
+
     setIsImporting(true);
     try {
-      const formattedInvoices = mapInvoiceImportRows(data);
-
-      if (formattedInvoices.length === 0) {
-        alert('No valid invoices found. Make sure the file contains invoice rows and not only summary totals.');
-        setIsImporting(false);
-        return;
-      }
-
-      await api.post('/invoices/bulk', { invoices: formattedInvoices });
-      alert(`Successfully imported ${formattedInvoices.length} invoices!`);
-      setIsCsvModalOpen(false);
+      const res = await api.post('/invoices/bulk', { invoices: parsedImportInvoices });
+      setImportResult(res.data);
       setLoading(true);
       fetchInvoices();
     } catch (error) {
       console.error('Bulk import error:', error);
-      alert('Failed to import invoices: ' + (error.response?.data?.message || error.message));
+      setImportResult({
+        message: 'Failed to import invoices.',
+        imported: 0,
+        updated: 0,
+        skipped: 0,
+        renumbered: 0,
+        failed: parsedImportInvoices.length,
+        failedInvoices: parsedImportInvoices.map((invoice, index) => ({
+          importRowId: invoice._importRowId,
+          row: index + 1,
+          invoiceNo: invoice.invoiceNo,
+          clientName: invoice.clientName,
+          reason: error.response?.data?.message || error.message,
+        })),
+      });
     } finally {
       setIsImporting(false);
     }
   };
 
+  const buildImportOutcomeRows = () => {
+    const importedByRow = new Map((importResult?.importedInvoices || []).map((item) => [item.importRowId, item]));
+    const skippedByRow = new Map((importResult?.skippedInvoices || []).map((item) => [item.importRowId, item]));
+    const failedByRow = new Map((importResult?.failedInvoices || []).map((item) => [item.importRowId, item]));
+    const renumberedByRow = new Map((importResult?.renumberedInvoices || []).map((item) => [item.importRowId, item]));
+
+    return parsedImportInvoices.map((invoice, index) => {
+      const importRowId = invoice._importRowId;
+      const imported = importedByRow.get(importRowId);
+      const skipped = skippedByRow.get(importRowId);
+      const failed = failedByRow.get(importRowId);
+      const renumbered = renumberedByRow.get(importRowId);
+
+      if (failed) {
+        return { ...invoice, row: index + 1, outcome: 'Failed', finalInvoiceNo: invoice.invoiceNo || 'Auto', reason: failed.reason };
+      }
+      if (skipped) {
+        return { ...invoice, row: index + 1, outcome: 'Skipped', finalInvoiceNo: skipped.invoiceNo || invoice.invoiceNo, reason: skipped.reason };
+      }
+      if (imported) {
+        return {
+          ...invoice,
+          row: index + 1,
+          outcome: renumbered || imported.renumbered ? 'Imported with new number' : 'Imported',
+          finalInvoiceNo: imported.invoiceNo,
+          reason: renumbered?.reason || 'Imported successfully',
+        };
+      }
+
+      return { ...invoice, row: index + 1, outcome: importResult ? 'Not processed' : 'Ready', finalInvoiceNo: invoice.invoiceNo || 'Auto', reason: '' };
+    });
+  };
+
+  const importOutcomeClass = (outcome) => {
+    if (outcome === 'Imported' || outcome === 'Imported with new number') return 'bg-green-50 text-green-700 border-green-200';
+    if (outcome === 'Skipped') return 'bg-amber-50 text-amber-700 border-amber-200';
+    if (outcome === 'Failed') return 'bg-red-50 text-red-700 border-red-200';
+    return 'bg-blue-50 text-blue-700 border-blue-200';
+  };
 
   const fetchInvoicesForExport = async () => {
     if (selectedInvoices.length > 0) {
       return displayedInvoices.filter((invoice) => selectedInvoices.includes(invoice._id));
     }
 
-    const res = await api.get(`/invoices?all=true&search=${encodeURIComponent(searchTerm)}`);
+    const queryParams = new URLSearchParams({
+      all: 'true',
+      search: searchTerm,
+      status: statusFilter,
+      invoiceType: typeFilter,
+      startDate,
+      endDate,
+      dateType: dateTypeFilter,
+      sortBy,
+      sortOrder,
+    }).toString();
+
+    const res = await api.get(`/invoices?${queryParams}`);
     return res.data.data || [];
   };
 
@@ -279,25 +402,135 @@ const InvoiceList = () => {
       {/* Modern Table Section */}
       <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
         
-        {/* Table Toolbar */}
-        <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-             <div className="relative max-w-sm w-full">
-                 {/* Search placeholder could go here */}
-                 <input 
-                    type="text" 
-                    placeholder="Search invoices..." 
-                    className="w-full pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-                 />
+        {/* Table Toolbar & Filters */}
+        <div className="p-5 border-b border-gray-200 bg-gray-50/50 flex flex-col gap-4">
+             <div className="flex flex-wrap items-center justify-between gap-4">
+                 <div className="relative max-w-xs w-full">
+                     <input 
+                        type="text" 
+                        placeholder="Search invoices..." 
+                        className="w-full pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm font-sans"
+                        value={searchTerm}
+                        onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                     />
+                 </div>
+                 <div className="text-sm text-gray-500 font-medium">
+                     Showing {displayedInvoices.length} of {totalRecords} results
+                 </div>
              </div>
-             <div className="text-sm text-gray-500">
-                 Showing {displayedInvoices.length} of {totalRecords} results
+
+             {/* Filters Bar */}
+             <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-sm">
+                 <div className="flex flex-col min-w-[140px]">
+                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Status</span>
+                     <select
+                        value={statusFilter}
+                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                     >
+                        <option value="">All Statuses</option>
+                        <option value="DRAFT">DRAFT</option>
+                        <option value="SENT">SENT</option>
+                        <option value="PAID">PAID</option>
+                        <option value="PARTIAL">PARTIAL</option>
+                        <option value="UNPAID">UNPAID</option>
+                        <option value="CANCELLED">CANCELLED</option>
+                     </select>
+                 </div>
+
+                 <div className="flex flex-col min-w-[150px]">
+                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Type</span>
+                     <select
+                        value={typeFilter}
+                        onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                     >
+                        <option value="">All Types</option>
+                        <option value="Tax Invoice">Tax Invoice</option>
+                        <option value="Invoice">Invoice</option>
+                        <option value="Retail Invoice">Retail Invoice</option>
+                        <option value="Excise Invoice">Excise Invoice</option>
+                     </select>
+                 </div>
+
+                 <div className="flex flex-col min-w-[130px]">
+                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Date Type</span>
+                     <select
+                        value={dateTypeFilter}
+                        onChange={(e) => { setDateTypeFilter(e.target.value); setPage(1); }}
+                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                     >
+                        <option value="date">Issue Date</option>
+                        <option value="dueDate">Due Date</option>
+                     </select>
+                 </div>
+
+                 <div className="flex flex-col min-w-[130px]">
+                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">From Date</span>
+                     <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                     />
+                 </div>
+
+                 <div className="flex flex-col min-w-[130px]">
+                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">To Date</span>
+                     <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                     />
+                 </div>
+
+                 <div className="flex flex-col min-w-[160px]">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Sort By</span>
+                      <select
+                         value={`${sortBy}-${sortOrder}`}
+                         onChange={(e) => {
+                             const [field, order] = e.target.value.split('-');
+                             setSortBy(field);
+                             setSortOrder(order);
+                             setPage(1);
+                         }}
+                         className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                      >
+                         <option value="createdAt-desc">Created (Latest first)</option>
+                         <option value="createdAt-asc">Created (Oldest first)</option>
+                         <option value="date-desc">Issue Date (Latest first)</option>
+                         <option value="date-asc">Issue Date (Oldest first)</option>
+                         <option value="dueDate-desc">Due Date (Latest first)</option>
+                         <option value="dueDate-asc">Due Date (Oldest first)</option>
+                         <option value="grandTotal-desc">Amount (Highest first)</option>
+                         <option value="grandTotal-asc">Amount (Lowest first)</option>
+                      </select>
+                 </div>
+
+                 {(statusFilter || typeFilter || startDate || endDate || searchTerm || dateTypeFilter !== 'date' || sortBy !== 'createdAt' || sortOrder !== 'desc') && (
+                     <button
+                        onClick={() => {
+                            setStatusFilter('');
+                            setTypeFilter('');
+                            setStartDate('');
+                            setEndDate('');
+                            setDateTypeFilter('date');
+                            setSearchTerm('');
+                            setSortBy('createdAt');
+                            setSortOrder('desc');
+                            setPage(1);
+                        }}
+                        className="self-end px-4 py-2 border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+                     >
+                        Clear Filters
+                     </button>
+                 )}
              </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200 font-sans">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 w-12 text-center">
@@ -305,14 +538,73 @@ const InvoiceList = () => {
                     {selectedInvoices.length === invoices.length && invoices.length > 0 ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
                   </button>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Invoice</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Balance</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                <th 
+                  onClick={() => handleSort('invoiceNo')}
+                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Invoice {renderSortIcon('invoiceNo')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('invoiceType')}
+                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Type {renderSortIcon('invoiceType')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('clientName')}
+                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Client {renderSortIcon('clientName')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('date')}
+                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Date {renderSortIcon('date')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('dueDate')}
+                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Due Date {renderSortIcon('dueDate')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('status')}
+                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Status {renderSortIcon('status')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('grandTotal')}
+                  className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center justify-end">
+                    Amount {renderSortIcon('grandTotal')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('balanceDue')}
+                  className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center justify-end">
+                    Balance {renderSortIcon('balanceDue')}
+                  </div>
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider select-none">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -326,7 +618,8 @@ const InvoiceList = () => {
                         <Skeleton width="120px" height="20px" className="mb-1" />
                         <Skeleton width="80px" height="15px" />
                      </td>
-                     <td className="px-6 py-4"><Skeleton width="100px" height="20px" /></td>
+                     <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
+                     <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
                      <td className="px-6 py-4"><Skeleton width="60px" height="24px" className="rounded-full" /></td>
                      <td className="px-6 py-4"><Skeleton width="80px" height="20px" className="ml-auto" /></td>
                      <td className="px-6 py-4"><Skeleton width="80px" height="20px" className="ml-auto" /></td>
@@ -334,7 +627,7 @@ const InvoiceList = () => {
                   </tr>
                 ))
               ) : displayedInvoices.length === 0 ? (
-                <tr><td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">No invoices found.</td></tr>
+                <tr><td colSpan="10" className="px-6 py-12 text-center text-gray-500 text-sm">No invoices found.</td></tr>
               ) : (
                 displayedInvoices.map((inv) => (
                   <tr key={inv._id} className="hover:bg-blue-50/50 transition-colors group">
@@ -366,7 +659,15 @@ const InvoiceList = () => {
                     {/* Date */}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatDate(inv.date)}
-                        <div className="text-xs text-gray-400 mt-0.5">Due: {formatDate(inv.dueDate)}</div>
+                    </td>
+
+                    {/* Due Date */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {inv.dueDate ? (
+                          <span className={new Date(inv.dueDate) < new Date() && inv.balanceDue > 0 ? 'text-red-500 font-medium font-sans' : ''}>
+                            {formatDate(inv.dueDate)}
+                          </span>
+                        ) : '—'}
                     </td>
 
                     {/* Status */}
@@ -466,23 +767,130 @@ const InvoiceList = () => {
       </div>
 
       {/* Bulk Upload CSV Modal */}
-      <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Invoices to Database">
-        <CsvAndExcelUploader 
-          onDataParsed={handleCsvParsed} 
-          isLoading={isImporting}
-          title="Upload Invoices File"
-          subtitle="Supports invoice exports with summary totals or itemized rows. Summary rows like 'Total invoices' are ignored automatically."
-        />
-        <div className="mt-4 flex justify-end">
-          <button 
-            type="button" 
-            onClick={() => setIsCsvModalOpen(false)} 
-            disabled={isImporting}
-            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        </div>
+      <Modal
+        isOpen={isCsvModalOpen}
+        onClose={resetImportModal}
+        title={importResult ? 'Invoice Import Result' : parsedImportInvoices.length ? 'Parsed Invoices Ready to Import' : 'Bulk Import Invoices to Database'}
+      >
+        {parsedImportInvoices.length === 0 ? (
+          <>
+            <CsvAndExcelUploader
+              onDataParsed={handleCsvParsed}
+              isLoading={isImporting}
+              title="Upload Invoices File"
+              subtitle="Supports invoice exports with summary totals or itemized rows. Summary rows like 'Total invoices' are ignored automatically."
+            />
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={resetImportModal}
+                disabled={isImporting}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="border border-slate-200 rounded-lg p-3">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Parsed</div>
+                <div className="text-xl font-bold text-slate-900">{parsedImportInvoices.length}</div>
+              </div>
+              <div className="border border-green-200 bg-green-50 rounded-lg p-3">
+                <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Imported</div>
+                <div className="text-xl font-bold text-green-700">{importResult?.imported ?? 0}</div>
+              </div>
+              <div className="border border-blue-200 bg-blue-50 rounded-lg p-3">
+                <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Updated</div>
+                <div className="text-xl font-bold text-blue-700">{importResult?.updated ?? 0}</div>
+              </div>
+              <div className="border border-amber-200 bg-amber-50 rounded-lg p-3">
+                <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Skipped</div>
+                <div className="text-xl font-bold text-amber-700">{importResult?.skipped ?? 0}</div>
+              </div>
+              <div className="border border-red-200 bg-red-50 rounded-lg p-3">
+                <div className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Failed</div>
+                <div className="text-xl font-bold text-red-700">{importResult?.failed ?? 0}</div>
+              </div>
+            </div>
+
+            {importResult?.message && (
+              <div className="text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+                {importResult.message}
+              </div>
+            )}
+
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="overflow-x-auto max-h-[48vh]">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50 sticky top-0 z-10">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Row</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Invoice</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Final No</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Client</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Date</th>
+                      <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500">Amount</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Result</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-slate-100">
+                    {buildImportOutcomeRows().map((row) => (
+                      <tr key={row._importRowId} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 text-slate-500">{row.row}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-800">{row.invoiceNo || 'Auto'}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-800">{row.finalInvoiceNo}</td>
+                        <td className="px-4 py-3 text-slate-700">{row.clientName}</td>
+                        <td className="px-4 py-3 text-slate-600">{row.date ? formatDate(row.date) : '—'}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-slate-800">
+                          ₹{Number(row.importedGrandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex px-2 py-0.5 rounded-full border text-xs font-semibold ${importOutcomeClass(row.outcome)}`}>
+                            {row.outcome}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 min-w-[220px]">{row.reason || 'Ready to import'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => { setParsedImportInvoices([]); setImportResult(null); }}
+                disabled={isImporting}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
+              >
+                Upload Another File
+              </button>
+              <button
+                type="button"
+                onClick={resetImportModal}
+                disabled={isImporting}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
+              >
+                Close
+              </button>
+              {!importResult && (
+                <button
+                  type="button"
+                  onClick={handleImportParsedInvoices}
+                  disabled={isImporting}
+                  className="px-5 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50"
+                >
+                  {isImporting ? 'Importing...' : `Import ${parsedImportInvoices.length} Invoices`}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Premium Feature Modal */}

@@ -20,7 +20,17 @@ const QuoteList = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [parsedImportQuotes, setParsedImportQuotes] = useState([]);
+  const [importResult, setImportResult] = useState(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+
+  // Sorting & Filtering State
+  const [statusFilter, setStatusFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [dateTypeFilter, setDateTypeFilter] = useState('date'); // 'date' or 'validUntil'
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   const userStr = localStorage.getItem('user');
   let userObj = null;
@@ -32,12 +42,24 @@ const QuoteList = () => {
       fetchQuotes();
     }, 300);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, page, rowsPerPage]);
+  }, [searchTerm, page, rowsPerPage, statusFilter, startDate, endDate, dateTypeFilter, sortBy, sortOrder]);
 
   const fetchQuotes = async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/quotes?page=${page}&limit=${rowsPerPage}&search=${encodeURIComponent(searchTerm)}`);
+      const queryParams = new URLSearchParams({
+        page,
+        limit: rowsPerPage,
+        search: searchTerm,
+        status: statusFilter,
+        startDate,
+        endDate,
+        dateType: dateTypeFilter,
+        sortBy,
+        sortOrder,
+      }).toString();
+
+      const res = await api.get(`/quotes?${queryParams}`);
       setQuotes(res.data.data || []);
       setTotalPages(res.data.totalPages || 1);
       setTotalRecords(res.data.total || 0);
@@ -62,14 +84,39 @@ const QuoteList = () => {
 
   const toggleSelect = (id) =>
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+
   const toggleAll = () =>
     setSelectedIds(selectedIds.length === quotes.length ? [] : quotes.map(q => q._id));
 
-  const handleCsvParsed = async (data) => {
-    setIsImporting(true);
-    try {
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc'); // Default to descending when switching fields
+    }
+    setPage(1);
+  };
+
+  const renderSortIcon = (field) => {
+    if (sortBy !== field) {
+      return <span className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity ml-1.5 text-xs">↕</span>;
+    }
+    return sortOrder === 'asc' 
+      ? <span className="text-blue-600 ml-1.5 text-xs font-bold font-sans">↑</span> 
+      : <span className="text-blue-600 ml-1.5 text-xs font-bold font-sans">↓</span>;
+  };
+
+  const resetImportModal = () => {
+    if (isImporting) return;
+    setIsCsvModalOpen(false);
+    setParsedImportQuotes([]);
+    setImportResult(null);
+  };
+
+  const parseQuoteRows = (data) => {
       const grouped = {};
-      data.forEach(row => {
+      data.forEach((row, index) => {
         const getVal = (keys) => {
            for (const key of keys) {
              if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
@@ -82,6 +129,8 @@ const QuoteList = () => {
         const id = getVal(['Quote No', 'Draft No', 'ID', 'Id', 'id', 'Quote Number']) || Math.random().toString();
         if (!grouped[id]) {
           grouped[id] = {
+            _importRowId: `quote-import-${Date.now()}-${index}`,
+            quoteNo: String(id || '').trim(),
             clientName: getVal(['Client Name', 'Client', 'Customer Name', 'Customer']),
             clientEmail: getVal(['Client Email', 'Email', 'Customer Email']) || '',
             clientPhone: getVal(['Client Phone', 'Phone', 'Customer Phone', 'Contact']) || '',
@@ -93,6 +142,7 @@ const QuoteList = () => {
             shippingCharges: Number(getVal(['Shipping Charges', 'Shipping', 'Freight'])) || 0,
             packagingCharges: Number(getVal(['Packaging Charges', 'Packaging'])) || 0,
             discountTotal: Number(getVal(['Discount Total', 'Discount'])) || 0,
+            importedGrandTotal: Number(getVal(['Total', 'Grand Total'])) || 0,
             items: []
           };
         }
@@ -110,41 +160,97 @@ const QuoteList = () => {
         }
       });
 
-      const formattedQuotes = Object.values(grouped).filter(q => q.clientName);
+      return Object.values(grouped).filter(q => q.clientName);
+  };
+
+  const handleCsvParsed = (data) => {
+      const formattedQuotes = parseQuoteRows(data);
 
       if (formattedQuotes.length === 0) {
         alert('No valid quotes found. Ensure the "Client Name" column exists.');
-        setIsImporting(false);
         return;
       }
 
-      await api.post('/quotes/bulk', { quotes: formattedQuotes });
-      alert(`Successfully imported ${formattedQuotes.length} quotes!`);
-      setIsCsvModalOpen(false);
+      setParsedImportQuotes(formattedQuotes);
+      setImportResult(null);
+  };
+
+  const handleImportParsedQuotes = async () => {
+    if (parsedImportQuotes.length === 0) return;
+
+    setIsImporting(true);
+    try {
+      const res = await api.post('/quotes/bulk', { quotes: parsedImportQuotes });
+      setImportResult(res.data);
       setLoading(true);
       fetchQuotes();
     } catch (error) {
       console.error('Bulk import error:', error);
-      alert('Failed to import quotes: ' + (error.response?.data?.message || error.message));
+      setImportResult({
+        message: 'Failed to import quotes.',
+        imported: 0,
+        updated: 0,
+        skipped: 0,
+        failed: parsedImportQuotes.length,
+        failedQuotes: parsedImportQuotes.map((quote, index) => ({
+          importRowId: quote._importRowId,
+          row: index + 1,
+          quoteNo: quote.quoteNo,
+          clientName: quote.clientName,
+          reason: error.response?.data?.message || error.message,
+        })),
+      });
     } finally {
       setIsImporting(false);
     }
   };
 
-  const displayed = quotes; // Handled by backend
-  const fetchQuotesForExport = async () => {
-    const params = new URLSearchParams({
-      all: 'true',
-      search: searchTerm,
-    });
-    const res = await api.get(`/quotes?${params.toString()}`);
-    const exportQuotes = res.data.data || [];
+  const buildImportOutcomeRows = () => {
+    const importedByRow = new Map((importResult?.importedQuotes || []).map((item) => [item.importRowId, item]));
+    const skippedByRow = new Map((importResult?.skippedQuotes || []).map((item) => [item.importRowId, item]));
+    const failedByRow = new Map((importResult?.failedQuotes || []).map((item) => [item.importRowId, item]));
+    const renumberedByRow = new Map((importResult?.renumberedQuotes || []).map((item) => [item.importRowId, item]));
 
+    return parsedImportQuotes.map((quote, index) => {
+      const imported = importedByRow.get(quote._importRowId);
+      const skipped = skippedByRow.get(quote._importRowId);
+      const failed = failedByRow.get(quote._importRowId);
+      const renumbered = renumberedByRow.get(quote._importRowId);
+
+      if (failed) return { ...quote, row: index + 1, outcome: 'Failed', finalNo: quote.quoteNo || 'Auto', reason: failed.reason };
+      if (skipped) return { ...quote, row: index + 1, outcome: 'Skipped', finalNo: skipped.quoteNo || quote.quoteNo, reason: skipped.reason };
+      if (imported) return { ...quote, row: index + 1, outcome: renumbered || imported.renumbered ? 'Imported with new number' : 'Imported', finalNo: imported.quoteNo, reason: renumbered?.reason || 'Imported successfully' };
+      return { ...quote, row: index + 1, outcome: importResult ? 'Not processed' : 'Ready', finalNo: quote.quoteNo || 'Auto', reason: '' };
+    });
+  };
+
+  const importOutcomeClass = (outcome) => {
+    if (outcome === 'Imported' || outcome === 'Imported with new number') return 'bg-green-50 text-green-700 border-green-200';
+    if (outcome === 'Skipped') return 'bg-amber-50 text-amber-700 border-amber-200';
+    if (outcome === 'Failed') return 'bg-red-50 text-red-700 border-red-200';
+    return 'bg-blue-50 text-blue-700 border-blue-200';
+  };
+
+  const displayed = quotes; // Handled by backend
+
+  const fetchQuotesForExport = async () => {
     if (selectedIds.length > 0) {
-      return exportQuotes.filter((quote) => selectedIds.includes(quote._id));
+      return displayed.filter((quote) => selectedIds.includes(quote._id));
     }
 
-    return exportQuotes;
+    const queryParams = new URLSearchParams({
+      all: 'true',
+      search: searchTerm,
+      status: statusFilter,
+      startDate,
+      endDate,
+      dateType: dateTypeFilter,
+      sortBy,
+      sortOrder,
+    }).toString();
+
+    const res = await api.get(`/quotes?${queryParams}`);
+    return res.data.data || [];
   };
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -205,29 +311,177 @@ const QuoteList = () => {
 
       {/* Table */}
       <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-          <input type="text" placeholder="Search quotes..."
-            className="w-full max-w-sm pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setPage(1); }} />
-          <div className="text-sm text-gray-500 ml-4">Showing {displayed.length} of {totalRecords}</div>
+        
+        {/* Table Toolbar & Filters */}
+        <div className="p-5 border-b border-gray-200 bg-gray-50/50 flex flex-col gap-4">
+             <div className="flex flex-wrap items-center justify-between gap-4">
+                 <div className="relative max-w-xs w-full">
+                     <input 
+                        type="text" 
+                        placeholder="Search quotes..." 
+                        className="w-full pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm font-sans"
+                        value={searchTerm}
+                        onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                     />
+                 </div>
+                 <div className="text-sm text-gray-500 font-medium">
+                     Showing {displayed.length} of {totalRecords} results
+                 </div>
+             </div>
+
+             {/* Filters Bar */}
+             <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-sm">
+                 <div className="flex flex-col min-w-[140px]">
+                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Status</span>
+                     <select
+                        value={statusFilter}
+                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                     >
+                        <option value="">All Statuses</option>
+                        <option value="DRAFT">DRAFT</option>
+                        <option value="SENT">SENT</option>
+                        <option value="ACCEPTED">ACCEPTED</option>
+                        <option value="REJECTED">REJECTED</option>
+                        <option value="CONVERTED">CONVERTED</option>
+                     </select>
+                 </div>
+
+                 <div className="flex flex-col min-w-[130px]">
+                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Date Type</span>
+                     <select
+                        value={dateTypeFilter}
+                        onChange={(e) => { setDateTypeFilter(e.target.value); setPage(1); }}
+                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                     >
+                        <option value="date">Issue Date</option>
+                        <option value="validUntil">Valid Until</option>
+                     </select>
+                 </div>
+
+                 <div className="flex flex-col min-w-[130px]">
+                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">From Date</span>
+                     <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                     />
+                 </div>
+
+                 <div className="flex flex-col min-w-[130px]">
+                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">To Date</span>
+                     <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                     />
+                 </div>
+
+                  <div className="flex flex-col min-w-[160px]">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Sort By</span>
+                      <select
+                         value={`${sortBy}-${sortOrder}`}
+                         onChange={(e) => {
+                             const [field, order] = e.target.value.split('-');
+                             setSortBy(field);
+                             setSortOrder(order);
+                             setPage(1);
+                         }}
+                         className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                      >
+                         <option value="createdAt-desc">Created (Latest first)</option>
+                         <option value="createdAt-asc">Created (Oldest first)</option>
+                         <option value="date-desc">Issue Date (Latest first)</option>
+                         <option value="date-asc">Issue Date (Oldest first)</option>
+                         <option value="validUntil-desc">Valid Until (Latest first)</option>
+                         <option value="validUntil-asc">Valid Until (Oldest first)</option>
+                         <option value="grandTotal-desc">Amount (Highest first)</option>
+                         <option value="grandTotal-asc">Amount (Lowest first)</option>
+                      </select>
+                  </div>
+
+                 {(statusFilter || startDate || endDate || searchTerm || dateTypeFilter !== 'date' || sortBy !== 'createdAt' || sortOrder !== 'desc') && (
+                     <button
+                        onClick={() => {
+                            setStatusFilter('');
+                            setStartDate('');
+                            setEndDate('');
+                            setDateTypeFilter('date');
+                            setSearchTerm('');
+                            setSortBy('createdAt');
+                            setSortOrder('desc');
+                            setPage(1);
+                        }}
+                        className="self-end px-4 py-2 border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+                     >
+                        Clear Filters
+                     </button>
+                 )}
+             </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200 font-sans">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 w-12 text-center">
-                  <button onClick={toggleAll} className="text-gray-400 hover:text-gray-600">
+                  <button onClick={toggleAll} className="text-gray-400 hover:text-gray-600 transition-colors">
                     {selectedIds.length === quotes.length && quotes.length > 0 ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
                   </button>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Quote No.</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Valid Until</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                <th 
+                  onClick={() => handleSort('quoteNo')}
+                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Quote No. {renderSortIcon('quoteNo')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('clientName')}
+                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Client {renderSortIcon('clientName')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('date')}
+                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Date {renderSortIcon('date')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('validUntil')}
+                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Valid Until {renderSortIcon('validUntil')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('status')}
+                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Status {renderSortIcon('status')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('grandTotal')}
+                  className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center justify-end">
+                    Amount {renderSortIcon('grandTotal')}
+                  </div>
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider select-none">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -246,75 +500,80 @@ const QuoteList = () => {
                 ))
               ) : displayed.length === 0 ? (
                 <tr><td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">No quotes found.</td></tr>
-              ) : displayed.map(q => (
-                <tr key={q._id} className="hover:bg-blue-50/50 transition-colors">
-                  <td className="px-6 py-4 text-center">
-                    <button onClick={() => toggleSelect(q._id)} className={selectedIds.includes(q._id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}>
-                      {selectedIds.includes(q._id) ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Link to={`/quotes/${q._id}/print`} className="text-blue-600 font-medium hover:text-blue-800 hover:underline">
-                      {q.quoteNo}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{q.client?.name}</div>
-                    {q.client?.gstin && <div className="text-xs text-gray-400 mt-0.5">{q.client.gstin}</div>}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{fmtDate(q.date)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {q.validUntil ? (
-                      <span className={new Date(q.validUntil) < new Date() && q.status !== 'CONVERTED' ? 'text-red-500 font-medium' : ''}>
-                        {fmtDate(q.validUntil)}
-                      </span>
-                    ) : '—'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${STATUS_STYLES[q.status] || STATUS_STYLES.DRAFT}`}>
-                      {q.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
-                    ₹{fmt(q.grandTotal)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <div className="flex justify-center gap-2 items-center">
-                      <Link to={`/quotes/${q._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View"><FaEye size={17} /></Link>
-                      {q.status !== 'CONVERTED' ? (
-                        <Link to={`/quotes/edit/${q._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={17} /></Link>
-                      ) : (
-                        <span className="text-gray-200 cursor-not-allowed" title="Converted quotations cannot be edited"><FaEdit size={17} /></span>
-                      )}
-                      {q.status !== 'CONVERTED' && (
-                        <button onClick={() => handleConvert(q._id)} className="text-gray-400 hover:text-purple-600 transition-colors" title="Convert to Invoice">
-                          <FaArrowRight size={17} />
-                        </button>
-                      )}
-                      <button 
-                        onClick={() => {
-                          if (!isPro) return setShowPremiumModal(true);
-                          handleDelete(q._id);
-                        }} 
-                        className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`} 
-                        title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
-                      >
-                        <FaTrash size={17} />
+              ) : (
+                displayed.map(q => (
+                  <tr key={q._id} className="hover:bg-blue-50/50 transition-colors group">
+                    <td className="px-6 py-4 text-center">
+                      <button onClick={() => toggleSelect(q._id)} className={selectedIds.includes(q._id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}>
+                        {selectedIds.includes(q._id) ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
                       </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Link to={`/quotes/${q._id}/print`} className="text-blue-600 font-medium hover:text-blue-800 hover:underline">
+                        {q.quoteNo}
+                      </Link>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{q.client?.name}</div>
+                      {q.client?.gstin && <div className="text-xs text-gray-400 mt-0.5">{q.client.gstin}</div>}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{fmtDate(q.date)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {q.validUntil ? (
+                        <span className={new Date(q.validUntil) < new Date() && q.status !== 'CONVERTED' ? 'text-red-500 font-medium' : ''}>
+                          {fmtDate(q.validUntil)}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${STATUS_STYLES[q.status] || STATUS_STYLES.DRAFT}`}>
+                        {q.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
+                      ₹{fmt(q.grandTotal)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex justify-center gap-2 items-center">
+                        <Link to={`/quotes/${q._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View"><FaEye size={17} /></Link>
+                        {q.status !== 'CONVERTED' ? (
+                          <Link to={`/quotes/edit/${q._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={17} /></Link>
+                        ) : (
+                          <span className="text-gray-200 cursor-not-allowed" title="Converted quotations cannot be edited"><FaEdit size={17} /></span>
+                        )}
+                        {q.status !== 'CONVERTED' && (
+                          <button onClick={() => handleConvert(q._id)} className="text-gray-400 hover:text-purple-600 transition-colors" title="Convert to Invoice">
+                            <FaArrowRight size={17} />
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => {
+                            if (!isPro) return setShowPremiumModal(true);
+                            handleDelete(q._id);
+                          }} 
+                          className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`} 
+                          title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
+                        >
+                          <FaTrash size={17} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4 text-sans">
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500">Rows per page:</span>
             <select value={rowsPerPage} onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
               className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
-              <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
             </select>
           </div>
           <div className="flex items-center gap-4">
@@ -342,23 +601,76 @@ const QuoteList = () => {
       </div>
 
       {/* Bulk Upload CSV Modal */}
-      <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Quotes to Database">
-        <CsvAndExcelUploader 
-          onDataParsed={handleCsvParsed} 
-          isLoading={isImporting}
-          title="Upload Quotes File"
-          subtitle="Group rows by 'Quote No'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
-        />
-        <div className="mt-4 flex justify-end">
-          <button 
-            type="button" 
-            onClick={() => setIsCsvModalOpen(false)} 
-            disabled={isImporting}
-            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        </div>
+      <Modal
+        isOpen={isCsvModalOpen}
+        onClose={resetImportModal}
+        title={importResult ? 'Quote Import Result' : parsedImportQuotes.length ? 'Parsed Quotes Ready to Import' : 'Bulk Import Quotes to Database'}
+      >
+        {parsedImportQuotes.length === 0 ? (
+          <>
+            <CsvAndExcelUploader
+              onDataParsed={handleCsvParsed}
+              isLoading={isImporting}
+              title="Upload Quotes File"
+              subtitle="Group rows by 'Quote No'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
+            />
+            <div className="mt-4 flex justify-end">
+              <button type="button" onClick={resetImportModal} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50">
+                Cancel
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {[
+                ['Parsed', parsedImportQuotes.length, 'border-slate-200 text-slate-900 bg-white'],
+                ['Imported', importResult?.imported ?? 0, 'border-green-200 text-green-700 bg-green-50'],
+                ['Updated', importResult?.updated ?? 0, 'border-blue-200 text-blue-700 bg-blue-50'],
+                ['Skipped', importResult?.skipped ?? 0, 'border-amber-200 text-amber-700 bg-amber-50'],
+                ['Failed', importResult?.failed ?? 0, 'border-red-200 text-red-700 bg-red-50'],
+              ].map(([label, value, cls]) => (
+                <div key={label} className={`border rounded-lg p-3 ${cls}`}>
+                  <div className="text-[10px] font-bold uppercase tracking-wider opacity-75">{label}</div>
+                  <div className="text-xl font-bold">{value}</div>
+                </div>
+              ))}
+            </div>
+            {importResult?.message && <div className="text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">{importResult.message}</div>}
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="overflow-x-auto max-h-[48vh]">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50 sticky top-0 z-10">
+                    <tr>
+                      {['Row', 'Quote', 'Final No', 'Client', 'Date', 'Amount', 'Result', 'Reason'].map((header) => (
+                        <th key={header} className={`px-4 py-3 text-${header === 'Amount' ? 'right' : 'left'} text-[10px] font-bold uppercase tracking-wider text-slate-500`}>{header}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-slate-100">
+                    {buildImportOutcomeRows().map((row) => (
+                      <tr key={row._importRowId} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 text-slate-500">{row.row}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-800">{row.quoteNo || 'Auto'}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-800">{row.finalNo}</td>
+                        <td className="px-4 py-3 text-slate-700">{row.clientName}</td>
+                        <td className="px-4 py-3 text-slate-600">{row.date ? fmtDate(row.date) : '—'}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-slate-800">₹{fmt(row.importedGrandTotal || row.grandTotal)}</td>
+                        <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded-full border text-xs font-semibold ${importOutcomeClass(row.outcome)}`}>{row.outcome}</span></td>
+                        <td className="px-4 py-3 text-slate-600 min-w-[220px]">{row.reason || 'Ready to import'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="flex flex-wrap justify-end gap-3">
+              <button type="button" onClick={() => { setParsedImportQuotes([]); setImportResult(null); }} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50">Upload Another File</button>
+              <button type="button" onClick={resetImportModal} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50">Close</button>
+              {!importResult && <button type="button" onClick={handleImportParsedQuotes} disabled={isImporting} className="px-5 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50">{isImporting ? 'Importing...' : `Import ${parsedImportQuotes.length} Quotes`}</button>}
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Premium Feature Modal */}

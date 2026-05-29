@@ -137,10 +137,8 @@ function App() {
 
     const restoreSession = async () => {
       const rawUser = localStorage.getItem('user');
-      const authToken = localStorage.getItem('authToken');
 
-      if (!rawUser && !authToken) return;
-      if (rawUser && authToken) return;
+      if (rawUser) return;
 
       try {
         const response = await api.get('/auth/me');

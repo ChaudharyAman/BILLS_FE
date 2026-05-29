@@ -21,6 +21,8 @@ const ProformaList = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [parsedImportProformas, setParsedImportProformas] = useState([]);
+  const [importResult, setImportResult] = useState(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const userStr = localStorage.getItem('user');
@@ -66,11 +68,16 @@ const ProformaList = () => {
   const toggleAll = () =>
     setSelectedIds(selectedIds.length === proformas.length ? [] : proformas.map(p => p._id));
 
-  const handleCsvParsed = async (data) => {
-    setIsImporting(true);
-    try {
+  const resetImportModal = () => {
+    if (isImporting) return;
+    setIsCsvModalOpen(false);
+    setParsedImportProformas([]);
+    setImportResult(null);
+  };
+
+  const parseProformaRows = (data) => {
       const grouped = {};
-      data.forEach(row => {
+      data.forEach((row, index) => {
         const getVal = (keys) => {
            for (const key of keys) {
              if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
@@ -83,6 +90,8 @@ const ProformaList = () => {
         const id = getVal(['Proforma No', 'Draft No', 'ID', 'Id', 'id', 'Proforma Number']) || Math.random().toString();
         if (!grouped[id]) {
           grouped[id] = {
+            _importRowId: `proforma-import-${Date.now()}-${index}`,
+            proformaNo: String(id || '').trim(),
             clientName: getVal(['Client Name', 'Client', 'Customer Name', 'Customer']),
             clientEmail: getVal(['Client Email', 'Email', 'Customer Email']) || '',
             clientPhone: getVal(['Client Phone', 'Phone', 'Customer Phone', 'Contact']) || '',
@@ -94,6 +103,7 @@ const ProformaList = () => {
             shippingCharges: Number(getVal(['Shipping Charges', 'Shipping', 'Freight'])) || 0,
             packagingCharges: Number(getVal(['Packaging Charges', 'Packaging'])) || 0,
             discountTotal: Number(getVal(['Discount Total', 'Discount'])) || 0,
+            importedGrandTotal: Number(getVal(['Total', 'Grand Total'])) || 0,
             items: []
           };
         }
@@ -111,25 +121,75 @@ const ProformaList = () => {
         }
       });
 
-      const formattedProformas = Object.values(grouped).filter(p => p.clientName);
+      return Object.values(grouped).filter(p => p.clientName);
+  };
+
+  const handleCsvParsed = (data) => {
+      const formattedProformas = parseProformaRows(data);
 
       if (formattedProformas.length === 0) {
         alert('No valid proformas found. Ensure the "Client Name" column exists.');
-        setIsImporting(false);
         return;
       }
 
-      await api.post('/proformas/bulk', { proformas: formattedProformas });
-      alert(`Successfully imported ${formattedProformas.length} proformas!`);
-      setIsCsvModalOpen(false);
+      setParsedImportProformas(formattedProformas);
+      setImportResult(null);
+  };
+
+  const handleImportParsedProformas = async () => {
+    if (parsedImportProformas.length === 0) return;
+
+    setIsImporting(true);
+    try {
+      const res = await api.post('/proformas/bulk', { proformas: parsedImportProformas });
+      setImportResult(res.data);
       setLoading(true);
       fetchProformas();
     } catch (error) {
       console.error('Bulk import error:', error);
-      alert('Failed to import proformas: ' + (error.response?.data?.message || error.message));
+      setImportResult({
+        message: 'Failed to import proformas.',
+        imported: 0,
+        updated: 0,
+        skipped: 0,
+        failed: parsedImportProformas.length,
+        failedProformas: parsedImportProformas.map((proforma, index) => ({
+          importRowId: proforma._importRowId,
+          row: index + 1,
+          proformaNo: proforma.proformaNo,
+          clientName: proforma.clientName,
+          reason: error.response?.data?.message || error.message,
+        })),
+      });
     } finally {
       setIsImporting(false);
     }
+  };
+
+  const buildImportOutcomeRows = () => {
+    const importedByRow = new Map((importResult?.importedProformas || []).map((item) => [item.importRowId, item]));
+    const skippedByRow = new Map((importResult?.skippedProformas || []).map((item) => [item.importRowId, item]));
+    const failedByRow = new Map((importResult?.failedProformas || []).map((item) => [item.importRowId, item]));
+    const renumberedByRow = new Map((importResult?.renumberedProformas || []).map((item) => [item.importRowId, item]));
+
+    return parsedImportProformas.map((proforma, index) => {
+      const imported = importedByRow.get(proforma._importRowId);
+      const skipped = skippedByRow.get(proforma._importRowId);
+      const failed = failedByRow.get(proforma._importRowId);
+      const renumbered = renumberedByRow.get(proforma._importRowId);
+
+      if (failed) return { ...proforma, row: index + 1, outcome: 'Failed', finalNo: proforma.proformaNo || 'Auto', reason: failed.reason };
+      if (skipped) return { ...proforma, row: index + 1, outcome: 'Skipped', finalNo: skipped.proformaNo || proforma.proformaNo, reason: skipped.reason };
+      if (imported) return { ...proforma, row: index + 1, outcome: renumbered || imported.renumbered ? 'Imported with new number' : 'Imported', finalNo: imported.proformaNo, reason: renumbered?.reason || 'Imported successfully' };
+      return { ...proforma, row: index + 1, outcome: importResult ? 'Not processed' : 'Ready', finalNo: proforma.proformaNo || 'Auto', reason: '' };
+    });
+  };
+
+  const importOutcomeClass = (outcome) => {
+    if (outcome === 'Imported' || outcome === 'Imported with new number') return 'bg-green-50 text-green-700 border-green-200';
+    if (outcome === 'Skipped') return 'bg-amber-50 text-amber-700 border-amber-200';
+    if (outcome === 'Failed') return 'bg-red-50 text-red-700 border-red-200';
+    return 'bg-blue-50 text-blue-700 border-blue-200';
   };
 
   const displayed = proformas; // Backend pagination
@@ -330,23 +390,76 @@ const ProformaList = () => {
       </div>
 
       {/* Bulk Upload CSV Modal */}
-      <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Proformas to Database">
-        <CsvAndExcelUploader 
-          onDataParsed={handleCsvParsed} 
-          isLoading={isImporting}
-          title="Upload Proformas File"
-          subtitle="Group rows by 'Proforma No'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
-        />
-        <div className="mt-4 flex justify-end">
-          <button 
-            type="button" 
-            onClick={() => setIsCsvModalOpen(false)} 
-            disabled={isImporting}
-            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        </div>
+      <Modal
+        isOpen={isCsvModalOpen}
+        onClose={resetImportModal}
+        title={importResult ? 'Proforma Import Result' : parsedImportProformas.length ? 'Parsed Proformas Ready to Import' : 'Bulk Import Proformas to Database'}
+      >
+        {parsedImportProformas.length === 0 ? (
+          <>
+            <CsvAndExcelUploader
+              onDataParsed={handleCsvParsed}
+              isLoading={isImporting}
+              title="Upload Proformas File"
+              subtitle="Group rows by 'Proforma No'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
+            />
+            <div className="mt-4 flex justify-end">
+              <button type="button" onClick={resetImportModal} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50">
+                Cancel
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {[
+                ['Parsed', parsedImportProformas.length, 'border-slate-200 text-slate-900 bg-white'],
+                ['Imported', importResult?.imported ?? 0, 'border-green-200 text-green-700 bg-green-50'],
+                ['Updated', importResult?.updated ?? 0, 'border-blue-200 text-blue-700 bg-blue-50'],
+                ['Skipped', importResult?.skipped ?? 0, 'border-amber-200 text-amber-700 bg-amber-50'],
+                ['Failed', importResult?.failed ?? 0, 'border-red-200 text-red-700 bg-red-50'],
+              ].map(([label, value, cls]) => (
+                <div key={label} className={`border rounded-lg p-3 ${cls}`}>
+                  <div className="text-[10px] font-bold uppercase tracking-wider opacity-75">{label}</div>
+                  <div className="text-xl font-bold">{value}</div>
+                </div>
+              ))}
+            </div>
+            {importResult?.message && <div className="text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">{importResult.message}</div>}
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="overflow-x-auto max-h-[48vh]">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50 sticky top-0 z-10">
+                    <tr>
+                      {['Row', 'Proforma', 'Final No', 'Client', 'Date', 'Amount', 'Result', 'Reason'].map((header) => (
+                        <th key={header} className={`px-4 py-3 text-${header === 'Amount' ? 'right' : 'left'} text-[10px] font-bold uppercase tracking-wider text-slate-500`}>{header}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-slate-100">
+                    {buildImportOutcomeRows().map((row) => (
+                      <tr key={row._importRowId} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 text-slate-500">{row.row}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-800">{row.proformaNo || 'Auto'}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-800">{row.finalNo}</td>
+                        <td className="px-4 py-3 text-slate-700">{row.clientName}</td>
+                        <td className="px-4 py-3 text-slate-600">{row.date ? fmtDate(row.date) : '—'}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-slate-800">₹{fmt(row.importedGrandTotal || row.grandTotal)}</td>
+                        <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded-full border text-xs font-semibold ${importOutcomeClass(row.outcome)}`}>{row.outcome}</span></td>
+                        <td className="px-4 py-3 text-slate-600 min-w-[220px]">{row.reason || 'Ready to import'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="flex flex-wrap justify-end gap-3">
+              <button type="button" onClick={() => { setParsedImportProformas([]); setImportResult(null); }} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50">Upload Another File</button>
+              <button type="button" onClick={resetImportModal} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50">Close</button>
+              {!importResult && <button type="button" onClick={handleImportParsedProformas} disabled={isImporting} className="px-5 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50">{isImporting ? 'Importing...' : `Import ${parsedImportProformas.length} Proformas`}</button>}
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Premium Feature Modal */}
