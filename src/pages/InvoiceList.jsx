@@ -279,7 +279,7 @@ const InvoiceList = () => {
       };
       
       return (
-          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[finalStatus] || styles['SENT']}`}>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${styles[finalStatus] || styles['SENT']}`}>
               {finalStatus}
           </span>
       );
@@ -533,14 +533,14 @@ const InvoiceList = () => {
           <table className="min-w-full divide-y divide-gray-200 font-sans">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 w-12 text-center">
+                <th className="px-4 py-2 w-10 text-center">
                   <button onClick={toggleSelectAll} className="text-gray-400 hover:text-gray-600 transition-colors">
-                    {selectedInvoices.length === invoices.length && invoices.length > 0 ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
+                    {selectedInvoices.length === invoices.length && invoices.length > 0 ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                   </button>
                 </th>
                 <th 
                   onClick={() => handleSort('invoiceNo')}
-                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Invoice {renderSortIcon('invoiceNo')}
@@ -548,7 +548,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('invoiceType')}
-                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Type {renderSortIcon('invoiceType')}
@@ -556,7 +556,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('clientName')}
-                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Client {renderSortIcon('clientName')}
@@ -564,7 +564,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('date')}
-                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Date {renderSortIcon('date')}
@@ -572,7 +572,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('dueDate')}
-                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Due Date {renderSortIcon('dueDate')}
@@ -580,7 +580,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('status')}
-                  className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Status {renderSortIcon('status')}
@@ -588,7 +588,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('grandTotal')}
-                  className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center justify-end">
                     Amount {renderSortIcon('grandTotal')}
@@ -596,13 +596,13 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('balanceDue')}
-                  className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center justify-end">
                     Balance {renderSortIcon('balanceDue')}
                   </div>
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider select-none">
+                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">
                   Actions
                 </th>
               </tr>
@@ -611,58 +611,58 @@ const InvoiceList = () => {
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="bg-white border-b border-gray-100">
-                     <td className="px-6 py-4 text-center"><Skeleton width="20px" height="20px" className="mx-auto" /></td>
-                     <td className="px-6 py-4"><Skeleton width="100px" height="20px" /></td>
-                     <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
-                     <td className="px-6 py-4">
-                        <Skeleton width="120px" height="20px" className="mb-1" />
-                        <Skeleton width="80px" height="15px" />
+                     <td className="px-4 py-2 text-center"><Skeleton width="16px" height="16px" className="mx-auto" /></td>
+                     <td className="px-4 py-2"><Skeleton width="80px" height="16px" /></td>
+                     <td className="px-4 py-2"><Skeleton width="60px" height="16px" /></td>
+                     <td className="px-4 py-2">
+                        <Skeleton width="100px" height="16px" className="mb-1" />
+                        <Skeleton width="60px" height="12px" />
                      </td>
-                     <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
-                     <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
-                     <td className="px-6 py-4"><Skeleton width="60px" height="24px" className="rounded-full" /></td>
-                     <td className="px-6 py-4"><Skeleton width="80px" height="20px" className="ml-auto" /></td>
-                     <td className="px-6 py-4"><Skeleton width="80px" height="20px" className="ml-auto" /></td>
-                     <td className="px-6 py-4 text-center"><Skeleton width="80px" height="20px" className="mx-auto" /></td>
+                     <td className="px-4 py-2"><Skeleton width="60px" height="16px" /></td>
+                     <td className="px-4 py-2"><Skeleton width="60px" height="16px" /></td>
+                     <td className="px-4 py-2"><Skeleton width="50px" height="20px" className="rounded-full" /></td>
+                     <td className="px-4 py-2"><Skeleton width="60px" height="16px" className="ml-auto" /></td>
+                     <td className="px-4 py-2"><Skeleton width="60px" height="16px" className="ml-auto" /></td>
+                     <td className="px-4 py-2 text-center"><Skeleton width="60px" height="16px" className="mx-auto" /></td>
                   </tr>
                 ))
               ) : displayedInvoices.length === 0 ? (
-                <tr><td colSpan="10" className="px-6 py-12 text-center text-gray-500 text-sm">No invoices found.</td></tr>
+                <tr><td colSpan="10" className="px-4 py-8 text-center text-gray-500 text-xs">No invoices found.</td></tr>
               ) : (
                 displayedInvoices.map((inv) => (
                   <tr key={inv._id} className="hover:bg-blue-50/50 transition-colors group">
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-4 py-2 text-center">
                       <button onClick={() => toggleSelect(inv._id)} className={`${selectedInvoices.includes(inv._id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}`}>
-                         {selectedInvoices.includes(inv._id) ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
+                         {selectedInvoices.includes(inv._id) ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                       </button>
                     </td>
                     
                     {/* Invoice No */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                        <Link to={`/invoices/${inv._id}/print`} className="text-blue-600 font-medium hover:text-blue-800 hover:underline">
+                    <td className="px-4 py-2 whitespace-nowrap">
+                        <Link to={`/invoices/${inv._id}/print`} className="text-blue-600 text-xs font-semibold hover:text-blue-800 hover:underline">
                             {inv.invoiceNo}
                         </Link>
                     </td>
                     {/* Type */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                    <td className="px-4 py-2 whitespace-nowrap">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100">
                             {inv.invoiceType || 'Tax Invoice'}
                         </span>
                     </td>
                     
                     {/* Client */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{inv.client?.name}</div>
-                        {inv.client?.gstin && <div className="text-xs text-gray-400 mt-0.5">{inv.client.gstin}</div>}
+                    <td className="px-4 py-2 whitespace-nowrap">
+                        <div className="text-xs font-semibold text-gray-900">{inv.client?.name}</div>
+                        {inv.client?.gstin && <div className="text-[10px] text-gray-400 mt-0.5">{inv.client.gstin}</div>}
                     </td>
 
                     {/* Date */}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
                         {formatDate(inv.date)}
                     </td>
 
                     {/* Due Date */}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
                         {inv.dueDate ? (
                           <span className={new Date(inv.dueDate) < new Date() && inv.balanceDue > 0 ? 'text-red-500 font-medium font-sans' : ''}>
                             {formatDate(inv.dueDate)}
@@ -671,30 +671,58 @@ const InvoiceList = () => {
                     </td>
 
                     {/* Status */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(inv.status, inv.balanceDue)}
+                    <td className="px-4 py-2 whitespace-nowrap">
+                        <select
+                           value={inv.status || (Number(inv.balanceDue) === 0 ? 'PAID' : 'SENT')}
+                           onChange={async (e) => {
+                               const newStatus = e.target.value;
+                               try {
+                                   await api.put(`/invoices/${inv._id}/status`, { status: newStatus });
+                                   fetchInvoices();
+                               } catch (err) {
+                                   alert(err.response?.data?.message || 'Failed to update status');
+                               }
+                           }}
+                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent transition-colors text-center appearance-none ${
+                               (inv.status === 'PAID' || (!inv.status && Number(inv.balanceDue) === 0)) ? 'bg-green-100 text-green-700 border-green-200' :
+                               inv.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
+                               (inv.status === 'SENT' || (!inv.status && Number(inv.balanceDue) > 0)) ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                               inv.status === 'OVERDUE' ? 'bg-red-100 text-red-700 border-red-200' :
+                               inv.status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                               inv.status === 'UNPAID' ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                               inv.status === 'CANCELLED' ? 'bg-red-100 text-red-700 border-red-200' :
+                               'bg-blue-100 text-blue-700 border-blue-200'
+                           }`}
+                        >
+                            <option value="DRAFT" className="bg-white text-gray-700">DRAFT</option>
+                            <option value="SENT" className="bg-white text-gray-700">SENT</option>
+                            <option value="UNPAID" className="bg-white text-gray-700">UNPAID</option>
+                            <option value="PARTIAL" className="bg-white text-gray-700">PARTIAL</option>
+                            <option value="PAID" className="bg-white text-gray-700">PAID</option>
+                            <option value="CANCELLED" className="bg-white text-gray-700">CANCELLED</option>
+                        </select>
                     </td>
 
                     {/* Amount */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
+                    <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900">
                         ₹{inv.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
 
                     {/* Balance */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                        <span className={inv.balanceDue > 0 ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+                    <td className="px-4 py-2 whitespace-nowrap text-right text-xs">
+                        <span className={inv.balanceDue > 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>
                             ₹{inv.balanceDue?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                     </td>
 
                     {/* Actions */}
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                    <td className="px-4 py-2 whitespace-nowrap text-center text-xs font-medium">
                         <div className="flex justify-center gap-3">
                             <Link to={`/invoices/${inv._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View">
-                                <FaEye size={18} />
+                                <FaEye size={16} />
                             </Link>
                             <Link to={`/invoices/edit/${inv._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit">
-                                <FaEdit size={18} />
+                                <FaEdit size={16} />
                             </Link>
                             <button 
                                 onClick={async () => {
@@ -714,7 +742,7 @@ const InvoiceList = () => {
                                 className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`}
                                 title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
                             >
-                                <FaTrash size={18} />
+                                <FaTrash size={16} />
                             </button>
                         </div>
                     </td>

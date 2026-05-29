@@ -328,83 +328,117 @@ const PurchaseOrderList = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200 font-sans">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 w-12 text-center">
-                  <button onClick={toggleAll} className="text-gray-400 hover:text-gray-600">
-                    {selectedIds.length === purchaseOrders.length && purchaseOrders.length > 0 ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
+                <th className="px-4 py-2 w-10 text-center">
+                  <button onClick={toggleAll} className="text-gray-400 hover:text-gray-600 transition-colors">
+                    {selectedIds.length === purchaseOrders.length && purchaseOrders.length > 0 ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                   </button>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">PurchaseOrder No.</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">HSN/SAC</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vendor</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Valid Until</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">PO No.</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">HSN/SAC</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Vendor</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Date</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Valid Until</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Status</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Amount</th>
+                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="bg-white border-b border-gray-100">
-                    <td className="px-6 py-4 text-center"><Skeleton width="18px" height="18px" className="mx-auto" /></td>
-                    <td className="px-6 py-4"><Skeleton width="100px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="60px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="140px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="80px" height="24px" className="rounded-full" /></td>
-                    <td className="px-6 py-4 text-right"><Skeleton width="80px" height="20px" className="ml-auto" /></td>
-                    <td className="px-6 py-4 text-center"><Skeleton width="100px" height="20px" className="mx-auto" /></td>
+                    <td className="px-4 py-2 text-center"><Skeleton width="16px" height="16px" className="mx-auto" /></td>
+                    <td className="px-4 py-2"><Skeleton width="80px" height="16px" /></td>
+                    <td className="px-4 py-2"><Skeleton width="60px" height="16px" /></td>
+                    <td className="px-4 py-2">
+                      <Skeleton width="100px" height="16px" className="mb-1" />
+                      <Skeleton width="60px" height="12px" />
+                    </td>
+                    <td className="px-4 py-2"><Skeleton width="60px" height="16px" /></td>
+                    <td className="px-4 py-2"><Skeleton width="60px" height="16px" /></td>
+                    <td className="px-4 py-2"><Skeleton width="60px" height="20px" className="rounded-full" /></td>
+                    <td className="px-4 py-2 text-right"><Skeleton width="60px" height="16px" className="ml-auto" /></td>
+                    <td className="px-4 py-2 text-center"><Skeleton width="80px" height="16px" className="mx-auto" /></td>
                   </tr>
                 ))
               ) : displayed.length === 0 ? (
-                <tr><td colSpan="9" className="px-6 py-12 text-center text-gray-500 text-sm">No purchaseOrders found.</td></tr>
+                <tr><td colSpan="9" className="px-4 py-8 text-center text-gray-500 text-xs">No purchase orders found.</td></tr>
               ) : displayed.map(q => (
-                <tr key={q._id} className="hover:bg-blue-50/50 transition-colors">
-                  <td className="px-6 py-4 text-center">
+                <tr key={q._id} className="hover:bg-blue-50/50 transition-colors group">
+                  <td className="px-4 py-2 text-center">
                     <button onClick={() => toggleSelect(q._id)} className={selectedIds.includes(q._id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}>
-                      {selectedIds.includes(q._id) ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
+                      {selectedIds.includes(q._id) ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                     </button>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Link to={`/purchase-orders/${q._id}/print`} className="text-blue-600 font-medium hover:text-blue-800 hover:underline">
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <Link to={`/purchase-orders/${q._id}/print`} className="text-blue-600 text-xs font-semibold hover:text-blue-800 hover:underline">
                       {q.poNumber}
                     </Link>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
                     {[...new Set((q.items || []).map(it => it.hsnCode).filter(Boolean))].join(', ') || '—'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{q.vendor?.name}</div>
-                    {q.vendor?.gstin && <div className="text-xs text-gray-400 mt-0.5">{q.vendor.gstin}</div>}
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <div className="text-xs font-semibold text-gray-900">{q.vendor?.name}</div>
+                    {q.vendor?.gstin && <div className="text-[10px] text-gray-400 mt-0.5">{q.vendor.gstin}</div>}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{fmtDate(q.date)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">{fmtDate(q.date)}</td>
+                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
                     {q.validUntil ? (
                       <span className={new Date(q.validUntil) < new Date() && !['BILLED', 'RECEIVED', 'CANCELLED'].includes(q.status) ? 'text-red-500 font-medium' : ''}>
                         {fmtDate(q.validUntil)}
                       </span>
                     ) : '—'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${STATUS_STYLES[q.status] || STATUS_STYLES.DRAFT}`}>
-                      {q.status}
-                    </span>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    {q.status === 'BILLED' ? (
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_STYLES[q.status] || STATUS_STYLES.DRAFT}`}>
+                        {q.status}
+                      </span>
+                    ) : (
+                      <select
+                         value={q.status || 'DRAFT'}
+                         onChange={async (e) => {
+                             const newStatus = e.target.value;
+                             try {
+                                 await api.put(`/purchase-orders/${q._id}/status`, { status: newStatus });
+                                 fetchPurchaseOrders();
+                             } catch (err) {
+                                 alert(err.response?.data?.message || 'Failed to update status');
+                             }
+                         }}
+                         className={`px-2 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent transition-colors text-center appearance-none ${
+                             q.status === 'ACCEPTED' ? 'bg-green-100 text-green-700 border-green-200' :
+                             q.status === 'RECEIVED' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                             q.status === 'SENT' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                             q.status === 'REJECTED' ? 'bg-red-100 text-red-700 border-red-200' :
+                             q.status === 'CANCELLED' ? 'bg-slate-100 text-slate-700 border-slate-200' :
+                             q.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
+                             'bg-gray-100 text-gray-700 border-gray-200'
+                         }`}
+                      >
+                          <option value="DRAFT" className="bg-white text-gray-700">DRAFT</option>
+                          <option value="SENT" className="bg-white text-gray-700">SENT</option>
+                          <option value="ACCEPTED" className="bg-white text-gray-700">ACCEPTED</option>
+                          <option value="RECEIVED" className="bg-white text-gray-700">RECEIVED</option>
+                          <option value="REJECTED" className="bg-white text-gray-700">REJECTED</option>
+                          <option value="CANCELLED" className="bg-white text-gray-700">CANCELLED</option>
+                      </select>
+                    )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
+                  <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900">
                     ₹{fmt(q.grandTotal)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                  <td className="px-4 py-2 whitespace-nowrap text-center">
                     <div className="flex justify-center gap-2 items-center">
-                      <Link to={`/purchase-orders/${q._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View"><FaEye size={17} /></Link>
-                      <Link to={`/purchase-orders/edit/${q._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={17} /></Link>
+                      <Link to={`/purchase-orders/${q._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View"><FaEye size={16} /></Link>
+                      <Link to={`/purchase-orders/edit/${q._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={16} /></Link>
                       {q.status !== 'BILLED' && (
                         <button onClick={() => handleConvert(q._id)} className="text-gray-400 hover:text-purple-600 transition-colors" title="Convert to Invoice">
-                          <FaArrowRight size={17} />
+                          <FaArrowRight size={16} />
                         </button>
                       )}
                       <button 
@@ -415,7 +449,7 @@ const PurchaseOrderList = () => {
                         className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`} 
                         title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
                       >
-                        <FaTrash size={17} />
+                        <FaTrash size={16} />
                       </button>
                     </div>
                   </td>
