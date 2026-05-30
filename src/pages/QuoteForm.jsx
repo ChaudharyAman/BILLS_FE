@@ -80,7 +80,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
   });
 
   const [formData, setFormData] = useState({
-    invoiceType: 'Tax Invoice',
+    invoiceType: isProforma ? 'Tax Invoice' : 'Invoice',
     clientRef: '',
     docNo: '',
     docNoSuffix: '',
@@ -99,7 +99,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
     terms: '',
   });
 
-  const hasTax = ['Tax Invoice', 'Excise Invoice'].includes(formData.invoiceType);
+  const hasTax = isProforma && ['Tax Invoice', 'Excise Invoice'].includes(formData.invoiceType);
 
   useEffect(() => {
     const load = async () => {
@@ -524,7 +524,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
                   <th className={`${th} w-8`}>No</th>
                   <th className={`${th} w-40`}>Inventory Name</th>
                   <th className={th}>Description</th>
-                  <th className={`${th} w-24`}>HSN/SAC</th>
+                  {hasTax && <th className={`${th} w-24`}>HSN/SAC</th>}
                   <th className={`${th} w-20`}>Unit</th>
                   <th className={`${th} w-16`}>QTY</th>
                   <th className={`${th} w-24 text-right`}>Price</th>
@@ -560,10 +560,12 @@ const QuoteForm = ({ docType = 'quote' }) => {
                         {1000 - (item.description?.length || 0)} characters left
                       </div>
                     </td>
-                    <td className="px-2 py-2 align-top">
-                      <input placeholder="HSN" value={item.hsnCode || ''} onChange={e => updateItem(idx, 'hsnCode', e.target.value)}
-                        className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400" />
-                    </td>
+                    {hasTax && (
+                      <td className="px-2 py-2 align-top">
+                        <input placeholder="HSN" value={item.hsnCode || ''} onChange={e => updateItem(idx, 'hsnCode', e.target.value)}
+                          className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                      </td>
+                    )}
                     <td className="px-2 py-2 align-top">
                       <input value={item.unit} onChange={e => updateItem(idx, 'unit', e.target.value)}
                         className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400" />
