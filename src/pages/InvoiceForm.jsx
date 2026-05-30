@@ -612,7 +612,7 @@ const InvoiceForm = () => {
       return;
     }
 
-    const section = formData.tdsSection || '194C';
+    const section = formData.tdsSection || '194J';
     let rate = formData.tdsRate;
 
     if (section !== 'Manual') {
@@ -904,8 +904,8 @@ const InvoiceForm = () => {
                           ...prev,
                           clientRef: clientId,
                           tdsApplicable: tdsApp,
-                          tdsSection: tdsApp ? (selectedClient.default_tds_section || '194C') : '',
-                          tdsRate: tdsApp ? (selectedClient.default_tds_rate || 0) : 0
+                          tdsSection: tdsApp ? (selectedClient.tds_default_section || selectedClient.default_tds_section || '194J') : '',
+                          tdsRate: tdsApp ? (selectedClient.tds_default_rate || selectedClient.default_tds_rate || 10) : 0
                         }));
                       } else {
                         setFormData(prev => ({ 
@@ -1507,8 +1507,8 @@ const InvoiceForm = () => {
                       ...prev,
                       client_will_deduct_tds: nextVal,
                       tdsApplicable: nextVal,
-                      tdsSection: nextVal ? prev.tdsSection || '194C' : '',
-                      tdsRate: nextVal ? (prev.tdsRate || 2) : 0,
+                      tdsSection: nextVal ? prev.tdsSection || '194J' : '',
+                      tdsRate: nextVal ? (prev.tdsRate || 10) : 0,
                       tds: nextVal ? prev.tds : 0
                     }));
                   }}
@@ -1773,8 +1773,8 @@ const InvoiceForm = () => {
               ...prev,
               clientRef: newClient._id,
               tdsApplicable: tdsApp,
-              tdsSection: tdsApp ? (newClient.default_tds_section || '194C') : '',
-              tdsRate: tdsApp ? (newClient.default_tds_rate || 0) : 0
+              tdsSection: tdsApp ? (newClient.tds_default_section || newClient.default_tds_section || '194J') : '',
+              tdsRate: tdsApp ? (newClient.tds_default_rate || newClient.default_tds_rate || 10) : 0
             }));
             setIsClientModalOpen(false);
           }}

@@ -3,7 +3,8 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
     id: 'overview',
     title: 'Overview',
     items: [
-      { id: 'dashboard', label: 'Dashboard', path: '/dashboard', iconName: 'FaThLarge' }
+      { id: 'dashboard', label: 'Dashboard', path: '/dashboard', iconName: 'FaThLarge' },
+      { id: 'tax_dashboard', label: 'Tax Dashboard', path: '/tax-dashboard', iconName: 'FaChartBar' }
     ]
   },
   {

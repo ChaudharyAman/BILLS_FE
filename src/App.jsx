@@ -43,6 +43,7 @@ const BudgetManager = lazy(() => import('./pages/BudgetManager'));
 const BudgetTracking = lazy(() => import('./pages/BudgetTracking'));
 const RecurringTransactions = lazy(() => import('./pages/RecurringTransactions'));
 const FinancialDashboard = lazy(() => import('./pages/FinancialDashboard'));
+const TaxDashboard = lazy(() => import('./pages/TaxDashboard'));
 const ProfitLossStatement = lazy(() => import('./pages/ProfitLossStatement'));
 const BalanceSheet = lazy(() => import('./pages/BalanceSheet'));
 const CashFlowStatement = lazy(() => import('./pages/CashFlowStatement'));
@@ -210,6 +211,7 @@ function App() {
                   <Routes>
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/dashboard" element={<FinancialDashboard />} />
+                    <Route path="/tax-dashboard" element={<TaxDashboard />} />
 
                     {/* Invoices */}
                     <Route path="/invoices" element={<InvoiceList />} />
