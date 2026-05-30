@@ -109,8 +109,8 @@ const QuotePrint = ({ docType = 'quote' }) => {
   const grandTotal = Number(doc.grandTotal) || 0;
   const taxRate    = items[0]?.taxRate || 0;
   const isIntra    = !doc.totalIGST || doc.totalIGST === 0;
-  const hasTax     = (Number(doc.totalCGST)>0)||(Number(doc.totalSGST)>0)||(Number(doc.totalIGST)>0)
-    || items.some(it => Number(it.cgst)>0 || Number(it.sgst)>0 || Number(it.igst)>0);
+  const hasTax     = isProforma && ((Number(doc.totalCGST)>0)||(Number(doc.totalSGST)>0)||(Number(doc.totalIGST)>0)
+    || items.some(it => Number(it.cgst)>0 || Number(it.sgst)>0 || Number(it.igst)>0));
   const hasDiscount= items.some(it => Number(it.discount) > 0);
 
   const addrStr = (a) => {
@@ -186,6 +186,7 @@ const QuotePrint = ({ docType = 'quote' }) => {
           grandTotal={grandTotal}
           terms={doc.terms}
           notes={doc.notes}
+          hideTax={!isProforma}
         />
       ) : (
       <>
@@ -275,7 +276,7 @@ const QuotePrint = ({ docType = 'quote' }) => {
             <tr>
               <th style={TH('center','42px')}>S.No</th>
               <th style={TH('left',null)}>{'Item\nDescription'}</th>
-              <th style={TH('center','80px')}>HSN/SAC</th>
+              {hasTax && <th style={TH('center','80px')}>HSN/SAC</th>}
               <th style={TH('right','90px')}>{'Price\n(₹)'}</th>
               <th style={TH('center','65px')}>QTY</th>
               {hasDiscount && <th style={TH('right', '70px')}>{'Discount\n(%)'}</th>}
@@ -300,7 +301,7 @@ const QuotePrint = ({ docType = 'quote' }) => {
                     <div style={{ fontWeight:700, color: PRIMARY }}>{item.name}</div>
                     {item.description && <div style={{ color: MUTED, fontSize:10, marginTop:1 }}>{item.description}</div>}
                   </td>
-                  <td style={TD('center')}>{item.hsnCode||''}</td>
+                  {hasTax && <td style={TD('center')}>{item.hsnCode||''}</td>}
                   <td style={TD('right')}>{fmt(rate)}</td>
                   <td style={TD('center')}>
                     {qty}
@@ -320,8 +321,8 @@ const QuotePrint = ({ docType = 'quote' }) => {
           </tbody>
           <tfoot>
             <tr style={{ background:'#eef5f8' }}>
-              <td colSpan={5 + (hasDiscount ? 1 : 0)} style={{ padding:'7px 8px',textAlign:'right',fontWeight:700,fontSize:11,color:TEXT,borderTop:`2px solid ${PRIMARY}` }}>
-                Total {taxRate>0?`@${taxRate}%`:''}
+              <td colSpan={4 + (hasTax ? 1 : 0) + (hasDiscount ? 1 : 0)} style={{ padding:'7px 8px',textAlign:'right',fontWeight:700,fontSize:11,color:TEXT,borderTop:`2px solid ${PRIMARY}` }}>
+                Total {hasTax && taxRate>0?`@${taxRate}%`:''}
               </td>
               {hasTax && <td style={{ padding:'7px 8px',textAlign:'right',fontWeight:700,borderTop:`2px solid ${PRIMARY}` }}>{fmt(doc.subTotal)}</td>}
               {hasTax && isIntra && <>
@@ -356,7 +357,7 @@ const QuotePrint = ({ docType = 'quote' }) => {
           {/* Right: summary */}
           <div style={{ width:'52%', fontSize:12, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
             <div style={{ width: '100%' }}>
-              <Row label="Total Taxable Value" value={`₹ ${fmt(doc.subTotal)}`} />
+              <Row label={hasTax ? "Total Taxable Value" : "Subtotal"} value={`₹ ${fmt(doc.subTotal)}`} />
               {doc.shippingCharges>0 && <Row label="Shipping Charges" value={`(+) ₹ ${fmt(doc.shippingCharges)}`}/>}
               {doc.packagingCharges>0 && <Row label={doc.customChargeLabel || 'Custom Charge'} value={`(+) ₹ ${fmt(doc.packagingCharges)}`}/>}
               {doc.discountTotal>0   && <Row label="Discount"          value={`(-) ₹ ${fmt(doc.discountTotal)}`}/>}

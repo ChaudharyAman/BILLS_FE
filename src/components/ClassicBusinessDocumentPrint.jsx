@@ -115,9 +115,11 @@ const ClassicBusinessDocumentPrint = ({
   grandTotal,
   terms,
   notes,
+  hideTax,
 }) => {
   const border = '1px solid #000';
   const rowBorder = '1px solid #000';
+  const showTax = hasTax && !hideTax;
   const safeItems = items.length ? items : [{ name: '', description: '', hsnCode: '', qty: 0, unit: '', rate: 0, discount: 0 }];
   const totalQty = safeItems.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
   const unitLabel = safeItems.find((item) => item.unit)?.unit || 'Units';
@@ -131,11 +133,11 @@ const ClassicBusinessDocumentPrint = ({
     : [];
   const taxSummaryRows = summarizeTaxes(safeItems);
   const adjustmentRows = [
-    ...(hasTax && isIntra ? [
+    ...(showTax && isIntra ? [
       { label: 'Add', name: 'CGST', rate: uniformTaxRate ? `${fmt(uniformTaxRate / 2)} %` : '', amount: Number(totalCGST) || 0 },
       { label: 'Add', name: 'SGST', rate: uniformTaxRate ? `${fmt(uniformTaxRate / 2)} %` : '', amount: Number(totalSGST) || 0 },
     ] : []),
-    ...(hasTax && !isIntra ? [
+    ...(showTax && !isIntra ? [
       { label: 'Add', name: 'IGST', rate: uniformTaxRate ? `${fmt(uniformTaxRate)} %` : '', amount: Number(totalIGST) || 0 },
     ] : []),
     ...(Number(shippingCharges) > 0 ? [
@@ -188,7 +190,7 @@ const ClassicBusinessDocumentPrint = ({
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px 8px', fontSize: 16, fontWeight: 700 }}>
-        <div>GSTIN&nbsp; :&nbsp; {company?.gstin || ''}</div>
+        <div>{!hideTax && company?.gstin ? `GSTIN  :  ${company.gstin}` : ''}</div>
         <div style={{ fontWeight: 400 }}>Original Copy</div>
       </div>
 
@@ -210,8 +212,8 @@ const ClassicBusinessDocumentPrint = ({
           {detailLine('Dated', fmtDate(documentDate), 170)}
         </div>
         <div style={{ padding: '10px 10px 10px 12px', fontSize: 16 }}>
-          {detailLine('Place of Supply', placeOfSupply || '', 180)}
-          {detailLine('Reverse Charge', reverseCharge ? 'Y' : 'N', 180)}
+          {!hideTax && detailLine('Place of Supply', placeOfSupply || '', 180)}
+          {!hideTax && detailLine('Reverse Charge', reverseCharge ? 'Y' : 'N', 180)}
           {validUntil ? detailLine('Valid Until', fmtDate(validUntil), 180) : null}
         </div>
       </div>
@@ -230,7 +232,7 @@ const ClassicBusinessDocumentPrint = ({
           <tr>
             <th style={{ ...th, width: '3.8%', textAlign: 'center' }}>S.N.</th>
             <th style={{ ...th, width: '26.7%', textAlign: 'left' }}>Description of Goods</th>
-            <th style={{ ...th, width: '10%', textAlign: 'left' }}>HSN/SAC<br />Code</th>
+            {!hideTax && <th style={{ ...th, width: '10%', textAlign: 'left' }}>HSN/SAC<br />Code</th>}
             <th style={{ ...th, width: '7%', textAlign: 'right' }}>Qty.</th>
             <th style={{ ...th, width: '6%', textAlign: 'left' }}>Unit</th>
             <th style={{ ...th, width: '11%', textAlign: 'right' }}>List Price</th>
@@ -258,7 +260,7 @@ const ClassicBusinessDocumentPrint = ({
                     </div>
                   )}
                 </td>
-                <td style={{ ...td, fontSize: 13 }}>{item.hsnCode || ''}</td>
+                {!hideTax && <td style={{ ...td, fontSize: 13 }}>{item.hsnCode || ''}</td>}
                 <td style={{ ...td, textAlign: 'right', fontSize: 13 }}>{item.name ? qty.toFixed(2) : ''}</td>
                 <td style={{ ...td, fontSize: 13 }}>{item.unit || ''}</td>
                 <td style={{ ...td, textAlign: 'right', fontSize: 13 }}>{item.name ? fmt(listPrice) : ''}</td>
@@ -272,7 +274,7 @@ const ClassicBusinessDocumentPrint = ({
             <tr>
               <td style={{ ...td, height: fillerHeight }} />
               <td style={{ ...td, height: fillerHeight }} />
-              <td style={{ ...td, height: fillerHeight }} />
+              {!hideTax && <td style={{ ...td, height: fillerHeight }} />}
               <td style={{ ...td, height: fillerHeight }} />
               <td style={{ ...td, height: fillerHeight }} />
               <td style={{ ...td, height: fillerHeight }} />
@@ -327,7 +329,7 @@ const ClassicBusinessDocumentPrint = ({
         </div>
       </div>
 
-      {hasTax && (
+      {showTax && (
         <div style={{ padding: '10px 12px 10px', borderBottom: rowBorder }}>
           <table style={{ width: 'auto', minWidth: '480px', borderCollapse: 'collapse', fontSize: 11 }}>
             <thead>

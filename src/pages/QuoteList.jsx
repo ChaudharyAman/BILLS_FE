@@ -142,7 +142,8 @@ const QuoteList = () => {
             shippingCharges: Number(getVal(['Shipping Charges', 'Shipping', 'Freight'])) || 0,
             packagingCharges: Number(getVal(['Packaging Charges', 'Packaging'])) || 0,
             discountTotal: Number(getVal(['Discount Total', 'Discount'])) || 0,
-            importedGrandTotal: Number(getVal(['Total', 'Grand Total'])) || 0,
+            importedGrandTotal: Number(getVal(['Total', 'Grand Total', 'Grand Tot', 'Grand Total ', 'GrandTot'])) || 0,
+            importedSubTotal: Number(getVal(['Sub Total', 'Subtotal', 'Taxable Value', 'SubTotal', 'Subtot', 'Sub Tot'])) || 0,
             items: []
           };
         }
