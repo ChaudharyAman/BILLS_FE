@@ -332,7 +332,7 @@ export default function FinancialDashboard() {
             <div className="flex flex-wrap gap-3">
               {[
                 { l: 'Net GST Payable', v: s.netGstPayable, bg: 'rgba(139,92,246,0.10)', border: 'rgba(139,92,246,0.25)', c: '#8b5cf6' },
-                { l: 'Net Tax Payable', v: s.netTaxPayable, bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)', c: '#f59e0b' },
+                { l: 'Combined Tax Outflow', v: s.netTaxPayable, bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)', c: '#f59e0b' },
                 { l: 'TCS Collected', v: s.tcsCollected, bg: 'rgba(6,182,212,0.10)', border: 'rgba(6,182,212,0.25)', c: '#06b6d4' },
               ].map(m => (
                 <div key={m.l} className="rounded-2xl px-4 py-3 text-center" style={{ background: m.bg, border: `1px solid ${m.border}` }}>
@@ -475,7 +475,7 @@ export default function FinancialDashboard() {
                     { l: 'GST Liability', v: gst.liability, c: '#ec4899' },
                     { l: 'GST Credit', v: gst.credit, c: '#10b981' },
                     { l: 'Net GST Payable', v: gst.netPayable, c: '#6366f1' },
-                    { l: 'Net Tax Payable', v: s.netTaxPayable, c: '#f59e0b' },
+                    { l: 'Combined Tax Outflow', v: s.netTaxPayable, c: '#f59e0b' },
                   ].map(m => (
                     <div key={m.l} className="glass-water-inner p-3">
                       <div className="text-[10px] text-gray-400 font-bold uppercase mb-1">{m.l}</div>
