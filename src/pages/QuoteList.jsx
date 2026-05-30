@@ -234,11 +234,31 @@ const QuoteList = () => {
 
   const displayed = quotes; // Handled by backend
 
-  const fetchQuotesForExport = async () => {
-    if (selectedIds.length > 0) {
-      return displayed.filter((quote) => selectedIds.includes(quote._id));
+  const getFinancialYear = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = date.getMonth(); // 0-indexed: 0 is Jan, 3 is Apr
+    if (month >= 3) {
+      return `${year}-${String(year + 1).slice(-2)}`;
+    } else {
+      return `${year - 1}-${String(year).slice(-2)}`;
     }
+  };
 
+  const mapQuoteForExport = (q) => ({
+    ...q,
+    creatorName: q.user?.username || userObj?.username || '',
+    financialYear: getFinancialYear(q.date),
+    type: 'Quotation',
+    converted: (q.convertedToInvoice || q.status === 'CONVERTED') ? 'Y' : 'N',
+    discount: q.discountTotal || 0,
+    tds: q.tds || 0,
+    tcs: q.tcs || 0,
+  });
+
+  const fetchQuotesForExport = async () => {
     const queryParams = new URLSearchParams({
       all: 'true',
       search: searchTerm,
@@ -251,7 +271,13 @@ const QuoteList = () => {
     }).toString();
 
     const res = await api.get(`/quotes?${queryParams}`);
-    return res.data.data || [];
+    let rawData = res.data.data || [];
+
+    if (selectedIds.length > 0) {
+      rawData = rawData.filter((quote) => selectedIds.includes(quote._id));
+    }
+
+    return rawData.map(mapQuoteForExport);
   };
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -281,12 +307,28 @@ const QuoteList = () => {
                 getExportData={fetchQuotesForExport}
                 filename="Flance_Quotes"
                 columns={[
-                   { header: 'Quote No', key: 'quoteNo' },
                    { header: 'Client Name', key: 'client.name' },
-                   { header: 'Date', key: 'date' },
+                   { header: 'Client GSTIN', key: 'client.gstin' },
+                   { header: 'Quote Number', key: 'quoteNo' },
+                   { header: 'Creator Name', key: 'creatorName' },
+                   { header: 'Client Phone Number', key: 'client.phone' },
+                   { header: 'Client Email', key: 'client.email' },
+                   { header: 'Client City', key: 'client.address.city' },
+                   { header: 'Client State', key: 'client.address.state' },
+                   { header: 'P.O. Number', key: 'transport.poNumber' },
+                   { header: 'Issue Date', key: 'date' },
                    { header: 'Valid Until', key: 'validUntil' },
+                   { header: 'Financial Year', key: 'financialYear' },
+                   { header: 'Currency', key: 'currency' },
+                   { header: 'Amount', key: 'subTotal' },
+                   { header: 'Total', key: 'grandTotal' },
                    { header: 'Status', key: 'status' },
-                   { header: 'Grand Total', key: 'grandTotal' }
+                   { header: 'Type', key: 'type' },
+                   { header: 'Converted', key: 'converted' },
+                   { header: 'Private notes', key: 'notes' },
+                   { header: 'Discount', key: 'discount' },
+                   { header: 'TDS', key: 'tds' },
+                   { header: 'TCS', key: 'tcs' }
                 ]}
             />
           </div>
