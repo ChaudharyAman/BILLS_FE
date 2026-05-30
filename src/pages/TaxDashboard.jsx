@@ -8,6 +8,10 @@ import {
   FaArrowTrendUp, FaCalendarDays, FaCircleNotch, FaFileInvoiceDollar,
   FaReceipt, FaShieldHalved, FaRotateLeft, FaSun, FaMoon
 } from 'react-icons/fa6';
+import {
+  FaCoins, FaPercent, FaInfoCircle, FaArrowRight, FaArrowLeft,
+  FaClock, FaFileInvoice, FaBuilding
+} from 'react-icons/fa';
 import { getTaxDashboard } from '../api/taxReports';
 import { motion } from 'framer-motion';
 
@@ -82,12 +86,7 @@ const StatCard = ({ title, prefix = '', value, subtext, icon: Icon, tone = 'indi
   );
 };
 
-const HorizontalSubMetric = ({ title, value, valueColor = 'text-indigo-650', darkMode }) => (
-  <div className="text-center px-4">
-    <div className={`text-[10px] font-extrabold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-500' : 'text-slate-450'}`}>{title}</div>
-    <div className={`text-sm font-black ${valueColor}`}>{value}</div>
-  </div>
-);
+
 
 function ChartTooltip({ active, payload, label, darkMode }) {
   if (!active || !payload?.length) return null;
@@ -125,6 +124,7 @@ export default function TaxDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
 
   useEffect(() => {
     let cancelled = false;
@@ -435,6 +435,68 @@ export default function TaxDashboard() {
               />
             </div>
 
+            {/* TDS & Combined Tax Ledger Summary Panel */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className={`p-6 rounded-2xl border transition-all duration-300 ${
+                darkMode ? 'border-slate-800 bg-slate-900/60 shadow-md shadow-slate-950/20' : 'border-slate-200/50 bg-white/70 backdrop-blur-md'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <FaCoins className={darkMode ? 'text-[#818cf8]' : 'text-[#5b61eb]'} size={16} />
+                <h3 className={`text-xs font-black tracking-wider uppercase ${darkMode ? 'text-slate-300' : 'text-slate-850'}`}>
+                  TDS & Final Tax Obligations
+                </h3>
+                <div className="flex-1 h-[1px] bg-slate-800/80 rounded ml-2"></div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {/* TDS Receivable */}
+                <div className={`p-4 rounded-xl border ${
+                  darkMode ? 'bg-slate-950/40 border-slate-800/80 text-slate-200' : 'bg-slate-50 border-slate-200/60 text-slate-800'
+                }`}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TDS Receivable (Asset)</span>
+                    <span className={`p-1.5 rounded-lg ${darkMode ? 'bg-emerald-950/40 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                      <FaArrowLeft size={10} />
+                    </span>
+                  </div>
+                  <div className="text-xl font-black text-emerald-600">{fmt(summary.tdsDeducted, 2)}</div>
+                  <div className="text-[9px] font-semibold text-slate-450 mt-1">Withheld by clients</div>
+                </div>
+
+                {/* TDS Payable */}
+                <div className={`p-4 rounded-xl border ${
+                  darkMode ? 'bg-slate-950/40 border-slate-800/80 text-slate-200' : 'bg-slate-50 border-slate-200/60 text-slate-800'
+                }`}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TDS Payable (Liability)</span>
+                    <span className={`p-1.5 rounded-lg ${darkMode ? 'bg-rose-950/40 text-rose-400' : 'bg-rose-50 text-rose-600'}`}>
+                      <FaArrowRight size={10} />
+                    </span>
+                  </div>
+                  <div className="text-xl font-black text-rose-600">{fmt(summary.tdsPayable, 2)}</div>
+                  <div className="text-[9px] font-semibold text-slate-450 mt-1">Deducted from vendors/payroll</div>
+                </div>
+
+                {/* Combined Tax Position */}
+                <div className={`p-4 rounded-xl border ${
+                  darkMode ? 'bg-slate-950/40 border-slate-800/80 text-slate-200' : 'bg-slate-50 border-slate-200/60 text-slate-800'
+                }`}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Combined Tax Payable</span>
+                    <span className={`p-1.5 rounded-lg ${darkMode ? 'bg-amber-950/40 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>
+                      <FaCoins size={10} />
+                    </span>
+                  </div>
+                  <div className="text-xl font-black text-amber-600">{fmt(summary.netTaxPayable, 2)}</div>
+                  <div className="text-[9px] font-semibold text-slate-450 mt-1">Net GST + Net TDS position</div>
+                </div>
+              </div>
+            </motion.div>
+
             {/* Middle Row Charts */}
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-[380px_1fr]">
               {/* Card 5: Invoice Split Donut Chart */}
@@ -487,9 +549,9 @@ export default function TaxDashboard() {
                             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }}></span>
                             <span className={`font-bold ${darkMode ? 'text-slate-405' : 'text-slate-600'}`}>{item.name}</span>
                           </div>
-                          <div className="text-right">
-                            <span className={`font-black mr-2 ${darkMode ? 'text-slate-200' : 'text-slate-900'}`}>{item.value}</span>
-                            <span className={`text-[10px] font-bold ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{percent}%</span>
+                          <div className="text-right flex items-center gap-1.5 justify-end">
+                            <span className={`font-black ${darkMode ? 'text-slate-200' : 'text-slate-900'}`}>{item.value}</span>
+                            <span className={`text-[10px] font-bold ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>({percent}%)</span>
                           </div>
                         </div>
                       );
@@ -533,6 +595,128 @@ export default function TaxDashboard() {
               </motion.div>
             </div>
 
+            {/* GST Component Breakdown & Overdue Aging Row */}
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+              {/* GST Component Breakdown */}
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.12 }}
+                className={`p-6 rounded-2xl border transition-all duration-300 ${
+                  darkMode ? 'border-slate-800/80 bg-slate-900/60 shadow-md shadow-slate-950/20' : 'border-slate-200/50 bg-white/70 backdrop-blur-md'
+                }`}
+              >
+                <div>
+                  <h3 className={`text-xs font-black tracking-wider uppercase mb-1 ${darkMode ? 'text-slate-300' : 'text-slate-850'}`}>GST component breakdown</h3>
+                  <div className="w-8 h-1 bg-[#5b61eb] rounded-full mb-4"></div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Output (Collected) Side */}
+                  <div>
+                    <div className={`text-[10px] font-extrabold uppercase tracking-wider mb-2.5 ${darkMode ? 'text-rose-400/80' : 'text-rose-500'}`}>
+                      Output Tax (Collected)
+                    </div>
+                    <div className="space-y-2.5">
+                      <div className={`flex justify-between border-b pb-2 ${darkMode ? 'border-slate-800/80' : 'border-slate-100'}`}>
+                        <span className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>IGST (Inter-State)</span>
+                        <strong className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{fmt(data?.gst?.igst, 2)}</strong>
+                      </div>
+                      <div className={`flex justify-between border-b pb-2 ${darkMode ? 'border-slate-800/80' : 'border-slate-100'}`}>
+                        <span className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>CGST (Central)</span>
+                        <strong className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{fmt(data?.gst?.cgst, 2)}</strong>
+                      </div>
+                      <div className={`flex justify-between border-b pb-2 ${darkMode ? 'border-slate-800/80' : 'border-slate-100'}`}>
+                        <span className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>SGST (State)</span>
+                        <strong className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{fmt(data?.gst?.sgst, 2)}</strong>
+                      </div>
+                      <div className="flex justify-between pt-1">
+                        <span className={`text-xs font-extrabold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>Total Output</span>
+                        <strong className="text-sm font-black text-rose-600">{fmt(data?.gst?.liability, 2)}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Input (Credit) Side */}
+                  <div>
+                    <div className={`text-[10px] font-extrabold uppercase tracking-wider mb-2.5 ${darkMode ? 'text-emerald-400/80' : 'text-emerald-600'}`}>
+                      Input Tax Credit (ITC)
+                    </div>
+                    <div className="space-y-2.5">
+                      <div className={`flex justify-between border-b pb-2 ${darkMode ? 'border-slate-800/80' : 'border-slate-100'}`}>
+                        <span className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>IGST Credit</span>
+                        <strong className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{fmt(data?.gst?.inputIgst || data?.igstCredit, 2)}</strong>
+                      </div>
+                      <div className={`flex justify-between border-b pb-2 ${darkMode ? 'border-slate-800/80' : 'border-slate-100'}`}>
+                        <span className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>CGST+SGST Credit</span>
+                        <strong className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{fmt(data?.gst?.inputCgstSgst || data?.cgstSgstCredit, 2)}</strong>
+                      </div>
+                      <div className={`flex justify-between border-b pb-2 ${darkMode ? 'border-slate-800/80' : 'border-slate-100'}`}>
+                        <span className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Utilisation Rate</span>
+                        <strong className={`text-sm font-black ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{pct(data?.itcUtilisation)}</strong>
+                      </div>
+                      <div className="flex justify-between pt-1">
+                        <span className={`text-xs font-extrabold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>Total Input Credit</span>
+                        <strong className="text-sm font-black text-emerald-600">{fmt(data?.gst?.credit, 2)}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Net payable summary row */}
+                <div className={`mt-4 pt-3 border-t flex justify-between items-center ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                  <span className={`text-xs font-extrabold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>Net GST Payable (Output − Input)</span>
+                  <strong className="text-base font-black text-amber-600">{fmt(data?.gst?.netPayable, 2)}</strong>
+                </div>
+              </motion.div>
+
+              {/* Overdue Debt Aging & Drafts Box */}
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.14 }}
+                className={`p-6 rounded-2xl border transition-all duration-300 ${
+                  darkMode ? 'border-slate-800/80 bg-slate-900/60 shadow-md shadow-slate-950/20' : 'border-slate-200/50 bg-white/70 backdrop-blur-md'
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className={`text-xs font-black tracking-wider uppercase mb-1 ${darkMode ? 'text-slate-300' : 'text-slate-850'}`}>Outstanding debt aging</h3>
+                    <div className="w-8 h-1 bg-[#5b61eb] rounded-full mb-4"></div>
+                  </div>
+                  {data?.draftCounts?.total > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-500/20 border border-amber-500/40 text-amber-550 uppercase tracking-wide">
+                      {data?.draftCounts?.total} Drafts Pending
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                  <div className={`p-2.5 rounded-xl ${darkMode ? 'bg-slate-950/40' : 'bg-slate-50'}`}>
+                    <div className={`text-[9px] font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>0-30 Days</div>
+                    <div className={`text-xs font-black ${darkMode ? 'text-slate-200' : 'text-slate-850'}`}>{fmt(data?.overdueInvoices?.aging?.d0_30)}</div>
+                  </div>
+                  <div className={`p-2.5 rounded-xl ${darkMode ? 'bg-slate-950/40' : 'bg-slate-50'}`}>
+                    <div className={`text-[9px] font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>31-60 Days</div>
+                    <div className={`text-xs font-black ${darkMode ? 'text-slate-200' : 'text-slate-850'}`}>{fmt(data?.overdueInvoices?.aging?.d31_60)}</div>
+                  </div>
+                  <div className={`p-2.5 rounded-xl ${darkMode ? 'bg-slate-950/40' : 'bg-slate-50'}`}>
+                    <div className={`text-[9px] font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>61-90 Days</div>
+                    <div className={`text-xs font-black ${darkMode ? 'text-slate-200' : 'text-slate-850'}`}>{fmt(data?.overdueInvoices?.aging?.d61_90)}</div>
+                  </div>
+                  <div className={`p-2.5 rounded-xl ${darkMode ? 'bg-slate-950/40' : 'bg-slate-50'}`}>
+                    <div className={`text-[9px] font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>90+ Days</div>
+                    <div className="text-xs font-black text-rose-500">{fmt(data?.overdueInvoices?.aging?.d90plus)}</div>
+                  </div>
+                </div>
+
+                <div className={`mt-4 border-t pt-3 flex justify-between items-center text-xs ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                  <span className={`font-semibold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Total Overdue Receivable ({data?.overdueInvoices?.count || 0} Invoices):</span>
+                  <strong className={`font-black ${darkMode ? 'text-slate-200' : 'text-slate-850'}`}>{fmt(data?.overdueInvoices?.total)}</strong>
+                </div>
+              </motion.div>
+            </div>
+
             {/* Bottom Row Trend & Circular ITC */}
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px]">
               {/* Card 7: Trailing 6-month trend and sub-metrics */}
@@ -567,34 +751,6 @@ export default function TaxDashboard() {
                       <Line type="monotone" dataKey="net" name="Net Liability" stroke="#f59e0b" strokeWidth={2.5} dot={{ fill: '#f59e0b', r: 3, strokeWidth: 0 }} activeDot={{ r: 5 }} />
                     </LineChart>
                   </ResponsiveContainer>
-                </div>
-
-                {/* Horizontal Metrics Overlay */}
-                <div className={`grid grid-cols-2 md:grid-cols-4 border-t pt-5 mt-5 gap-y-4 ${darkMode ? 'border-slate-800' : 'border-slate-200/60'}`}>
-                  <HorizontalSubMetric
-                    title="ITC utilisation"
-                    value={pct(data?.itcUtilisation)}
-                    valueColor="text-emerald-600"
-                    darkMode={darkMode}
-                  />
-                  <HorizontalSubMetric
-                    title="IGST credit"
-                    value={fmt(data?.igstCredit)}
-                    valueColor="text-[#818cf8]"
-                    darkMode={darkMode}
-                  />
-                  <HorizontalSubMetric
-                    title="CGST+SGST"
-                    value={fmt(data?.cgstSgstCredit)}
-                    valueColor="text-[#818cf8]"
-                    darkMode={darkMode}
-                  />
-                  <HorizontalSubMetric
-                    title="Credit / output"
-                    value={pct(data?.creditOutputRatio)}
-                    valueColor="text-amber-600"
-                    darkMode={darkMode}
-                  />
                 </div>
               </motion.div>
 
@@ -639,6 +795,7 @@ export default function TaxDashboard() {
                 </div>
               </motion.div>
             </div>
+
 
           </div>
         )}
