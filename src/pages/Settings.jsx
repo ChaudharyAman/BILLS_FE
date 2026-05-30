@@ -118,7 +118,7 @@ const Settings = () => {
   const [formData, setFormData] = useState({
     companyName: '',
     contactName: '',
-    address: { line1: '', city: '', state: '', zip: '' },
+    address: { line1: '', line2: '', city: '', state: '', zip: '', country: '' },
     gstin: '',
     pan: '',
     email: '',
@@ -428,12 +428,19 @@ const Settings = () => {
             <div>
               <h3 className="text-base font-semibold text-gray-900 mb-4">Address Details</h3>
               <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
-                  <input type="text" name="address.line1" value={formData.address?.line1 || ''}
-                    onChange={handleChange} className={inputCls} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Street Address Line 1</label>
+                    <input type="text" name="address.line1" value={formData.address?.line1 || ''}
+                      onChange={handleChange} className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Street Address Line 2</label>
+                    <input type="text" name="address.line2" value={formData.address?.line2 || ''}
+                      onChange={handleChange} className={inputCls} />
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-4 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                     <input type="text" name="address.city" value={formData.address?.city || ''}
@@ -448,6 +455,11 @@ const Settings = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Zip Code</label>
                     <input type="text" name="address.zip" value={formData.address?.zip || ''}
                       onChange={handleChange} className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                    <input type="text" name="address.country" value={formData.address?.country || ''}
+                      onChange={handleChange} className={inputCls} placeholder="e.g. India" />
                   </div>
                 </div>
               </div>

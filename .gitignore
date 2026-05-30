@@ -31,6 +31,13 @@ coverage/
 *.local
 *.tmp
 
+# Test results
+test-results/
+tests/
+
+playwrite-report/
+playwright-report/
+
 # Optional: lockfiles (uncomment if you don't want to commit locks)
 # package-lock.json
 # yarn.lock

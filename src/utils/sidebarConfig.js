@@ -89,6 +89,7 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
         isPremium: true,
         children: [
           { id: 'reports_gst', label: 'GST Reports', path: '/reports/gst' },
+          { id: 'reports_tds', label: 'TDS Summary', path: '/reports/tds' },
           { id: 'reports_revenue', label: 'Revenue Reports', path: '/reports/revenue' },
           { id: 'reports_profit_loss', label: 'Profit & Loss', path: '/reports/profit-loss' },
           { id: 'reports_balance_sheet', label: 'Balance Sheet', path: '/reports/balance-sheet' },

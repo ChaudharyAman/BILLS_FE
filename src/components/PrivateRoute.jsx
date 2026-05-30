@@ -1,29 +1,41 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { clearAuthSession } from '../api/axios';
+import api, { clearAuthSession, storeAuthSession } from '../api/axios';
+import PageLoader from './PageLoader';
 
 const PrivateRoute = ({ children }) => {
-  let isAuthenticated = false;
+  const [authState, setAuthState] = useState('checking');
 
-  try {
-    const rawUser = localStorage.getItem('user');
-    const authToken = localStorage.getItem('authToken');
+  useEffect(() => {
+    let isCancelled = false;
 
-    if (rawUser) {
-      const parsed = JSON.parse(rawUser);
-      if (parsed?.user?._id) {
-        isAuthenticated = true;
+    const verifySession = async () => {
+      try {
+        const response = await api.get('/auth/me');
+        if (!isCancelled) {
+          storeAuthSession(response.data);
+          setAuthState('authenticated');
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          clearAuthSession();
+          setAuthState('unauthenticated');
+        }
       }
-    }
+    };
 
-    if (!isAuthenticated && authToken) {
-      isAuthenticated = true;
-    }
-  } catch (error) {
-    clearAuthSession();
+    verifySession();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  if (authState === 'checking') {
+    return <PageLoader />;
   }
 
-  if (!isAuthenticated) {
+  if (authState === 'unauthenticated') {
     return <Navigate to="/login" replace />;
   }
 

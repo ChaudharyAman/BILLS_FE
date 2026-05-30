@@ -21,6 +21,8 @@ const ProformaList = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [parsedImportProformas, setParsedImportProformas] = useState([]);
+  const [importResult, setImportResult] = useState(null);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const userStr = localStorage.getItem('user');
@@ -66,11 +68,16 @@ const ProformaList = () => {
   const toggleAll = () =>
     setSelectedIds(selectedIds.length === proformas.length ? [] : proformas.map(p => p._id));
 
-  const handleCsvParsed = async (data) => {
-    setIsImporting(true);
-    try {
+  const resetImportModal = () => {
+    if (isImporting) return;
+    setIsCsvModalOpen(false);
+    setParsedImportProformas([]);
+    setImportResult(null);
+  };
+
+  const parseProformaRows = (data) => {
       const grouped = {};
-      data.forEach(row => {
+      data.forEach((row, index) => {
         const getVal = (keys) => {
            for (const key of keys) {
              if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
@@ -83,6 +90,8 @@ const ProformaList = () => {
         const id = getVal(['Proforma No', 'Draft No', 'ID', 'Id', 'id', 'Proforma Number']) || Math.random().toString();
         if (!grouped[id]) {
           grouped[id] = {
+            _importRowId: `proforma-import-${Date.now()}-${index}`,
+            proformaNo: String(id || '').trim(),
             clientName: getVal(['Client Name', 'Client', 'Customer Name', 'Customer']),
             clientEmail: getVal(['Client Email', 'Email', 'Customer Email']) || '',
             clientPhone: getVal(['Client Phone', 'Phone', 'Customer Phone', 'Contact']) || '',
@@ -94,6 +103,7 @@ const ProformaList = () => {
             shippingCharges: Number(getVal(['Shipping Charges', 'Shipping', 'Freight'])) || 0,
             packagingCharges: Number(getVal(['Packaging Charges', 'Packaging'])) || 0,
             discountTotal: Number(getVal(['Discount Total', 'Discount'])) || 0,
+            importedGrandTotal: Number(getVal(['Total', 'Grand Total'])) || 0,
             items: []
           };
         }
@@ -111,25 +121,75 @@ const ProformaList = () => {
         }
       });
 
-      const formattedProformas = Object.values(grouped).filter(p => p.clientName);
+      return Object.values(grouped).filter(p => p.clientName);
+  };
+
+  const handleCsvParsed = (data) => {
+      const formattedProformas = parseProformaRows(data);
 
       if (formattedProformas.length === 0) {
         alert('No valid proformas found. Ensure the "Client Name" column exists.');
-        setIsImporting(false);
         return;
       }
 
-      await api.post('/proformas/bulk', { proformas: formattedProformas });
-      alert(`Successfully imported ${formattedProformas.length} proformas!`);
-      setIsCsvModalOpen(false);
+      setParsedImportProformas(formattedProformas);
+      setImportResult(null);
+  };
+
+  const handleImportParsedProformas = async () => {
+    if (parsedImportProformas.length === 0) return;
+
+    setIsImporting(true);
+    try {
+      const res = await api.post('/proformas/bulk', { proformas: parsedImportProformas });
+      setImportResult(res.data);
       setLoading(true);
       fetchProformas();
     } catch (error) {
       console.error('Bulk import error:', error);
-      alert('Failed to import proformas: ' + (error.response?.data?.message || error.message));
+      setImportResult({
+        message: 'Failed to import proformas.',
+        imported: 0,
+        updated: 0,
+        skipped: 0,
+        failed: parsedImportProformas.length,
+        failedProformas: parsedImportProformas.map((proforma, index) => ({
+          importRowId: proforma._importRowId,
+          row: index + 1,
+          proformaNo: proforma.proformaNo,
+          clientName: proforma.clientName,
+          reason: error.response?.data?.message || error.message,
+        })),
+      });
     } finally {
       setIsImporting(false);
     }
+  };
+
+  const buildImportOutcomeRows = () => {
+    const importedByRow = new Map((importResult?.importedProformas || []).map((item) => [item.importRowId, item]));
+    const skippedByRow = new Map((importResult?.skippedProformas || []).map((item) => [item.importRowId, item]));
+    const failedByRow = new Map((importResult?.failedProformas || []).map((item) => [item.importRowId, item]));
+    const renumberedByRow = new Map((importResult?.renumberedProformas || []).map((item) => [item.importRowId, item]));
+
+    return parsedImportProformas.map((proforma, index) => {
+      const imported = importedByRow.get(proforma._importRowId);
+      const skipped = skippedByRow.get(proforma._importRowId);
+      const failed = failedByRow.get(proforma._importRowId);
+      const renumbered = renumberedByRow.get(proforma._importRowId);
+
+      if (failed) return { ...proforma, row: index + 1, outcome: 'Failed', finalNo: proforma.proformaNo || 'Auto', reason: failed.reason };
+      if (skipped) return { ...proforma, row: index + 1, outcome: 'Skipped', finalNo: skipped.proformaNo || proforma.proformaNo, reason: skipped.reason };
+      if (imported) return { ...proforma, row: index + 1, outcome: renumbered || imported.renumbered ? 'Imported with new number' : 'Imported', finalNo: imported.proformaNo, reason: renumbered?.reason || 'Imported successfully' };
+      return { ...proforma, row: index + 1, outcome: importResult ? 'Not processed' : 'Ready', finalNo: proforma.proformaNo || 'Auto', reason: '' };
+    });
+  };
+
+  const importOutcomeClass = (outcome) => {
+    if (outcome === 'Imported' || outcome === 'Imported with new number') return 'bg-green-50 text-green-700 border-green-200';
+    if (outcome === 'Skipped') return 'bg-amber-50 text-amber-700 border-amber-200';
+    if (outcome === 'Failed') return 'bg-red-50 text-red-700 border-red-200';
+    return 'bg-blue-50 text-blue-700 border-blue-200';
   };
 
   const displayed = proformas; // Backend pagination
@@ -183,15 +243,15 @@ const ProformaList = () => {
             />
           </div>
           <button
-             onClick={() => isPro ? setIsCsvModalOpen(true) : setShowPremiumModal(true)}
-             className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm ${
-               isPro 
-                 ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200' 
-                 : 'bg-gray-50 text-gray-400 border border-gray-200 opacity-70 cursor-not-allowed'
-             }`}
-           >
-             <FaFileAlt size={16} /> Bulk Import
-           </button>
+              onClick={() => isPro ? setIsCsvModalOpen(true) : setShowPremiumModal(true)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm ${
+                isPro 
+                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200' 
+                  : 'bg-gray-50 text-gray-400 border border-gray-200 opacity-70 cursor-not-allowed'
+              }`}
+            >
+              <FaFileAlt size={16} /> Bulk Import
+            </button>
           <Link to="/proformas/new"
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm">
             <FaPlus size={16} /> New Proforma
@@ -214,69 +274,94 @@ const ProformaList = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 w-12 text-center">
+                <th className="px-4 py-2 w-10 text-center">
                   <button onClick={toggleAll} className="text-gray-400 hover:text-gray-600">
-                    {selectedIds.length === proformas.length && proformas.length > 0 ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
+                    {selectedIds.length === proformas.length && proformas.length > 0 ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                   </button>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Proforma No.</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Valid Until</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Proforma No.</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Client</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Date</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Valid Until</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Status</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Amount</th>
+                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="bg-white border-b border-gray-100">
-                    <td className="px-6 py-4 text-center"><Skeleton width="18px" height="18px" className="mx-auto" /></td>
-                    <td className="px-6 py-4"><Skeleton width="100px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="140px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="80px" height="24px" className="rounded-full" /></td>
-                    <td className="px-6 py-4 text-right"><Skeleton width="80px" height="20px" className="ml-auto" /></td>
-                    <td className="px-6 py-4 text-center"><Skeleton width="100px" height="20px" className="mx-auto" /></td>
+                    <td className="px-4 py-2 text-center"><Skeleton width="16px" height="16px" className="mx-auto" /></td>
+                    <td className="px-4 py-2"><Skeleton width="80px" height="16px" /></td>
+                    <td className="px-4 py-2"><Skeleton width="120px" height="16px" /></td>
+                    <td className="px-4 py-2"><Skeleton width="60px" height="16px" /></td>
+                    <td className="px-4 py-2"><Skeleton width="60px" height="16px" /></td>
+                    <td className="px-4 py-2"><Skeleton width="60px" height="20px" className="rounded-full" /></td>
+                    <td className="px-4 py-2 text-right"><Skeleton width="60px" height="16px" className="ml-auto" /></td>
+                    <td className="px-4 py-2 text-center"><Skeleton width="80px" height="16px" className="mx-auto" /></td>
                   </tr>
                 ))
               ) : displayed.length === 0 ? (
-                <tr><td colSpan="8" className="px-6 py-12 text-center text-gray-500 text-sm">No proforma invoices found.</td></tr>
+                <tr><td colSpan="8" className="px-4 py-8 text-center text-gray-500 text-xs">No proforma invoices found.</td></tr>
               ) : displayed.map(p => (
                 <tr key={p._id} className="hover:bg-blue-50/50 transition-colors">
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 py-2 text-center">
                     <button onClick={() => toggleSelect(p._id)} className={selectedIds.includes(p._id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}>
-                      {selectedIds.includes(p._id) ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
+                      {selectedIds.includes(p._id) ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                     </button>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Link to={`/proformas/${p._id}/print`} className="text-blue-600 font-medium hover:text-blue-800 hover:underline">
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <Link to={`/proformas/${p._id}/print`} className="text-blue-600 text-xs font-semibold hover:text-blue-800 hover:underline">
                       {p.proformaNo}
                     </Link>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{p.client?.name}</div>
-                    {p.client?.gstin && <div className="text-xs text-gray-400 mt-0.5">{p.client.gstin}</div>}
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <div className="text-xs font-semibold text-gray-900">{p.client?.name}</div>
+                    {p.client?.gstin && <div className="text-[10px] text-gray-400 mt-0.5">{p.client.gstin}</div>}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{fmtDate(p.date)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{fmtDate(p.validUntil)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${STATUS_STYLES[p.status] || STATUS_STYLES.DRAFT}`}>
-                      {p.status}
-                    </span>
+                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">{fmtDate(p.date)}</td>
+                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">{fmtDate(p.validUntil)}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    {p.status === 'CONVERTED' ? (
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_STYLES[p.status] || STATUS_STYLES.DRAFT}`}>
+                        {p.status}
+                      </span>
+                    ) : (
+                      <select
+                         value={p.status || 'DRAFT'}
+                         onChange={async (e) => {
+                             const newStatus = e.target.value;
+                             try {
+                                 await api.put(`/proformas/${p._id}/status`, { status: newStatus });
+                                 fetchProformas();
+                             } catch (err) {
+                                 alert(err.response?.data?.message || 'Failed to update status');
+                             }
+                         }}
+                         className={`px-2 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent transition-colors text-center appearance-none ${
+                             p.status === 'CONFIRMED' ? 'bg-green-100 text-green-700 border-green-200' :
+                             p.status === 'SENT' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                             p.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
+                             'bg-gray-100 text-gray-700 border-gray-200'
+                         }`}
+                      >
+                          <option value="DRAFT" className="bg-white text-gray-700">DRAFT</option>
+                          <option value="SENT" className="bg-white text-gray-700">SENT</option>
+                          <option value="CONFIRMED" className="bg-white text-gray-700">CONFIRMED</option>
+                      </select>
+                    )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
+                  <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900">
                     ₹{fmt(p.grandTotal)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                  <td className="px-4 py-2 whitespace-nowrap text-center">
                     <div className="flex justify-center gap-2 items-center">
-                      <Link to={`/proformas/${p._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View"><FaEye size={17} /></Link>
-                      <Link to={`/proformas/edit/${p._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={17} /></Link>
+                      <Link to={`/proformas/${p._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View"><FaEye size={16} /></Link>
+                      <Link to={`/proformas/edit/${p._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={16} /></Link>
                       {p.status !== 'CONVERTED' && (
                         <button onClick={() => handleConvert(p._id)} className="text-gray-400 hover:text-purple-600 transition-colors" title="Convert to Invoice">
-                          <FaArrowRight size={17} />
+                          <FaArrowRight size={16} />
                         </button>
                       )}
                       <button 
@@ -287,7 +372,7 @@ const ProformaList = () => {
                         className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`} 
                         title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
                       >
-                        <FaTrash size={17} />
+                        <FaTrash size={16} />
                       </button>
                     </div>
                   </td>
@@ -330,23 +415,76 @@ const ProformaList = () => {
       </div>
 
       {/* Bulk Upload CSV Modal */}
-      <Modal isOpen={isCsvModalOpen} onClose={() => !isImporting && setIsCsvModalOpen(false)} title="Bulk Import Proformas to Database">
-        <CsvAndExcelUploader 
-          onDataParsed={handleCsvParsed} 
-          isLoading={isImporting}
-          title="Upload Proformas File"
-          subtitle="Group rows by 'Proforma No'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
-        />
-        <div className="mt-4 flex justify-end">
-          <button 
-            type="button" 
-            onClick={() => setIsCsvModalOpen(false)} 
-            disabled={isImporting}
-            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        </div>
+      <Modal
+        isOpen={isCsvModalOpen}
+        onClose={resetImportModal}
+        title={importResult ? 'Proforma Import Result' : parsedImportProformas.length ? 'Parsed Proformas Ready to Import' : 'Bulk Import Proformas to Database'}
+      >
+        {parsedImportProformas.length === 0 ? (
+          <>
+            <CsvAndExcelUploader
+              onDataParsed={handleCsvParsed}
+              isLoading={isImporting}
+              title="Upload Proformas File"
+              subtitle="Group rows by 'Proforma No'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
+            />
+            <div className="mt-4 flex justify-end">
+              <button type="button" onClick={resetImportModal} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50">
+                Cancel
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {[
+                ['Parsed', parsedImportProformas.length, 'border-slate-200 text-slate-900 bg-white'],
+                ['Imported', importResult?.imported ?? 0, 'border-green-200 text-green-700 bg-green-50'],
+                ['Updated', importResult?.updated ?? 0, 'border-blue-200 text-blue-700 bg-blue-50'],
+                ['Skipped', importResult?.skipped ?? 0, 'border-amber-200 text-amber-700 bg-amber-50'],
+                ['Failed', importResult?.failed ?? 0, 'border-red-200 text-red-700 bg-red-50'],
+              ].map(([label, value, cls]) => (
+                <div key={label} className={`border rounded-lg p-3 ${cls}`}>
+                  <div className="text-[10px] font-bold uppercase tracking-wider opacity-75">{label}</div>
+                  <div className="text-xl font-bold">{value}</div>
+                </div>
+              ))}
+            </div>
+            {importResult?.message && <div className="text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">{importResult.message}</div>}
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="overflow-x-auto max-h-[48vh]">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50 sticky top-0 z-10">
+                    <tr>
+                      {['Row', 'Proforma', 'Final No', 'Client', 'Date', 'Amount', 'Result', 'Reason'].map((header) => (
+                        <th key={header} className={`px-4 py-3 text-${header === 'Amount' ? 'right' : 'left'} text-[10px] font-bold uppercase tracking-wider text-slate-500`}>{header}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-slate-100">
+                    {buildImportOutcomeRows().map((row) => (
+                      <tr key={row._importRowId} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 text-slate-500">{row.row}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-800">{row.proformaNo || 'Auto'}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-800">{row.finalNo}</td>
+                        <td className="px-4 py-3 text-slate-700">{row.clientName}</td>
+                        <td className="px-4 py-3 text-slate-600">{row.date ? fmtDate(row.date) : '—'}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-slate-800">₹{fmt(row.importedGrandTotal || row.grandTotal)}</td>
+                        <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded-full border text-xs font-semibold ${importOutcomeClass(row.outcome)}`}>{row.outcome}</span></td>
+                        <td className="px-4 py-3 text-slate-600 min-w-[220px]">{row.reason || 'Ready to import'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="flex flex-wrap justify-end gap-3">
+              <button type="button" onClick={() => { setParsedImportProformas([]); setImportResult(null); }} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50">Upload Another File</button>
+              <button type="button" onClick={resetImportModal} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50">Close</button>
+              {!importResult && <button type="button" onClick={handleImportParsedProformas} disabled={isImporting} className="px-5 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50">{isImporting ? 'Importing...' : `Import ${parsedImportProformas.length} Proformas`}</button>}
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Premium Feature Modal */}

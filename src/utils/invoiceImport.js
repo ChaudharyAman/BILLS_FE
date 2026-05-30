@@ -198,14 +198,14 @@ export const mapInvoiceImportRows = (rows = []) => {
       return;
     }
 
-    const invoiceNo = toText(getRowValue(row, ['Invoice Number', 'Invoice No', 'Draft No', 'ID', 'Id', 'id']));
+    const invoiceNo = toText(getRowValue(row, ['Invoice Number', 'Invoice Num', 'Invoice No', 'Draft No', 'ID', 'Id', 'id']));
     const groupKey = invoiceNo || `${clientName || 'invoice'}-${index}`;
 
     if (!grouped[groupKey]) {
       const importedSubTotal = roundTwo(parseNumber(getRowValue(row, ['Amount', 'Sub Total', 'Subtotal', 'Taxable Amount'])));
       const importedTaxTotal = roundTwo(parseNumber(getRowValue(row, ['Tax', 'Tax Total', 'Total Tax'])));
       const importedGrandTotal = roundTwo(parseNumber(getRowValue(row, ['Total', 'Grand Total'])));
-      const advancePaid = roundTwo(parseNumber(getRowValue(row, ['Amount Paid', 'Advance Paid', 'Paid Amount', 'Advance'])));
+      const advancePaid = roundTwo(parseNumber(getRowValue(row, ['Amount Paid', 'Amount Pai', 'Advance Paid', 'Paid Amount', 'Advance'])));
       const balanceDue = roundTwo(parseNumber(getRowValue(row, ['Balance', 'Balance Due', 'Outstanding'])));
 
       grouped[groupKey] = {
@@ -213,15 +213,15 @@ export const mapInvoiceImportRows = (rows = []) => {
         clientName,
         clientGST: toText(getRowValue(row, ['Client GSTIN', 'GSTIN', 'Client GST'])),
         clientEmail: toText(getRowValue(row, ['Client Email', 'Email', 'Customer Email'])),
-        clientPhone: toText(getRowValue(row, ['Client Phone Number', 'Client Phone', 'Phone', 'Customer Phone', 'Contact'])),
+        clientPhone: toText(getRowValue(row, ['Client Phone Number', 'Client Phone', 'Client Phon', 'Phone', 'Customer Phone', 'Contact'])),
         clientCity: toText(getRowValue(row, ['Client City', 'City'])),
         clientState: toText(getRowValue(row, ['Client State', 'State'])),
         placeOfSupply: toText(getRowValue(row, ['Place of Supply', 'Client State', 'State'])),
         invoiceType: normalizeInvoiceType(getRowValue(row, ['Type', 'Invoice Type', 'Document Type'])),
         date: parseDateValue(getRowValue(row, ['Issue Date', 'Date', 'Invoice Date'])),
         dueDate: parseDateValue(getRowValue(row, ['Due Date'])),
-        paymentDate: parseDateValue(getRowValue(row, ['Date Of Payment', 'Payment Date'])),
-        paymentMode: toText(getRowValue(row, ['Payment Mode'])),
+        paymentDate: parseDateValue(getRowValue(row, ['Date Of Payment', 'Date Of Pay', 'Payment Date'])),
+        paymentMode: toText(getRowValue(row, ['Payment Mode', 'Payment Me', 'Payment Method'])),
         paymentTerms: toText(getRowValue(row, ['Payment Terms'])),
         shippingCharges: roundTwo(parseNumber(getRowValue(row, ['Shipping Charges', 'Shipping', 'Freight']))),
         packagingCharges: roundTwo(parseNumber(getRowValue(row, ['Packaging Charges', 'Packaging']))),
@@ -235,15 +235,15 @@ export const mapInvoiceImportRows = (rows = []) => {
         tds: roundTwo(parseNumber(getRowValue(row, ['TDS']))),
         tcs: roundTwo(parseNumber(getRowValue(row, ['TCS']))),
         currency: toText(getRowValue(row, ['Currency'])) || 'INR',
-        fy: toText(getRowValue(row, ['Financial Year', 'FY'])),
+        fy: toText(getRowValue(row, ['Financial Year', 'Financial Y', 'FY'])),
         drCr: normalizeDrCr(getRowValue(row, ['Dr. / Cr.', 'Dr/Cr'])),
         status: normalizeStatus(getRowValue(row, ['Status']), balanceDue),
         notes: buildCombinedNotes(
-          getRowValue(row, ['Private notes', 'Private Notes', 'Notes']),
+          getRowValue(row, ['Private notes', 'Private Notes', 'Private note', 'Notes']),
           getRowValue(row, ['Payments'])
         ),
         transport: {
-          poNumber: toText(getRowValue(row, ['P.O. Number', 'PO Number', 'Transport PO Number'])),
+          poNumber: toText(getRowValue(row, ['P.O. Number', 'P.O. Numbe', 'PO Number', 'Transport PO Number'])),
           poDate: parseDateValue(getRowValue(row, ['P.O. Date', 'PO Date', 'Transport PO Date'])),
         },
         importMode: hasItemColumns(row) ? 'itemized' : 'summary',

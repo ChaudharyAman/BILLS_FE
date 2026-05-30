@@ -54,6 +54,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
 // Reports
 const GstReport = lazy(() => import('./pages/reports/GstReport'));
+const TdsSummary = lazy(() => import('./pages/reports/TdsSummary'));
 const RevenueReport = lazy(() => import('./pages/reports/RevenueReport'));
 
 // Accounts
@@ -137,10 +138,8 @@ function App() {
 
     const restoreSession = async () => {
       const rawUser = localStorage.getItem('user');
-      const authToken = localStorage.getItem('authToken');
 
-      if (!rawUser && !authToken) return;
-      if (rawUser && authToken) return;
+      if (rawUser) return;
 
       try {
         const response = await api.get('/auth/me');
@@ -277,6 +276,7 @@ function App() {
 
                     {/* Reports */}
                     <Route path="/reports/gst" element={<GstReport />} />
+                    <Route path="/reports/tds" element={<TdsSummary />} />
                     <Route path="/reports/revenue" element={<RevenueReport />} />
                     <Route path="/reports/profit-loss" element={<ProfitLossStatement />} />
                     <Route path="/reports/balance-sheet" element={<BalanceSheet />} />

@@ -88,13 +88,13 @@ const IncomeList = () => {
   const STATUS_STYLES = {
     DRAFT: 'bg-gray-100 text-gray-700 border-gray-200',
     PAID: 'bg-green-100 text-green-700 border-green-200',
+    PARTIAL: 'bg-yellow-100 text-yellow-700 border-yellow-200',
     UNPAID: 'bg-red-100 text-red-700 border-red-200',
     CANCELLED: 'bg-gray-200 text-gray-500 border-gray-300',
   };
 
   return (
     <div className="container mx-auto p-6 font-sans text-gray-900">
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Incomes</h1>

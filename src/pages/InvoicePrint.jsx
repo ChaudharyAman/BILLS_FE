@@ -82,6 +82,10 @@ const ModernTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra
   const clientAddr  = addrStr(client.address);
   const shipAddr    = invoice.shippingAddress?.line1 ? addrStr(invoice.shippingAddress) : (client.shippingAddress?.line1 ? addrStr(client.shippingAddress) : clientAddr);
   
+  const isTdsApplicable = invoice.tds_applicable !== undefined ? invoice.tds_applicable : invoice.tdsApplicable;
+  const tdsSection = invoice.tds_section !== undefined ? invoice.tds_section : invoice.tdsSection;
+  const tdsRate = invoice.tds_rate !== undefined ? invoice.tds_rate : invoice.tdsRate;
+  
   return (
     <div id="invoice-print-modern" style={{
       maxWidth: 860, margin: '0 auto', background: '#fff',
@@ -316,14 +320,37 @@ const ModernTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra
               isBoldValue
             />
           )}
-          <SummaryRow label="Total Value (in figure)"  value={`₹ ${Math.round(grandTotal).toLocaleString('en-IN')}`} isBoldValue vWidth="220px" />
+          {isTdsApplicable && hasTax && isIntra && (
+            <>
+              <SummaryRow label={`CGST (${taxRate / 2}%)`} value={`₹ ${fmt(invoice.totalCGST)}`} />
+              <SummaryRow label={`SGST (${taxRate / 2}%)`} value={`₹ ${fmt(invoice.totalSGST)}`} />
+            </>
+          )}
+          {isTdsApplicable && hasTax && !isIntra && (
+            <SummaryRow label={`IGST (${taxRate}%)`} value={`₹ ${fmt(invoice.totalIGST)}`} />
+          )}
+          {isTdsApplicable && tds > 0 && (
+            <SummaryRow 
+              label={`TDS - Sec ${tdsSection || '194C'} (${tdsRate || 0}%)`} 
+              value={`(-) ₹ ${fmt(tds)}`} 
+              red 
+              isBoldValue 
+              vWidth="220px" 
+            />
+          )}
+          <SummaryRow 
+            label={isTdsApplicable ? "Net Payable" : "Total Value (in figure)"}  
+            value={`₹ ${Math.round(isTdsApplicable ? (grandTotal - tds) : grandTotal).toLocaleString('en-IN')}`} 
+            isBoldValue 
+            vWidth="220px" 
+          />
           {advancePaid > 0 && <SummaryRow label="Advance Paid"  value={`(-) ₹ ${fmt(advancePaid)}`} green isBoldValue vWidth="220px" />}
-          {tds > 0 && <SummaryRow label="TDS Deducted"  value={`(-) ₹ ${fmt(tds)}`} red isBoldValue vWidth="220px" />}
+          {(!isTdsApplicable && tds > 0) && <SummaryRow label="TDS Deducted"  value={`(-) ₹ ${fmt(tds)}`} red isBoldValue vWidth="220px" />}
           {(advancePaid > 0 || tds > 0) && <SummaryRow label="Balance Due"   value={`₹ ${fmt(balanceDue)}`}    red isBoldValue vWidth="220px" />}
           
           <SummaryRow 
-            label="Total Value (in words)" 
-            value={`₹ ${numberToWords(Math.round(grandTotal))}`} 
+            label={isTdsApplicable ? "Net Payable (in words)" : "Total Value (in words)"} 
+            value={`₹ ${numberToWords(Math.round(isTdsApplicable ? (grandTotal - tds) : grandTotal))}`} 
             isBoldValue 
             vWidth="220px" 
           />
@@ -613,6 +640,10 @@ const ClassicTemplateOld = ({ invoice, company, client, items, hasTax, isIntra, 
 const ClassicTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra, grandTotal, invType }) => {
   const border = '1px solid #000';
   const rowBorder = '1px solid #000';
+  const isTdsApplicable = invoice.tds_applicable !== undefined ? invoice.tds_applicable : invoice.tdsApplicable;
+  const tdsSection = invoice.tds_section !== undefined ? invoice.tds_section : invoice.tdsSection;
+  const tdsRate = invoice.tds_rate !== undefined ? invoice.tds_rate : invoice.tdsRate;
+  const tds = Number(invoice.tds_amount !== undefined ? invoice.tds_amount : invoice.tds) || 0;
   const companyPAN = (company.pan || (company.gstin && company.gstin.length >= 12 ? company.gstin.substring(2, 12) : '') || '').toUpperCase();
   const companyAddr = addrStr(company.address);
   const clientAddr = addrStr(client.address);
@@ -667,6 +698,9 @@ const ClassicTemplate = ({ invoice, company, client, bank, items, hasTax, isIntr
     ] : []),
     ...(Number(invoice.discountTotal) > 0 ? [
       { label: 'Less', name: 'Discount', rate: '', amount: Number(invoice.discountTotal) || 0 },
+    ] : []),
+    ...(isTdsApplicable && Number(tds) > 0 ? [
+      { label: 'Less', name: `TDS - Sec ${tdsSection || '194C'} (${tdsRate || 0}%)`, rate: '', amount: Number(tds) || 0 }
     ] : []),
   ];
 
@@ -847,11 +881,11 @@ const ClassicTemplate = ({ invoice, company, client, bank, items, hasTax, isIntr
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 15.0%', borderBottom: rowBorder }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 42, padding: '10px 16px', fontSize: 17, fontWeight: 700 }}>
-          <span>Grand Total</span>
+          <span>{isTdsApplicable ? "Net Payable" : "Grand Total"}</span>
           <span>{fmt(totalQty)} {summaryUnit}</span>
         </div>
         <div style={{ borderLeft: rowBorder, padding: '10px 8px', textAlign: 'right', fontSize: 18, fontWeight: 700 }}>
-          {fmt(grandTotal)}
+          {fmt(isTdsApplicable ? (grandTotal - tds) : grandTotal)}
         </div>
       </div>
 
@@ -920,7 +954,7 @@ const ClassicTemplate = ({ invoice, company, client, bank, items, hasTax, isIntr
       )}
 
       <div style={{ padding: '12px 12px 10px', fontSize: 16, fontWeight: 700, borderBottom: rowBorder }}>
-        Rupees {numberToWords(Math.round(grandTotal))}
+        Rupees {numberToWords(Math.round(isTdsApplicable ? (grandTotal - tds) : grandTotal))}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '44% 56%' }}>
@@ -1029,7 +1063,10 @@ const InvoicePrint = () => {
   const grandTotal  = Number(invoice.grandTotal)  || 0;
   const balanceDue  = Number(invoice.balanceDue)  || 0;
   const advancePaid = Number(invoice.advancePaid) || 0;
-  const tds         = Number(invoice.tds)         || 0;
+  const isTdsApplicable = invoice.tds_applicable !== undefined ? invoice.tds_applicable : invoice.tdsApplicable;
+  const tdsSection      = invoice.tds_section !== undefined ? invoice.tds_section : invoice.tdsSection;
+  const tdsRate         = invoice.tds_rate !== undefined ? invoice.tds_rate : invoice.tdsRate;
+  const tds             = Number(invoice.tds_amount !== undefined ? invoice.tds_amount : invoice.tds) || 0;
   const rounded     = Math.round(grandTotal) - grandTotal;
   const taxRate     = items[0]?.taxRate || 0;
   const amountDue   = advancePaid > 0 || tds > 0 ? balanceDue : grandTotal;

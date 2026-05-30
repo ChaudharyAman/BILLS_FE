@@ -36,7 +36,13 @@ const ExpenseForm = () => {
     ],
     reverseCharge: false,
     terms: '',
-    privateNotes: ''
+    privateNotes: '',
+    tds_applicable: false,
+    tds_section: '',
+    tds_rate: 0,
+    tds_amount: 0,
+    tds_nature: 'deductor',
+    net_vendor_payment: 0
   });
 
   const [totals, setTotals] = useState({ subTotal: 0, taxTotal: 0, grandTotal: 0 });
@@ -92,7 +98,13 @@ const ExpenseForm = () => {
             items: data.items?.length > 0 ? data.items : [{ itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }],
             reverseCharge: !!data.reverseCharge,
             terms: data.terms || '',
-            privateNotes: data.privateNotes || ''
+            privateNotes: data.privateNotes || '',
+            tds_applicable: !!data.tds_applicable,
+            tds_section: data.tds_section || '',
+            tds_rate: data.tds_rate || 0,
+            tds_amount: data.tds_amount || 0,
+            tds_nature: data.tds_nature || 'deductor',
+            net_vendor_payment: data.net_vendor_payment || 0,
         });
       } else {
         applyPdfImportData(loadedVendors, loadedClients, loadedInventory);
@@ -196,6 +208,86 @@ const ExpenseForm = () => {
       active = false;
     };
   }, [formData.category]);
+
+  // Sync Default TDS Rate based on Section, Vendor, & Category
+  useEffect(() => {
+    if (formData.tds_applicable) {
+      const section = formData.tds_section || '194C';
+      let rate = formData.tds_rate;
+      if (section !== 'Manual') {
+        if (section === '194C') {
+          const vendor = vendors.find(v => v._id === formData.vendorRef);
+          rate = vendor?.clientType === 'Individual' ? 1 : 2;
+        } else if (['194J', '194I', '194A'].includes(section)) {
+          rate = 10;
+        } else if (section === '194H') {
+          rate = 5;
+        }
+      }
+      
+      const sub = totals.subTotal;
+      const amount = Math.round((sub * rate / 100) * 100) / 100;
+      const payable = totals.grandTotal - (!!formData.reverseCharge ? totals.taxTotal : 0);
+      const net = Math.max(0, Math.round((payable - amount) * 100) / 100);
+      
+      if (formData.tds_rate !== rate || formData.tds_amount !== amount || formData.net_vendor_payment !== net) {
+        setFormData(prev => ({
+          ...prev,
+          tds_rate: rate,
+          tds_amount: amount,
+          net_vendor_payment: net,
+        }));
+      }
+    } else {
+      const payable = totals.grandTotal - (!!formData.reverseCharge ? totals.taxTotal : 0);
+      if (formData.tds_amount !== 0 || formData.tds_rate !== 0 || formData.net_vendor_payment !== payable) {
+        setFormData(prev => ({
+          ...prev,
+          tds_rate: 0,
+          tds_amount: 0,
+          net_vendor_payment: payable,
+        }));
+      }
+    }
+  }, [formData.tds_applicable, formData.tds_section, formData.vendorRef, vendors, totals.subTotal, totals.grandTotal, formData.reverseCharge, totals.taxTotal]);
+
+  // Auto-Suggest TDS based on Category Selection
+  useEffect(() => {
+    if (!formData.category) return;
+    const cat = categories.find(c => c._id === formData.category);
+    if (!cat) return;
+    const name = String(cat.name).toLowerCase();
+    
+    let section = '';
+    let rate = 0;
+    
+    if (name.includes('professional')) {
+      section = '194J';
+      rate = 10;
+    } else if (name.includes('contractor') || name.includes('labour') || name.includes('labor')) {
+      section = '194C';
+      const vendor = vendors.find(v => v._id === formData.vendorRef);
+      rate = vendor?.clientType === 'Individual' ? 1 : 2;
+    } else if (name.includes('rent')) {
+      section = '194I';
+      rate = 10;
+    } else if (name.includes('commission')) {
+      section = '194H';
+      rate = 5;
+    } else if (name.includes('interest')) {
+      section = '194A';
+      rate = 10;
+    }
+    
+    if (section) {
+      setFormData(prev => ({
+        ...prev,
+        tds_applicable: true,
+        tds_section: section,
+        tds_rate: rate,
+      }));
+    }
+  }, [formData.category, categories, formData.vendorRef, vendors]);
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...formData.items];
@@ -315,7 +407,13 @@ const ExpenseForm = () => {
         taxTotal: totals.taxTotal,
         grandTotal: totals.grandTotal,
         terms: formData.terms,
-        privateNotes: formData.privateNotes
+        privateNotes: formData.privateNotes,
+        tds_applicable: formData.tds_applicable,
+        tds_section: formData.tds_section,
+        tds_rate: formData.tds_rate,
+        tds_amount: formData.tds_amount,
+        tds_nature: formData.tds_nature,
+        net_vendor_payment: formData.net_vendor_payment,
       };
 
       if (id) {
@@ -371,7 +469,15 @@ const ExpenseForm = () => {
                     value={formData.vendorRef}
                     onChange={e => {
                       const vendor = vendors.find(v => v._id === e.target.value);
-                      setFormData(p => ({ ...p, vendorRef: e.target.value, vendorName: vendor?.name || p.vendorName }));
+                      const tdsApp = vendor?.tds_applicable || false;
+                      setFormData(p => ({
+                        ...p,
+                        vendorRef: e.target.value,
+                        vendorName: vendor?.name || p.vendorName,
+                        tds_applicable: tdsApp,
+                        tds_section: tdsApp ? (vendor.default_tds_section || '194C') : '',
+                        tds_rate: tdsApp ? (vendor.default_tds_rate || 0) : 0,
+                      }));
                     }}
                   >
                     <option value="">{formData.vendorName && !formData.vendorRef ? `${formData.vendorName} (will be created on save)` : 'Select Vendor'}</option>
@@ -498,13 +604,14 @@ const ExpenseForm = () => {
                   value={formData.status}
                   onChange={e => {
                     const nextStatus = e.target.value;
-                    const payableAmount = totals.grandTotal - (!!formData.reverseCharge ? totals.taxTotal : 0);
-                    setFormData(p => ({
-                      ...p,
-                      status: nextStatus,
-                      amountPaid: nextStatus === 'PAID' ? payableAmount : nextStatus === 'UNPAID' ? 0 : p.amountPaid,
-                    }));
-                  }}
+                      const payableAmount = totals.grandTotal - (!!formData.reverseCharge ? totals.taxTotal : 0);
+                      const payableNet = formData.tds_applicable ? Math.max(0, payableAmount - formData.tds_amount) : payableAmount;
+                      setFormData(p => ({
+                        ...p,
+                        status: nextStatus,
+                        amountPaid: nextStatus === 'PAID' ? payableNet : nextStatus === 'UNPAID' ? 0 : p.amountPaid,
+                      }));
+                    }}
                 >
                   <option value="UNPAID">Unpaid</option>
                   <option value="PARTIAL">Partial</option>
@@ -698,8 +805,8 @@ const ExpenseForm = () => {
 
           {/* Middle Band: Reverse Charge and Subtotals */}
           <div className="border-t border-b border-gray-200 flex flex-col md:flex-row justify-between">
-            {/* Reverse Charge Toggle */}
-            <div className="p-6 md:w-1/2 flex items-start pt-8">
+            {/* Reverse Charge & TDS Configuration */}
+            <div className="p-6 md:w-1/2 space-y-6">
               <label className="flex items-center gap-3 cursor-pointer group">
                 <input 
                   type="checkbox" 
@@ -711,6 +818,77 @@ const ExpenseForm = () => {
                   Subject to reverse charge
                 </span>
               </label>
+
+              {/* TDS Config Card */}
+              <div className="bg-slate-50/50 rounded-xl border border-gray-200/80 p-4 space-y-4 max-w-md shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">TDS Applicable</span>
+                    <span className="text-[10px] text-slate-400">Deduct tax at source from vendor payment</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, tds_applicable: !prev.tds_applicable }))}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      formData.tds_applicable ? 'bg-[#48c774]' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        formData.tds_applicable ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {formData.tds_applicable && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-150 animate-fadeIn">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-650 uppercase mb-1">TDS Section *</label>
+                      <select
+                        className="w-full border border-gray-200 rounded text-xs px-2.5 py-1.5 outline-none focus:border-green-500 bg-white"
+                        value={formData.tds_section}
+                        onChange={(e) => setFormData(prev => ({ ...prev, tds_section: e.target.value }))}
+                      >
+                        <option value="194C">194C – Contractor (1% / 2%)</option>
+                        <option value="194J">194J – Professional/Technical (10%)</option>
+                        <option value="194I">194I – Rent (10%)</option>
+                        <option value="194H">194H – Commission (5%)</option>
+                        <option value="194A">194A – Interest (10%)</option>
+                        <option value="Manual">Manual (Custom Rate)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-650 uppercase mb-1">TDS Rate %</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        className={`w-full border border-gray-200 rounded text-xs px-2.5 py-1.5 outline-none focus:border-green-500 ${
+                          formData.tds_section !== 'Manual' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white'
+                        }`}
+                        value={formData.tds_rate}
+                        readOnly={formData.tds_section !== 'Manual'}
+                        onChange={(e) => {
+                          if (formData.tds_section === 'Manual') {
+                            setFormData(prev => ({ ...prev, tds_rate: parseFloat(e.target.value) || 0 }));
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-bold text-slate-650 uppercase mb-1">TDS Amount (₹)</label>
+                      <input
+                        type="text"
+                        className="w-full border border-gray-200 rounded text-xs px-2.5 py-1.5 outline-none bg-gray-100 text-gray-400 font-semibold cursor-not-allowed"
+                        value={Number(formData.tds_amount).toFixed(2)}
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Totals Pane */}
@@ -722,28 +900,38 @@ const ExpenseForm = () => {
                      <span className="text-gray-600">GST is calculated but not added to the payable Total. The customer is liable to pay GST directly to the government.</span>
                    </div>
                  )}
-                 <div className="flex justify-between items-center px-4">
-                   <span className="text-sm font-bold text-[#2d4b6b]">Subtotal:</span>
-                   <span className="text-sm font-bold text-gray-800">₹ {totals.subTotal.toFixed(2)}</span>
-                 </div>
-                 {totals.taxTotal > 0 && (
-                   <div className="flex justify-between items-center px-4">
-                     <span className="text-sm text-gray-500">GST:</span>
-                     <span className="text-sm text-gray-800">₹ {totals.taxTotal.toFixed(2)}</span>
-                   </div>
-                 )}
-                 <div className="bg-[#f2f9f5] flex justify-between items-center px-4 py-3 rounded border border-[#e1eee6]">
-                   <span className="text-sm font-bold text-[#28a745]">Total:</span>
-                   <span className="text-sm font-bold text-[#28a745]">₹ {totals.grandTotal.toFixed(2)}</span>
-                 </div>
-                 <div className="flex justify-between items-center px-4">
-                   <span className="text-sm text-gray-500">Paid:</span>
-                   <span className="text-sm text-gray-800">₹ {(Number(formData.amountPaid) || 0).toFixed(2)}</span>
-                 </div>
-                 <div className="flex justify-between items-center px-4">
-                   <span className="text-sm font-bold text-[#2d4b6b]">Payable:</span>
-                   <span className="text-sm font-bold text-[#2d4b6b]">₹ {payableBalance.toFixed(2)}</span>
-                 </div>
+                  <div className="flex justify-between items-center px-4 text-xs font-semibold text-slate-500">
+                    <span>Expense (Base):</span>
+                    <span className="text-slate-700">₹ {totals.subTotal.toFixed(2)}</span>
+                  </div>
+                  {totals.taxTotal > 0 && (
+                    <div className="flex justify-between items-center px-4 text-xs font-semibold text-slate-500">
+                      <span>GST:</span>
+                      <span className="text-slate-700">₹ {totals.taxTotal.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {formData.tds_applicable && (
+                    <div className="flex justify-between items-center px-4 text-xs font-bold text-red-500">
+                      <span>TDS @ {formData.tds_rate}% ({formData.tds_section}):</span>
+                      <span>-₹ {formData.tds_amount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="bg-[#f2f9f5] flex justify-between items-center px-4 py-3 rounded border border-[#e1eee6]">
+                    <span className="text-sm font-bold text-[#28a745]">
+                      {formData.tds_applicable ? "Net Pay Vendor:" : "Total:"}
+                    </span>
+                    <span className="text-sm font-bold text-[#28a745]">
+                      ₹ {formData.net_vendor_payment.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 text-xs font-semibold text-slate-500">
+                    <span>Amount Paid:</span>
+                    <span className="text-slate-700">₹ {(Number(formData.amountPaid) || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center px-4 text-sm font-bold text-[#2d4b6b] border-t border-dashed border-gray-200 pt-2.5">
+                    <span>Balance Due:</span>
+                    <span>₹ {Math.max(0, formData.net_vendor_payment - (Number(formData.amountPaid) || 0)).toFixed(2)}</span>
+                  </div>
                </div>
             </div>
           </div>
