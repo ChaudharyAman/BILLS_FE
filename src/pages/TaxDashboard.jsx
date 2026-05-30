@@ -184,14 +184,23 @@ export default function TaxDashboard() {
   const split = data?.invoiceSplit || {};
   const summary = data?.summary || {};
 
-  const dueDateString = useMemo(() => {
-    if (summary.dueDate) {
-      return new Date(summary.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  const gstDueDateString = useMemo(() => {
+    if (summary.gstDueDate) {
+      return new Date(summary.gstDueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
     }
     const ref = customRange.endDate ? new Date(customRange.endDate) : new Date();
     const nextMonth = new Date(ref.getFullYear(), ref.getMonth() + 1, 20);
     return nextMonth.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-  }, [summary.dueDate, customRange.endDate]);
+  }, [summary.gstDueDate, customRange.endDate]);
+
+  const tdsDueDateString = useMemo(() => {
+    if (summary.tdsDueDate) {
+      return new Date(summary.tdsDueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    }
+    const ref = customRange.endDate ? new Date(customRange.endDate) : new Date();
+    const nextMonth = new Date(ref.getFullYear(), ref.getMonth() + 1, 7);
+    return nextMonth.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  }, [summary.tdsDueDate, customRange.endDate]);
 
   const trendDataWithNet = useMemo(() => {
     const rawTrend = data?.trend || [];
@@ -430,7 +439,7 @@ export default function TaxDashboard() {
                 value={fmt(summary.netPayable)}
                 icon={FaArrowTrendUp}
                 tone="amber"
-                subtext={dueDateString ? `Due ${dueDateString}` : 'No dues'}
+                subtext={gstDueDateString ? `Due ${gstDueDateString}` : 'No dues'}
                 darkMode={darkMode}
               />
             </div>
@@ -478,7 +487,7 @@ export default function TaxDashboard() {
                     </span>
                   </div>
                   <div className="text-xl font-black text-rose-600">{fmt(summary.tdsPayable, 2)}</div>
-                  <div className="text-[9px] font-semibold text-slate-450 mt-1">Deducted from vendors/payroll</div>
+                  <div className="text-[9px] font-semibold text-slate-450 mt-1">Deducted from vendors/payroll · Due {tdsDueDateString}</div>
                 </div>
 
                 {/* Combined Tax Position */}
@@ -492,7 +501,9 @@ export default function TaxDashboard() {
                     </span>
                   </div>
                   <div className="text-xl font-black text-amber-600">{fmt(summary.netTaxPayable, 2)}</div>
-                  <div className="text-[9px] font-semibold text-slate-450 mt-1">Net GST + Net TDS position</div>
+                  <div className="text-[9px] font-semibold text-amber-500 mt-1 flex items-center gap-1">
+                    <FaInfoCircle size={10} /> Cannot offset GST with TDS. File separately.
+                  </div>
                 </div>
               </div>
             </motion.div>
