@@ -495,14 +495,14 @@ export default function TaxDashboard() {
                   darkMode ? 'bg-slate-950/40 border-slate-800/80 text-slate-200' : 'bg-slate-50 border-slate-200/60 text-slate-800'
                 }`}>
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Combined Tax Payable</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Combined Tax Outflow</span>
                     <span className={`p-1.5 rounded-lg ${darkMode ? 'bg-amber-950/40 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>
                       <FaCoins size={10} />
                     </span>
                   </div>
                   <div className="text-xl font-black text-amber-600">{fmt(summary.netTaxPayable, 2)}</div>
                   <div className="text-[9px] font-semibold text-amber-500 mt-1 flex items-center gap-1">
-                    <FaInfoCircle size={10} /> Cannot offset GST with TDS. File separately.
+                    <FaInfoCircle size={10} /> Sum of active dues. Pay separately at GST & IT portals.
                   </div>
                 </div>
               </div>
