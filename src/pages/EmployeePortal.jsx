@@ -14,7 +14,8 @@ import {
   buildMasterSalaryStructure,
   DEFAULT_PAYROLL_CONFIG,
   fmtMoney,
-  payrollStatusClass
+  payrollStatusClass,
+  calculateTaxDetails
 } from '../utils/payroll';
 
 const formatIndianDate = (dString) => {
@@ -32,6 +33,22 @@ const EmployeePortal = () => {
   const [payrolls, setPayrolls] = useState([]);
   const [claims, setClaims] = useState([]);
   const [loans, setLoans] = useState([]);
+  
+  const [decForm, setDecForm] = useState({
+    taxRegime: 'new',
+    rentPaidMonthly: 0,
+    isMetroCity: false,
+    section80C: 0,
+    epf: 0,
+    ppf: 0,
+    elss: 0,
+    lic: 0,
+    homeLoanPrincipal: 0,
+    section80D: 0,
+    section24b: 0,
+    section80CCD1B: 0,
+    otherExemptions: 0,
+  });
   
   const [loading, setLoading] = useState(true);
   const [loadingEmployee, setLoadingEmployee] = useState(false);
@@ -133,6 +150,73 @@ const EmployeePortal = () => {
     return buildMasterSalaryStructure(employee, config);
   }, [employee, config]);
 
+  // Sync decForm when employee changes
+  useEffect(() => {
+    if (employee) {
+      const d = employee.declarations || {};
+      setDecForm({
+        taxRegime: employee.taxRegime || 'new',
+        rentPaidMonthly: Number(d.rentPaidMonthly) || 0,
+        isMetroCity: !!d.isMetroCity,
+        section80C: Number(d.section80C) || 0,
+        epf: Number(d.epf) || 0,
+        ppf: Number(d.ppf) || 0,
+        elss: Number(d.elss) || 0,
+        lic: Number(d.lic) || 0,
+        homeLoanPrincipal: Number(d.homeLoanPrincipal) || 0,
+        section80D: Number(d.section80D) || 0,
+        section24b: Number(d.section24b) || 0,
+        section80CCD1B: Number(d.section80CCD1B) || 0,
+        otherExemptions: Number(d.otherExemptions) || 0,
+      });
+    }
+  }, [employee]);
+
+  const handleDecFormChange = (key, value) => {
+    setDecForm((prev) => {
+      const updated = { ...prev, [key]: value };
+
+      if (['epf', 'ppf', 'elss', 'lic', 'homeLoanPrincipal'].includes(key)) {
+        const sum = (Number(updated.epf) || 0) +
+                    (Number(updated.ppf) || 0) +
+                    (Number(updated.elss) || 0) +
+                    (Number(updated.lic) || 0) +
+                    (Number(updated.homeLoanPrincipal) || 0);
+        updated.section80C = Math.min(sum, 150000);
+      } else if (key === 'section80C') {
+        updated.section80C = Math.min(Number(value) || 0, 150000);
+      } else if (key === 'section80D') {
+        updated.section80D = Math.min(Number(value) || 0, 25000);
+      } else if (key === 'section24b') {
+        updated.section24b = Math.min(Number(value) || 0, 200000);
+      } else if (key === 'section80CCD1B') {
+        updated.section80CCD1B = Math.min(Number(value) || 0, 50000);
+      }
+
+      return updated;
+    });
+  };
+
+  const liveSalaryStructure = useMemo(() => {
+    if (!employee) return null;
+
+    const mergedEmployee = {
+      ...employee,
+      taxRegime: decForm.taxRegime,
+      declarations: {
+        rentPaidMonthly: Number(decForm.rentPaidMonthly) || 0,
+        isMetroCity: !!decForm.isMetroCity,
+        section80C: Number(decForm.section80C) || 0,
+        section80D: Number(decForm.section80D) || 0,
+        section24b: Number(decForm.section24b) || 0,
+        section80CCD1B: Number(decForm.section80CCD1B) || 0,
+        otherExemptions: Number(decForm.otherExemptions) || 0,
+      }
+    };
+
+    return buildMasterSalaryStructure(mergedEmployee, config);
+  }, [employee, decForm, config]);
+
   // Handle regime switch
   const handleRegimeChange = async (regime) => {
     if (!employee) return;
@@ -150,22 +234,22 @@ const EmployeePortal = () => {
     e.preventDefault();
     if (!employee) return;
     try {
-      const formData = new FormData(e.target);
       const decUpdate = {
+        taxRegime: decForm.taxRegime,
         declarations: {
-          section80C: Number(formData.get('section80C')) || 0,
-          section80D: Number(formData.get('section80D')) || 0,
-          section24b: Number(formData.get('section24b')) || 0,
-          section80CCD1B: Number(formData.get('section80CCD1B')) || 0,
-          rentPaidMonthly: Number(formData.get('rentPaidMonthly')) || 0,
-          isMetroCity: formData.get('isMetroCity') === 'true',
-          otherExemptions: Number(formData.get('otherExemptions')) || 0,
+          section80C: Number(decForm.section80C) || 0,
+          section80D: Number(decForm.section80D) || 0,
+          section24b: Number(decForm.section24b) || 0,
+          section80CCD1B: Number(decForm.section80CCD1B) || 0,
+          rentPaidMonthly: Number(decForm.rentPaidMonthly) || 0,
+          isMetroCity: !!decForm.isMetroCity,
+          otherExemptions: Number(decForm.otherExemptions) || 0,
         }
       };
 
-      const res = await api.put(`/employees/${employee._id}`, decUpdate);
+      const res = await api.put(`/employees/${employee._id}/declarations`, decUpdate);
       setEmployee(res.data);
-      toast.success('Investment declarations updated & tax projections re-calculated!');
+      toast.success('Investment declarations & tax regime updated successfully!');
       setUploadedFileName('');
     } catch (err) {
       toast.error('Failed to update declarations');
@@ -535,7 +619,7 @@ const EmployeePortal = () => {
             <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm h-fit space-y-1">
               <div className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Portal Menu</div>
               <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<FaWallet />} label="CTC Breakup & Regime" />
-              <TabButton active={activeTab === 'declarations'} onClick={() => setActiveTab('declarations')} icon={<FaCalculator />} label="Form 12BB Declarations" />
+              <TabButton active={activeTab === 'declarations'} onClick={() => setActiveTab('declarations')} icon={<FaCalculator />} label="Tax & Declarations" />
               <TabButton active={activeTab === 'claims'} onClick={() => setActiveTab('claims')} icon={<FaReceipt />} label="Reimbursements" />
               <TabButton active={activeTab === 'loans'} onClick={() => setActiveTab('loans')} icon={<FaHandHoldingUsd />} label="Loans & Salary Advances" />
               <TabButton active={activeTab === 'payslips'} onClick={() => setActiveTab('payslips')} icon={<FaFileInvoiceDollar />} label="Payslip Ledger" />
@@ -645,7 +729,7 @@ const EmployeePortal = () => {
                           <td className="px-6 py-4">Total Employer Cost (Stated CTC)</td>
                           <td className="px-6 py-4 text-right">{fmtMoney(salaryStructure?.grossTotalSalary)}</td>
                           <td className="px-6 py-4 text-right">₹{(salaryStructure?.grossTotalSalary * 12).toLocaleString('en-IN')}</td>
-                        </tr>
+        </tr>
                       </tbody>
                     </table>
                   </div>
@@ -654,155 +738,380 @@ const EmployeePortal = () => {
               )}
 
               {/* Tab 2: Declarations */}
-              {activeTab === 'declarations' && (
-                <div className="space-y-6">
-                  
-                  <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                    <div className="flex justify-between items-start border-b border-slate-100 pb-4 mb-6">
-                      <div>
-                        <h2 className="text-lg font-bold text-slate-800">Form 12BB Investment Declarations</h2>
-                        <p className="text-xs text-slate-500">Provide projections for Section 80C, 80D, Sec 24b, and monthly rent details.</p>
-                      </div>
-                      <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full border border-amber-200">
-                        Applicable for Old regime only
-                      </span>
-                    </div>
+              {activeTab === 'declarations' && (() => {
+                const newRegimeTax = liveSalaryStructure?.taxDetails?.newRegime?.annualTax || 0;
+                const oldRegimeTax = liveSalaryStructure?.taxDetails?.oldRegime?.annualTax || 0;
+                const lowerRegime = newRegimeTax <= oldRegimeTax ? 'new' : 'old';
+                const monthlySavings = Math.abs((liveSalaryStructure?.taxDetails?.newRegime?.monthlyTax || 0) - (liveSalaryStructure?.taxDetails?.oldRegime?.monthlyTax || 0));
 
-                    <form onSubmit={handleDeclarationSubmit} className="space-y-6">
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        
+                return (
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                      <div className="flex justify-between items-start border-b border-slate-100 pb-4 mb-6">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Section 80C (Max ₹1.5L)</label>
-                          <input
-                            type="number"
-                            name="section80C"
-                            defaultValue={dec.section80C || 0}
-                            className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                            placeholder="PPF, ELSS, Insurance premium, etc."
-                          />
+                          <h2 className="text-lg font-bold text-slate-800">Form 12BB Investment & Tax Declarations</h2>
+                          <p className="text-xs text-slate-500">Provide projections for Section 80C, 80D, Sec 24b, and monthly rent details.</p>
                         </div>
-
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Section 80D (Mediclaim - Max ₹25K)</label>
-                          <input
-                            type="number"
-                            name="section80D"
-                            defaultValue={dec.section80D || 0}
-                            className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                            placeholder="Medical insurance for self/spouse"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Section 24b (Interest on Home Loan - Max ₹2L)</label>
-                          <input
-                            type="number"
-                            name="section24b"
-                            defaultValue={dec.section24b || 0}
-                            className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                            placeholder="Annual home loan interest amount"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Section 80CCD(1B) (NPS - Max ₹50K)</label>
-                          <input
-                            type="number"
-                            name="section80CCD1B"
-                            defaultValue={dec.section80CCD1B || 0}
-                            className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                            placeholder="Additional voluntary NPS contributions"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Monthly Rent Paid (Actuals)</label>
-                          <input
-                            type="number"
-                            name="rentPaidMonthly"
-                            defaultValue={dec.rentPaidMonthly || 0}
-                            className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                            placeholder="Monthly rent amount paid to owner"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Metro City Residence</label>
-                          <select
-                            name="isMetroCity"
-                            defaultValue={dec.isMetroCity ? 'true' : 'false'}
-                            className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                          >
-                            <option value="false">Non-Metro (40% HRA Exempt)</option>
-                            <option value="true">Metro (Delhi/Mumbai/Kolkata/Chennai - 50% HRA Exempt)</option>
-                          </select>
-                        </div>
-
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Other Allowable Exemptions</label>
-                          <input
-                            type="number"
-                            name="otherExemptions"
-                            defaultValue={dec.otherExemptions || 0}
-                            className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                            placeholder="Other dynamic deductions/exemptions"
-                          />
-                        </div>
-
+                        <span className="bg-blue-100 text-blue-800 text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full border border-blue-200">
+                          FY 2026-27 Projections
+                        </span>
                       </div>
 
-                      {/* Premium Drag and Drop Upload Zone */}
-                      <div className="border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-2xl p-6 bg-slate-50 text-center transition-all">
-                        <input
-                          type="file"
-                          id="bill-upload"
-                          className="hidden"
-                          onChange={(e) => {
-                            if (e.target.files?.[0]) {
-                              setUploadedFileName(e.target.files[0].name);
-                              toast.success('Document uploaded successfully as attachment!');
-                            }
-                          }}
-                        />
-                        <label htmlFor="bill-upload" className="cursor-pointer space-y-2 block">
-                          <FaCloudUploadAlt size={40} className="mx-auto text-slate-400" />
-                          <div className="text-sm font-semibold text-slate-700">Drag &amp; drop investment receipts/proofs here</div>
-                          <div className="text-xs text-slate-400">PDF, PNG, JPG accepted (Max 5MB)</div>
-                          {uploadedFileName && (
-                            <div className="mt-3 text-xs bg-emerald-100 border border-emerald-300 text-emerald-800 px-3 py-1 rounded-full inline-block">
-                              Attached: {uploadedFileName}
+                      <form onSubmit={handleDeclarationSubmit} className="space-y-6">
+                        {/* Tax Regime Selector */}
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Tax Regime Preference</label>
+                          <div className="flex gap-4">
+                            <label className={`flex items-center gap-3 cursor-pointer border rounded-xl px-4 py-3 hover:bg-slate-50 transition-colors w-1/2 ${
+                              decForm.taxRegime === 'new' ? 'border-blue-500 bg-blue-50/20' : 'border-slate-200 bg-white'
+                            }`}>
+                              <input
+                                type="radio"
+                                name="taxRegime"
+                                value="new"
+                                checked={decForm.taxRegime === 'new'}
+                                onChange={() => handleDecFormChange('taxRegime', 'new')}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300"
+                              />
+                              <div>
+                                <span className="text-sm font-bold text-slate-800">New Tax Regime</span>
+                                <p className="text-[10px] text-slate-500">Lower tax slabs, standard deduction of ₹75,000</p>
+                              </div>
+                            </label>
+                            <label className={`flex items-center gap-3 cursor-pointer border rounded-xl px-4 py-3 hover:bg-slate-50 transition-colors w-1/2 ${
+                              decForm.taxRegime === 'old' ? 'border-blue-500 bg-blue-50/20' : 'border-slate-200 bg-white'
+                            }`}>
+                              <input
+                                type="radio"
+                                name="taxRegime"
+                                value="old"
+                                checked={decForm.taxRegime === 'old'}
+                                onChange={() => handleDecFormChange('taxRegime', 'old')}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300"
+                              />
+                              <div>
+                                <span className="text-sm font-bold text-slate-800">Old Tax Regime</span>
+                                <p className="text-[10px] text-slate-500">Allows multiple deductions (80C, 80D, HRA exemption)</p>
+                              </div>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Monthly Rent and Metro residency */}
+                        {decForm.taxRegime === 'old' && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                            <div>
+                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Monthly Rent Paid (₹)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={decForm.rentPaidMonthly || ''}
+                                onChange={(e) => handleDecFormChange('rentPaidMonthly', Number(e.target.value) || 0)}
+                                className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                placeholder="e.g. 15000"
+                              />
                             </div>
-                          )}
-                        </label>
-                      </div>
 
-                      <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
-                        <button
-                          type="button"
-                          onClick={() => triggerPrintWindow('form12bb_print_template')}
-                          className="border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold px-5 py-2.5 rounded-xl text-sm flex items-center gap-2"
-                        >
-                          <FaPrint /> Print Form 12BB
-                        </button>
-                        <button
-                          type="submit"
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm"
-                        >
-                          Save Projections &amp; Update TDS
-                        </button>
-                      </div>
+                            {decForm.rentPaidMonthly > 0 && (
+                              <div className="flex items-center mt-6">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={!!decForm.isMetroCity}
+                                    onChange={(e) => handleDecFormChange('isMetroCity', e.target.checked)}
+                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <div>
+                                    <span className="text-sm font-bold text-slate-800">Metro City Resident</span>
+                                    <p className="text-[10px] text-slate-500">Delhi, Mumbai, Kolkata, or Chennai (50% HRA exempt, else 40%)</p>
+                                  </div>
+                                </label>
+                              </div>
+                            )}
+                          </div>
+                        )}
 
-                    </form>
+                        {/* Section 80C */}
+                        <div className="border-t border-slate-100 pt-4 space-y-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Section 80C (Max ₹1,50,000)</label>
+                              <p className="text-[10px] text-slate-400">Sum of sub-investments: EPF, PPF, ELSS, LIC, Home Loan Principal</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-extrabold text-slate-800">Total: ₹{(decForm.section80C || 0).toLocaleString('en-IN')}</span>
+                              <span className="text-xs text-slate-400">/ 1,50,000</span>
+                            </div>
+                          </div>
+                          
+                          <div className="w-full bg-slate-100 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-300 ${decForm.section80C >= 150000 ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                              style={{ width: `${Math.min((decForm.section80C / 150000) * 100, 100)}%` }}
+                            ></div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-1">EPF (₹)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={decForm.epf || ''}
+                                onChange={(e) => handleDecFormChange('epf', Number(e.target.value) || 0)}
+                                className="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-1">PPF (₹)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={decForm.ppf || ''}
+                                onChange={(e) => handleDecFormChange('ppf', Number(e.target.value) || 0)}
+                                className="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-1">ELSS (₹)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={decForm.elss || ''}
+                                onChange={(e) => handleDecFormChange('elss', Number(e.target.value) || 0)}
+                                className="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-1">LIC Premium (₹)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={decForm.lic || ''}
+                                onChange={(e) => handleDecFormChange('lic', Number(e.target.value) || 0)}
+                                className="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-1">Home Loan (₹)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={decForm.homeLoanPrincipal || ''}
+                                onChange={(e) => handleDecFormChange('homeLoanPrincipal', Number(e.target.value) || 0)}
+                                className="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                                placeholder="0"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Section 80D, 24b, 80CCD, Other Exemptions */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                          <div>
+                            <div className="flex justify-between mb-1">
+                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Section 80D (Health Insurance - Max ₹25K)</label>
+                              <span className="text-xs text-slate-400">Max: ₹25,000</span>
+                            </div>
+                            <input
+                              type="number"
+                              min="0"
+                              value={decForm.section80D || ''}
+                              onChange={(e) => handleDecFormChange('section80D', Number(e.target.value) || 0)}
+                              className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                              placeholder="Health insurance premium"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between mb-1">
+                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Section 24(b) (Home Loan Interest - Max ₹2L)</label>
+                              <span className="text-xs text-slate-400">Max: ₹2,00,000</span>
+                            </div>
+                            <input
+                              type="number"
+                              min="0"
+                              value={decForm.section24b || ''}
+                              onChange={(e) => handleDecFormChange('section24b', Number(e.target.value) || 0)}
+                              className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                              placeholder="Annual home loan interest"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between mb-1">
+                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Section 80CCD(1B) (NPS - Max ₹50K)</label>
+                              <span className="text-xs text-slate-400">Max: ₹50,000</span>
+                            </div>
+                            <input
+                              type="number"
+                              min="0"
+                              value={decForm.section80CCD1B || ''}
+                              onChange={(e) => handleDecFormChange('section80CCD1B', Number(e.target.value) || 0)}
+                              className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                              placeholder="Additional NPS contribution"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Other Allowable Exemptions</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={decForm.otherExemptions || ''}
+                              onChange={(e) => handleDecFormChange('otherExemptions', Number(e.target.value) || 0)}
+                              className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                              placeholder="Other tax exemptions"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Premium Drag and Drop Upload Zone */}
+                        <div className="border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-2xl p-6 bg-slate-50 text-center transition-all">
+                          <input
+                            type="file"
+                            id="bill-upload"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files?.[0]) {
+                                setUploadedFileName(e.target.files[0].name);
+                                toast.success('Document uploaded successfully as attachment!');
+                              }
+                            }}
+                          />
+                          <label htmlFor="bill-upload" className="cursor-pointer space-y-2 block">
+                            <FaCloudUploadAlt size={40} className="mx-auto text-slate-400" />
+                            <div className="text-sm font-semibold text-slate-700">Drag &amp; drop investment receipts/proofs here</div>
+                            <div className="text-xs text-slate-400">PDF, PNG, JPG accepted (Max 5MB)</div>
+                            {uploadedFileName && (
+                              <div className="mt-3 text-xs bg-emerald-100 border border-emerald-300 text-emerald-800 px-3 py-1 rounded-full inline-block">
+                                Attached: {uploadedFileName}
+                              </div>
+                            )}
+                          </label>
+                        </div>
+
+                        {/* LIVE TAX COMPARISON WIDGET */}
+                        {liveSalaryStructure?.taxDetails && (
+                          <div className="border-t border-slate-100 pt-6 mt-6">
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-600 mb-4 flex items-center gap-2">
+                              <span className="bg-emerald-500 text-white rounded-full p-1 text-[10px]"><FaCalculator /></span>
+                              Live Tax Regime Comparison
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* New Regime Card */}
+                              <div className={`relative p-5 rounded-2xl border transition-all ${
+                                lowerRegime === 'new'
+                                  ? 'bg-emerald-50/40 border-emerald-300 shadow-md ring-1 ring-emerald-300'
+                                  : 'bg-slate-50/50 border-slate-200 shadow-sm'
+                              }`}>
+                                {lowerRegime === 'new' && (
+                                  <span className="absolute top-4 right-4 bg-emerald-600 text-[10px] text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                                    ✓ Recommended
+                                  </span>
+                                )}
+                                <h4 className="font-extrabold text-sm text-slate-800 mb-3 uppercase tracking-wider">New Regime</h4>
+                                <div className="space-y-2 text-xs">
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-500">Net Taxable Income:</span>
+                                    <span className="font-semibold text-slate-800">{fmtMoney(liveSalaryStructure.taxDetails.newRegime.netTaxableIncome)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-500">Annual Tax Liability:</span>
+                                    <span className="font-semibold text-slate-800">{fmtMoney(liveSalaryStructure.taxDetails.newRegime.annualTax)}</span>
+                                  </div>
+                                  <div className="flex justify-between border-t border-slate-100 pt-2 font-bold text-sm">
+                                    <span className="text-slate-700">Monthly TDS:</span>
+                                    <span className="text-slate-900">{fmtMoney(liveSalaryStructure.taxDetails.newRegime.monthlyTax)}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Old Regime Card */}
+                              <div className={`relative p-5 rounded-2xl border transition-all ${
+                                lowerRegime === 'old'
+                                  ? 'bg-emerald-50/40 border-emerald-300 shadow-md ring-1 ring-emerald-300'
+                                  : 'bg-slate-50/50 border-slate-200 shadow-sm'
+                              }`}>
+                                {lowerRegime === 'old' && (
+                                  <span className="absolute top-4 right-4 bg-emerald-600 text-[10px] text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                                    ✓ Recommended
+                                  </span>
+                                )}
+                                <h4 className="font-extrabold text-sm text-slate-800 mb-3 uppercase tracking-wider">Old Regime</h4>
+                                <div className="space-y-2 text-xs">
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-500">Total Deductions:</span>
+                                    <span className="font-semibold text-emerald-600">- {fmtMoney(liveSalaryStructure.taxDetails.oldRegime.totalDeductions)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-500">Net Taxable Income:</span>
+                                    <span className="font-semibold text-slate-800">{fmtMoney(liveSalaryStructure.taxDetails.oldRegime.netTaxableIncome)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-500">Annual Tax Liability:</span>
+                                    <span className="font-semibold text-slate-800">{fmtMoney(liveSalaryStructure.taxDetails.oldRegime.annualTax)}</span>
+                                  </div>
+                                  <div className="flex justify-between border-t border-slate-100 pt-2 font-bold text-sm">
+                                    <span className="text-slate-700">Monthly TDS:</span>
+                                    <span className="text-slate-900">{fmtMoney(liveSalaryStructure.taxDetails.oldRegime.monthlyTax)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {monthlySavings > 0 && (
+                              <div className="mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold">
+                                  <span>💡</span>
+                                  <span>
+                                    You save <span className="text-sm font-bold text-emerald-950">{fmtMoney(monthlySavings)}/month</span> ({fmtMoney(monthlySavings * 12)}/year) by choosing the {lowerRegime === 'new' ? 'New' : 'Old'} Regime!
+                                  </span>
+                                </div>
+                                {decForm.taxRegime !== lowerRegime && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDecFormChange('taxRegime', lowerRegime)}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
+                                  >
+                                    Switch to {lowerRegime === 'new' ? 'New' : 'Old'} Regime
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Form Submit & Print Buttons */}
+                        <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+                          <button
+                            type="button"
+                            onClick={() => triggerPrintWindow('form12bb_print_template')}
+                            className="border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold px-5 py-2.5 rounded-xl text-sm flex items-center gap-2"
+                          >
+                            <FaPrint /> Print Form 12BB
+                          </button>
+                          <button
+                            type="submit"
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm"
+                          >
+                            Save Projections &amp; Update TDS
+                          </button>
+                        </div>
+                      </form>
+                    </div>
                   </div>
-
-                </div>
-              )}
+                );
+              })()}
 
               {/* Tab 3: Reimbursements */}
               {activeTab === 'claims' && (
                 <div className="space-y-6">
-                  
                   <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                     <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
                       <div>

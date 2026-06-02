@@ -27,7 +27,7 @@ const defaultForm = {
   broadband: 0,
   petrol: 0,
   lta: 0,
-  insuranceAmount: 1000,
+  insuranceAmount: 0,
   employerNPS: 0,
   joiningBonus: 0,
   basicPercent: null,
@@ -75,6 +75,7 @@ const EmployeeForm = () => {
   const [calculating, setCalculating] = useState(false);
   const [showDepartmentModal, setShowDepartmentModal] = useState(false);
   const [departmentDraft, setDepartmentDraft] = useState({ name: '', code: '' });
+  const [ctcPeriod, setCtcPeriod] = useState('monthly');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -152,6 +153,9 @@ const EmployeeForm = () => {
         monthlyCTC,
         basicPercent: formData.basicPercent === null || formData.basicPercent === '' ? null : Number(formData.basicPercent),
         hraPercent: formData.hraPercent === null || formData.hraPercent === '' ? null : Number(formData.hraPercent),
+        basic: formData.salaryStructure?.basic !== undefined ? Number(formData.salaryStructure.basic) : undefined,
+        hra: formData.salaryStructure?.hra !== undefined ? Number(formData.salaryStructure.hra) : undefined,
+        specialAllowance: formData.salaryStructure?.specialAllowance !== undefined ? Number(formData.salaryStructure.specialAllowance) : undefined,
         flexiAmount: Number(formData.flexiAmount) || 0,
         broadband: Number(formData.broadband) || 0,
         petrol: Number(formData.petrol) || 0,
@@ -247,11 +251,11 @@ const EmployeeForm = () => {
         joiningBonus: Number(formData.joiningBonus) || 0,
         salaryStructure: {
           ...formData.salaryStructure,
-          basic: Number(localPreview.basicMaster) || 0,
-          hra: Number(localPreview.hraMaster) || 0,
+          basic: Number(formData.salaryStructure.basic ?? localPreview.basicMaster) || 0,
+          hra: Number(formData.salaryStructure.hra ?? localPreview.hraMaster) || 0,
           conveyance: Number(formData.salaryStructure.conveyance) || 0,
           medicalAllowance: Number(formData.salaryStructure.medicalAllowance) || 0,
-          specialAllowance: Number(localPreview.specialAllowance) || 0,
+          specialAllowance: Number(formData.salaryStructure.specialAllowance ?? localPreview.specialAllowance) || 0,
           otherAllowances: (formData.salaryStructure.otherAllowances || []).map((allowance) => ({
             ...allowance,
             amount: Number(allowance.amount) || 0,
@@ -385,12 +389,40 @@ const EmployeeForm = () => {
                 </select>
               </div>
               <div>
-                <label className={labelCls}>Monthly CTC</label>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-xs font-semibold text-gray-600 inline-block m-0">
+                    {ctcPeriod === 'monthly' ? 'Monthly CTC *' : 'Annual CTC *'}
+                  </label>
+                  <div className="flex bg-gray-100 p-0.5 rounded-lg border border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => setCtcPeriod('monthly')}
+                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${ctcPeriod === 'monthly' ? 'bg-white text-slate-800 shadow-sm border border-gray-100 font-extrabold' : 'text-gray-500 hover:text-slate-800'}`}
+                    >
+                      Monthly
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCtcPeriod('annual')}
+                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${ctcPeriod === 'annual' ? 'bg-white text-slate-800 shadow-sm border border-gray-100 font-extrabold' : 'text-gray-500 hover:text-slate-800'}`}
+                    >
+                      Annually
+                    </button>
+                  </div>
+                </div>
+
                 <input
                   type="number"
                   min="0"
-                  value={formData.monthlyCTC || 0}
-                  onChange={(e) => setField('monthlyCTC', e.target.value)}
+                  value={
+                    ctcPeriod === 'monthly'
+                      ? (formData.monthlyCTC || 0)
+                      : Math.round((formData.monthlyCTC || 0) * 12)
+                  }
+                  onChange={(e) => {
+                    const val = Number(e.target.value) || 0;
+                    setField('monthlyCTC', ctcPeriod === 'monthly' ? val : Math.round((val / 12) * 100) / 100);
+                  }}
                   onBlur={refreshSalaryFromCTC}
                   className={inputCls}
                 />
@@ -401,6 +433,21 @@ const EmployeeForm = () => {
 
           {step === 3 && (
             <div className="space-y-6">
+              <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold">CTC Components</h2>
+                  <span className="text-xs text-gray-500">Synced with payroll settings</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <SummaryCard label="PF Employer" value={fmtMoney(localPreview.pfEmployer)} />
+                  <SummaryCard label="Gratuity" value={fmtMoney(localPreview.gratuity)} />
+                  <SummaryCard label="LWF Employer" value={fmtMoney(localPreview.lwfEmployer)} />
+                  <SummaryCard label="Annual CTC" value={fmtMoney(localPreview.annualCTC)} />
+                  <SummaryCard label="Gross Salary" value={fmtMoney(localPreview.grossSalary)} />
+                  <SummaryCard label="Net Take-Home Estimate" value={fmtMoney(localPreview.netTakeHome)} />
+                </div>
+              </div>
+
               {/* Custom Overrides Card */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-5 shadow-sm">
                 <h3 className="text-base font-bold text-blue-900 mb-1 flex items-center gap-2">
@@ -589,42 +636,115 @@ const EmployeeForm = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  ['salaryStructure.basic', 'Basic Salary'],
-                  ['salaryStructure.hra', 'HRA'],
-                  ['salaryStructure.conveyance', 'Conveyance'],
-                  ['salaryStructure.medicalAllowance', 'Medical Allowance'],
-                  ['salaryStructure.specialAllowance', 'Special Allowance'],
-                  ['flexiAmount', 'Flexi Amount'],
-                  ['broadband', 'Broadband'],
-                  ['petrol', 'Petrol'],
-                  ['lta', 'LTA'],
-                  ['insuranceAmount', 'Insurance Amount'],
-                  ['employerNPS', 'Employer NPS'],
-                ].map(([name, label]) => {
-                  const isAuto = ['salaryStructure.basic', 'salaryStructure.hra', 'salaryStructure.specialAllowance'].includes(name);
-                  return (
-                    <div key={name}>
-                      <label className={labelCls}>
-                        {label} {isAuto && <span className="text-[10px] text-blue-500 font-normal ml-1">(Auto-computed)</span>}
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        readOnly={isAuto}
-                        value={
-                          name === 'salaryStructure.basic' ? (localPreview.basicMaster || 0) :
-                          name === 'salaryStructure.hra' ? (localPreview.hraMaster || 0) :
-                          name === 'salaryStructure.specialAllowance' ? (localPreview.specialAllowance || 0) :
-                          (name.includes('.') ? name.split('.').reduce((obj, key) => obj?.[key], formData) || 0 : formData[name] || 0)
-                        }
-                        onChange={isAuto ? undefined : (e) => setField(name, e.target.value)}
-                        onBlur={['flexiAmount', 'broadband', 'petrol', 'lta', 'insuranceAmount', 'employerNPS', 'salaryStructure.conveyance', 'salaryStructure.medicalAllowance'].includes(name) ? refreshSalaryFromCTC : undefined}
-                        className={`${inputCls} ${isAuto ? 'bg-gray-50 text-gray-500 cursor-not-allowed border-gray-200 focus:ring-0 focus:border-gray-200' : ''}`}
-                      />
-                    </div>
-                  );
-                })}
+                {(() => {
+                  const getFieldMapping = (componentId) => {
+                    switch (componentId) {
+                      case 'basic':
+                        return 'salaryStructure.basic';
+                      case 'hra':
+                        return 'salaryStructure.hra';
+                      case 'special':
+                        return 'salaryStructure.specialAllowance';
+                      case 'conveyance':
+                        return 'salaryStructure.conveyance';
+                      case 'medical':
+                        return 'salaryStructure.medicalAllowance';
+                      case 'flexi':
+                        return 'flexiAmount';
+                      case 'broadband':
+                        return 'broadband';
+                      case 'petrol':
+                        return 'petrol';
+                      case 'lta':
+                        return 'lta';
+                      case 'default_insurance_amount':
+                        return 'insuranceAmount';
+                      case 'employerNPS':
+                        return 'employerNPS';
+                      default:
+                        return `salaryStructure.${componentId}`;
+                    }
+                  };
+
+                  const getPreviewValue = (cId) => {
+                    if (!localPreview) return 0;
+                    if (localPreview.earningsMap && localPreview.earningsMap[cId] !== undefined) {
+                      return localPreview.earningsMap[cId];
+                    }
+                    if (cId === 'basic') return localPreview.basicMaster;
+                    if (cId === 'hra') return localPreview.hraMaster;
+                    if (cId === 'special') return localPreview.specialAllowance;
+                    if (cId === 'conveyance') return localPreview.conveyance;
+                    if (cId === 'medical') return localPreview.medicalAllowance;
+                    if (cId === 'flexi') return localPreview.flexi;
+                    if (cId === 'broadband') return localPreview.broadband;
+                    if (cId === 'petrol') return localPreview.petrol;
+                    if (cId === 'lta') return localPreview.lta;
+                    if (cId === 'default_insurance_amount') return localPreview.insurance;
+                    if (cId === 'employerNPS') return localPreview.employerNPS;
+                    if (cId === 'deductions.tds') return localPreview.tds;
+                    return 0;
+                  };
+
+                  const comps = config?.salaryComponents || [];
+                  
+                  // Filter out company-wide configuration parameters
+                  const filtered = comps.filter(c => ![
+                    'pf_rate_employee',
+                    'pf_rate_employer',
+                    'pf_salary_ceiling',
+                    'esi_rate_employee',
+                    'esi_rate_employer',
+                    'esi_threshold',
+                    'lwf_employer',
+                    'lwf_employee',
+                    'gratuity_rate',
+                    'default_working_days',
+                    'lta_max_percent'
+                  ].includes(c.id));
+
+                  const list = filtered.map(c => ({
+                    id: c.id,
+                    name: getFieldMapping(c.id),
+                    label: c.name
+                  }));
+
+                  // Always append employerNPS and deductions.tds if they aren't already included
+                  if (!list.some(item => item.id === 'employerNPS')) {
+                    list.push({ id: 'employerNPS', name: 'employerNPS', label: 'Employer NPS' });
+                  }
+                  if (!list.some(item => item.id === 'deductions.tds')) {
+                    list.push({ id: 'deductions.tds', name: 'deductions.tds', label: 'Income Tax (TDS) / Tax Amount' });
+                  }
+
+                  return list.map((item) => {
+                    const value = item.name === 'salaryStructure.basic' ? (formData.salaryStructure?.basic ?? localPreview.basicMaster ?? 0) :
+                      item.name === 'salaryStructure.hra' ? (formData.salaryStructure?.hra ?? localPreview.hraMaster ?? 0) :
+                      item.name === 'salaryStructure.specialAllowance' ? (formData.salaryStructure?.specialAllowance ?? localPreview.specialAllowance ?? 0) :
+                      item.name === 'deductions.tds' ? (formData.deductions?.tds ?? '') :
+                      (item.name.includes('.') 
+                        ? (item.name.split('.').reduce((obj, key) => obj?.[key], formData) ?? getPreviewValue(item.id) ?? 0)
+                        : (formData[item.name] ?? getPreviewValue(item.id) ?? 0)
+                      );
+                    
+                    return (
+                      <div key={item.id}>
+                        <label className={labelCls}>
+                          {item.label}
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder={item.id === 'deductions.tds' ? `Live Est: ₹${localPreview.tds}` : `Live Est: ₹${getPreviewValue(item.id)}`}
+                          value={value}
+                          onChange={(e) => setField(item.name, e.target.value === '' ? '' : Number(e.target.value))}
+                          onBlur={refreshSalaryFromCTC}
+                          className={inputCls}
+                        />
+                      </div>
+                    );
+                  });
+                })()}
               </div>
 
               {/* Custom Allowances Section */}
@@ -783,21 +903,6 @@ const EmployeeForm = () => {
                     ))}
                   </div>
                 )}
-              </div>
-
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold">CTC Components</h2>
-                  <span className="text-xs text-gray-500">Synced with payroll settings</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <SummaryCard label="PF Employer" value={fmtMoney(localPreview.pfEmployer)} />
-                  <SummaryCard label="Gratuity" value={fmtMoney(localPreview.gratuity)} />
-                  <SummaryCard label="LWF Employer" value={fmtMoney(localPreview.lwfEmployer)} />
-                  <SummaryCard label="Annual CTC" value={fmtMoney(localPreview.annualCTC)} />
-                  <SummaryCard label="Gross Salary" value={fmtMoney(localPreview.grossSalary)} />
-                  <SummaryCard label="Net Take-Home Estimate" value={fmtMoney(localPreview.netTakeHome)} />
-                </div>
               </div>
 
               <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
@@ -1032,6 +1137,7 @@ const EmployeeForm = () => {
                         placeholder="Manual Monthly TDS override"
                         value={formData.deductions?.tds || 0}
                         onChange={(e) => setField('deductions.tds', e.target.value)}
+                        onBlur={refreshSalaryFromCTC}
                         className={inputCls}
                       />
                       <div className="text-xs text-gray-500">

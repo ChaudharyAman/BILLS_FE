@@ -4,7 +4,8 @@ import { toast } from 'react-hot-toast';
 import { FaCheck, FaSave, FaPlus, FaTrash, FaCalculator, FaTimes } from 'react-icons/fa';
 import api from '../api/axios';
 import Skeleton from '../components/Skeleton';
-import { buildPayrollSnapshot, DEFAULT_PAYROLL_CONFIG, fmtMoney } from '../utils/payroll';
+import { buildPayrollSnapshot, DEFAULT_PAYROLL_CONFIG, fmtMoney, serializeRow } from '../utils/payroll';
+import { usePayrollSnapshot } from '../hooks/usePayrollSnapshot';
 
 const monthName = (month) => new Date(0, month - 1).toLocaleString('en-US', { month: 'long' });
 const sumNamedAmounts = (items = []) => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
@@ -45,6 +46,105 @@ const DeductionRow = ({ label, amount, isContrib = false, isEditable = false, va
   </div>
 );
 
+const EmployeeRow = ({
+  employee,
+  config,
+  row,
+  selected,
+  onToggleSelected,
+  setBreakdownEmployee,
+  monthWorkingDays,
+  updateRow,
+  claimsMap,
+  month,
+}) => {
+  const filteredReimbursements = useMemo(() => {
+    return (claimsMap.get(employee._id) || []).filter(c => !(row?.excludedClaimIds || []).includes(c._id));
+  }, [claimsMap, employee._id, row?.excludedClaimIds]);
+
+  const rowWithReimbursements = useMemo(() => {
+    return { ...row, reimbursements: filteredReimbursements, month };
+  }, [row, filteredReimbursements, month]);
+
+  const snapshot = usePayrollSnapshot(employee, config, rowWithReimbursements, monthWorkingDays);
+  if (!snapshot) return null;
+
+  const paidTooHigh = Number(row?.paidDays) > Number(row?.workingDays || monthWorkingDays);
+
+  return (
+    <tr key={employee._id} className="hover:bg-blue-50/40 align-top">
+      <td className="px-4 py-4">
+        <input
+          type="checkbox"
+          checked={Boolean(selected)}
+          onChange={(e) => onToggleSelected(employee._id, e.target.checked)}
+          className="w-4 h-4"
+        />
+      </td>
+      <td className="px-4 py-4 min-w-[220px]">
+        <div className="font-semibold">{employee.firstName} {employee.lastName}</div>
+        <div className="text-xs text-gray-500">{employee.employeeId} · {employee.designation || '-'}</div>
+        <div className="text-xs text-gray-400 mt-1 flex flex-col gap-1">
+          <span>CTC {fmtMoney(employee.monthlyCTC)}</span>
+          <button
+            type="button"
+            onClick={() => setBreakdownEmployee(employee)}
+            className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left flex items-center gap-1 self-start"
+          >
+            <FaCalculator className="w-2.5 h-2.5" /> Breakdown & Adjust
+          </button>
+          
+          {/* Statutory Settings Badges */}
+          <div className="flex flex-wrap gap-1 mt-1 font-mono">
+            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row?.pfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.pfEnabled !== false ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row?.esiEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.esiEnabled !== false ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row?.ptEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.ptEnabled !== false ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row?.lwfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.lwfEnabled !== false ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row?.gratuityEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.gratuityEnabled !== false ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
+            {row?.basicPercent !== undefined && row?.basicPercent !== null && Number(row?.basicPercent) !== 50 && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" title="Basic Salary Overridden percentage">
+                B:{row?.basicPercent}%
+              </span>
+            )}
+            {row?.hraPercent !== undefined && row?.hraPercent !== null && Number(row?.hraPercent) !== 50 && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm" title="HRA Overridden percentage">
+                H:{row?.hraPercent}%
+              </span>
+            )}
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-4 min-w-[180px]">
+        <div className="flex gap-2">
+          <input type="number" min="0" value={row?.paidDays ?? 0} onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)} className="w-20 border border-gray-300 rounded px-2 py-1 text-sm text-right" />
+          <span className="self-center text-gray-400">/</span>
+          <input type="number" min="1" value={row?.workingDays ?? monthWorkingDays} onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)} className="w-20 border border-gray-300 rounded px-2 py-1 text-sm text-right" />
+        </div>
+        {paidTooHigh ? <div className="mt-2 text-xs text-red-600">Paid days cannot exceed working days.</div> : null}
+      </td>
+      <td className="px-4 py-4 text-sm whitespace-nowrap">{Math.round((snapshot.paidDays / Math.max(snapshot.workingDays, 1)) * 100)}%</td>
+      <EditableMoneyCell value={employee.flexiAmount} disabled />
+      <EditableMoneyCell value={employee.broadband} disabled />
+      <EditableMoneyCell value={employee.petrol} disabled />
+      <EditableMoneyCell value={employee.lta} disabled />
+      <td className="px-4 py-4 text-sm font-semibold text-slate-700 whitespace-nowrap">
+        {fmtMoney(sumNamedAmounts(snapshot.earnings.otherEarnings))}
+      </td>
+      <EditableMoneyCell value={snapshot.employerContributions.gratuity} disabled />
+      <EditableMoneyCell value={snapshot.employerContributions.lwfEmployer} disabled />
+      <EditableMoneyCell value={row?.joiningBonus} onChange={(value) => updateRow(employee._id, 'joiningBonus', value)} />
+      <EditableMoneyCell value={row?.loyaltyBonus} onChange={(value) => updateRow(employee._id, 'loyaltyBonus', value)} />
+      <EditableMoneyCell value={row?.incentive} onChange={(value) => updateRow(employee._id, 'incentive', value)} />
+      <EditableMoneyCell value={row?.specialBonus} onChange={(value) => updateRow(employee._id, 'specialBonus', value)} />
+      <td className="px-4 py-4 text-sm font-semibold text-red-600 whitespace-nowrap">
+        {fmtMoney(sumNamedAmounts(snapshot.deductions.otherDeductions))}
+      </td>
+      <EditableMoneyCell value={row?.tds} onChange={(value) => updateRow(employee._id, 'tds', value)} />
+      <td className="px-4 py-4 text-sm font-bold whitespace-nowrap">{fmtMoney(snapshot.netSalary)}</td>
+    </tr>
+  );
+};
+
 const PayrollProcessing = () => {
   const navigate = useNavigate();
   const now = new Date();
@@ -57,17 +157,20 @@ const PayrollProcessing = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [monthWorkingDays, setMonthWorkingDays] = useState(DEFAULT_PAYROLL_CONFIG.defaultWorkingDays);
+  const [claimsMap, setClaimsMap] = useState(new Map());
 
   // Modal Breakdown states
   const [breakdownEmployee, setBreakdownEmployee] = useState(null);
   const [localEarnings, setLocalEarnings] = useState([]);
   const [localDeductions, setLocalDeductions] = useState([]);
+  const [localExcludedClaimIds, setLocalExcludedClaimIds] = useState(new Set());
 
   useEffect(() => {
     if (breakdownEmployee) {
       const row = rows[breakdownEmployee._id] || {};
       setLocalEarnings(row.otherEarnings || []);
       setLocalDeductions(row.otherDeductions || []);
+      setLocalExcludedClaimIds(new Set(row.excludedClaimIds || []));
     }
   }, [breakdownEmployee]);
 
@@ -77,9 +180,10 @@ const PayrollProcessing = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [employeesRes, configRes] = await Promise.all([
+        const [employeesRes, configRes, claimsRes] = await Promise.all([
           api.get(`/employees/active?month=${month}&year=${year}`, { signal: controller.signal }),
           api.get('/payroll/config', { signal: controller.signal }),
+          api.get(`/reimbursements?status=approved&month=${month}&year=${year}`, { signal: controller.signal }),
         ]);
 
         const nextConfig = { ...DEFAULT_PAYROLL_CONFIG, ...(configRes.data || {}) };
@@ -88,6 +192,17 @@ const PayrollProcessing = () => {
         setMonthWorkingDays(nextConfig.defaultWorkingDays || 26);
         setEmployees(activeEmployees);
         setSelected(Object.fromEntries(activeEmployees.map((emp) => [emp._id, true])));
+
+        const claimsByEmp = new Map();
+        (claimsRes.data || []).forEach(r => {
+          const empId = r.employee?._id || r.employee;
+          if (empId) {
+            if (!claimsByEmp.has(empId)) claimsByEmp.set(empId, []);
+            claimsByEmp.get(empId).push(r);
+          }
+        });
+        setClaimsMap(claimsByEmp);
+
         setRows(Object.fromEntries(activeEmployees.map((emp) => {
           const joiningDate = emp.joiningDate ? new Date(emp.joiningDate) : null;
           const dateOfLeaving = emp.dateOfLeaving ? new Date(emp.dateOfLeaving) : null;
@@ -140,6 +255,7 @@ const PayrollProcessing = () => {
             includeGratuityInCTC: emp.includeGratuityInCTC !== false,
             basicPercent: emp.basicPercent !== undefined && emp.basicPercent !== null ? emp.basicPercent : 50,
             hraPercent: emp.hraPercent !== undefined && emp.hraPercent !== null ? emp.hraPercent : 50,
+            excludedClaimIds: [],
           }];
         })));
       } catch (error) {
@@ -164,8 +280,12 @@ const PayrollProcessing = () => {
   const selectedEmployees = useMemo(() => employees.filter((emp) => selected[emp._id]), [employees, selected]);
 
   const getSnapshot = (employee) => {
+    return usePayrollSnapshot(employee, config, { ...rows[employee._id], month }, monthWorkingDays);
+  };
+
+  const totalPreview = useMemo(() => selectedEmployees.reduce((sum, employee) => {
     const row = rows[employee._id] || {};
-    return buildPayrollSnapshot(employee, config, {
+    const snapshot = buildPayrollSnapshot(employee, config, {
       workingDays: Number(row.workingDays) || Number(monthWorkingDays) || 26,
       paidDays: Number(row.paidDays) || 0,
       paidLeaves: Number(row.paidLeaves) || 0,
@@ -191,13 +311,10 @@ const PayrollProcessing = () => {
       includeGratuityInCTC: row.includeGratuityInCTC,
       basicPercent: row.basicPercent,
       hraPercent: row.hraPercent,
-    });
-  };
-
-  const totalPreview = useMemo(() => selectedEmployees.reduce((sum, employee) => {
-    const snapshot = getSnapshot(employee);
+      reimbursements: (claimsMap.get(employee._id) || []).filter(c => !(row.excludedClaimIds || []).includes(c._id)),
+    }, month);
     return sum + (Number(snapshot.netSalary) || 0);
-  }, 0), [selectedEmployees, rows, config, monthWorkingDays]);
+  }, 0), [selectedEmployees, rows, claimsMap, config, monthWorkingDays, month]);
 
   const updateRow = (employeeId, field, value) => {
     setRows((prev) => ({
@@ -213,41 +330,28 @@ const PayrollProcessing = () => {
     if (!breakdownEmployee) return;
     updateRow(breakdownEmployee._id, 'otherEarnings', localEarnings.filter(e => e.name.trim() !== ''));
     updateRow(breakdownEmployee._id, 'otherDeductions', localDeductions.filter(d => d.name.trim() !== ''));
+    updateRow(breakdownEmployee._id, 'excludedClaimIds', Array.from(localExcludedClaimIds));
     toast.success(`Run adjustments saved for ${breakdownEmployee.firstName}`);
     setBreakdownEmployee(null);
   };
 
-  const localSnapshot = useMemo(() => {
+  const localSnapshotFilteredRow = useMemo(() => {
     if (!breakdownEmployee) return null;
     const row = rows[breakdownEmployee._id] || {};
-    return buildPayrollSnapshot(breakdownEmployee, config, {
-      workingDays: Number(row.workingDays) || Number(monthWorkingDays) || 26,
-      paidDays: Number(row.paidDays) || 0,
-      paidLeaves: Number(row.paidLeaves) || 0,
-      unpaidLeaves: Number(row.unpaidLeaves) || 0,
-    }, {
-      overtime: Number(row.overtime) || 0,
-      joiningBonus: Number(row.joiningBonus) || 0,
-      loyaltyBonus: Number(row.loyaltyBonus) || 0,
-      incentive: Number(row.incentive) || 0,
-      specialBonus: Number(row.specialBonus) || 0,
-      otherAllowanceArrear: Number(row.otherAllowanceArrear) || 0,
-      loanDeduction: Number(row.loanDeduction) || 0,
-      advanceDeduction: Number(row.advanceDeduction) || 0,
-      tds: Number(row.tds) || 0,
-      otherEarnings: localEarnings,
-      otherDeductions: localDeductions,
-      pfEnabled: row.pfEnabled,
-      esiEnabled: row.esiEnabled,
-      ptEnabled: row.ptEnabled,
-      lwfEnabled: row.lwfEnabled,
-      gratuityEnabled: row.gratuityEnabled,
-      includePfInCTC: row.includePfInCTC,
-      includeGratuityInCTC: row.includeGratuityInCTC,
-      basicPercent: row.basicPercent,
-      hraPercent: row.hraPercent,
-    });
-  }, [breakdownEmployee, rows, localEarnings, localDeductions, config, monthWorkingDays]);
+    return {
+      ...row,
+      reimbursements: (claimsMap.get(breakdownEmployee._id) || []).filter(c => !localExcludedClaimIds.has(c._id)),
+    };
+  }, [breakdownEmployee, rows, claimsMap, localExcludedClaimIds]);
+
+  const localSnapshot = usePayrollSnapshot(
+    breakdownEmployee,
+    config,
+    { ...localSnapshotFilteredRow, month },
+    monthWorkingDays,
+    localEarnings,
+    localDeductions
+  );
 
   const submit = async (saveAsDraft) => {
     const invalid = selectedEmployees.find((employee) => {
@@ -266,35 +370,20 @@ const PayrollProcessing = () => {
         month,
         year,
         saveAsDraft,
-        employees: selectedEmployees.map((employee) => ({
-          employeeId: employee._id,
-          workingDays: Number(rows[employee._id]?.workingDays) || Number(monthWorkingDays) || 26,
-          paidDays: Number(rows[employee._id]?.paidDays) || 0,
-          paidLeaves: Number(rows[employee._id]?.paidLeaves) || 0,
-          unpaidLeaves: Number(rows[employee._id]?.unpaidLeaves) || 0,
-          adjustments: {
-            overtime: Number(rows[employee._id]?.overtime) || 0,
-            joiningBonus: Number(rows[employee._id]?.joiningBonus) || 0,
-            loyaltyBonus: Number(rows[employee._id]?.loyaltyBonus) || 0,
-            incentive: Number(rows[employee._id]?.incentive) || 0,
-            specialBonus: Number(rows[employee._id]?.specialBonus) || 0,
-            otherAllowanceArrear: Number(rows[employee._id]?.otherAllowanceArrear) || 0,
-            loanDeduction: Number(rows[employee._id]?.loanDeduction) || 0,
-            advanceDeduction: Number(rows[employee._id]?.advanceDeduction) || 0,
-            tds: Number(rows[employee._id]?.tds) || 0,
-            otherEarnings: rows[employee._id]?.otherEarnings || [],
-            otherDeductions: rows[employee._id]?.otherDeductions || [],
-            pfEnabled: rows[employee._id]?.pfEnabled,
-            esiEnabled: rows[employee._id]?.esiEnabled,
-            ptEnabled: rows[employee._id]?.ptEnabled,
-            lwfEnabled: rows[employee._id]?.lwfEnabled,
-            gratuityEnabled: rows[employee._id]?.gratuityEnabled,
-            includePfInCTC: rows[employee._id]?.includePfInCTC,
-            includeGratuityInCTC: rows[employee._id]?.includeGratuityInCTC,
-            basicPercent: rows[employee._id]?.basicPercent,
-            hraPercent: rows[employee._id]?.hraPercent,
-          },
-        })),
+        employees: selectedEmployees.map((employee) => {
+          const rowData = serializeRow(rows[employee._id], monthWorkingDays);
+          rowData.adjustments.reimbursements = (claimsMap.get(employee._id) || [])
+            .filter((r) => !(rows[employee._id]?.excludedClaimIds || []).includes(r._id))
+            .map((r) => ({
+              _id: r._id,
+              amount: r.amount,
+              category: r.category,
+            }));
+          return {
+            employeeId: employee._id,
+            ...rowData,
+          };
+        }),
       };
 
       const res = await api.post('/payroll/process', payload);
@@ -353,79 +442,21 @@ const PayrollProcessing = () => {
                 ))
               ) : employees.length === 0 ? (
                 <tr><td colSpan="18" className="px-6 py-10 text-center text-gray-500">No active employees found.</td></tr>
-              ) : employees.map((employee) => {
-                const row = rows[employee._id] || {};
-                const snapshot = getSnapshot(employee);
-                const paidTooHigh = Number(row.paidDays) > Number(row.workingDays || monthWorkingDays);
-
-                return (
-                  <tr key={employee._id} className="hover:bg-blue-50/40 align-top">
-                    <td className="px-4 py-4">
-                      <input type="checkbox" checked={Boolean(selected[employee._id])} onChange={(e) => setSelected((prev) => ({ ...prev, [employee._id]: e.target.checked }))} className="w-4 h-4" />
-                    </td>
-                    <td className="px-4 py-4 min-w-[220px]">
-                      <div className="font-semibold">{employee.firstName} {employee.lastName}</div>
-                      <div className="text-xs text-gray-500">{employee.employeeId} · {employee.designation || '-'}</div>
-                      <div className="text-xs text-gray-400 mt-1 flex flex-col gap-1">
-                        <span>CTC {fmtMoney(employee.monthlyCTC)}</span>
-                        <button
-                          type="button"
-                          onClick={() => setBreakdownEmployee(employee)}
-                          className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left flex items-center gap-1 self-start"
-                        >
-                          <FaCalculator className="w-2.5 h-2.5" /> Breakdown & Adjust
-                        </button>
-                        
-                        {/* Statutory Settings Badges */}
-                        <div className="flex flex-wrap gap-1 mt-1 font-mono">
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row.pfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row.pfEnabled !== false ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row.esiEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row.esiEnabled !== false ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row.ptEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row.ptEnabled !== false ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row.lwfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row.lwfEnabled !== false ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row.gratuityEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row.gratuityEnabled !== false ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
-                          {row.basicPercent !== undefined && row.basicPercent !== null && Number(row.basicPercent) !== 50 && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" title="Basic Salary Overridden percentage">
-                              B:{row.basicPercent}%
-                            </span>
-                          )}
-                          {row.hraPercent !== undefined && row.hraPercent !== null && Number(row.hraPercent) !== 50 && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm" title="HRA Overridden percentage">
-                              H:{row.hraPercent}%
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 min-w-[180px]">
-                      <div className="flex gap-2">
-                        <input type="number" min="0" value={row.paidDays ?? 0} onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)} className="w-20 border border-gray-300 rounded px-2 py-1 text-sm text-right" />
-                        <span className="self-center text-gray-400">/</span>
-                        <input type="number" min="1" value={row.workingDays ?? monthWorkingDays} onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)} className="w-20 border border-gray-300 rounded px-2 py-1 text-sm text-right" />
-                      </div>
-                      {paidTooHigh ? <div className="mt-2 text-xs text-red-600">Paid days cannot exceed working days.</div> : null}
-                    </td>
-                    <td className="px-4 py-4 text-sm whitespace-nowrap">{Math.round((snapshot.paidDays / Math.max(snapshot.workingDays, 1)) * 100)}%</td>
-                    <EditableMoneyCell value={employee.flexiAmount} disabled />
-                    <EditableMoneyCell value={employee.broadband} disabled />
-                    <EditableMoneyCell value={employee.petrol} disabled />
-                    <EditableMoneyCell value={employee.lta} disabled />
-                    <td className="px-4 py-4 text-sm font-semibold text-slate-700 whitespace-nowrap">
-                      {fmtMoney(sumNamedAmounts(snapshot.earnings.otherEarnings))}
-                    </td>
-                    <EditableMoneyCell value={snapshot.employerContributions.gratuity} disabled />
-                    <EditableMoneyCell value={snapshot.employerContributions.lwfEmployer} disabled />
-                    <EditableMoneyCell value={row.joiningBonus} onChange={(value) => updateRow(employee._id, 'joiningBonus', value)} />
-                    <EditableMoneyCell value={row.loyaltyBonus} onChange={(value) => updateRow(employee._id, 'loyaltyBonus', value)} />
-                    <EditableMoneyCell value={row.incentive} onChange={(value) => updateRow(employee._id, 'incentive', value)} />
-                    <EditableMoneyCell value={row.specialBonus} onChange={(value) => updateRow(employee._id, 'specialBonus', value)} />
-                    <td className="px-4 py-4 text-sm font-semibold text-red-600 whitespace-nowrap">
-                      {fmtMoney(sumNamedAmounts(snapshot.deductions.otherDeductions))}
-                    </td>
-                    <EditableMoneyCell value={row.tds} onChange={(value) => updateRow(employee._id, 'tds', value)} />
-                    <td className="px-4 py-4 text-sm font-bold whitespace-nowrap">{fmtMoney(snapshot.netSalary)}</td>
-                  </tr>
-                );
-              })}
+              ) : employees.map((employee) => (
+                <EmployeeRow
+                  key={employee._id}
+                  employee={employee}
+                  config={config}
+                  row={rows[employee._id]}
+                  selected={selected[employee._id]}
+                  onToggleSelected={(empId, val) => setSelected((prev) => ({ ...prev, [empId]: val }))}
+                  setBreakdownEmployee={setBreakdownEmployee}
+                  monthWorkingDays={monthWorkingDays}
+                  updateRow={updateRow}
+                  claimsMap={claimsMap}
+                  month={month}
+                />
+              ))}
             </tbody>
           </table>
         </div>
@@ -628,7 +659,8 @@ const PayrollProcessing = () => {
               )}
 
               {localSnapshot && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Left Column: Earnings Breakdown */}
                   <div className="space-y-4">
                     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
@@ -809,7 +841,55 @@ const PayrollProcessing = () => {
                     </div>
                   </div>
                 </div>
-              )}
+
+                {/* Pre-approved reimbursements section */}
+                {claimsMap.get(breakdownEmployee._id)?.length > 0 && (
+                  <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm mt-6">
+                    <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 font-bold text-slate-700 text-sm">
+                      Pre-approved reimbursements
+                    </div>
+                    <div className="p-4 space-y-3">
+                      {claimsMap.get(breakdownEmployee._id).map((claim) => {
+                        const isExcluded = localExcludedClaimIds.has(claim._id);
+                        return (
+                          <div key={claim._id} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                checked={!isExcluded}
+                                onChange={(e) => {
+                                  setLocalExcludedClaimIds((prev) => {
+                                    const next = new Set(prev);
+                                    if (e.target.checked) {
+                                      next.delete(claim._id);
+                                    } else {
+                                      next.add(claim._id);
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                              />
+                              <span className={`px-2 py-0.5 rounded text-xs font-semibold uppercase ${
+                                claim.category === 'petrol' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                                claim.category === 'broadband' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                                claim.category === 'lta' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
+                                claim.category === 'medical' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
+                                'bg-slate-100 text-slate-700 border border-slate-200'
+                              }`}>
+                                {claim.category}
+                              </span>
+                              <span className="text-xs text-gray-500 font-medium">Approved on {new Date(claim.createdAt).toLocaleDateString('en-IN')}</span>
+                            </div>
+                            <span className="font-bold text-sm text-slate-800">{fmtMoney(claim.amount)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
             </div>
 
             {/* Modal Footer */}
