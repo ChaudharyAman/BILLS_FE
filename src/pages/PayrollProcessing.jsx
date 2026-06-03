@@ -123,10 +123,10 @@ const EmployeeRow = ({
         {paidTooHigh ? <div className="mt-2 text-xs text-red-600">Paid days cannot exceed working days.</div> : null}
       </td>
       <td className="px-4 py-4 text-sm whitespace-nowrap">{Math.round((snapshot.paidDays / Math.max(snapshot.workingDays, 1)) * 100)}%</td>
-      <EditableMoneyCell value={employee.flexiAmount} disabled />
-      <EditableMoneyCell value={employee.broadband} disabled />
-      <EditableMoneyCell value={employee.petrol} disabled />
-      <EditableMoneyCell value={employee.lta} disabled />
+      <EditableMoneyCell value={snapshot.earnings.flexiAmount} disabled />
+      <EditableMoneyCell value={snapshot.earnings.broadband} disabled />
+      <EditableMoneyCell value={snapshot.earnings.petrol} disabled />
+      <EditableMoneyCell value={snapshot.earnings.lta} disabled />
       <td className="px-4 py-4 text-sm font-semibold text-slate-700 whitespace-nowrap">
         {fmtMoney(sumNamedAmounts(snapshot.earnings.otherEarnings))}
       </td>

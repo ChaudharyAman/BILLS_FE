@@ -230,6 +230,30 @@ const EmployeeForm = () => {
 
     try {
       setSaving(true);
+      const cleanSalaryStructure = {
+        ...formData.salaryStructure,
+        basic: Number(localPreview.basicMaster) || 0,
+        hra: Number(localPreview.hraMaster) || 0,
+        conveyance: Number(formData.salaryStructure.conveyance ?? localPreview.conveyance) || 0,
+        medicalAllowance: Number(formData.salaryStructure.medicalAllowance ?? localPreview.medicalAllowance) || 0,
+        specialAllowance: Number(localPreview.specialAllowance) || 0,
+        grossSalary: Number(localPreview.grossSalary) || 0,
+        ctc: Number(localPreview.monthlyCTC) || 0,
+        otherAllowances: (formData.salaryStructure.otherAllowances || []).map((allowance) => ({
+          ...allowance,
+          amount: Number(allowance.amount) || 0,
+        })),
+      };
+
+      if (config?.salaryComponents) {
+        config.salaryComponents.forEach(c => {
+          if (!['basic', 'hra', 'special', 'conveyance', 'medical', 'flexi', 'broadband', 'petrol', 'lta'].includes(c.id)) {
+            const val = localPreview.earningsMap?.[c.id] ?? 0;
+            cleanSalaryStructure[c.id] = Number(val) || 0;
+          }
+        });
+      }
+
       const payload = {
         ...formData,
         monthlyCTC: Number(formData.monthlyCTC) || 0,
@@ -249,18 +273,7 @@ const EmployeeForm = () => {
         insuranceAmount: Number(formData.insuranceAmount) || 0,
         employerNPS: Number(formData.employerNPS) || 0,
         joiningBonus: Number(formData.joiningBonus) || 0,
-        salaryStructure: {
-          ...formData.salaryStructure,
-          basic: Number(formData.salaryStructure.basic ?? localPreview.basicMaster) || 0,
-          hra: Number(formData.salaryStructure.hra ?? localPreview.hraMaster) || 0,
-          conveyance: Number(formData.salaryStructure.conveyance) || 0,
-          medicalAllowance: Number(formData.salaryStructure.medicalAllowance) || 0,
-          specialAllowance: Number(formData.salaryStructure.specialAllowance ?? localPreview.specialAllowance) || 0,
-          otherAllowances: (formData.salaryStructure.otherAllowances || []).map((allowance) => ({
-            ...allowance,
-            amount: Number(allowance.amount) || 0,
-          })),
-        },
+        salaryStructure: cleanSalaryStructure,
         deductions: {
           pf: Number(formData.deductions.pf) || 0,
           esi: Number(formData.deductions.esi) || 0,
@@ -433,21 +446,6 @@ const EmployeeForm = () => {
 
           {step === 3 && (
             <div className="space-y-6">
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold">CTC Components</h2>
-                  <span className="text-xs text-gray-500">Synced with payroll settings</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <SummaryCard label="PF Employer" value={fmtMoney(localPreview.pfEmployer)} />
-                  <SummaryCard label="Gratuity" value={fmtMoney(localPreview.gratuity)} />
-                  <SummaryCard label="LWF Employer" value={fmtMoney(localPreview.lwfEmployer)} />
-                  <SummaryCard label="Annual CTC" value={fmtMoney(localPreview.annualCTC)} />
-                  <SummaryCard label="Gross Salary" value={fmtMoney(localPreview.grossSalary)} />
-                  <SummaryCard label="Net Take-Home Estimate" value={fmtMoney(localPreview.netTakeHome)} />
-                </div>
-              </div>
-
               {/* Custom Overrides Card */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-5 shadow-sm">
                 <h3 className="text-base font-bold text-blue-900 mb-1 flex items-center gap-2">
@@ -497,6 +495,21 @@ const EmployeeForm = () => {
                 </div>
               </div>
 
+              <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold">CTC Components</h2>
+                  <span className="text-xs text-gray-500">Synced with payroll settings</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <SummaryCard label="PF Employer" value={fmtMoney(localPreview.pfEmployer)} />
+                  <SummaryCard label="Gratuity" value={fmtMoney(localPreview.gratuity)} />
+                  <SummaryCard label="LWF Employer" value={fmtMoney(localPreview.lwfEmployer)} />
+                  <SummaryCard label="Annual CTC" value={fmtMoney(localPreview.annualCTC)} />
+                  <SummaryCard label="Gross Salary" value={fmtMoney(localPreview.grossSalary)} />
+                  <SummaryCard label="Net Take-Home Estimate" value={fmtMoney(localPreview.netTakeHome)} />
+                </div>
+              </div>
+
               {/* Statutory & Contribution Switches */}
               <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
                 <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
@@ -510,7 +523,14 @@ const EmployeeForm = () => {
                   {/* PF Toggle */}
                   <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
                     <label className="flex items-center justify-between cursor-pointer select-none">
-                      <span className="text-sm font-semibold text-gray-800">Provident Fund (PF)</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-semibold text-gray-800">Provident Fund (PF)</span>
+                        {formData.pfEnabled !== false && localPreview && (
+                          <span className="text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100 rounded-full px-1.5 py-0.5">
+                            {fmtMoney(localPreview.pfEmployee + localPreview.pfEmployer)}
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="checkbox"
                         checked={formData.pfEnabled ?? true}
@@ -521,13 +541,22 @@ const EmployeeForm = () => {
                         className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                       />
                     </label>
-                    <span className="text-[10px] text-gray-400 mt-1">Both Employee & Employer PF contributions</span>
+                    <span className="text-[10px] text-gray-400 mt-1">
+                      Both Employee & Employer PF contributions {formData.pfEnabled !== false && localPreview && `(EE: ${fmtMoney(localPreview.pfEmployee)}, ER: ${fmtMoney(localPreview.pfEmployer)})`}
+                    </span>
                   </div>
 
                   {/* ESI Toggle */}
                   <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
                     <label className="flex items-center justify-between cursor-pointer select-none">
-                      <span className="text-sm font-semibold text-gray-800">State Insurance (ESI)</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-semibold text-gray-800">State Insurance (ESI)</span>
+                        {formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0 && (
+                          <span className="text-[9px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-full px-1.5 py-0.5">
+                            {fmtMoney(localPreview.esiEmployee + localPreview.esiEmployer)}
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="checkbox"
                         checked={formData.esiEnabled ?? true}
@@ -538,13 +567,22 @@ const EmployeeForm = () => {
                         className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                       />
                     </label>
-                    <span className="text-[10px] text-gray-400 mt-1">Employee State Insurance (ESI) deductions</span>
+                    <span className="text-[10px] text-gray-400 mt-1">
+                      Employee State Insurance (ESI) deductions {formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0 && `(EE: ${fmtMoney(localPreview.esiEmployee)}, ER: ${fmtMoney(localPreview.esiEmployer)})`}
+                    </span>
                   </div>
 
                   {/* Professional Tax Toggle */}
                   <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
                     <label className="flex items-center justify-between cursor-pointer select-none">
-                      <span className="text-sm font-semibold text-gray-800">Professional Tax (PT)</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-semibold text-gray-800">Professional Tax (PT)</span>
+                        {formData.ptEnabled !== false && localPreview && localPreview.professionalTax > 0 && (
+                          <span className="text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full px-1.5 py-0.5">
+                            {fmtMoney(localPreview.professionalTax)}
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="checkbox"
                         checked={formData.ptEnabled ?? true}
@@ -555,13 +593,22 @@ const EmployeeForm = () => {
                         className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                       />
                     </label>
-                    <span className="text-[10px] text-gray-400 mt-1">State Professional Tax deduction</span>
+                    <span className="text-[10px] text-gray-400 mt-1">
+                      State Professional Tax deduction {formData.ptEnabled !== false && localPreview && localPreview.professionalTax > 0 && `(${fmtMoney(localPreview.professionalTax)})`}
+                    </span>
                   </div>
 
                   {/* LWF Toggle */}
                   <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
                     <label className="flex items-center justify-between cursor-pointer select-none">
-                      <span className="text-sm font-semibold text-gray-800">Welfare Fund (LWF)</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-semibold text-gray-800">Welfare Fund (LWF)</span>
+                        {formData.lwfEnabled !== false && localPreview && (localPreview.lwfEmployee + localPreview.lwfEmployer) > 0 && (
+                          <span className="text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-100 rounded-full px-1.5 py-0.5">
+                            {fmtMoney(localPreview.lwfEmployee + localPreview.lwfEmployer)}
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="checkbox"
                         checked={formData.lwfEnabled ?? true}
@@ -572,13 +619,22 @@ const EmployeeForm = () => {
                         className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                       />
                     </label>
-                    <span className="text-[10px] text-gray-400 mt-1">Labour Welfare Fund contributions</span>
+                    <span className="text-[10px] text-gray-400 mt-1">
+                      Labour Welfare Fund contributions {formData.lwfEnabled !== false && localPreview && (localPreview.lwfEmployee + localPreview.lwfEmployer) > 0 && `(EE: ${fmtMoney(localPreview.lwfEmployee)}, ER: ${fmtMoney(localPreview.lwfEmployer)})`}
+                    </span>
                   </div>
 
                   {/* Gratuity Toggle */}
                   <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
                     <label className="flex items-center justify-between cursor-pointer select-none">
-                      <span className="text-sm font-semibold text-gray-800">Gratuity Provision</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-semibold text-gray-800">Gratuity Provision</span>
+                        {formData.gratuityEnabled !== false && localPreview && localPreview.gratuity > 0 && (
+                          <span className="text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100 rounded-full px-1.5 py-0.5">
+                            {fmtMoney(localPreview.gratuity)}
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="checkbox"
                         checked={formData.gratuityEnabled ?? true}
@@ -589,7 +645,9 @@ const EmployeeForm = () => {
                         className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                       />
                     </label>
-                    <span className="text-[10px] text-gray-400 mt-1">Accrual of statutory gratuity amount</span>
+                    <span className="text-[10px] text-gray-400 mt-1">
+                      Accrual of statutory gratuity amount {formData.gratuityEnabled !== false && localPreview && localPreview.gratuity > 0 && `(${fmtMoney(localPreview.gratuity)})`}
+                    </span>
                   </div>
                 </div>
 
@@ -608,7 +666,9 @@ const EmployeeForm = () => {
                           className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                         />
                         <div>
-                          <span className="text-xs font-semibold text-gray-800 block">Include Employer PF in CTC</span>
+                          <span className="text-xs font-semibold text-gray-800 block">
+                            Include Employer PF in CTC {formData.includePfInCTC !== false && localPreview && `(${fmtMoney(localPreview.pfEmployer)})`}
+                          </span>
                           <span className="text-[10px] text-gray-400">Employer contribution reduces Gross take-home</span>
                         </div>
                       </label>
@@ -626,7 +686,9 @@ const EmployeeForm = () => {
                           className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                         />
                         <div>
-                          <span className="text-xs font-semibold text-gray-800 block">Include Gratuity in CTC</span>
+                          <span className="text-xs font-semibold text-gray-800 block">
+                            Include Gratuity in CTC {formData.includeGratuityInCTC !== false && localPreview && `(${fmtMoney(localPreview.gratuity)})`}
+                          </span>
                           <span className="text-[10px] text-gray-400">Accrued gratuity reduces Gross take-home</span>
                         </div>
                       </label>
@@ -703,29 +765,87 @@ const EmployeeForm = () => {
                     'lta_max_percent'
                   ].includes(c.id));
 
-                  const list = filtered.map(c => ({
-                    id: c.id,
-                    name: getFieldMapping(c.id),
-                    label: c.name
-                  }));
+                  const list = filtered.map(c => {
+                    const isCalculated = c.linkedTo !== 'fixed';
+                    let suffix = '';
+                    let freqSuffix = '';
+                    if (c.frequency === 'quarterly') freqSuffix = ' — Quarterly';
+                    else if (c.frequency === 'semi_annually') freqSuffix = ' — Semi-Annually';
+                    else if (c.frequency === 'annually') freqSuffix = ' — Annually';
+
+                    if (c.id === 'basic') {
+                      const pct = formData.basicPercent !== null && formData.basicPercent !== undefined ? formData.basicPercent : Math.round(c.linkValue * 100);
+                      suffix = ` (${pct}% of CTC${freqSuffix})`;
+                    } else if (c.id === 'hra') {
+                      const pct = formData.hraPercent !== null && formData.hraPercent !== undefined ? formData.hraPercent : Math.round(c.linkValue * 100);
+                      suffix = ` (${pct}% of Basic${freqSuffix})`;
+                    } else if (c.linkedTo === 'ctc_percent') {
+                      suffix = ` (${Math.round(c.linkValue * 100)}% of CTC${freqSuffix})`;
+                    } else if (c.linkedTo === 'basic_percent') {
+                      suffix = ` (${Math.round(c.linkValue * 100)}% of Basic${freqSuffix})`;
+                    } else if (c.linkedTo === 'remainder') {
+                      suffix = ` (Calculated Remainder${freqSuffix})`;
+                    } else if (freqSuffix) {
+                      suffix = ` (${freqSuffix.replace(' — ', '')})`;
+                    }
+                    
+                    return {
+                      id: c.id,
+                      name: getFieldMapping(c.id),
+                      label: `${c.name}${suffix}`,
+                      isCalculated
+                    };
+                  });
 
                   // Always append employerNPS and deductions.tds if they aren't already included
                   if (!list.some(item => item.id === 'employerNPS')) {
-                    list.push({ id: 'employerNPS', name: 'employerNPS', label: 'Employer NPS' });
+                    list.push({ id: 'employerNPS', name: 'employerNPS', label: 'Employer NPS', isCalculated: false });
                   }
                   if (!list.some(item => item.id === 'deductions.tds')) {
-                    list.push({ id: 'deductions.tds', name: 'deductions.tds', label: 'Income Tax (TDS) / Tax Amount' });
+                    list.push({ id: 'deductions.tds', name: 'deductions.tds', label: 'Income Tax (TDS) / Tax Amount', isCalculated: false });
+                  }
+
+                  // Append dynamic statutory components if enabled
+                  if (formData.pfEnabled !== false && localPreview) {
+                    const pfEEPct = Math.round((config?.pfRate ?? 0.12) * 100);
+                    const pfERPct = Math.round((config?.pfEmployerRate ?? 0.12) * 100);
+                    list.push({ id: 'pf_employee', name: 'pf_employee', label: `Employee PF contribution (${pfEEPct}%)`, isCalculated: true, customValue: localPreview.pfEmployee });
+                    list.push({ id: 'pf_employer', name: 'pf_employer', label: `Employer PF contribution (${pfERPct}%)`, isCalculated: true, customValue: localPreview.pfEmployer });
+                  }
+                  if (formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0) {
+                    const esiEEPct = (config?.esiEmployeeRate ?? 0.0075) * 100;
+                    const esiERPct = (config?.esiEmployerRate ?? 0.0325) * 100;
+                    list.push({ id: 'esi_employee', name: 'esi_employee', label: `Employee ESI deduction (${esiEEPct}%)`, isCalculated: true, customValue: localPreview.esiEmployee });
+                    list.push({ id: 'esi_employer', name: 'esi_employer', label: `Employer ESI contribution (${esiERPct}%)`, isCalculated: true, customValue: localPreview.esiEmployer });
+                  }
+                  if (formData.ptEnabled !== false && localPreview && localPreview.professionalTax > 0) {
+                    list.push({ id: 'pt_amount', name: 'deductions.professionalTax', label: 'Professional Tax (PT)', isCalculated: true, customValue: localPreview.professionalTax });
+                  }
+                  if (formData.lwfEnabled !== false && localPreview && (localPreview.lwfEmployee + localPreview.lwfEmployer) > 0) {
+                    list.push({ id: 'lwf_employee', name: 'lwf_employee', label: 'Employee LWF contribution', isCalculated: true, customValue: localPreview.lwfEmployee });
+                    list.push({ id: 'lwf_employer', name: 'lwf_employer', label: 'Employer LWF contribution', isCalculated: true, customValue: localPreview.lwfEmployer });
+                  }
+                  if (formData.gratuityEnabled !== false && localPreview && localPreview.gratuity > 0) {
+                    const gratPct = Math.round((config?.gratuityRate ?? 0.0481) * 10000) / 100;
+                    list.push({ id: 'gratuity_amount', name: 'gratuity_amount', label: `Gratuity Provision (${gratPct}%)`, isCalculated: true, customValue: localPreview.gratuity });
                   }
 
                   return list.map((item) => {
-                    const value = item.name === 'salaryStructure.basic' ? (formData.salaryStructure?.basic ?? localPreview.basicMaster ?? 0) :
-                      item.name === 'salaryStructure.hra' ? (formData.salaryStructure?.hra ?? localPreview.hraMaster ?? 0) :
-                      item.name === 'salaryStructure.specialAllowance' ? (formData.salaryStructure?.specialAllowance ?? localPreview.specialAllowance ?? 0) :
-                      item.name === 'deductions.tds' ? (formData.deductions?.tds ?? '') :
-                      (item.name.includes('.') 
-                        ? (item.name.split('.').reduce((obj, key) => obj?.[key], formData) ?? getPreviewValue(item.id) ?? 0)
-                        : (formData[item.name] ?? getPreviewValue(item.id) ?? 0)
-                      );
+                    const value = item.customValue !== undefined
+                      ? item.customValue
+                      : (item.isCalculated
+                          ? getPreviewValue(item.id)
+                          : (item.name === 'salaryStructure.basic' ? (formData.salaryStructure?.basic ?? localPreview.basicMaster ?? 0) :
+                             item.name === 'salaryStructure.hra' ? (formData.salaryStructure?.hra ?? localPreview.hraMaster ?? 0) :
+                             item.name === 'salaryStructure.specialAllowance' ? (formData.salaryStructure?.specialAllowance ?? localPreview.specialAllowance ?? 0) :
+                             item.name === 'deductions.tds' ? (formData.deductions?.tds ?? '') :
+                             (item.name.includes('.') 
+                               ? (item.name.split('.').reduce((obj, key) => obj?.[key], formData) ?? getPreviewValue(item.id) ?? 0)
+                               : (formData[item.name] ?? getPreviewValue(item.id) ?? 0)
+                             )
+                            )
+                        );
+                    
                     
                     return (
                       <div key={item.id}>
@@ -735,11 +855,12 @@ const EmployeeForm = () => {
                         <input
                           type="number"
                           min="0"
-                          placeholder={item.id === 'deductions.tds' ? `Live Est: ₹${localPreview.tds}` : `Live Est: ₹${getPreviewValue(item.id)}`}
+                          disabled={item.isCalculated}
+                          placeholder={item.customValue !== undefined ? `Live Est: ₹${item.customValue}` : (item.id === 'deductions.tds' ? `Live Est: ₹${localPreview.tds}` : `Live Est: ₹${getPreviewValue(item.id)}`)}
                           value={value}
                           onChange={(e) => setField(item.name, e.target.value === '' ? '' : Number(e.target.value))}
                           onBlur={refreshSalaryFromCTC}
-                          className={inputCls}
+                          className={`${inputCls} ${item.isCalculated ? 'bg-gray-50 text-gray-500 border-gray-200 cursor-not-allowed font-medium' : ''}`}
                         />
                       </div>
                     );
