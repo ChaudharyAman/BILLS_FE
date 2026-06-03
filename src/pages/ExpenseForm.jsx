@@ -15,6 +15,8 @@ const ExpenseForm = () => {
   const [inventory, setInventory] = useState([]);
   const [categories, setCategories] = useState([]);
   const [budgetInfo, setBudgetInfo] = useState(null);
+  const [isReady, setIsReady] = useState(false);
+  const initialValues = React.useRef(null);
 
   // Form State matching Sleekbills screenshot
   const [formData, setFormData] = useState({
@@ -81,6 +83,17 @@ const ExpenseForm = () => {
             suffix = parts[1];
         }
 
+        const initialData = {
+            category: data.category?._id || data.category || '',
+            vendorRef: data.vendor?.vendorRef || '',
+            tds_applicable: !!data.tds_applicable,
+            tds_section: data.tds_section || '',
+            tds_rate: data.tds_rate || 0,
+            tds_amount: data.tds_amount || 0,
+            net_vendor_payment: data.net_vendor_payment || 0,
+        };
+        initialValues.current = initialData;
+
         setFormData({
             expenseNumberPrefix: prefix,
             expenseNumberSuffix: suffix,
@@ -93,22 +106,23 @@ const ExpenseForm = () => {
             vendorName: data.vendor?.name || '',
             clientRef: data.client?.clientRef || '',
             clientName: data.client?.name || '',
-            category: data.category?._id || data.category || '',
+            category: initialData.category,
             subCategory: data.subCategory?._id || data.subCategory || '',
             items: data.items?.length > 0 ? data.items : [{ itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }],
             reverseCharge: !!data.reverseCharge,
             terms: data.terms || '',
             privateNotes: data.privateNotes || '',
-            tds_applicable: !!data.tds_applicable,
-            tds_section: data.tds_section || '',
-            tds_rate: data.tds_rate || 0,
-            tds_amount: data.tds_amount || 0,
+            tds_applicable: initialData.tds_applicable,
+            tds_section: initialData.tds_section,
+            tds_rate: initialData.tds_rate,
+            tds_amount: initialData.tds_amount,
             tds_nature: data.tds_nature || 'deductor',
-            net_vendor_payment: data.net_vendor_payment || 0,
+            net_vendor_payment: initialData.net_vendor_payment,
         });
       } else {
         applyPdfImportData(loadedVendors, loadedClients, loadedInventory);
       }
+      setIsReady(true);
     } catch (e) {
       console.error(e);
       alert('Failed to load form data');
@@ -211,17 +225,31 @@ const ExpenseForm = () => {
 
   // Sync Default TDS Rate based on Section, Vendor, & Category
   useEffect(() => {
+    if (!isReady) return;
+
+    let hasChanged = true;
+    if (id && initialValues.current) {
+      hasChanged = 
+        formData.tds_applicable !== initialValues.current.tds_applicable ||
+        formData.tds_section !== initialValues.current.tds_section ||
+        formData.vendorRef !== initialValues.current.vendorRef;
+    }
+
     if (formData.tds_applicable) {
       const section = formData.tds_section || '194C';
       let rate = formData.tds_rate;
-      if (section !== 'Manual') {
-        if (section === '194C') {
-          const vendor = vendors.find(v => v._id === formData.vendorRef);
-          rate = vendor?.clientType === 'Individual' ? 1 : 2;
-        } else if (['194J', '194I', '194A'].includes(section)) {
-          rate = 10;
-        } else if (section === '194H') {
-          rate = 5;
+      
+      // Only recalculate rate to standard defaults if section/vendor/applicability changed
+      if (hasChanged) {
+        if (section !== 'Manual') {
+          if (section === '194C') {
+            const vendor = vendors.find(v => v._id === formData.vendorRef);
+            rate = vendor?.clientType === 'Individual' ? 1 : 2;
+          } else if (['194J', '194I', '194A'].includes(section)) {
+            rate = 10;
+          } else if (section === '194H') {
+            rate = 5;
+          }
         }
       }
       
@@ -249,10 +277,18 @@ const ExpenseForm = () => {
         }));
       }
     }
-  }, [formData.tds_applicable, formData.tds_section, formData.vendorRef, vendors, totals.subTotal, totals.grandTotal, formData.reverseCharge, totals.taxTotal]);
+  }, [isReady, formData.tds_applicable, formData.tds_section, formData.vendorRef, vendors, totals.subTotal, totals.grandTotal, formData.reverseCharge, totals.taxTotal]);
 
   // Auto-Suggest TDS based on Category Selection
   useEffect(() => {
+    if (!isReady) return;
+
+    if (id && initialValues.current) {
+      if (formData.category === initialValues.current.category) {
+        return;
+      }
+    }
+
     if (!formData.category) return;
     const cat = categories.find(c => c._id === formData.category);
     if (!cat) return;
@@ -287,7 +323,7 @@ const ExpenseForm = () => {
         tds_rate: rate,
       }));
     }
-  }, [formData.category, categories, formData.vendorRef, vendors]);
+  }, [isReady, formData.category, categories, formData.vendorRef, vendors]);
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...formData.items];
