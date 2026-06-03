@@ -136,20 +136,8 @@ const PayrollDashboard = () => {
         setPayrolls(list);
         setSelectedIds({});
 
-        const months = Array.from({ length: 6 }, (_, index) => {
-          const date = new Date(year, month - 1 - index, 1);
-          return { month: date.getMonth() + 1, year: date.getFullYear() };
-        }).reverse();
-
-        const trendResponses = await Promise.all(months.map(async (item) => {
-          const params = new URLSearchParams({ month: item.month, year: item.year, limit: 200 });
-          const res = await api.get(`/payroll?${params.toString()}`, { signal: controller.signal });
-          return {
-            label: `${monthName(item.month)} ${String(item.year).slice(-2)}`,
-            total: (res.data.data || []).reduce((sum, payroll) => sum + (Number(payroll.netSalary) || 0), 0),
-          };
-        }));
-        setTrendData(trendResponses);
+        const trendRes = await api.get(`/payroll/trend?endMonth=${month}&endYear=${year}&count=6`, { signal: controller.signal });
+        setTrendData(trendRes.data.trend || []);
       } catch (error) {
         if (error.name === 'CanceledError' || error.name === 'AbortError') return;
         console.error(error);
@@ -185,8 +173,15 @@ const PayrollDashboard = () => {
   const openPayslipDrawer = async (payrollId) => {
     try {
       setDrawerLoading(true);
-      const res = await api.get(`/payroll/${payrollId}/generate-payslip`);
-      setDrawerSlip({ id: payrollId, ...res.data.payslip });
+      const [slipRes, logRes] = await Promise.all([
+        api.get(`/payroll/${payrollId}/generate-payslip`),
+        api.get(`/payroll/${payrollId}/audit-log`),
+      ]);
+      setDrawerSlip({
+        id: payrollId,
+        ...slipRes.data.payslip,
+        auditLog: logRes.data.auditLog || []
+      });
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Failed to load payslip');
@@ -197,12 +192,19 @@ const PayrollDashboard = () => {
 
   const handleExport = async () => {
     try {
-      const response = await api.get(`/payroll/export?month=${month}&year=${year}`, { responseType: 'blob' });
+      let exportUrl = `/payroll/export?month=${month}&year=${year}`;
+      if (statusFilter && statusFilter !== 'all') {
+        exportUrl += `&statusFilter=${statusFilter}`;
+      }
+      if (search && search.trim() !== '') {
+        exportUrl += `&search=${encodeURIComponent(search.trim())}`;
+      }
+      const response = await api.get(exportUrl, { responseType: 'blob' });
       const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `payroll-sheet-${year}-${String(month).padStart(2, '0')}.xlsx`;
+      link.download = `payroll-sheet-${year}-${String(month).padStart(2, '0')}-${statusFilter}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
       toast.success('Payroll export downloaded');
@@ -232,15 +234,15 @@ const PayrollDashboard = () => {
       }
       if (confirmAction.type === 'markPaid') {
         await Promise.all(selectedPayrolls.map((payroll) => api.post(`/payroll/${payroll._id}/mark-paid`, {
-          paymentDate: new Date().toISOString().substring(0, 10),
-          paymentMethod: 'Bank Transfer',
+          paymentDate: confirmAction.paymentDate,
+          paymentMethod: confirmAction.paymentMethod,
         })));
         toast.success('Selected payroll marked as paid');
       }
       if (confirmAction.type === 'markPaidSingle') {
         await api.post(`/payroll/${confirmAction.payrollId}/mark-paid`, {
-          paymentDate: new Date().toISOString().substring(0, 10),
-          paymentMethod: 'Bank Transfer',
+          paymentDate: confirmAction.paymentDate,
+          paymentMethod: confirmAction.paymentMethod,
         });
         toast.success('Payroll marked as paid');
       }
@@ -250,6 +252,19 @@ const PayrollDashboard = () => {
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Payroll action failed');
+    }
+  };
+
+  const handleApproveDrawerSlip = async () => {
+    if (!drawerSlip) return;
+    try {
+      await api.put('/payroll/bulk-approve', { ids: [drawerSlip.id], month, year });
+      toast.success('Payroll approved');
+      await refreshCurrentMonth();
+      setDrawerSlip(null);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to approve payroll');
     }
   };
 
@@ -376,7 +391,11 @@ const PayrollDashboard = () => {
                   <button onClick={handleExport} className="bg-white border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
                     <FaDownload /> Export Excel
                   </button>
-                  <button onClick={() => setConfirmAction({ type: 'markPaid' })} className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">Mark Paid (Bulk)</button>
+                  <button onClick={() => setConfirmAction({
+                    type: 'markPaid',
+                    paymentDate: new Date().toISOString().substring(0, 10),
+                    paymentMethod: 'Bank Transfer'
+                  })} className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">Mark Paid (Bulk)</button>
                 </div>
               ) : null}
             </div>
@@ -464,7 +483,12 @@ const PayrollDashboard = () => {
                         <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-center gap-3">
                             <Link to={`/payroll/${payroll._id}/payslip`} className="text-gray-500 hover:text-blue-600" title="Payslip"><FaFileInvoice /></Link>
-                            {payroll.status !== 'paid' && <button onClick={() => setConfirmAction({ type: 'markPaidSingle', payrollId: payroll._id })} className="text-gray-500 hover:text-green-600" title="Mark paid"><FaMoneyBillWave /></button>}
+                            {payroll.status !== 'paid' && <button onClick={() => setConfirmAction({
+                              type: 'markPaidSingle',
+                              payrollId: payroll._id,
+                              paymentDate: new Date().toISOString().substring(0, 10),
+                              paymentMethod: 'Bank Transfer'
+                            })} className="text-gray-500 hover:text-green-600" title="Mark paid"><FaMoneyBillWave /></button>}
                           </div>
                         </td>
                       </tr>
@@ -697,6 +721,24 @@ const PayrollDashboard = () => {
               <p className="text-sm text-gray-500">{drawerSlip ? `${drawerSlip.employee?.firstName || ''} ${drawerSlip.employee?.lastName || ''}`.trim() : 'Loading...'}</p>
             </div>
             <div className="flex gap-3">
+              {drawerSlip && drawerSlip.status === 'processed' ? (
+                <button onClick={handleApproveDrawerSlip} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">
+                  Approve
+                </button>
+              ) : null}
+              {drawerSlip && drawerSlip.status === 'approved' ? (
+                <button 
+                  onClick={() => setConfirmAction({
+                    type: 'markPaidSingle',
+                    payrollId: drawerSlip.id,
+                    paymentDate: new Date().toISOString().substring(0, 10),
+                    paymentMethod: 'Bank Transfer'
+                  })}
+                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-semibold"
+                >
+                  Mark Paid
+                </button>
+              ) : null}
               {drawerSlip ? (
                 <button onClick={() => window.open(`/payroll/${drawerSlip.id}/payslip`, '_blank')} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">
                   Download
@@ -737,6 +779,31 @@ const PayrollDashboard = () => {
                   ['Incentive', fmtMoney(drawerSlip.variablePay?.incentive)],
                   ['Special Bonus', fmtMoney(drawerSlip.variablePay?.specialBonus)],
                 ]} />
+                <div className="rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">History</div>
+                  <div className="p-4 bg-white space-y-3">
+                    {(drawerSlip.auditLog || []).length === 0 ? (
+                      <div className="text-sm text-gray-500 italic">No status transition history recorded.</div>
+                    ) : (
+                      <div className="space-y-3">
+                        {(drawerSlip.auditLog || []).map((entry, i) => (
+                          <div key={i} className="flex items-start gap-3 text-sm">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${payrollStatusClass[entry.status] || payrollStatusClass.draft}`}>
+                              {entry.status}
+                            </span>
+                            <div>
+                              <div className="font-semibold text-gray-800">{entry.changedBy}</div>
+                              <div className="text-xs text-gray-500">
+                                {new Date(entry.changedAt).toLocaleString('en-IN')} · Net: {fmtMoney(entry.netSalary)}
+                              </div>
+                              {entry.notes && <div className="text-xs text-gray-400 mt-0.5">{entry.notes}</div>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             ) : null}
           </div>
@@ -750,6 +817,34 @@ const PayrollDashboard = () => {
               confirmAction?.type === 'markPaid' ? 'Mark all selected payroll records as paid?' :
                 'Mark this payroll record as paid?'}
           </p>
+          {(confirmAction?.type === 'markPaid' || confirmAction?.type === 'markPaidSingle') && (
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 inline-block">Payment Date</label>
+                <input
+                  type="date"
+                  value={confirmAction.paymentDate || ''}
+                  onChange={(e) => setConfirmAction((prev) => ({ ...prev, paymentDate: e.target.value }))}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1 inline-block">Payment Method</label>
+                <select
+                  value={confirmAction.paymentMethod || 'Bank Transfer'}
+                  onChange={(e) => setConfirmAction((prev) => ({ ...prev, paymentMethod: e.target.value }))}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full"
+                >
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="UPI">UPI</option>
+                  <option value="NEFT">NEFT</option>
+                  <option value="RTGS">RTGS</option>
+                </select>
+              </div>
+            </div>
+          )}
           <div className="flex justify-end gap-3">
             <button type="button" onClick={() => setConfirmAction(null)} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold">Cancel</button>
             <button type="button" onClick={confirmAndRun} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">Confirm</button>

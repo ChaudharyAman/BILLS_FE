@@ -192,7 +192,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
       const found = itemsList.find(i => i.name === value);
       if (found) {
         items[idx].description = found.description || found.salesInfo?.description || '';
-        items[idx].rate = found.salesInfo?.price || found.rate || 0;
+        items[idx].rate = found.salesInfo?.price || found.sellingPrice || found.rate || 0;
         items[idx].unit = found.unit || 'pcs';
         let taxRate = 0;
         const candidates = [found.defaultTaxRate, found.taxRate, found.salesInfo?.taxRate, found.purchaseInfo?.taxRate];
@@ -240,7 +240,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
       description: found.description || found.salesInfo?.description || '', // Use salesInfo description
       hsnCode: found.hsnCode || '',
       unit: found.unit || 'pcs',
-      rate: found.salesInfo?.price || found.rate || 0, // Use salesInfo price
+      rate: found.salesInfo?.price || found.sellingPrice || found.rate || 0, // Use salesInfo price
       taxRate,
       taxSelect: [0,5,12,18,28].includes(taxRate) ? String(taxRate) : (taxRate > 0 ? 'custom' : '0'),
       customTaxRate: [0,5,12,18,28].includes(taxRate) ? '' : String(taxRate || ''),

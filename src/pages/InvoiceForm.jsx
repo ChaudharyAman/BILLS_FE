@@ -664,7 +664,7 @@ const InvoiceForm = () => {
       if (found) {
         const taxRate = getCatalogItemTaxRate(found);
         newItems[index].description = found.description || found.salesInfo?.description || '';
-        newItems[index].rate = found.salesInfo?.price || found.rate || 0;
+        newItems[index].rate = found.salesInfo?.price || found.sellingPrice || found.rate || 0;
         newItems[index].unit = found.unit || 'pcs';
         newItems[index].taxRate = taxRate;
         newItems[index].hsnCode = found.hsnCode || '';
@@ -899,7 +899,8 @@ const InvoiceForm = () => {
                     } else {
                       const selectedClient = clients.find(c => c._id === clientId);
                       if (selectedClient) {
-                        const tdsApp = isPro ? (selectedClient.tds_applicable || false) : false;
+                        const hasGstin = selectedClient.gstin && /^[0-9A-Z]{15}$/.test(String(selectedClient.gstin).trim().toUpperCase());
+                        const tdsApp = isPro ? (selectedClient.tds_applicable || hasGstin) : false;
                         setFormData(prev => ({
                           ...prev,
                           clientRef: clientId,
@@ -1211,7 +1212,7 @@ const InvoiceForm = () => {
                         itemRef: found._id,
                         name: found.name,
                         description: found.description || found.salesInfo?.description || '',
-                        rate: found.salesInfo?.price || found.rate || 0,
+                        rate: found.salesInfo?.price || found.sellingPrice || found.rate || 0,
                         unit: found.unit || 'pcs',
                         taxRate,
                         hsnCode: found.hsnCode || '',
@@ -1490,6 +1491,42 @@ const InvoiceForm = () => {
 
             {/* TDS Configuration Card */}
             <div className="pt-3 pb-2 border-t border-gray-100 mt-2 space-y-3">
+              {/* TDS suggestion alert for GSTIN clients */}
+              {(() => {
+                const selectedClient = clients.find(c => c._id === formData.clientRef);
+                const hasGstin = selectedClient && selectedClient.gstin && /^[0-9A-Z]{15}$/.test(String(selectedClient.gstin).trim().toUpperCase());
+                const tdsEnabled = formData.client_will_deduct_tds || formData.tdsApplicable;
+                
+                if (hasGstin && !tdsEnabled) {
+                  return (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-2 text-xs text-blue-800 animate-fadeIn my-2 shadow-sm">
+                      <span className="font-bold flex-shrink-0 bg-blue-200 text-blue-800 px-1.5 py-0.5 rounded uppercase text-[10px]">Suggestion</span>
+                      <div className="flex-1">
+                        <span>This client has a GSTIN. Enable <strong>Client will deduct TDS</strong> to configure TDS defaults.</span>
+                        {isPro && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                client_will_deduct_tds: true,
+                                tdsApplicable: true,
+                                tdsSection: prev.tdsSection || selectedClient.tds_default_section || selectedClient.default_tds_section || '194J',
+                                tdsRate: prev.tdsRate || selectedClient.tds_default_rate || selectedClient.default_tds_rate || 10
+                              }));
+                            }}
+                            className="ml-2 underline font-bold hover:text-blue-900 focus:outline-none"
+                          >
+                            Enable TDS Now
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               <div className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-200/60 shadow-sm">
                 <div className="flex flex-col">
                   <span className="text-sm font-semibold text-gray-700">Client will deduct TDS</span>
@@ -1768,7 +1805,8 @@ const InvoiceForm = () => {
         <ClientForm
           onSuccess={(newClient) => {
             setClients([newClient, ...clients]);
-            const tdsApp = isPro ? (newClient.tds_applicable || false) : false;
+            const hasGstin = newClient.gstin && /^[0-9A-Z]{15}$/.test(String(newClient.gstin).trim().toUpperCase());
+            const tdsApp = isPro ? (newClient.tds_applicable || hasGstin) : false;
             setFormData(prev => ({
               ...prev,
               clientRef: newClient._id,

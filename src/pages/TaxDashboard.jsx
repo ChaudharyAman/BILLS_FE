@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bar, BarChart, CartesianGrid, Legend, Line, LineChart,
@@ -110,6 +110,7 @@ function ChartTooltip({ active, payload, label, darkMode }) {
 
 export default function TaxDashboard() {
   const navigate = useNavigate();
+  const monthInputRef = useRef(null);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('tax-dashboard-theme') === 'dark');
   const [activeTab, setActiveTab] = useState('This Month');
   const [customMonth, setCustomMonth] = useState(() => {
@@ -337,9 +338,20 @@ export default function TaxDashboard() {
                   }`}
                 >
                   {/* Month Selection */}
-                  <div className={`relative flex items-center justify-between gap-3 border rounded-xl px-3.5 py-2 transition-colors w-40 cursor-pointer shadow-inner-sm ${
-                    darkMode ? 'bg-slate-900 border-slate-800 hover:border-[#818cf8]' : 'bg-white border-slate-200/85 hover:border-[#5b61eb]'
-                  }`}>
+                  <div 
+                    onClick={() => {
+                      if (monthInputRef.current) {
+                        if (typeof monthInputRef.current.showPicker === 'function') {
+                          monthInputRef.current.showPicker();
+                        } else {
+                          monthInputRef.current.click();
+                        }
+                      }
+                    }}
+                    className={`relative flex items-center justify-between gap-3 border rounded-xl px-3.5 py-2 transition-colors w-40 cursor-pointer shadow-inner-sm ${
+                      darkMode ? 'bg-slate-900 border-slate-800 hover:border-[#818cf8]' : 'bg-white border-slate-200/85 hover:border-[#5b61eb]'
+                    }`}
+                  >
                     <div className="flex items-center gap-2">
                       <FaCalendarDays className={darkMode ? 'text-[#818cf8]' : 'text-[#5b61eb]'} size={12} />
                       <span className={`text-xs font-extrabold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
@@ -347,8 +359,9 @@ export default function TaxDashboard() {
                       </span>
                     </div>
                     <input
+                      ref={monthInputRef}
                       type="month"
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full pointer-events-none"
                       value={customMonth}
                       onChange={(e) => {
                         setCustomMonth(e.target.value);

@@ -55,6 +55,27 @@ const PurchaseOrderList = () => {
     catch (e) { alert('Failed to delete'); }
   };
 
+  const handleBulkDelete = async () => {
+    if (!isPro) {
+      setShowPremiumModal(true);
+      return;
+    }
+    if (selectedIds.length === 0) return;
+    if (window.confirm(`Delete the ${selectedIds.length} selected purchase orders?`)) {
+      try {
+        setLoading(true);
+        await Promise.all(selectedIds.map(id => api.delete(`/purchase-orders/${id}`)));
+        setSelectedIds([]);
+        fetchPurchaseOrders();
+      } catch (error) {
+        console.error(error);
+        alert('Failed to delete some purchase orders');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const handleConvert = async (id) => {
     if (!window.confirm('Convert this purchaseOrder to an Invoice?')) return;
     try {
@@ -277,6 +298,14 @@ const PurchaseOrderList = () => {
           <p className="text-gray-500 mt-1">Create and manage quotations for your vendors</p>
         </div>
         <div className="flex gap-3">
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+            >
+              <FaTrash size={14} /> Delete Selected ({selectedIds.length})
+            </button>
+          )}
           <ExportDropdown 
               data={exportRows}
               getExportData={fetchPurchaseOrdersForExport}

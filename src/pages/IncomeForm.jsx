@@ -4,6 +4,52 @@ import api from '../api/axios';
 import { FaCalendarAlt, FaCheck, FaTimes, FaPlus } from 'react-icons/fa';
 import { buildPdfTransactionPatch } from '../utils/pdfTransactionImport';
 
+const gstStateMap = {
+  '01': 'Jammu & Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab', '04': 'Chandigarh', 
+  '05': 'Uttarakhand', '06': 'Haryana', '07': 'Delhi', '08': 'Rajasthan', '09': 'Uttar Pradesh',
+  '10': 'Bihar', '11': 'Sikkim', '12': 'Arunachal Pradesh', '13': 'Nagaland', '14': 'Manipur',
+  '15': 'Mizoram', '16': 'Tripura', '17': 'Meghalaya', '18': 'Assam', '19': 'West Bengal',
+  '20': 'Jharkhand', '21': 'Odisha', '22': 'Chhattisgarh', '23': 'Madhya Pradesh', '24': 'Gujarat',
+  '25': 'Daman & Diu', '26': 'Dadra & Nagar Haveli', '27': 'Maharashtra', '28': 'Andhra Pradesh',
+  '29': 'Karnataka', '30': 'Goa', '31': 'Lakshadweep', '32': 'Kerala', '33': 'Tamil Nadu',
+  '34': 'Puducherry', '35': 'Andaman & Nicobar Islands', '36': 'Telangana', '37': 'Andhra Pradesh',
+  '38': 'Ladakh', '97': 'Other Territory', '99': 'Centre Jurisdiction'
+};
+
+const extractStateCode = (value = '') => {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const prefixMatch = text.match(/^(\d{2})\s*[-(]/);
+  if (prefixMatch) return prefixMatch[1];
+  const parenMatch = text.match(/\((\d{2})\)/);
+  if (parenMatch) return parenMatch[1];
+  return '';
+};
+
+const normalizeStateName = (value = '') => String(value || '')
+  .replace(/^\d{2}\s*[-)]?\s*/, '')
+  .split('(')[0]
+  .trim()
+  .toLowerCase();
+
+const isInterStateSupply = (placeOfSupply, companyState, companyGstin) => {
+  const supply = String(placeOfSupply || '').trim();
+  if (!supply) return false;
+  const supplyStateCode = extractStateCode(supply);
+  const companyStateCode = String(companyGstin || '').trim().slice(0, 2);
+  if (supplyStateCode && /^\d{2}$/.test(companyStateCode)) {
+    return supplyStateCode !== companyStateCode;
+  }
+  const normalizedSupply = normalizeStateName(supply);
+  const normalizedCompanyState = normalizeStateName(companyState);
+  if (normalizedSupply && normalizedCompanyState) {
+    return normalizedSupply !== normalizedCompanyState;
+  }
+  return false;
+};
+
+const roundTwo = (value) => Math.round((Number(value) || 0) * 100) / 100;
+
 const IncomeForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -32,10 +78,28 @@ const IncomeForm = () => {
     ],
     reverseCharge: false,
     terms: '',
-    privateNotes: ''
+    privateNotes: '',
+    placeOfSupply: '',
+    tds_applicable: false,
+    tds_section: '',
+    tds_rate: 0,
+    tds_amount: 0,
+    amountPaid: 0
   });
 
-  const [totals, setTotals] = useState({ subTotal: 0, taxTotal: 0, grandTotal: 0 });
+  const [companyTaxProfile, setCompanyTaxProfile] = useState({ state: '', gstin: '' });
+  const [totals, setTotals] = useState({
+    subTotal: 0,
+    taxTotal: 0,
+    totalCGST: 0,
+    totalSGST: 0,
+    totalIGST: 0,
+    grandTotal: 0,
+    tds_amount: 0,
+    netReceived: 0,
+    balanceDue: 0,
+    isInterState: false
+  });
 
   useEffect(() => {
     fetchInitialData();
@@ -44,20 +108,27 @@ const IncomeForm = () => {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [vRes, cRes, iRes, catRes] = await Promise.all([
+      const [vRes, cRes, iRes, catRes, settingsRes] = await Promise.all([
         api.get('/vendors?limit=1000'),
         api.get('/clients?limit=1000'),
         api.get('/items?limit=1000'),
-        api.get('/categories?type=income')
+        api.get('/categories?type=income'),
+        api.get('/settings')
       ]);
       const loadedVendors = vRes.data.data || [];
       const loadedClients = cRes.data.data || [];
       const loadedInventory = iRes.data.data || [];
       const loadedCategories = catRes.data || [];
+      const settings = settingsRes.data || {};
+
       setVendors(loadedVendors);
       setClients(loadedClients);
       setInventory(loadedInventory);
       setCategories(loadedCategories);
+      setCompanyTaxProfile({
+        state: settings.address?.state || '',
+        gstin: settings.gstin || '',
+      });
 
       if (id) {
         const eRes = await api.get(`/incomes/${id}`);
@@ -91,9 +162,19 @@ const IncomeForm = () => {
             items: data.items?.length > 0 ? data.items : [{ itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }],
             reverseCharge: !!data.reverseCharge,
             terms: data.terms || '',
-            privateNotes: data.privateNotes || ''
+            privateNotes: data.privateNotes || '',
+            placeOfSupply: data.placeOfSupply || '',
+            tds_applicable: !!data.tds_applicable,
+            tds_section: data.tds_section || '',
+            tds_rate: data.tds_rate || 0,
+            tds_amount: data.tds_amount || 0,
+            amountPaid: data.amountPaid || 0,
         });
       } else {
+        setFormData(p => ({
+          ...p,
+          placeOfSupply: settings.address?.state || ''
+        }));
         applyPdfImportData(loadedVendors, loadedClients, loadedInventory);
       }
     } catch (e) {
@@ -150,35 +231,94 @@ const IncomeForm = () => {
     }
   };
 
+  const getTaxBreakdown = useCallback(() => {
+    let cgst = 0, sgst = 0, igst = 0;
+    const isInterState = isInterStateSupply(
+      formData.placeOfSupply,
+      companyTaxProfile.state,
+      companyTaxProfile.gstin
+    );
+
+    formData.items.forEach(item => {
+      const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
+      const taxRate = parseFloat(item.taxRate) || 0;
+      const tax = amount * (taxRate / 100);
+      if (isInterState) {
+        igst = roundTwo(igst + tax);
+      } else {
+        cgst = roundTwo(cgst + roundTwo(tax / 2));
+        sgst = roundTwo(sgst + roundTwo(tax / 2));
+      }
+    });
+
+    return { cgst, sgst, igst, isInterState };
+  }, [formData.items, formData.placeOfSupply, companyTaxProfile]);
+
   const calculateTotals = useCallback(() => {
     let sub = 0;
     let tax = 0;
     
-    const updatedItems = formData.items.map(item => {
+    formData.items.forEach(item => {
       const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
       const itemTax = amount * ((parseFloat(item.taxRate) || 0) / 100);
       sub += amount;
       tax += itemTax;
-      return { ...item, amount, taxAmount: itemTax };
     });
 
+    const subTotal = roundTwo(sub);
+    const taxTotal = roundTwo(tax);
+    
+    // Split tax
+    const { cgst, sgst, igst, isInterState } = getTaxBreakdown();
+
+    const grandTotalBeforeTds = subTotal + (formData.reverseCharge ? 0 : taxTotal);
+    
+    // TDS calculations
+    let tdsAmt = 0;
+    if (formData.tds_applicable) {
+      tdsAmt = roundTwo(subTotal * ((parseFloat(formData.tds_rate) || 0) / 100));
+    }
+
+    const netReceived = roundTwo(Math.max(grandTotalBeforeTds - tdsAmt, 0));
+    const balanceDue = roundTwo(Math.max(netReceived - (parseFloat(formData.amountPaid) || 0), 0));
+
     setTotals({
-      subTotal: sub,
-      taxTotal: tax,
-      grandTotal: sub + tax
+      subTotal,
+      taxTotal,
+      totalCGST: cgst,
+      totalSGST: sgst,
+      totalIGST: igst,
+      grandTotal: grandTotalBeforeTds,
+      tds_amount: tdsAmt,
+      netReceived,
+      balanceDue,
+      isInterState
     });
-  }, [formData.items]);
+  }, [formData.items, formData.reverseCharge, formData.tds_applicable, formData.tds_rate, formData.amountPaid, getTaxBreakdown]);
 
   useEffect(() => {
     calculateTotals();
-  }, [formData.items, calculateTotals]);
+  }, [formData.items, formData.reverseCharge, formData.tds_applicable, formData.tds_rate, formData.amountPaid, calculateTotals]);
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...formData.items];
     
     if (field === 'itemRef') {
       const selectedInv = inventory.find(inv => inv._id === value);
-      const rate = selectedInv ? (selectedInv.sellingPrice !== undefined ? selectedInv.sellingPrice : (selectedInv.salesInfo?.price !== undefined ? selectedInv.salesInfo.price : (selectedInv.rate || 0))) : 0;
+      let rate = 0;
+      if (selectedInv) {
+        if (selectedInv.salesInfo && selectedInv.salesInfo.price) {
+          rate = selectedInv.salesInfo.price;
+        } else if (selectedInv.sellingPrice) {
+          rate = selectedInv.sellingPrice;
+        } else if (selectedInv.rate) {
+          rate = selectedInv.rate;
+        } else if (selectedInv.purchaseInfo && selectedInv.purchaseInfo.price) {
+          rate = selectedInv.purchaseInfo.price;
+        } else if (selectedInv.purchasePrice) {
+          rate = selectedInv.purchasePrice;
+        }
+      }
       
       let taxRate = 0;
       if (selectedInv) {
@@ -286,9 +426,17 @@ const IncomeForm = () => {
         items: formData.items,
         subTotal: totals.subTotal,
         taxTotal: totals.taxTotal,
+        totalCGST: totals.totalCGST,
+        totalSGST: totals.totalSGST,
+        totalIGST: totals.totalIGST,
         grandTotal: totals.grandTotal,
         terms: formData.terms,
-        privateNotes: formData.privateNotes
+        privateNotes: formData.privateNotes,
+        tds_applicable: !!formData.tds_applicable,
+        tds_section: formData.tds_section || '',
+        tds_rate: Number(formData.tds_rate) || 0,
+        tds_amount: totals.tds_amount || 0,
+        amountPaid: Number(formData.amountPaid) || 0
       };
 
       if (id) {
@@ -313,7 +461,6 @@ const IncomeForm = () => {
   const rowBorder = "border-b border-gray-200";
   const rootCategories = categories.filter(cat => !cat.parent);
   const subCategories = categories.filter(cat => (cat.parent?._id || cat.parent) === formData.category);
-  const payableAmount = totals.grandTotal - (!!formData.reverseCharge ? totals.taxTotal : 0);
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#f3f6f9] py-8">
@@ -341,7 +488,13 @@ const IncomeForm = () => {
                     value={formData.vendorRef}
                     onChange={e => {
                       const vendor = vendors.find(v => v._id === e.target.value);
-                      setFormData(p => ({ ...p, vendorRef: e.target.value, vendorName: vendor?.name || p.vendorName }));
+                      const billingState = vendor?.billingAddress?.state || vendor?.placeOfSupply || companyTaxProfile.state || '';
+                      setFormData(p => ({
+                        ...p,
+                        vendorRef: e.target.value,
+                        vendorName: vendor?.name || p.vendorName,
+                        placeOfSupply: billingState
+                      }));
                     }}
                   >
                     <option value="">{formData.vendorName && !formData.vendorRef ? `${formData.vendorName} (will be created on save)` : 'Select Vendor'}</option>
@@ -439,7 +592,13 @@ const IncomeForm = () => {
                     value={formData.clientRef}
                     onChange={e => {
                       const client = clients.find(c => c._id === e.target.value);
-                      setFormData(p => ({ ...p, clientRef: e.target.value, clientName: client?.name || p.clientName }));
+                      const billingState = client?.billingAddress?.state || client?.placeOfSupply || companyTaxProfile.state || '';
+                      setFormData(p => ({
+                        ...p,
+                        clientRef: e.target.value,
+                        clientName: client?.name || p.clientName,
+                        placeOfSupply: billingState
+                      }));
                     }}
                   >
                     <option value="">{formData.clientName && !formData.clientRef ? `${formData.clientName} (will be created on save)` : 'Reference client'}</option>
@@ -450,6 +609,24 @@ const IncomeForm = () => {
                   {!formData.clientRef && formData.clientName && (
                     <p className="mt-1 text-xs text-amber-600">Scanned: {formData.clientName}</p>
                   )}
+                </div>
+              </div>
+
+              {/* Place of Supply */}
+              <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
+                <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Place of Supply</span>
+                <div className="flex-1 min-w-0">
+                  <select 
+                    data-testid="income-place-of-supply"
+                    className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                    value={formData.placeOfSupply}
+                    onChange={e => setFormData(p => ({ ...p, placeOfSupply: e.target.value }))}
+                  >
+                    <option value="">Select State</option>
+                    {Object.values(gstStateMap).map(stateName => (
+                      <option key={stateName} value={stateName}>{stateName}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -601,8 +778,8 @@ const IncomeForm = () => {
 
           {/* Middle Band: Reverse Charge and Subtotals */}
           <div className="border-t border-b border-gray-200 flex flex-col md:flex-row justify-between">
-            {/* Reverse Charge Toggle */}
-            <div className="p-6 md:w-1/2 flex items-start pt-8">
+            {/* Left Side: Reverse Charge & TDS */}
+            <div className="p-6 md:w-1/2 flex flex-col gap-6 border-r border-gray-200">
               <label className="flex items-center gap-3 cursor-pointer group">
                 <input 
                   type="checkbox" 
@@ -614,35 +791,147 @@ const IncomeForm = () => {
                   Subject to reverse charge
                 </span>
               </label>
+
+              {/* TDS Checklist UI */}
+              <div className="pt-4 border-t border-gray-100">
+                <label className="flex items-center gap-3 cursor-pointer group mb-4">
+                  <input 
+                    type="checkbox" 
+                    data-testid="apply-tds"
+                    className="w-5 h-5 rounded border-gray-300 text-[#5c8bc1] focus:ring-[#5c8bc1] cursor-pointer"
+                    checked={!!formData.tds_applicable}
+                    onChange={(e) => {
+                      const active = e.target.checked;
+                      setFormData(p => ({
+                        ...p,
+                        tds_applicable: active,
+                        tds_section: active ? '194J' : '',
+                        tds_rate: active ? 10 : 0
+                      }));
+                    }}
+                  />
+                  <span className="text-sm font-semibold text-gray-600 group-hover:text-gray-800 transition-colors">
+                    Apply TDS Receivable
+                  </span>
+                </label>
+
+                {formData.tds_applicable && (
+                  <div className="grid grid-cols-2 gap-4 bg-[#f8f9fa] p-4 rounded border border-gray-200 animate-fade-in">
+                    <div>
+                      <span className={labelCls}>TDS Section</span>
+                      <select
+                        className={inputBaseCls}
+                        value={formData.tds_section}
+                        onChange={(e) => {
+                          const sec = e.target.value;
+                          let rate = 10;
+                          if (sec === '194C') {
+                            rate = 2; // Default to 2% for contractor (company/firm)
+                          } else if (sec === 'Manual') {
+                            rate = 0;
+                          }
+                          setFormData(p => ({ ...p, tds_section: sec, tds_rate: rate }));
+                        }}
+                      >
+                        <option value="194J">194J - Professional/Technical (10%)</option>
+                        <option value="194C">194C - Contractor (2%)</option>
+                        <option value="194I">194I - Rent (10%)</option>
+                        <option value="194A">194A - Interest (10%)</option>
+                        <option value="Manual">Manual (Custom Rate)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <span className={labelCls}>TDS Rate (%)</span>
+                      <input
+                        type="number"
+                        className={inputBaseCls}
+                        value={formData.tds_rate}
+                        readOnly={formData.tds_section !== 'Manual'}
+                        onChange={(e) => {
+                          if (formData.tds_section === 'Manual') {
+                            setFormData(p => ({ ...p, tds_rate: parseFloat(e.target.value) || 0 }));
+                          }
+                        }}
+                        step="0.01"
+                        min="0"
+                        max="100"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Totals Pane */}
             <div className="p-6 md:w-1/2 xl:w-1/3">
                <div className="space-y-3">
                  {!!formData.reverseCharge && (
-                   <div className="bg-amber-50 border border-amber-200 text-amber-800 text-[10px] rounded-lg p-2.5 font-medium flex flex-col gap-0.5 mb-2 mx-4 leading-relaxed animate-fade-in">
+                   <div className="bg-amber-50 border border-amber-200 text-amber-800 text-[10px] rounded-lg p-2.5 font-medium flex flex-col gap-0.5 mb-2 leading-relaxed animate-fade-in">
                      <span className="font-bold flex items-center gap-1 text-[11px] text-amber-900">⚠️ Reverse Charge Active</span>
                      <span className="text-gray-600">GST is calculated but not added to the payable Total. The customer is liable to pay GST directly to the government.</span>
                    </div>
                  )}
                  <div className="flex justify-between items-center px-4">
-                   <span className="text-sm font-bold text-[#2d4b6b]">Subtotal:</span>
-                   <span className="text-sm font-bold text-gray-800">₹ {totals.subTotal.toFixed(2)}</span>
+                   <span className="text-sm font-semibold text-gray-500">Subtotal:</span>
+                   <span className="text-sm font-semibold text-gray-800">₹ {totals.subTotal.toFixed(2)}</span>
                  </div>
                  {totals.taxTotal > 0 && (
-                   <div className="flex justify-between items-center px-4">
-                      <span className="text-sm text-gray-500">GST:</span>
-                     <span className="text-sm text-gray-800">₹ {totals.taxTotal.toFixed(2)}</span>
+                   <>
+                     {totals.isInterState ? (
+                       <div className="flex justify-between items-center px-4">
+                         <span className="text-sm text-gray-500">IGST:</span>
+                         <span className="text-sm text-gray-800">₹ {totals.totalIGST.toFixed(2)}</span>
+                       </div>
+                     ) : (
+                       <>
+                         <div className="flex justify-between items-center px-4">
+                           <span className="text-sm text-gray-500">CGST:</span>
+                           <span className="text-sm text-gray-800">₹ {totals.totalCGST.toFixed(2)}</span>
+                         </div>
+                         <div className="flex justify-between items-center px-4">
+                           <span className="text-sm text-gray-500">SGST:</span>
+                           <span className="text-sm text-gray-800">₹ {totals.totalSGST.toFixed(2)}</span>
+                         </div>
+                       </>
+                     )}
+                   </>
+                 )}
+                 <div className="flex justify-between items-center px-4 pt-2 border-t border-gray-100">
+                   <span className="text-sm font-bold text-[#2d4b6b]">Income Total:</span>
+                   <span className="text-sm font-bold text-[#2d4b6b]">₹ {totals.grandTotal.toFixed(2)}</span>
+                 </div>
+                 {formData.tds_applicable && (
+                   <div className="flex justify-between items-center px-4 text-red-600">
+                     <span className="text-sm font-semibold">TDS Receivable ({formData.tds_section}):</span>
+                     <span className="text-sm font-semibold">- ₹ {totals.tds_amount.toFixed(2)}</span>
                    </div>
                  )}
                  <div className="bg-[#f2f9f5] flex justify-between items-center px-4 py-3 rounded border border-[#e1eee6]">
-                   <span className="text-sm font-bold text-[#28a745]">Total:</span>
-                   <span className="text-sm font-bold text-[#28a745]">₹ {totals.grandTotal.toFixed(2)}</span>
+                   <span className="text-sm font-bold text-[#28a745]">You will receive:</span>
+                   <span className="text-sm font-bold text-[#28a745]">₹ {totals.netReceived.toFixed(2)}</span>
                  </div>
-                 <div className="flex justify-between items-center px-4">
-                    <span className="text-sm font-bold text-[#2d4b6b]">Payable:</span>
-                    <span className="text-sm font-bold text-[#2d4b6b]">₹ {payableAmount.toFixed(2)}</span>
-                  </div>
+                 
+                 {/* Amount Paid input */}
+                 <div className="flex justify-between items-center px-4 pt-2">
+                   <span className="text-sm font-semibold text-gray-500">Amount Paid:</span>
+                   <div className="relative w-36">
+                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₹</span>
+                     <input 
+                       type="number"
+                       data-testid="amount-paid"
+                       className="w-full pl-7 pr-3 py-1.5 border border-gray-200 rounded text-sm text-right focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+                       value={formData.amountPaid}
+                       onChange={e => setFormData(p => ({ ...p, amountPaid: parseFloat(e.target.value) || 0 }))}
+                       min="0"
+                       step="0.01"
+                     />
+                   </div>
+                 </div>
+
+                 <div className="flex justify-between items-center px-4 pt-3 border-t border-gray-200">
+                   <span className="text-sm font-bold text-[#2d4b6b]">Balance Due:</span>
+                   <span className="text-sm font-bold text-[#2d4b6b]">₹ {totals.balanceDue.toFixed(2)}</span>
+                 </div>
                </div>
             </div>
           </div>

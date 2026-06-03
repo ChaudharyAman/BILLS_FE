@@ -391,7 +391,7 @@ const PurchaseOrderForm = () => {
       description: found.description || found.salesInfo?.description || '',
       hsnCode: found.hsnCode || '',
       unit: found.unit || 'pcs',
-      rate: found.salesInfo?.price || found.rate || 0,
+      rate: found.purchaseInfo?.price || found.purchasePrice || found.rate || found.salesInfo?.price || found.sellingPrice || 0,
       taxRate,
       taxSelect: [0,5,12,18,28].includes(taxRate) ? String(taxRate) : (taxRate > 0 ? 'custom' : '0'),
       customTaxRate: [0,5,12,18,28].includes(taxRate) ? '' : String(taxRate || ''),

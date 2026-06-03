@@ -9,6 +9,18 @@ const fmtMoney = (value) => `Rs. ${(Number(value) || 0).toLocaleString('en-IN', 
 const fmtDate = (value) => value ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 const titleCase = (value) => String(value || '-').replace(/[_-]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 
+const defaultEarningKeys = [
+  { id: 'basic', name: 'Basic Salary', type: 'earning' },
+  { id: 'hra', name: 'House Rent Allowance', type: 'earning' },
+  { id: 'flexi', name: 'Flexi Amount', type: 'earning' },
+  { id: 'broadband', name: 'Broadband', type: 'earning' },
+  { id: 'petrol', name: 'Petrol', type: 'earning' },
+  { id: 'lta', name: 'LTA', type: 'earning' },
+  { id: 'conveyance', name: 'Conveyance', type: 'earning' },
+  { id: 'medical', name: 'Medical Allowance', type: 'earning' },
+  { id: 'special', name: 'Special Allowance', type: 'earning' },
+];
+
 const PayslipGeneration = () => {
   const { id } = useParams();
   const [slip, setSlip] = useState(null);
@@ -71,24 +83,27 @@ const PayslipGeneration = () => {
 
   const sections = useMemo(() => {
     if (!slip) return null;
-    const earnings = slip.earnings || {};
     const employer = slip.employerContributions || {};
     const variablePay = slip.variablePay || {};
     const deductions = slip.deductions || {};
 
     return {
       earnings: [
-        ['Basic Salary', earnings.basic],
-        ['House Rent Allowance', earnings.hra],
-        ['Flexi Amount', earnings.flexiAmount],
-        ['Broadband', earnings.broadband],
-        ['Petrol', earnings.petrol],
-        ['LTA', earnings.lta],
-        ['Conveyance', earnings.conveyance],
-        ['Medical Allowance', earnings.medicalAllowance],
-        ['Special Allowance', earnings.specialAllowance],
-        ['Overtime', earnings.overtime],
-        ...(earnings.otherEarnings || []).map((item) => [item.name, item.amount]),
+        ...(slip.config?.salaryComponents || defaultEarningKeys)
+          .filter(c => c.type === 'earning')
+          .map(c => {
+            const val = slip.earnings?.[c.id] ?? 
+                        slip.earnings?.[c.name] ?? 
+                        slip.earnings?.[
+                          c.id === 'flexi' ? 'flexiAmount' : 
+                          c.id === 'special' ? 'specialAllowance' : 
+                          c.id === 'medical' ? 'medicalAllowance' : ''
+                        ];
+            return [c.name, val];
+          })
+          .filter(([, amount]) => Number(amount) > 0),
+        ['Overtime', slip.earnings?.overtime],
+        ...(slip.earnings?.otherEarnings || []).map((item) => [item.name, item.amount]),
       ].filter(([, amount]) => Number(amount) > 0),
       employer: [
         ['PF (Employer)', employer.pfEmployer],
@@ -238,6 +253,26 @@ const PayslipGeneration = () => {
             </div>
           </div>
         </div>
+        {slip.auditLog?.length > 0 && (
+          <div className="px-8 py-6 border-t border-slate-200 print-hide">
+            <details>
+              <summary className="text-sm font-semibold text-slate-700 cursor-pointer">Status history</summary>
+              <div className="mt-3 space-y-2">
+                {slip.auditLog.map((entry, i) => (
+                  <div key={i} className="flex items-center gap-3 text-xs text-slate-500">
+                    <span className="capitalize font-semibold text-slate-700">{entry.status}</span>
+                    <span>·</span>
+                    <span>{entry.changedBy}</span>
+                    <span>·</span>
+                    <span>{new Date(entry.changedAt).toLocaleDateString('en-IN')}</span>
+                    <span>·</span>
+                    <span>{fmtMoney(entry.netSalary)}</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+        )}
       </div>
     </div>
   );

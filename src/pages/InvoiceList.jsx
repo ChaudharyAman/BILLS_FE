@@ -140,6 +140,27 @@ const InvoiceList = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (!isPro) {
+      setShowPremiumModal(true);
+      return;
+    }
+    if (selectedInvoices.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete the ${selectedInvoices.length} selected invoices?`)) {
+      try {
+        setLoading(true);
+        await Promise.all(selectedInvoices.map(id => api.delete(`/invoices/${id}`)));
+        setSelectedInvoices([]);
+        fetchInvoices();
+      } catch (error) {
+        console.error('Error deleting invoices:', error);
+        alert(error.response?.data?.message || 'Failed to delete some invoices');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const resetImportModal = () => {
     if (isImporting) return;
     setIsCsvModalOpen(false);
@@ -334,6 +355,15 @@ const InvoiceList = () => {
                 ]}
              />
            </div>
+           
+           {selectedInvoices.length > 0 && (
+             <button
+               onClick={handleBulkDelete}
+               className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+             >
+               <FaTrash size={14} /> Delete Selected ({selectedInvoices.length})
+             </button>
+           )}
            
            <button
               onClick={() => setIsPdfScannerOpen(true)}
