@@ -66,6 +66,27 @@ const ExpenseList = () => {
   const toggleAll = () =>
     setSelectedIds(selectedIds.length === expenses.length ? [] : expenses.map(e => e._id));
 
+  const handleBulkDelete = async () => {
+    if (!isPro) {
+      setShowPremiumModal(true);
+      return;
+    }
+    if (selectedIds.length === 0) return;
+    if (window.confirm(`Delete the ${selectedIds.length} selected expenses?`)) {
+      try {
+        setLoading(true);
+        await Promise.all(selectedIds.map(id => api.delete(`/expenses/${id}`)));
+        setSelectedIds([]);
+        fetchExpenses();
+      } catch (error) {
+        console.error('Error deleting expenses:', error);
+        alert(error.response?.data?.message || 'Failed to delete some expenses');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const displayed = expenses; // Backend pagination
   const fetchExpensesForExport = async () => {
     const params = new URLSearchParams({
@@ -104,12 +125,19 @@ const ExpenseList = () => {
           <p className="text-gray-500 mt-1">Record and manage your company purchases and outgoings</p>
         </div>
         <div className="flex gap-3">
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+            >
+              <FaTrash size={14} /> Delete Selected ({selectedIds.length})
+            </button>
+          )}
           <ExportDropdown 
               data={displayed}
               getExportData={fetchExpensesForExport}
               filename="Flance_Expenses"
               columns={[
-                 { header: 'Expense No', key: 'expenseNumber' },
                  { header: 'Vendor Name', key: 'vendor.name' },
                  { header: 'Date', key: 'date' },
                  { header: 'Status', key: 'status' },

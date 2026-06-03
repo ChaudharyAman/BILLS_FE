@@ -62,6 +62,35 @@ const IncomeList = () => {
   const toggleAll = () =>
     setSelectedIds(selectedIds.length === incomes.length ? [] : incomes.map(e => e._id));
 
+  const handleBulkDelete = async () => {
+    if (!isPro) {
+      setShowPremiumModal(true);
+      return;
+    }
+    if (selectedIds.length === 0) return;
+    if (window.confirm(`Delete the ${selectedIds.length} selected incomes?`)) {
+      try {
+        setLoading(true);
+        // Deleting incomes - handle invoice-linked incomes correctly
+        await Promise.all(selectedIds.map(async (id) => {
+          const income = incomes.find(inc => inc._id === id);
+          if (income && income.sourceType === 'invoice' && income.sourceInvoice) {
+            await api.delete(`/invoices/${income.sourceInvoice}`);
+          } else {
+            await api.delete(`/incomes/${id}`);
+          }
+        }));
+        setSelectedIds([]);
+        fetchIncomes();
+      } catch (error) {
+        console.error('Error deleting incomes:', error);
+        alert(error.response?.data?.message || 'Failed to delete some incomes');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const displayed = incomes; // Backend pagination
   const fetchIncomesForExport = async () => {
     const params = new URLSearchParams({
@@ -101,6 +130,14 @@ const IncomeList = () => {
           <p className="text-gray-500 mt-1">Track manual income records and invoice-linked income in one place</p>
         </div>
         <div className="flex gap-3">
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+            >
+              <FaTrash size={14} /> Delete Selected ({selectedIds.length})
+            </button>
+          )}
           <ExportDropdown 
               data={displayed}
               getExportData={fetchIncomesForExport}

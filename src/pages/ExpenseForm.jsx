@@ -294,7 +294,20 @@ const ExpenseForm = () => {
     
     if (field === 'itemRef') {
       const selectedInv = inventory.find(inv => inv._id === value);
-      const rate = selectedInv ? (selectedInv.purchasePrice !== undefined ? selectedInv.purchasePrice : (selectedInv.purchaseInfo?.price !== undefined ? selectedInv.purchaseInfo.price : (selectedInv.rate || 0))) : 0;
+      let rate = 0;
+      if (selectedInv) {
+        if (selectedInv.purchaseInfo && selectedInv.purchaseInfo.price) {
+          rate = selectedInv.purchaseInfo.price;
+        } else if (selectedInv.purchasePrice) {
+          rate = selectedInv.purchasePrice;
+        } else if (selectedInv.rate) {
+          rate = selectedInv.rate;
+        } else if (selectedInv.salesInfo && selectedInv.salesInfo.price) {
+          rate = selectedInv.salesInfo.price;
+        } else if (selectedInv.sellingPrice) {
+          rate = selectedInv.sellingPrice;
+        }
+      }
       
       let taxRate = 0;
       if (selectedInv) {

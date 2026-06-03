@@ -75,6 +75,31 @@ const ClientForm = ({ onSuccess, onCancel }) => {
   });
 
   const [panError, setPanError] = useState('');
+  const [lastCheckedGstin, setLastCheckedGstin] = useState('');
+
+  // Auto-enable/suggest TDS defaults when a valid GSTIN is entered
+  useEffect(() => {
+    const currentGstin = String(formData.gstin || '').trim().toUpperCase();
+    const isGstinValid = /^[0-9A-Z]{15}$/.test(currentGstin);
+    
+    if (isGstinValid && currentGstin !== lastCheckedGstin) {
+      setFormData(prev => ({
+        ...prev,
+        tds_applicable: true,
+        default_tds_section: prev.default_tds_section || '194J'
+      }));
+      setLastCheckedGstin(currentGstin);
+    } else if (!isGstinValid && lastCheckedGstin) {
+      setFormData(prev => ({
+        ...prev,
+        tds_applicable: false,
+        default_tds_section: '',
+        default_tds_rate: 0
+      }));
+      setLastCheckedGstin('');
+    }
+  }, [formData.gstin, lastCheckedGstin]);
+
 
   // Sync Default TDS Rate based on Section & ClientType
   useEffect(() => {
@@ -110,6 +135,9 @@ const ClientForm = ({ onSuccess, onCancel }) => {
       }
       
       setFormData(prev => ({ ...prev, ...data }));
+      if (data.gstin && /^[0-9A-Z]{15}$/.test(String(data.gstin).trim().toUpperCase())) {
+        setLastCheckedGstin(String(data.gstin).trim().toUpperCase());
+      }
       if (data.shippingAddress && (data.shippingAddress.line1 || data.shippingAddress.city)) {
         setShowShipping(true);
       }
@@ -380,6 +408,14 @@ const ClientForm = ({ onSuccess, onCancel }) => {
                             </button>
                         </div>
                     </div>
+                    {formData.gstin && /^[0-9A-Z]{15}$/.test(formData.gstin.trim().toUpperCase()) && (
+                        <div className="p-3 bg-teal-50 border border-teal-200 rounded-lg flex items-start gap-2 text-xs text-teal-800 animate-fadeIn mt-2 shadow-sm">
+                            <span className="font-bold flex-shrink-0 bg-teal-200 text-teal-800 px-1.5 py-0.5 rounded uppercase text-[10px]">Suggestion</span>
+                            <div>
+                                Since this client has a GSTIN, TDS defaults have been suggested. You can customize them in the <strong>TDS Configuration</strong> card below.
+                            </div>
+                        </div>
+                    )}
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">PAN</label>
                         <input 

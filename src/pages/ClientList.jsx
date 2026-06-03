@@ -130,6 +130,27 @@ const ClientList = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (!isPro) {
+      setShowPremiumModal(true);
+      return;
+    }
+    if (selectedClients.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete the ${selectedClients.length} selected clients?`)) {
+      try {
+        setLoading(true);
+        await Promise.all(selectedClients.map(id => api.delete(`/clients/${id}`)));
+        setSelectedClients([]);
+        fetchClients();
+      } catch (error) {
+        console.error('Error deleting clients:', error);
+        alert(error.response?.data?.message || 'Failed to delete some clients');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   // Helper to get display name for contact
   const getContactName = (client) => {
     if (client.contacts && client.contacts.length > 0) {
@@ -178,6 +199,15 @@ const ClientList = () => {
 
         {/* Right Side: Actions */}
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+             {selectedClients.length > 0 && (
+               <button
+                 onClick={handleBulkDelete}
+                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+               >
+                 <FaTrash size={14} /> Delete Selected ({selectedClients.length})
+               </button>
+             )}
+
              <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
                <ExportDropdown 
                   disabled={!isPro}
@@ -339,7 +369,7 @@ const ClientList = () => {
                         ))}
                          {filteredClients.length === 0 && (
                             <tr>
-                                <td colSpan="7" className="text-center py-8 text-slate-500 text-sm">
+                                <td colSpan="8" className="text-center py-8 text-slate-500 text-sm">
                                     No clients found matching your search.
                                 </td>
                             </tr>

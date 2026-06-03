@@ -123,6 +123,23 @@ const VendorList = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedVendors.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete the ${selectedVendors.length} selected vendors?`)) {
+      try {
+        setLoading(true);
+        await Promise.all(selectedVendors.map(id => api.delete(`/clients/${id}`)));
+        setSelectedVendors([]);
+        fetchVendors();
+      } catch (error) {
+        console.error('Error deleting vendors:', error);
+        alert(error.response?.data?.message || 'Failed to delete some vendors');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   // Helper to get display name for contact
   const getContactName = (vendor) => {
     if (vendor.contacts && vendor.contacts.length > 0) {
@@ -169,8 +186,15 @@ const VendorList = () => {
             </div>
         </div>
 
-        {/* Right Side: Actions */}
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+             {selectedVendors.length > 0 && (
+               <button
+                 onClick={handleBulkDelete}
+                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+               >
+                 <FaTrash size={14} /> Delete Selected ({selectedVendors.length})
+               </button>
+             )}
              <ExportDropdown 
                 data={filteredVendors} 
                 filename="Flance_Vendors_Export" 

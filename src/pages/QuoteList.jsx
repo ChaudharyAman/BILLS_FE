@@ -88,6 +88,27 @@ const QuoteList = () => {
   const toggleAll = () =>
     setSelectedIds(selectedIds.length === quotes.length ? [] : quotes.map(q => q._id));
 
+  const handleBulkDelete = async () => {
+    if (!isPro) {
+      setShowPremiumModal(true);
+      return;
+    }
+    if (selectedIds.length === 0) return;
+    if (window.confirm(`Delete the ${selectedIds.length} selected quotes?`)) {
+      try {
+        setLoading(true);
+        await Promise.all(selectedIds.map(id => api.delete(`/quotes/${id}`)));
+        setSelectedIds([]);
+        fetchQuotes();
+      } catch (error) {
+        console.error('Error deleting quotes:', error);
+        alert(error.response?.data?.message || 'Failed to delete some quotes');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const handleSort = (field) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -300,6 +321,14 @@ const QuoteList = () => {
           <p className="text-gray-500 mt-1">Create and manage quotations for your clients</p>
         </div>
         <div className="flex gap-3">
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+            >
+              <FaTrash size={14} /> Delete Selected ({selectedIds.length})
+            </button>
+          )}
           <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
             <ExportDropdown 
                 disabled={!isPro}
