@@ -97,14 +97,27 @@ const PayrollSettings = () => {
   const [form, setForm] = useState(DEFAULT_PAYROLL_CONFIG);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [integration, setIntegration] = useState({
+    enabled: false,
+    externalTenantId: '',
+    apiUrl: '',
+    apiKey: '',
+    encryptionSecret: '',
+    webhookSecret: ''
+  });
 
   useEffect(() => {
     const controller = new AbortController();
 
     const fetchConfig = async () => {
       try {
-        const res = await api.get('/payroll/config', { signal: controller.signal });
-        const data = res.data || {};
+        const [configRes, settingsRes] = await Promise.all([
+          api.get('/payroll/config', { signal: controller.signal }),
+          api.get('/settings', { signal: controller.signal })
+        ]);
+        
+        const data = configRes.data || {};
         const mergedConfig = {
           ...DEFAULT_PAYROLL_CONFIG,
           ...data
@@ -115,6 +128,17 @@ const PayrollSettings = () => {
           ...mergedConfig,
           salaryComponents: mergedComponents
         });
+
+        if (settingsRes.data?.integration) {
+          setIntegration({
+            enabled: !!settingsRes.data.integration.enabled,
+            externalTenantId: settingsRes.data.integration.externalTenantId || '',
+            apiUrl: settingsRes.data.integration.apiUrl || '',
+            apiKey: settingsRes.data.integration.apiKey || '',
+            encryptionSecret: settingsRes.data.integration.encryptionSecret || '',
+            webhookSecret: settingsRes.data.integration.webhookSecret || ''
+          });
+        }
       } catch (error) {
         if (error.name === 'CanceledError' || error.name === 'AbortError') return;
         console.error(error);
@@ -127,6 +151,22 @@ const PayrollSettings = () => {
     fetchConfig();
     return () => controller.abort();
   }, []);
+
+  const handleSyncEmployees = async () => {
+    try {
+      setSyncing(true);
+      // Auto-save integration settings first to ensure DB state matches UI before sync runs
+      await api.put('/settings', { integration });
+      const res = await api.post('/payroll/integration/sync-employees');
+      toast.success(`Sync Complete! Created: ${res.data.created}, Updated: ${res.data.updated}`);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to sync employee directory');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
 
 
   const addComponent = () => {
@@ -217,8 +257,11 @@ const PayrollSettings = () => {
         }
       });
 
-      await api.put('/payroll/config', payload);
-      toast.success('Payroll settings saved');
+      await Promise.all([
+        api.put('/payroll/config', payload),
+        api.put('/settings', { integration })
+      ]);
+      toast.success('Payroll settings saved successfully');
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Failed to save payroll settings');
@@ -620,6 +663,108 @@ const PayrollSettings = () => {
                     <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">%</div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* HRMS Integration Card */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+            <div className="flex items-center space-x-2">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              <div>
+                <h2 className="text-base font-bold">HRMS & Attendance Integration</h2>
+                <p className="text-[11px] text-gray-500">Configure connection settings to securely sync employee directories and monthly attendance from your external multi-tenant HRMS.</p>
+              </div>
+            </div>
+            {integration.enabled && (
+              <button
+                type="button"
+                onClick={handleSyncEmployees}
+                disabled={syncing}
+                className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold disabled:opacity-60 transition-colors"
+              >
+                {syncing ? 'Syncing...' : 'Sync Employee Profiles Now'}
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="hrms-enabled"
+                  checked={integration.enabled}
+                  onChange={(e) => setIntegration(prev => ({ ...prev, enabled: e.target.checked }))}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                />
+                <label htmlFor="hrms-enabled" className="text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer">Enable HRMS Integration</label>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">HRMS API Base URL</label>
+                <input
+                  type="text"
+                  placeholder="https://api.myhrms.com"
+                  value={integration.apiUrl}
+                  onChange={(e) => setIntegration(prev => ({ ...prev, apiUrl: e.target.value }))}
+                  className="border border-gray-300 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  disabled={!integration.enabled}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">External Tenant ID / Organisation ID</label>
+                <input
+                  type="text"
+                  placeholder="org_12345"
+                  value={integration.externalTenantId}
+                  onChange={(e) => setIntegration(prev => ({ ...prev, externalTenantId: e.target.value }))}
+                  className="border border-gray-300 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  disabled={!integration.enabled}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">External API Secret Token / API Key</label>
+                <input
+                  type="password"
+                  placeholder="••••••••••••••••"
+                  value={integration.apiKey}
+                  onChange={(e) => setIntegration(prev => ({ ...prev, apiKey: e.target.value }))}
+                  className="border border-gray-300 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  disabled={!integration.enabled}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">AES-256 Symmetric Payload Encryption Key</label>
+                <input
+                  type="password"
+                  placeholder="••••••••••••••••"
+                  value={integration.encryptionSecret}
+                  onChange={(e) => setIntegration(prev => ({ ...prev, encryptionSecret: e.target.value }))}
+                  className="border border-gray-300 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  disabled={!integration.enabled}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">HMAC Signature Webhook Secret Verification Key</label>
+                <input
+                  type="password"
+                  placeholder="••••••••••••••••"
+                  value={integration.webhookSecret}
+                  onChange={(e) => setIntegration(prev => ({ ...prev, webhookSecret: e.target.value }))}
+                  className="border border-gray-300 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  disabled={!integration.enabled}
+                />
               </div>
             </div>
           </div>
