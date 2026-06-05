@@ -159,6 +159,10 @@ const PayrollProcessing = () => {
   const [monthWorkingDays, setMonthWorkingDays] = useState(DEFAULT_PAYROLL_CONFIG.defaultWorkingDays);
   const [claimsMap, setClaimsMap] = useState(new Map());
 
+  // Integration States
+  const [syncingAttendance, setSyncingAttendance] = useState(false);
+  const [isHrmsEnabled, setIsHrmsEnabled] = useState(false);
+
   // Modal Breakdown states
   const [breakdownEmployee, setBreakdownEmployee] = useState(null);
   const [localEarnings, setLocalEarnings] = useState([]);
@@ -180,10 +184,11 @@ const PayrollProcessing = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [employeesRes, configRes, claimsRes] = await Promise.all([
+        const [employeesRes, configRes, claimsRes, settingsRes] = await Promise.all([
           api.get(`/employees/active?month=${month}&year=${year}`, { signal: controller.signal }),
           api.get('/payroll/config', { signal: controller.signal }),
           api.get(`/reimbursements?status=approved&month=${month}&year=${year}`, { signal: controller.signal }),
+          api.get('/settings', { signal: controller.signal }),
         ]);
 
         const nextConfig = { ...DEFAULT_PAYROLL_CONFIG, ...(configRes.data || {}) };
@@ -192,6 +197,7 @@ const PayrollProcessing = () => {
         setMonthWorkingDays(nextConfig.defaultWorkingDays || 26);
         setEmployees(activeEmployees);
         setSelected(Object.fromEntries(activeEmployees.map((emp) => [emp._id, true])));
+        setIsHrmsEnabled(!!settingsRes.data?.integration?.enabled);
 
         const claimsByEmp = new Map();
         (claimsRes.data || []).forEach(r => {
@@ -326,6 +332,42 @@ const PayrollProcessing = () => {
     }));
   };
 
+  const handleSyncAttendance = async () => {
+    try {
+      setSyncingAttendance(true);
+      const res = await api.get(`/payroll/integration/attendance-sync?month=${month}&year=${year}`);
+      const syncedAttendanceList = res.data.attendance || [];
+      
+      if (!syncedAttendanceList.length) {
+        toast.error('No attendance records found in external HRMS payload for this period.');
+        return;
+      }
+
+      setRows((prev) => {
+        const next = { ...prev };
+        syncedAttendanceList.forEach(record => {
+          if (next[record.employeeId]) {
+            next[record.employeeId] = {
+              ...next[record.employeeId],
+              workingDays: record.workingDays,
+              paidDays: record.paidDays,
+              unpaidLeaves: record.unpaidLeaves,
+              paidLeaves: record.paidLeaves
+            };
+          }
+        });
+        return next;
+      });
+
+      toast.success(`Successfully synced attendance logs for ${syncedAttendanceList.length} employees!`);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to sync attendance logs');
+    } finally {
+      setSyncingAttendance(false);
+    }
+  };
+
   const handleSaveAdjustments = () => {
     if (!breakdownEmployee) return;
     updateRow(breakdownEmployee._id, 'otherEarnings', localEarnings.filter(e => e.name.trim() !== ''));
@@ -409,6 +451,16 @@ const PayrollProcessing = () => {
           <p className="text-gray-500 mt-1">Review proration, variable pay, and deduction inputs before generating payroll.</p>
         </div>
         <div className="flex gap-3 flex-wrap">
+          {isHrmsEnabled && (
+            <button
+              type="button"
+              onClick={handleSyncAttendance}
+              disabled={syncingAttendance}
+              className="bg-teal-600 hover:bg-teal-700 text-white px-3.5 py-2 rounded-lg text-sm font-semibold disabled:opacity-60 transition-colors"
+            >
+              {syncingAttendance ? 'Syncing...' : 'Sync Attendance'}
+            </button>
+          )}
           <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
             {Array.from({ length: 12 }, (_, i) => i + 1).map((value) => <option key={value} value={value}>{monthName(value)}</option>)}
           </select>
