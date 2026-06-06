@@ -10,6 +10,45 @@ import { usePayrollSnapshot } from '../hooks/usePayrollSnapshot';
 const monthName = (month) => new Date(0, month - 1).toLocaleString('en-US', { month: 'long' });
 const sumNamedAmounts = (items = []) => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
+const getEarningValue = (snapshot, componentId) => {
+  if (!snapshot?.earnings) return 0;
+  if (componentId === 'flexi') return snapshot.earnings.flexiAmount ?? snapshot.earnings.flexi ?? 0;
+  if (componentId === 'medical') return snapshot.earnings.medicalAllowance ?? snapshot.earnings.medical ?? 0;
+  return snapshot.earnings[componentId] ?? 0;
+};
+
+const getComponentBreakdown = (snapshot, component) => {
+  const cId = component.id;
+  
+  // Paid amount
+  let paid = 0;
+  if (cId === 'basic') paid = snapshot.earnings.basic;
+  else if (cId === 'hra') paid = snapshot.earnings.hra;
+  else if (cId === 'flexi') paid = snapshot.earnings.flexiAmount ?? snapshot.earnings.flexi;
+  else if (cId === 'medical') paid = snapshot.earnings.medicalAllowance ?? snapshot.earnings.medical;
+  else if (cId === 'special') paid = snapshot.earnings.specialAllowance;
+  else paid = snapshot.earnings[cId];
+  
+  paid = Number(paid) || 0;
+  
+  // Master amount
+  let master = 0;
+  if (snapshot.master?.earningsMap && snapshot.master.earningsMap[cId] !== undefined) {
+    master = snapshot.master.earningsMap[cId];
+  } else {
+    if (cId === 'basic') master = snapshot.master.basicMaster;
+    else if (cId === 'hra') master = snapshot.master.hraMaster;
+    else if (cId === 'special') master = snapshot.master.specialAllowance;
+    else if (cId === 'flexi') master = snapshot.master.flexi;
+    else if (cId === 'medical') master = snapshot.master.medicalAllowance;
+    else master = snapshot.master[cId];
+  }
+  
+  master = Number(master) || 0;
+  
+  return { paid, master };
+};
+
 const BreakdownRow = ({ label, paid, master }) => (
   <div className="flex items-center justify-between px-4 py-2.5">
     <span className="text-gray-600 font-medium">{label}</span>
@@ -57,6 +96,7 @@ const EmployeeRow = ({
   updateRow,
   claimsMap,
   month,
+  earningComponents,
 }) => {
   const filteredReimbursements = useMemo(() => {
     return (claimsMap.get(employee._id) || []).filter(c => !(row?.excludedClaimIds || []).includes(c._id));
@@ -70,6 +110,14 @@ const EmployeeRow = ({
   if (!snapshot) return null;
 
   const paidTooHigh = Number(row?.paidDays) > Number(row?.workingDays || monthWorkingDays);
+
+  const otherAllowancesTotal = useMemo(() => {
+    if (!snapshot?.earnings?.otherEarnings) return 0;
+    const filtered = snapshot.earnings.otherEarnings.filter(
+      (item) => !earningComponents.some(c => c.name === item.name || c.id === item.name)
+    );
+    return sumNamedAmounts(filtered);
+  }, [snapshot?.earnings?.otherEarnings, earningComponents]);
 
   return (
     <tr key={employee._id} className="hover:bg-blue-50/40 align-top">
@@ -123,12 +171,14 @@ const EmployeeRow = ({
         {paidTooHigh ? <div className="mt-2 text-xs text-red-600">Paid days cannot exceed working days.</div> : null}
       </td>
       <td className="px-4 py-4 text-sm whitespace-nowrap">{Math.round((snapshot.paidDays / Math.max(snapshot.workingDays, 1)) * 100)}%</td>
-      <EditableMoneyCell value={snapshot.earnings.flexiAmount} disabled />
-      <EditableMoneyCell value={snapshot.earnings.broadband} disabled />
-      <EditableMoneyCell value={snapshot.earnings.petrol} disabled />
-      <EditableMoneyCell value={snapshot.earnings.lta} disabled />
+      {earningComponents.map(c => {
+        const val = getEarningValue(snapshot, c.id);
+        return (
+          <EditableMoneyCell key={c.id} value={val} disabled />
+        );
+      })}
       <td className="px-4 py-4 text-sm font-semibold text-slate-700 whitespace-nowrap">
-        {fmtMoney(sumNamedAmounts(snapshot.earnings.otherEarnings))}
+        {fmtMoney(otherAllowancesTotal)}
       </td>
       <EditableMoneyCell value={snapshot.employerContributions.gratuity} disabled />
       <EditableMoneyCell value={snapshot.employerContributions.lwfEmployer} disabled />
@@ -168,6 +218,50 @@ const PayrollProcessing = () => {
   const [localEarnings, setLocalEarnings] = useState([]);
   const [localDeductions, setLocalDeductions] = useState([]);
   const [localExcludedClaimIds, setLocalExcludedClaimIds] = useState(new Set());
+
+  const earningComponents = useMemo(() => {
+    if (config?.salaryComponents && config.salaryComponents.length > 0) {
+      return config.salaryComponents.filter(c => c.type === 'earning' && !['basic', 'hra', 'special'].includes(c.id));
+    }
+    return [
+      { id: 'flexi', name: 'Flexi', type: 'earning' },
+      { id: 'broadband', name: 'Broadband', type: 'earning' },
+      { id: 'petrol', name: 'Petrol', type: 'earning' },
+      { id: 'lta', name: 'LTA', type: 'earning' }
+    ];
+  }, [config?.salaryComponents]);
+
+  const allEarningComponents = useMemo(() => {
+    if (config?.salaryComponents && config.salaryComponents.length > 0) {
+      return config.salaryComponents.filter(c => c.type === 'earning');
+    }
+    return [
+      { id: 'basic', name: 'Basic Salary' },
+      { id: 'hra', name: 'House Rent Allowance (HRA)' },
+      { id: 'special', name: 'Special Allowance' },
+      { id: 'flexi', name: 'Flexi' },
+      { id: 'broadband', name: 'Broadband' },
+      { id: 'petrol', name: 'Petrol' },
+      { id: 'lta', name: 'LTA' },
+      { id: 'conveyance', name: 'Conveyance' },
+      { id: 'medical', name: 'Medical Allowance' },
+    ];
+  }, [config?.salaryComponents]);
+
+  const getFreqSuffix = (frequency) => {
+    if (!frequency || frequency === 'monthly') return '';
+    if (frequency === 'quarterly') return ' (Quarterly)';
+    if (frequency === 'semi_annually') return ' (Semi-Annually)';
+    if (frequency === 'annually') return ' (Annually)';
+    return '';
+  };
+
+  const headers = useMemo(() => {
+    const baseHeadersBefore = ['Include', 'Employee', 'Paid / Working', 'Proration'];
+    const dynamicHeaders = earningComponents.map(c => `${c.name}${getFreqSuffix(c.frequency)}`);
+    const baseHeadersAfter = ['Other Allowances', 'Gratuity', 'LWF', 'Joining Bonus', 'Loyalty Bonus', 'Incentive', 'Special Bonus', 'Other Deductions', 'TDS', 'Net Preview'];
+    return [...baseHeadersBefore, ...dynamicHeaders, ...baseHeadersAfter];
+  }, [earningComponents]);
 
   useEffect(() => {
     if (breakdownEmployee) {
@@ -480,7 +574,7 @@ const PayrollProcessing = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['Include', 'Employee', 'Paid / Working', 'Proration', 'Flexi', 'Broadband', 'Petrol', 'LTA', 'Other Allowances', 'Gratuity', 'LWF', 'Joining Bonus', 'Loyalty Bonus', 'Incentive', 'Special Bonus', 'Other Deductions', 'TDS', 'Net Preview'].map((label) => (
+                {headers.map((label) => (
                   <th key={label} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">{label}</th>
                 ))}
               </tr>
@@ -489,11 +583,11 @@ const PayrollProcessing = () => {
               {loading ? (
                 Array.from({ length: 6 }).map((_, index) => (
                   <tr key={`payroll-process-skeleton-${index}`}>
-                    <td colSpan="18" className="px-4 py-4"><Skeleton className="h-10 w-full" /></td>
+                    <td colSpan={headers.length} className="px-4 py-4"><Skeleton className="h-10 w-full" /></td>
                   </tr>
                 ))
               ) : employees.length === 0 ? (
-                <tr><td colSpan="18" className="px-6 py-10 text-center text-gray-500">No active employees found.</td></tr>
+                <tr><td colSpan={headers.length} className="px-6 py-10 text-center text-gray-500">No active employees found.</td></tr>
               ) : employees.map((employee) => (
                 <EmployeeRow
                   key={employee._id}
@@ -507,6 +601,7 @@ const PayrollProcessing = () => {
                   updateRow={updateRow}
                   claimsMap={claimsMap}
                   month={month}
+                  earningComponents={earningComponents}
                 />
               ))}
             </tbody>
@@ -721,15 +816,19 @@ const PayrollProcessing = () => {
                         <span className="text-xs text-gray-500 font-normal">Attendance Prorated</span>
                       </div>
                       <div className="divide-y divide-gray-100 text-sm">
-                        <BreakdownRow label="Basic Salary" paid={localSnapshot.earnings.basic} master={localSnapshot.master.basicMaster} />
-                        <BreakdownRow label="House Rent Allowance (HRA)" paid={localSnapshot.earnings.hra} master={localSnapshot.master.hraMaster} />
-                        <BreakdownRow label="Special Allowance" paid={localSnapshot.earnings.specialAllowance} master={localSnapshot.master.specialAllowance} />
-                        {localSnapshot.earnings.flexiAmount > 0 && <BreakdownRow label="Flexi Amount" paid={localSnapshot.earnings.flexiAmount} master={localSnapshot.master.flexi} />}
-                        {localSnapshot.earnings.broadband > 0 && <BreakdownRow label="Broadband" paid={localSnapshot.earnings.broadband} master={localSnapshot.master.broadband} />}
-                        {localSnapshot.earnings.petrol > 0 && <BreakdownRow label="Petrol" paid={localSnapshot.earnings.petrol} master={localSnapshot.master.petrol} />}
-                        {localSnapshot.earnings.lta > 0 && <BreakdownRow label="LTA" paid={localSnapshot.earnings.lta} master={localSnapshot.master.lta} />}
-                        {localSnapshot.earnings.conveyance > 0 && <BreakdownRow label="Conveyance" paid={localSnapshot.earnings.conveyance} master={localSnapshot.master.conveyance} />}
-                        {localSnapshot.earnings.medicalAllowance > 0 && <BreakdownRow label="Medical Allowance" paid={localSnapshot.earnings.medicalAllowance} master={localSnapshot.master.medicalAllowance} />}
+                        {allEarningComponents.map((c) => {
+                          const { paid, master } = getComponentBreakdown(localSnapshot, c);
+                          const shouldShow = ['basic', 'hra', 'special'].includes(c.id) || paid > 0 || master > 0;
+                          if (!shouldShow) return null;
+                          return (
+                            <BreakdownRow
+                              key={c.id}
+                              label={c.name}
+                              paid={paid}
+                              master={master}
+                            />
+                          );
+                        })}
                       </div>
                     </div>
 
