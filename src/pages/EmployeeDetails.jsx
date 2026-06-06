@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { FaEdit, FaHistory } from 'react-icons/fa';
+import { FaEdit, FaHistory, FaTrash } from 'react-icons/fa';
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import Skeleton from '../components/Skeleton';
@@ -15,11 +15,13 @@ const fmtDate = (value) => {
 
 const EmployeeDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
   const [payrolls, setPayrolls] = useState([]);
   const [config, setConfig] = useState(DEFAULT_PAYROLL_CONFIG);
   const [loading, setLoading] = useState(true);
   const [showRevisionModal, setShowRevisionModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [revisionDraft, setRevisionDraft] = useState({
     newCTC: '',
     effectiveDate: new Date().toISOString().slice(0, 10),
@@ -73,6 +75,17 @@ const EmployeeDetails = () => {
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      await api.delete(`/employees/${id}`);
+      toast.success('Employee deleted successfully');
+      navigate('/employees');
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to delete employee');
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-6 font-sans text-gray-900 space-y-4">
@@ -95,6 +108,9 @@ const EmployeeDetails = () => {
           <p className="text-gray-500 mt-1">{employee.employeeId} · {employee.designation || 'No designation'}</p>
         </div>
         <div className="flex gap-3">
+          <button onClick={() => setShowDeleteModal(true)} className="bg-white border border-red-300 hover:bg-red-50 text-red-600 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold">
+            <FaTrash /> Delete
+          </button>
           <button onClick={() => setShowRevisionModal(true)} className="bg-white border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold">
             <FaHistory /> Revise Salary
           </button>
@@ -130,6 +146,7 @@ const EmployeeDetails = () => {
             <Info label="HRA" value={fmtMoney(salaryPreview.hraMaster)} />
             <Info label="PF Employer" value={fmtMoney(salaryPreview.pfEmployer)} />
             <Info label="Gratuity" value={fmtMoney(salaryPreview.gratuity)} />
+            <Info label="Insurance" value={fmtMoney(salaryPreview.insurance)} />
             <Info label="Net Take-Home" value={fmtMoney(salaryPreview.netTakeHome)} strong />
           </div>
         </div>
@@ -227,6 +244,21 @@ const EmployeeDetails = () => {
           <div className="flex justify-end gap-3">
             <button type="button" onClick={() => setShowRevisionModal(false)} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold">Cancel</button>
             <button type="button" onClick={handleSalaryRevision} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">Save Revision</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete Employee">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Are you sure you want to permanently delete <span className="font-semibold text-gray-900">{employee.firstName} {employee.lastName}</span>?
+          </p>
+          <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
+            This will also remove all associated payroll records, expenses, loans, reimbursement claims, and project team references. This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={() => setShowDeleteModal(false)} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold">Cancel</button>
+            <button type="button" onClick={handleDelete} className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold">Delete Permanently</button>
           </div>
         </div>
       </Modal>

@@ -90,7 +90,7 @@ const mergeSalaryComponents = (loadedComponents, config) => {
 };
 
 const isStatutoryOrSpecial = (id) => {
-  return ['basic', 'hra', 'special'].includes(id);
+  return ['basic', 'hra'].includes(id);
 };
 
 const PayrollSettings = () => {
@@ -181,6 +181,15 @@ const PayrollSettings = () => {
         ]
       };
     });
+  };
+
+  const resetToDefaults = () => {
+    const mergedComponents = mergeSalaryComponents(null, DEFAULT_PAYROLL_CONFIG);
+    setForm({
+      ...DEFAULT_PAYROLL_CONFIG,
+      salaryComponents: mergedComponents
+    });
+    toast.success('Initialized defaults. Click Save Settings to persist.');
   };
 
   const updateComponent = (index, key, value) => {
@@ -823,8 +832,11 @@ const PayrollSettings = () => {
       </div>
 
 
-      <div className="mt-4 flex justify-end">
-        <button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-xs font-semibold disabled:opacity-60">
+      <div className="mt-4 flex justify-end gap-3">
+        <button type="button" onClick={resetToDefaults} className="bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-4 py-2 rounded-md text-xs font-semibold">
+          Reset to Defaults
+        </button>
+        <button type="button" onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-xs font-semibold disabled:opacity-60">
           {saving ? 'Saving...' : 'Save Settings'}
         </button>
       </div>

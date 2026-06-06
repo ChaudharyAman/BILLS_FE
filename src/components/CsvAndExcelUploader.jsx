@@ -16,7 +16,8 @@ const CsvAndExcelUploader = ({
   isLoading = false,
   title = "Upload File",
   subtitle = "Drag & drop a .csv, .xlsx, or .xls file here, or click to select",
-  compact = false
+  compact = false,
+  hint = "Make sure your file contains a header row with columns like Name, Rate, Qty, Tax."
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
@@ -190,7 +191,7 @@ const CsvAndExcelUploader = ({
               <FaUpload /> Browse files
             </button>
             <p className="text-xs text-slate-400 mt-4 text-center max-w-xs">
-              Make sure your file contains a header row with columns like Name, Rate, Qty, Tax.
+              {hint}
             </p>
           </>
         )}
