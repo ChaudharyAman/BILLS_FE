@@ -252,6 +252,8 @@ const PayrollSettings = () => {
               seen.add(c.id);
               return true;
             }) : [];
+        } else if (key === 'pfCalculationType') {
+          payload[key] = value;
         } else {
           payload[key] = Number(value);
         }
@@ -467,49 +469,98 @@ const PayrollSettings = () => {
               </h3>
               <div className="space-y-3">
                 <div>
-                  <div className="flex justify-between items-center mb-0.5">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Employee PF Rate</label>
-                    <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-amber-50 text-amber-700">Deducted from Salary</span>
-                  </div>
-                  <div className="relative rounded-md shadow-sm">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={form.pfRate !== undefined ? Math.round(form.pfRate * 10000) / 100 : ''}
-                      onChange={(e) => handleFieldChange('pfRate', e.target.value === '' ? 0 : Number(e.target.value) / 100)}
-                      className="border border-gray-300 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    />
-                    <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">%</div>
-                  </div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Calculation Type</label>
+                  <select
+                    value={form.pfCalculationType || 'percent'}
+                    onChange={(e) => handleFieldChange('pfCalculationType', e.target.value)}
+                    className="border border-gray-300 rounded-md px-2 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="percent">Percentage of Ceiling</option>
+                    <option value="fixed">Fixed Flat Amount</option>
+                  </select>
                 </div>
-                <div>
-                  <div className="flex justify-between items-center mb-0.5">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Employer PF Rate</label>
-                    <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-blue-50 text-blue-700">Paid by Company</span>
-                  </div>
-                  <div className="relative rounded-md shadow-sm">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={form.pfEmployerRate !== undefined ? Math.round(form.pfEmployerRate * 10000) / 100 : ''}
-                      onChange={(e) => handleFieldChange('pfEmployerRate', e.target.value === '' ? 0 : Number(e.target.value) / 100)}
-                      className="border border-gray-300 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    />
-                    <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">%</div>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Monthly PF Salary Ceiling</label>
-                  <div className="relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">₹</div>
-                    <input
-                      type="number"
-                      value={form.pfCap !== undefined ? form.pfCap : ''}
-                      onChange={(e) => handleFieldChange('pfCap', e.target.value === '' ? 0 : Number(e.target.value))}
-                      className="border border-gray-300 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    />
-                  </div>
-                </div>
+
+                {form.pfCalculationType === 'fixed' ? (
+                  <>
+                    <div>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Employee PF Amount</label>
+                        <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-amber-50 text-amber-700">Deducted from Salary</span>
+                      </div>
+                      <div className="relative rounded-md shadow-sm">
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">₹</div>
+                        <input
+                          type="number"
+                          value={form.pfAmountEmployee !== undefined ? form.pfAmountEmployee : ''}
+                          onChange={(e) => handleFieldChange('pfAmountEmployee', e.target.value === '' ? 0 : Number(e.target.value))}
+                          className="border border-gray-300 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Employer PF Amount</label>
+                        <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-blue-50 text-blue-700">Paid by Company</span>
+                      </div>
+                      <div className="relative rounded-md shadow-sm">
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">₹</div>
+                        <input
+                          type="number"
+                          value={form.pfAmountEmployer !== undefined ? form.pfAmountEmployer : ''}
+                          onChange={(e) => handleFieldChange('pfAmountEmployer', e.target.value === '' ? 0 : Number(e.target.value))}
+                          className="border border-gray-300 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Employee PF Rate</label>
+                        <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-amber-50 text-amber-700">Deducted from Salary</span>
+                      </div>
+                      <div className="relative rounded-md shadow-sm">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={form.pfRate !== undefined ? Math.round(form.pfRate * 10000) / 100 : ''}
+                          onChange={(e) => handleFieldChange('pfRate', e.target.value === '' ? 0 : Number(e.target.value) / 100)}
+                          className="border border-gray-300 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">%</div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Employer PF Rate</label>
+                        <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-blue-50 text-blue-700">Paid by Company</span>
+                      </div>
+                      <div className="relative rounded-md shadow-sm">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={form.pfEmployerRate !== undefined ? Math.round(form.pfEmployerRate * 10000) / 100 : ''}
+                          onChange={(e) => handleFieldChange('pfEmployerRate', e.target.value === '' ? 0 : Number(e.target.value) / 100)}
+                          className="border border-gray-300 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">%</div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Monthly PF Salary Ceiling</label>
+                      <div className="relative rounded-md shadow-sm">
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">₹</div>
+                        <input
+                          type="number"
+                          value={form.pfCap !== undefined ? form.pfCap : ''}
+                          onChange={(e) => handleFieldChange('pfCap', e.target.value === '' ? 0 : Number(e.target.value))}
+                          className="border border-gray-300 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

@@ -37,6 +37,7 @@ tests/
 
 playwrite-report/
 playwright-report/
+scratch/
 
 # Optional: lockfiles (uncomment if you don't want to commit locks)
 # package-lock.json

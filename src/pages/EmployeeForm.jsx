@@ -807,10 +807,15 @@ const EmployeeForm = () => {
 
                   // Append dynamic statutory components if enabled
                   if (formData.pfEnabled !== false && localPreview) {
-                    const pfEEPct = Math.round((config?.pfRate ?? 0.12) * 100);
-                    const pfERPct = Math.round((config?.pfEmployerRate ?? 0.12) * 100);
-                    list.push({ id: 'pf_employee', name: 'pf_employee', label: `Employee PF contribution (${pfEEPct}%)`, isCalculated: true, customValue: localPreview.pfEmployee });
-                    list.push({ id: 'pf_employer', name: 'pf_employer', label: `Employer PF contribution (${pfERPct}%)`, isCalculated: true, customValue: localPreview.pfEmployer });
+                    if (config?.pfCalculationType === 'fixed') {
+                      list.push({ id: 'pf_employee', name: 'pf_employee', label: 'Employee PF contribution (Fixed)', isCalculated: true, customValue: localPreview.pfEmployee });
+                      list.push({ id: 'pf_employer', name: 'pf_employer', label: 'Employer PF contribution (Fixed)', isCalculated: true, customValue: localPreview.pfEmployer });
+                    } else {
+                      const pfEEPct = Math.round((config?.pfRate ?? 0.12) * 100);
+                      const pfERPct = Math.round((config?.pfEmployerRate ?? 0.12) * 100);
+                      list.push({ id: 'pf_employee', name: 'pf_employee', label: `Employee PF contribution (${pfEEPct}%)`, isCalculated: true, customValue: localPreview.pfEmployee });
+                      list.push({ id: 'pf_employer', name: 'pf_employer', label: `Employer PF contribution (${pfERPct}%)`, isCalculated: true, customValue: localPreview.pfEmployer });
+                    }
                   }
                   if (formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0) {
                     const esiEEPct = (config?.esiEmployeeRate ?? 0.0075) * 100;
