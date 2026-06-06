@@ -150,6 +150,42 @@ const EmployeePortal = () => {
     return buildMasterSalaryStructure(employee, config);
   }, [employee, config]);
 
+  const allEarningComponents = useMemo(() => {
+    if (config?.salaryComponents && config.salaryComponents.length > 0) {
+      return config.salaryComponents.filter(c => c.type === 'earning');
+    }
+    return [
+      { id: 'basic', name: 'Basic Salary' },
+      { id: 'hra', name: 'House Rent Allowance (HRA)' },
+      { id: 'flexi', name: 'Flexi Wallet Allowance' },
+      { id: 'broadband', name: 'Broadband Allowance' },
+      { id: 'petrol', name: 'Petrol Allowance' },
+      { id: 'lta', name: 'Leave Travel Allowance (LTA)' },
+      { id: 'special', name: 'Special Allowance (Balancing Component)' },
+    ];
+  }, [config?.salaryComponents]);
+
+  const getFreqSuffix = (frequency) => {
+    if (!frequency || frequency === 'monthly') return '';
+    if (frequency === 'quarterly') return ' (Quarterly)';
+    if (frequency === 'semi_annually') return ' (Semi-Annually)';
+    if (frequency === 'annually') return ' (Annually)';
+    return '';
+  };
+
+  const getMasterComponentValue = (structure, componentId) => {
+    if (!structure) return 0;
+    if (structure.earningsMap && structure.earningsMap[componentId] !== undefined) {
+      return structure.earningsMap[componentId];
+    }
+    if (componentId === 'basic') return structure.basicMaster;
+    if (componentId === 'hra') return structure.hraMaster;
+    if (componentId === 'special') return structure.specialAllowance;
+    if (componentId === 'flexi') return structure.flexi;
+    if (componentId === 'medical') return structure.medicalAllowance;
+    return structure[componentId] ?? 0;
+  };
+
   // Sync decForm when employee changes
   useEffect(() => {
     if (employee) {
@@ -704,14 +740,27 @@ const EmployeePortal = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        <StructureRow label="Basic Salary (50%)" val={salaryStructure?.basicMaster} />
-                        <StructureRow label="House Rent Allowance (HRA)" val={salaryStructure?.hraMaster} />
-                        {salaryStructure?.flexi > 0 && <StructureRow label="Flexi Wallet Allowance" val={salaryStructure?.flexi} />}
-                        {salaryStructure?.broadband > 0 && <StructureRow label="Broadband Allowance" val={salaryStructure?.broadband} />}
-                        {salaryStructure?.petrol > 0 && <StructureRow label="Petrol Allowance" val={salaryStructure?.petrol} />}
-                        {salaryStructure?.lta > 0 && <StructureRow label="Leave Travel Allowance (LTA)" val={salaryStructure?.lta} />}
+                        {allEarningComponents.map((c) => {
+                          const val = getMasterComponentValue(salaryStructure, c.id);
+                          const shouldShow = ['basic', 'hra', 'special'].includes(c.id) || val > 0;
+                          if (!shouldShow) return null;
+                          
+                          let label = c.name;
+                          if (c.id === 'basic') {
+                            const pct = employee.basicPercent !== undefined && employee.basicPercent !== null ? employee.basicPercent : 50;
+                            label = `${c.name} (${pct}% of CTC)`;
+                          } else if (c.id === 'hra') {
+                            const pct = employee.hraPercent !== undefined && employee.hraPercent !== null ? employee.hraPercent : 50;
+                            label = `${c.name} (${pct}% of Basic)`;
+                          } else {
+                            label = `${c.name}${getFreqSuffix(c.frequency)}`;
+                          }
+                          
+                          return (
+                            <StructureRow key={c.id} label={label} val={val} isSpecial={c.id === 'special'} />
+                          );
+                        })}
                         {salaryStructure?.employerNPS > 0 && <StructureRow label="Employer NPS Contribution" val={salaryStructure?.employerNPS} />}
-                        <StructureRow label="Special Allowance (Balancing Component)" val={salaryStructure?.specialAllowance} isSpecial />
                         
                         <tr className="bg-slate-50/50 font-bold border-t border-b border-slate-200">
                           <td className="px-6 py-3 text-slate-900">Gross Salary (Total Earnings)</td>
