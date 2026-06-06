@@ -719,7 +719,7 @@ const EmployeePortal = () => {
                           <td className="px-6 py-3 text-right text-slate-900">₹{(salaryStructure?.totalEarnings * 12).toLocaleString('en-IN')}</td>
                         </tr>
 
-                        <StructureRow label="Employer PF (12% of Basic)" val={salaryStructure?.pfEmployer} isContribution />
+                        <StructureRow label={config?.pfCalculationType === 'fixed' ? "Employer PF (Fixed)" : "Employer PF (12% of Basic)"} val={salaryStructure?.pfEmployer} isContribution />
                         {salaryStructure?.esiEmployer > 0 && <StructureRow label="Employer ESI Contribution" val={salaryStructure?.esiEmployer} isContribution />}
                         {salaryStructure?.gratuity > 0 && <StructureRow label="Gratuity Provision (4.81%)" val={salaryStructure?.gratuity} isContribution />}
                         {salaryStructure?.lwfEmployer > 0 && <StructureRow label="Labor Welfare Fund (Employer)" val={salaryStructure?.lwfEmployer} isContribution />}

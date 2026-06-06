@@ -143,44 +143,46 @@ const EmployeeForm = () => {
 
   const localPreview = useMemo(() => buildMasterSalaryStructure(formData, config), [formData, config]);
 
-  const refreshSalaryFromCTC = async () => {
-    const monthlyCTC = Number(formData.monthlyCTC) || 0;
+  const refreshSalaryFromCTC = async (overrideFields) => {
+    const overrides = (overrideFields && typeof overrideFields === 'object' && !('nativeEvent' in overrideFields)) ? overrideFields : {};
+    const merged = { ...formData, ...overrides };
+    const monthlyCTC = Number(merged.monthlyCTC) || 0;
     if (!monthlyCTC) return;
 
     try {
       setCalculating(true);
       const res = await api.post('/payroll/calculate-salary', {
         monthlyCTC,
-        basicPercent: formData.basicPercent === null || formData.basicPercent === '' ? null : Number(formData.basicPercent),
-        hraPercent: formData.hraPercent === null || formData.hraPercent === '' ? null : Number(formData.hraPercent),
-        basic: formData.salaryStructure?.basic !== undefined ? Number(formData.salaryStructure.basic) : undefined,
-        hra: formData.salaryStructure?.hra !== undefined ? Number(formData.salaryStructure.hra) : undefined,
-        specialAllowance: formData.salaryStructure?.specialAllowance !== undefined ? Number(formData.salaryStructure.specialAllowance) : undefined,
-        flexiAmount: Number(formData.flexiAmount) || 0,
-        broadband: Number(formData.broadband) || 0,
-        petrol: Number(formData.petrol) || 0,
-        lta: Number(formData.lta) || 0,
-        insuranceAmount: Number(formData.insuranceAmount) || 0,
-        employerNPS: Number(formData.employerNPS) || 0,
-        professionalTax: Number(formData.deductions.professionalTax) || 0,
-        tds: Number(formData.deductions.tds) || 0,
-        otherDeductions: (formData.deductions?.otherDeductions || []).map((d) => ({
+        basicPercent: merged.basicPercent === null || merged.basicPercent === '' ? null : Number(merged.basicPercent),
+        hraPercent: merged.hraPercent === null || merged.hraPercent === '' ? null : Number(merged.hraPercent),
+        basic: merged.salaryStructure?.basic !== undefined ? Number(merged.salaryStructure.basic) : undefined,
+        hra: merged.salaryStructure?.hra !== undefined ? Number(merged.salaryStructure.hra) : undefined,
+        specialAllowance: merged.salaryStructure?.specialAllowance !== undefined ? Number(merged.salaryStructure.specialAllowance) : undefined,
+        flexiAmount: Number(merged.flexiAmount) || 0,
+        broadband: Number(merged.broadband) || 0,
+        petrol: Number(merged.petrol) || 0,
+        lta: Number(merged.lta) || 0,
+        insuranceAmount: Number(merged.insuranceAmount) || 0,
+        employerNPS: Number(merged.employerNPS) || 0,
+        professionalTax: Number(merged.deductions.professionalTax) || 0,
+        tds: Number(merged.deductions.tds) || 0,
+        otherDeductions: (merged.deductions?.otherDeductions || []).map((d) => ({
           name: d.name,
           amount: Number(d.amount) || 0,
         })),
-        conveyance: Number(formData.salaryStructure.conveyance) || 0,
-        medicalAllowance: Number(formData.salaryStructure.medicalAllowance) || 0,
-        otherAllowances: (formData.salaryStructure?.otherAllowances || []).map((allowance) => ({
+        conveyance: Number(merged.salaryStructure.conveyance) || 0,
+        medicalAllowance: Number(merged.salaryStructure.medicalAllowance) || 0,
+        otherAllowances: (merged.salaryStructure?.otherAllowances || []).map((allowance) => ({
           name: allowance.name,
           amount: Number(allowance.amount) || 0,
         })),
-        pfEnabled: formData.pfEnabled !== false,
-        esiEnabled: formData.esiEnabled !== false,
-        ptEnabled: formData.ptEnabled !== false,
-        lwfEnabled: formData.lwfEnabled !== false,
-        gratuityEnabled: formData.gratuityEnabled !== false,
-        includePfInCTC: formData.includePfInCTC !== false,
-        includeGratuityInCTC: formData.includeGratuityInCTC !== false,
+        pfEnabled: merged.pfEnabled !== false,
+        esiEnabled: merged.esiEnabled !== false,
+        ptEnabled: merged.ptEnabled !== false,
+        lwfEnabled: merged.lwfEnabled !== false,
+        gratuityEnabled: merged.gratuityEnabled !== false,
+        includePfInCTC: merged.includePfInCTC !== false,
+        includeGratuityInCTC: merged.includeGratuityInCTC !== false,
       });
       const master = res.data.master;
       setFormData((prev) => ({
@@ -275,9 +277,9 @@ const EmployeeForm = () => {
         joiningBonus: Number(formData.joiningBonus) || 0,
         salaryStructure: cleanSalaryStructure,
         deductions: {
-          pf: Number(formData.deductions.pf) || 0,
-          esi: Number(formData.deductions.esi) || 0,
-          professionalTax: Number(formData.deductions.professionalTax) || 0,
+          pf: formData.pfEnabled !== false ? (Number(localPreview.pfEmployee) || 0) : 0,
+          esi: formData.esiEnabled !== false ? (Number(localPreview.esiEmployee) || 0) : 0,
+          professionalTax: formData.ptEnabled !== false ? (Number(localPreview.professionalTax) || 0) : 0,
           tds: Number(formData.deductions.tds) || 0,
           otherDeductions: (formData.deductions?.otherDeductions || []).map((d) => ({
             name: d.name,
@@ -535,8 +537,9 @@ const EmployeeForm = () => {
                         type="checkbox"
                         checked={formData.pfEnabled ?? true}
                         onChange={(e) => {
-                          setField('pfEnabled', e.target.checked);
-                          setTimeout(refreshSalaryFromCTC, 0);
+                          const val = e.target.checked;
+                          setField('pfEnabled', val);
+                          refreshSalaryFromCTC({ pfEnabled: val });
                         }}
                         className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                       />
@@ -561,8 +564,9 @@ const EmployeeForm = () => {
                         type="checkbox"
                         checked={formData.esiEnabled ?? true}
                         onChange={(e) => {
-                          setField('esiEnabled', e.target.checked);
-                          setTimeout(refreshSalaryFromCTC, 0);
+                          const val = e.target.checked;
+                          setField('esiEnabled', val);
+                          refreshSalaryFromCTC({ esiEnabled: val });
                         }}
                         className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                       />
@@ -587,8 +591,9 @@ const EmployeeForm = () => {
                         type="checkbox"
                         checked={formData.ptEnabled ?? true}
                         onChange={(e) => {
-                          setField('ptEnabled', e.target.checked);
-                          setTimeout(refreshSalaryFromCTC, 0);
+                          const val = e.target.checked;
+                          setField('ptEnabled', val);
+                          refreshSalaryFromCTC({ ptEnabled: val });
                         }}
                         className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                       />
@@ -613,8 +618,9 @@ const EmployeeForm = () => {
                         type="checkbox"
                         checked={formData.lwfEnabled ?? true}
                         onChange={(e) => {
-                          setField('lwfEnabled', e.target.checked);
-                          setTimeout(refreshSalaryFromCTC, 0);
+                          const val = e.target.checked;
+                          setField('lwfEnabled', val);
+                          refreshSalaryFromCTC({ lwfEnabled: val });
                         }}
                         className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                       />
@@ -639,8 +645,9 @@ const EmployeeForm = () => {
                         type="checkbox"
                         checked={formData.gratuityEnabled ?? true}
                         onChange={(e) => {
-                          setField('gratuityEnabled', e.target.checked);
-                          setTimeout(refreshSalaryFromCTC, 0);
+                          const val = e.target.checked;
+                          setField('gratuityEnabled', val);
+                          refreshSalaryFromCTC({ gratuityEnabled: val });
                         }}
                         className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                       />
@@ -660,8 +667,9 @@ const EmployeeForm = () => {
                           type="checkbox"
                           checked={formData.includePfInCTC ?? true}
                           onChange={(e) => {
-                            setField('includePfInCTC', e.target.checked);
-                            setTimeout(refreshSalaryFromCTC, 0);
+                            const val = e.target.checked;
+                            setField('includePfInCTC', val);
+                            refreshSalaryFromCTC({ includePfInCTC: val });
                           }}
                           className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                         />
@@ -680,8 +688,9 @@ const EmployeeForm = () => {
                           type="checkbox"
                           checked={formData.includeGratuityInCTC ?? true}
                           onChange={(e) => {
-                            setField('includeGratuityInCTC', e.target.checked);
-                            setTimeout(refreshSalaryFromCTC, 0);
+                            const val = e.target.checked;
+                            setField('includeGratuityInCTC', val);
+                            refreshSalaryFromCTC({ includeGratuityInCTC: val });
                           }}
                           className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                         />
@@ -797,7 +806,10 @@ const EmployeeForm = () => {
                     };
                   });
 
-                  // Always append employerNPS and deductions.tds if they aren't already included
+                  // Always append insuranceAmount, employerNPS and deductions.tds if they aren't already included
+                  if (!list.some(item => item.id === 'default_insurance_amount')) {
+                    list.push({ id: 'default_insurance_amount', name: 'insuranceAmount', label: 'Insurance Amount', isCalculated: false });
+                  }
                   if (!list.some(item => item.id === 'employerNPS')) {
                     list.push({ id: 'employerNPS', name: 'employerNPS', label: 'Employer NPS', isCalculated: false });
                   }
@@ -807,10 +819,15 @@ const EmployeeForm = () => {
 
                   // Append dynamic statutory components if enabled
                   if (formData.pfEnabled !== false && localPreview) {
-                    const pfEEPct = Math.round((config?.pfRate ?? 0.12) * 100);
-                    const pfERPct = Math.round((config?.pfEmployerRate ?? 0.12) * 100);
-                    list.push({ id: 'pf_employee', name: 'pf_employee', label: `Employee PF contribution (${pfEEPct}%)`, isCalculated: true, customValue: localPreview.pfEmployee });
-                    list.push({ id: 'pf_employer', name: 'pf_employer', label: `Employer PF contribution (${pfERPct}%)`, isCalculated: true, customValue: localPreview.pfEmployer });
+                    if (config?.pfCalculationType === 'fixed') {
+                      list.push({ id: 'pf_employee', name: 'pf_employee', label: 'Employee PF contribution (Fixed)', isCalculated: true, customValue: localPreview.pfEmployee });
+                      list.push({ id: 'pf_employer', name: 'pf_employer', label: 'Employer PF contribution (Fixed)', isCalculated: true, customValue: localPreview.pfEmployer });
+                    } else {
+                      const pfEEPct = Math.round((config?.pfRate ?? 0.12) * 100);
+                      const pfERPct = Math.round((config?.pfEmployerRate ?? 0.12) * 100);
+                      list.push({ id: 'pf_employee', name: 'pf_employee', label: `Employee PF contribution (${pfEEPct}%)`, isCalculated: true, customValue: localPreview.pfEmployee });
+                      list.push({ id: 'pf_employer', name: 'pf_employer', label: `Employer PF contribution (${pfERPct}%)`, isCalculated: true, customValue: localPreview.pfEmployer });
+                    }
                   }
                   if (formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0) {
                     const esiEEPct = (config?.esiEmployeeRate ?? 0.0075) * 100;
@@ -935,7 +952,7 @@ const EmployeeForm = () => {
                           onClick={() => {
                             const updated = (formData.salaryStructure?.otherAllowances || []).filter((_, idx) => idx !== index);
                             setField('salaryStructure.otherAllowances', updated);
-                            setTimeout(refreshSalaryFromCTC, 0);
+                            refreshSalaryFromCTC({ salaryStructure: { ...formData.salaryStructure, otherAllowances: updated } });
                           }}
                           className="px-3.5 py-2 text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 rounded-lg border border-red-200 transition-colors"
                         >
@@ -1014,7 +1031,7 @@ const EmployeeForm = () => {
                           onClick={() => {
                             const updated = (formData.deductions?.otherDeductions || []).filter((_, idx) => idx !== index);
                             setField('deductions.otherDeductions', updated);
-                            setTimeout(refreshSalaryFromCTC, 0);
+                            refreshSalaryFromCTC({ deductions: { ...formData.deductions, otherDeductions: updated } });
                           }}
                           className="px-3.5 py-2 text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 rounded-lg border border-red-200 transition-colors"
                         >

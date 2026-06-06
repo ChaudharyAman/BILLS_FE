@@ -575,7 +575,7 @@ const PayrollProcessing = () => {
                     <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
                       <div className="flex flex-col pr-2">
                         <span className="font-semibold text-slate-800">Provident Fund (PF)</span>
-                        <span className="text-[10px] text-slate-500 mt-0.5">12% matching contributions</span>
+                        <span className="text-[10px] text-slate-500 mt-0.5">Matching contributions</span>
                       </div>
                       <input
                         type="checkbox"

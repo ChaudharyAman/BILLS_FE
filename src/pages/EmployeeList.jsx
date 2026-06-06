@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { FaDownload, FaEdit, FaEye, FaFileImport, FaPlus, FaUserSlash } from 'react-icons/fa';
+import { FaDownload, FaEdit, FaEye, FaFileImport, FaPlus, FaUserSlash, FaTrash } from 'react-icons/fa';
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import Skeleton from '../components/Skeleton';
 import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
 import { fmtMoney } from '../utils/payroll';
+import * as XLSX from 'xlsx';
 
 const fmtDate = (value) => value ? new Date(value).toLocaleDateString('en-IN') : '-';
 
@@ -21,11 +22,54 @@ const EmployeeList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [confirmEmployee, setConfirmEmployee] = useState(null);
+  const [deleteEmployee, setDeleteEmployee] = useState(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [importPreviewCount, setImportPreviewCount] = useState(0);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+
+  const downloadImportTemplate = () => {
+    const headers = [
+      'Employee ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Date of Birth', 'Gender',
+      'Joining Date', 'Date of Leaving', 'Location', 'Designation', 'Department', 'Employment Type', 'Status',
+      'Monthly CTC', 'Basic %', 'HRA %',
+      'Flexi Amount', 'Broadband', 'Petrol', 'LTA', 'Employer NPS', 'Insurance Amount', 'Joining Bonus',
+      'Professional Tax', 'TDS',
+      'Account Name', 'Account Number', 'IFSC Code', 'Bank Name', 'Branch',
+      'PAN Number', 'UAN Number', 'Aadhar Number',
+      'Tax Regime',
+      'PF Enabled', 'ESI Enabled', 'PT Enabled', 'LWF Enabled', 'Gratuity Enabled',
+      'Include PF in CTC', 'Include Gratuity in CTC',
+      'Address Line 1', 'Address Line 2', 'City', 'State', 'Zip', 'Country',
+      'Section 80C', 'Section 80D', 'Section 24b', 'Section 80CCD(1B)', 'Rent Paid Monthly', 'Is Metro City', 'Other Exemptions'
+    ];
+    
+    const data = [
+      headers,
+      [
+        'EMP-001', 'John', 'Doe', 'john.doe@example.com', '9876543210', '1990-01-01', 'Male',
+        '2026-06-01', '', 'Delhi', 'Software Engineer', 'Engineering', 'full-time', 'active',
+        '50000', '', '',
+        '0', '0', '0', '0', '0', '0', '0',
+        '200', '0',
+        'John Doe', '1234567890', 'UTIB0000123', 'Axis Bank', 'Delhi',
+        'ABCDE1234F', '', '123456789012',
+        'new',
+        'Yes', 'Yes', 'Yes', 'Yes', 'Yes',
+        'Yes', 'Yes',
+        '123 Street Name', '', 'Delhi', 'Delhi', '110001', 'India',
+        '0', '0', '0', '0', '0', 'No', '0'
+      ]
+    ];
+    
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    worksheet['!cols'] = headers.map(() => ({ wch: 18 }));
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+    XLSX.writeFile(workbook, 'employee_import_template.xlsx');
+    toast.success('Sample import template downloaded');
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -93,6 +137,19 @@ const EmployeeList = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteEmployee) return;
+    try {
+      await api.delete(`/employees/${deleteEmployee._id}`);
+      setEmployees((current) => current.filter((employee) => employee._id !== deleteEmployee._id));
+      toast.success('Employee deleted successfully');
+      setDeleteEmployee(null);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to delete employee');
+    }
+  };
+
   const handleExport = async () => {
     try {
       const response = await api.get('/employees/export', { responseType: 'blob' });
@@ -124,7 +181,14 @@ const EmployeeList = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setImportResult(res.data);
-      toast.success('Employee import completed');
+      
+      const summaryMsg = `Import completed. Imported: ${res.data.imported}, Skipped: ${res.data.skipped}, Errors: ${res.data.errors?.length || 0}`;
+      if (res.data.imported > 0) {
+        toast.success(summaryMsg);
+      } else {
+        toast.error(summaryMsg);
+      }
+
       setPage(1);
       const refreshed = await api.get('/employees?page=1&limit=20');
       setEmployees(refreshed.data.data || []);
@@ -271,6 +335,9 @@ const EmployeeList = () => {
                           <FaUserSlash />
                         </button>
                       )}
+                      <button onClick={() => setDeleteEmployee(employee)} className="text-gray-400 hover:text-red-600" title="Delete">
+                        <FaTrash />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -291,24 +358,79 @@ const EmployeeList = () => {
 
       <Modal isOpen={showImportModal} onClose={() => setShowImportModal(false)} title="Import Employees">
         <div className="space-y-5">
+          <div className="flex justify-between items-center bg-blue-50/50 border border-blue-100 rounded-xl p-3 text-xs text-blue-800">
+            <div>
+              <span className="font-bold block mb-0.5">Need a sample sheet?</span>
+              Download our pre-formatted template with all the required columns.
+            </div>
+            <button
+              type="button"
+              onClick={downloadImportTemplate}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg whitespace-nowrap text-[11px]"
+            >
+              Download Template
+            </button>
+          </div>
+
           <CsvAndExcelUploader
             onDataParsed={(rows) => setImportPreviewCount(rows.length)}
             onFileSelected={(file) => setImportFile(file)}
             isLoading={importing}
             title="Upload Employee Sheet"
             subtitle="Upload the payroll master sheet or a clean employee workbook."
+            hint="Make sure your file contains headers like Employee ID, First Name, Last Name, Email, Phone, Joining Date, Monthly CTC, Location, Designation, PAN, Aadhar, etc."
           />
 
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-            <div>Selected file: {importFile?.name || 'None'}</div>
-            <div>Detected rows: {importPreviewCount}</div>
-            {importSummary && <div className="mt-2 font-semibold text-gray-800">{importSummary}</div>}
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-655 shadow-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-500 font-medium">Selected file:</span>
+              <span className="font-semibold text-gray-800">{importFile?.name || 'None'}</span>
+            </div>
+            <div className="flex justify-between mt-1.5">
+              <span className="text-gray-500 font-medium">Detected rows:</span>
+              <span className="font-semibold text-gray-800">{importPreviewCount}</span>
+            </div>
           </div>
 
+          {importResult && (
+            <div className={`p-4 rounded-xl border animate-fadeIn ${importResult.errors?.length ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-green-200 bg-green-50 text-green-800'}`}>
+              <div className="font-bold text-xs mb-1 flex items-center gap-1.5 uppercase tracking-wider">
+                <span className={`w-2 h-2 rounded-full ${importResult.errors?.length ? 'bg-amber-500' : 'bg-green-500'}`} />
+                Import Complete
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-xs font-semibold text-center mt-3">
+                <div className="bg-white/80 p-2.5 rounded-xl border border-black/5 shadow-sm">
+                  <div className="text-[9px] text-gray-400 uppercase tracking-wider">Imported</div>
+                  <div className="text-lg font-extrabold text-green-700 mt-0.5">{importResult.imported}</div>
+                </div>
+                <div className="bg-white/80 p-2.5 rounded-xl border border-black/5 shadow-sm">
+                  <div className="text-[9px] text-gray-400 uppercase tracking-wider">Skipped</div>
+                  <div className="text-lg font-extrabold text-amber-600 mt-0.5">{importResult.skipped}</div>
+                </div>
+                <div className="bg-white/80 p-2.5 rounded-xl border border-black/5 shadow-sm">
+                  <div className="text-[9px] text-gray-400 uppercase tracking-wider">Errors</div>
+                  <div className="text-lg font-extrabold text-red-600 mt-0.5">{importResult.errors?.length || 0}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {importResult?.errors?.length ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 max-h-48 overflow-y-auto">
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 max-h-48 overflow-y-auto space-y-2">
+              <div className="font-bold text-xs uppercase tracking-wider mb-1">Import Errors & Details</div>
               {importResult.errors.map((item, index) => (
-                <div key={`import-error-${index}`}>{item.row ? `Row ${item.row}: ` : ''}{item.message}</div>
+                <div key={`import-error-${index}`} className="border-b border-red-100 last:border-b-0 pb-1.5 last:pb-0">
+                  <div className="font-semibold text-xs text-red-800">
+                    {item.row ? `Row ${item.row}: ` : ''}{item.message}
+                  </div>
+                  {(item.employeeName || item.employeeId || item.email) && (
+                    <div className="text-[10px] text-red-600/80 font-mono mt-0.5 ml-2">
+                      [ {item.employeeName && `Name: ${item.employeeName}`}
+                        {item.employeeId && ` | ID: ${item.employeeId}`}
+                        {item.email && ` | Email: ${item.email}`} ]
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           ) : null}
@@ -330,6 +452,21 @@ const EmployeeList = () => {
           <div className="flex justify-end gap-3">
             <button type="button" onClick={() => setConfirmEmployee(null)} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold">Cancel</button>
             <button type="button" onClick={markInactive} className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold">Confirm</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={Boolean(deleteEmployee)} onClose={() => setDeleteEmployee(null)} title="Delete Employee">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Are you sure you want to permanently delete <span className="font-semibold text-gray-900">{deleteEmployee?.firstName} {deleteEmployee?.lastName}</span>?
+          </p>
+          <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
+            This will also remove all associated payroll records, expenses, loans, reimbursement claims, and project team references. This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={() => setDeleteEmployee(null)} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold">Cancel</button>
+            <button type="button" onClick={handleDelete} className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold">Delete Permanently</button>
           </div>
         </div>
       </Modal>
