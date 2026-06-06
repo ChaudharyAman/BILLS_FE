@@ -26,16 +26,62 @@ const GstReport = () => {
   const fetchReport = async () => {
     setLoading(true);
     try {
-      let url = '/invoices/reports/gst';
-      const params = new URLSearchParams();
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
-      if (params.toString()) url += `?${params.toString()}`;
+      const params = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
 
-      const res = await api.get(url);
-      setData(res.data);
+      // Fetch both GST detailed transactions and tax dashboard metrics
+      const [gstRes, dashboardRes] = await Promise.all([
+        api.get('/invoices/reports/gst', { params }),
+        api.get('/reports/tax-dashboard', { params })
+      ]);
+
+      const gstData = gstRes.data || {};
+      const dashboardData = dashboardRes.data || {};
+
+      // Combine datasets to support both the detailed table and analytical charts
+      const combinedData = {
+        details: gstData.details || [],
+        totals: {
+          totalInvoices: dashboardData.summary?.totalInvoices ?? (gstData.details?.length || 0),
+          totalTax: dashboardData.summary?.outputLiability ?? gstData.totals?.totalTax ?? 0,
+          outputMom: dashboardData.summary?.momOutput ?? 0,
+        },
+        inputTotals: {
+          totalTax: dashboardData.summary?.inputCredit ?? 0,
+          inputMom: dashboardData.summary?.momInput ?? 0,
+        },
+        netGstPayable: dashboardData.summary?.netPayable ?? 0,
+        invoiceSplit: {
+          b2b: dashboardData.invoiceSplit?.b2b ?? 0,
+          b2c: dashboardData.invoiceSplit?.b2c ?? 0,
+          export: dashboardData.invoiceSplit?.export ?? 0,
+          exports: dashboardData.invoiceSplit?.export ?? 0,
+          nilRated: dashboardData.invoiceSplit?.nilRated ?? 0,
+        },
+        slabs: (dashboardData.slabComparison || []).map(s => ({
+          slab: s.slab,
+          output: s.output,
+          input: s.input,
+        })),
+        trend: (dashboardData.trend6Months || []).map(t => ({
+          month: t.month,
+          output: t.output,
+          input: t.input,
+          net: Math.max(0, Number(t.output || 0) - Number(t.input || 0)),
+        })),
+        metrics: {
+          itcUtilisation: dashboardData.itcUtilisation ?? 0,
+          igstCredit: dashboardData.igstCredit ?? 0,
+          cgstSgstCredit: dashboardData.cgstSgstCredit ?? 0,
+          creditOutputRatio: dashboardData.creditOutputRatio ?? 0,
+        }
+      };
+
+      setData(combinedData);
+
       // Fallback to demo mode if there are no invoices in the database
-      if (!res.data || !res.data.totals || res.data.totals.totalInvoices === 0) {
+      if (combinedData.totals.totalInvoices === 0) {
         setIsDemo(true);
       } else {
         setIsDemo(false);
@@ -162,17 +208,17 @@ const GstReport = () => {
   const getDashboardTitle = () => {
     if (currentPreset === 'this-month') {
       const m = new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' });
-      return `Tax Dashboard — ${m}`;
+      return `GST Return Ledger — ${m}`;
     } else if (currentPreset === '3-months') {
-      return 'Tax Dashboard — Last 3 Months';
+      return 'GST Return Ledger — Last 3 Months';
     } else if (currentPreset === '6-months') {
-      return 'Tax Dashboard — Last 6 Months';
+      return 'GST Return Ledger — Last 6 Months';
     } else if (startDate && endDate) {
       const sOpt = new Date(startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
       const eOpt = new Date(endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-      return `Tax Dashboard — ${sOpt} to ${eOpt}`;
+      return `GST Return Ledger — ${sOpt} to ${eOpt}`;
     }
-    return `Tax Dashboard`;
+    return `GST Return Ledger`;
   };
 
   // Detailed Transaction Aggregates
@@ -342,7 +388,7 @@ const GstReport = () => {
                   <FaCalendarAlt className="text-indigo-600" size={13} />
                   <span className="text-xs font-extrabold text-slate-700">{getMonthPickerLabel()}</span>
                 </div>
-                <svg className="w-4.5 h-4.5 text-slate-900 stroke-[2.5] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="w-4 h-4 text-slate-900 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                   <line x1="16" y1="2" x2="16" y2="6"></line>
                   <line x1="8" y1="2" x2="8" y2="6"></line>

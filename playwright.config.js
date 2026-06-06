@@ -19,9 +19,9 @@ export default defineConfig({
   use: {
     baseURL,
     headless: true,
-    trace: 'retain-on-failure',
+    trace: 'off',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: 'off',
   },
   globalSetup: './tests/e2e.global-setup.cjs',
   globalTeardown: './tests/e2e.global-teardown.cjs',
