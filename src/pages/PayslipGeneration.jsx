@@ -103,7 +103,9 @@ const PayslipGeneration = () => {
           })
           .filter(([, amount]) => Number(amount) > 0),
         ['Overtime', slip.earnings?.overtime],
-        ...(slip.earnings?.otherEarnings || []).map((item) => [item.name, item.amount]),
+        ...(slip.earnings?.otherEarnings || [])
+          .filter(item => !(slip.config?.salaryComponents || defaultEarningKeys).some(c => c.name === item.name || c.id === item.name))
+          .map((item) => [item.name, item.amount]),
       ].filter(([, amount]) => Number(amount) > 0),
       employer: [
         ['PF (Employer)', employer.pfEmployer],
