@@ -240,6 +240,35 @@ const PayrollSettings = () => {
 
   const handleSave = async () => {
     try {
+      const components = form.salaryComponents || [];
+      const remainderComps = components.filter(c => c.linkedTo === 'remainder');
+      if (remainderComps.length > 1) {
+        toast.error(`Only one salary component can be linked to 'Remainder'. Found: ${remainderComps.map(c => c.name || 'Unnamed').join(', ')}`);
+        return;
+      }
+
+      const names = new Set();
+      for (const c of components) {
+        const trimmedName = (c.name || '').trim();
+        if (!trimmedName) {
+          toast.error('Component name cannot be empty');
+          return;
+        }
+        const lowerName = trimmedName.toLowerCase();
+        if (names.has(lowerName)) {
+          toast.error(`Component name "${trimmedName}" is duplicated. All component names must be unique.`);
+          return;
+        }
+        names.add(lowerName);
+      }
+
+      const hasBasic = components.some(c => c.id === 'basic');
+      const hasHra = components.some(c => c.id === 'hra');
+      if (!hasBasic || !hasHra) {
+        toast.error('Basic Salary and HRA are core components and must be present.');
+        return;
+      }
+
       setSaving(true);
       const payload = {};
       Object.entries(form).forEach(([key, value]) => {

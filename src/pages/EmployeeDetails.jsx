@@ -57,6 +57,40 @@ const EmployeeDetails = () => {
 
   const salaryPreview = useMemo(() => buildMasterSalaryStructure(employee || {}, config), [employee, config]);
 
+  const earningsList = useMemo(() => {
+    const comps = config?.salaryComponents && config.salaryComponents.length > 0
+      ? config.salaryComponents
+      : [
+          { id: 'basic', name: 'Basic Salary', type: 'earning' },
+          { id: 'hra', name: 'HRA', type: 'earning' },
+          { id: 'special', name: 'Special Allowance', type: 'earning' },
+          { id: 'flexi', name: 'Flexi Allowance', type: 'earning' },
+          { id: 'broadband', name: 'Broadband', type: 'earning' },
+          { id: 'petrol', name: 'Petrol', type: 'earning' },
+          { id: 'lta', name: 'LTA', type: 'earning' },
+          { id: 'conveyance', name: 'Conveyance', type: 'earning' },
+          { id: 'medical', name: 'Medical Allowance', type: 'earning' }
+        ];
+    return comps.filter(c => c.type === 'earning');
+  }, [config]);
+
+  const getEarningValue = (cId) => {
+    if (salaryPreview.earningsMap && salaryPreview.earningsMap[cId] !== undefined) {
+      return salaryPreview.earningsMap[cId];
+    }
+    if (cId === 'basic') return salaryPreview.basicMaster;
+    if (cId === 'hra') return salaryPreview.hraMaster;
+    if (cId === 'special') return salaryPreview.specialAllowance;
+    if (cId === 'flexi') return salaryPreview.flexi;
+    if (cId === 'broadband') return salaryPreview.broadband;
+    if (cId === 'petrol') return salaryPreview.petrol;
+    if (cId === 'lta') return salaryPreview.lta;
+    if (cId === 'conveyance') return salaryPreview.conveyance;
+    if (cId === 'medical') return salaryPreview.medicalAllowance;
+    return employee?.salaryStructure?.[cId] || employee?.[cId] || 0;
+  };
+
+
   const handleSalaryRevision = async () => {
     try {
       await api.post(`/employees/${id}/salary-revision`, revisionDraft);
@@ -104,17 +138,17 @@ const EmployeeDetails = () => {
     <div className="container mx-auto p-6 font-sans text-gray-900">
       <div className="flex justify-between items-start mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{employee.firstName} {employee.lastName}</h1>
-          <p className="text-gray-500 mt-1">{employee.employeeId} · {employee.designation || 'No designation'}</p>
+          <h1 className="text-2xl font-bold">{employee.firstName} {employee.lastName}</h1>
+          <p className="text-xs text-gray-500 mt-1">{employee.employeeId} · {employee.designation || 'No designation'}</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => setShowDeleteModal(true)} className="bg-white border border-red-300 hover:bg-red-50 text-red-600 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold">
+          <button onClick={() => setShowDeleteModal(true)} className="bg-white border border-red-300 hover:bg-red-50 text-red-600 px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold">
             <FaTrash /> Delete
           </button>
-          <button onClick={() => setShowRevisionModal(true)} className="bg-white border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold">
+          <button onClick={() => setShowRevisionModal(true)} className="bg-white border border-gray-300 hover:bg-gray-50 px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold">
             <FaHistory /> Revise Salary
           </button>
-          <Link to={`/employees/${employee._id}/edit`} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold">
+          <Link to={`/employees/${employee._id}/edit`} className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold">
             <FaEdit /> Edit
           </Link>
         </div>
@@ -122,8 +156,8 @@ const EmployeeDetails = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-          <h2 className="font-bold text-lg mb-4">Employee Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <h2 className="font-semibold text-sm text-gray-700 mb-4">Employee Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-xs">
             <Info label="Email" value={employee.email} />
             <Info label="Phone" value={employee.phone || '-'} />
             <Info label="Department" value={employee.department?.name || '-'} />
@@ -138,15 +172,28 @@ const EmployeeDetails = () => {
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-          <h2 className="font-bold text-lg mb-4">CTC Snapshot</h2>
-          <div className="space-y-3 text-sm">
+          <h2 className="font-semibold text-sm text-gray-700 mb-4">CTC Snapshot</h2>
+          <div className="space-y-2 text-xs">
             <Info label="Monthly CTC" value={fmtMoney(employee.monthlyCTC)} strong />
             <Info label="Gross Salary" value={fmtMoney(salaryPreview.grossSalary)} />
-            <Info label="Basic" value={fmtMoney(salaryPreview.basicMaster)} />
-            <Info label="HRA" value={fmtMoney(salaryPreview.hraMaster)} />
+            
+            {earningsList.map(c => {
+              const val = getEarningValue(c.id);
+              // Always show basic and HRA, show others if they are non-zero
+              if (c.id === 'basic' || c.id === 'hra' || val > 0) {
+                return (
+                  <Info key={c.id} label={c.name || c.id} value={fmtMoney(val)} />
+                );
+              }
+              return null;
+            })}
+
             <Info label="PF Employer" value={fmtMoney(salaryPreview.pfEmployer)} />
             <Info label="Gratuity" value={fmtMoney(salaryPreview.gratuity)} />
             <Info label="Insurance" value={fmtMoney(salaryPreview.insurance)} />
+            {salaryPreview.employerNPS > 0 && (
+              <Info label="Employer NPS" value={fmtMoney(salaryPreview.employerNPS)} />
+            )}
             <Info label="Net Take-Home" value={fmtMoney(salaryPreview.netTakeHome)} strong />
           </div>
         </div>

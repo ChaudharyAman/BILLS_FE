@@ -51,10 +51,16 @@ const PayslipGeneration = () => {
   const downloadPdf = () => {
     const styleNode = document.createElement('style');
     styleNode.innerHTML = `
-      @page { size: A4; margin: 1cm; }
+      @page { 
+        size: A4; 
+        margin: 0; 
+      }
       @media print {
         .print-hide { display: none !important; }
-        body { background: white !important; }
+        body { 
+          background: white !important; 
+          margin: 1.6cm !important;
+        }
       }
     `;
     document.head.appendChild(styleNode);

@@ -212,6 +212,53 @@ const SalaryCalculator = () => {
 
   const result = serverResult || { master: localMaster, payroll: localPayroll, monthlyCTC: localMaster.monthlyCTC, annualCTC: localMaster.annualCTC };
 
+  const earningsBreakdownRows = useMemo(() => {
+    const getEarningValue = (cId) => {
+      if (result.master?.earningsMap && result.master.earningsMap[cId] !== undefined) {
+        return result.master.earningsMap[cId];
+      }
+      if (cId === 'basic') return result.master?.basicMaster || 0;
+      if (cId === 'hra') return result.master?.hraMaster || 0;
+      if (cId === 'special') return result.master?.specialAllowance || 0;
+      if (cId === 'flexi') return result.master?.flexi || 0;
+      if (cId === 'broadband') return result.master?.broadband || 0;
+      if (cId === 'petrol') return result.master?.petrol || 0;
+      if (cId === 'lta') return result.master?.lta || 0;
+      if (cId === 'conveyance') return result.master?.conveyance || 0;
+      if (cId === 'medical') return result.master?.medicalAllowance || 0;
+      return 0;
+    };
+
+    const comps = config?.salaryComponents && config.salaryComponents.length > 0
+      ? config.salaryComponents
+      : [
+          { id: 'basic', name: 'Basic Salary', type: 'earning' },
+          { id: 'hra', name: 'House Rent Allowance (HRA)', type: 'earning' },
+          { id: 'special', name: 'Special Allowance (Balancing Component)', type: 'earning' },
+          { id: 'flexi', name: 'Flexi Benefits Wallet', type: 'earning' },
+          { id: 'broadband', name: 'Broadband Allowance', type: 'earning' },
+          { id: 'petrol', name: 'Petrol Reimbursement', type: 'earning' },
+          { id: 'lta', name: 'Leave Travel Allowance (LTA)', type: 'earning' },
+          { id: 'conveyance', name: 'Conveyance Allowance', type: 'earning' },
+          { id: 'medical', name: 'Medical Allowance', type: 'earning' }
+        ];
+
+    const list = comps
+      .filter(c => c.type === 'earning')
+      .map(c => {
+        const val = getEarningValue(c.id);
+        return { id: c.id, name: c.name || c.id, val };
+      })
+      .filter(r => r.id === 'basic' || r.id === 'hra' || r.val > 0)
+      .map(r => [r.name, r.val]);
+
+    return [
+      ...list,
+      ['Total Gross Earnings', result.payroll?.earnings?.totalEarnings || 0]
+    ];
+  }, [result.master, result.payroll, config]);
+
+
   // Calculate side-by-side values reactively
   const comparison = useMemo(() => {
     if (!result.master || !result.payroll) return null;
@@ -837,18 +884,7 @@ const SalaryCalculator = () => {
                 {/* Earnings Component */}
                 <BreakdownTable
                   title="Earnings"
-                  rows={[
-                    ['Basic Salary', result.master?.basicMaster],
-                    ['House Rent Allowance (HRA)', result.master?.hraMaster],
-                    ['Special Allowance (Balancing Component)', result.master?.specialAllowance],
-                    ['Flexi Benefits Wallet', result.master?.flexi],
-                    ['Broadband Allowance', result.master?.broadband],
-                    ['Petrol Reimbursement', result.master?.petrol],
-                    ['Leave Travel Allowance (LTA)', result.master?.lta],
-                    ['Conveyance Allowance', result.master?.conveyance],
-                    ['Medical Allowance', result.master?.medicalAllowance],
-                    ['Total Gross Earnings', result.payroll?.earnings?.totalEarnings],
-                  ]}
+                  rows={earningsBreakdownRows}
                 />
 
                 {/* Employer Contributions Component (Auto) */}
