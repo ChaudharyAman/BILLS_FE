@@ -81,10 +81,10 @@ const mergeSalaryComponents = (loadedComponents, config) => {
     }
   });
 
-  // Ensure default earning components exist
-  others.forEach(o => {
-    if (!map.has(o.id)) map.set(o.id, o);
-  });
+  // We do not force other default earning components if the user has custom saved components
+  // others.forEach(o => {
+  //   if (!map.has(o.id)) map.set(o.id, o);
+  // });
 
   return Array.from(map.values());
 };

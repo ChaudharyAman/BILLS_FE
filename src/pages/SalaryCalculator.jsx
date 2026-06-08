@@ -13,6 +13,7 @@ const SALARY_TEMPLATES = {
     broadband: 0,
     petrol: 0,
     lta: 0,
+    insuranceAmount: 0,
     pfEnabled: true,
     esiEnabled: true,
     ptEnabled: true,
@@ -29,6 +30,7 @@ const SALARY_TEMPLATES = {
     broadband: 2000,
     petrol: 3000,
     lta: 5000,
+    insuranceAmount: 0,
     pfEnabled: true,
     esiEnabled: false, // Wages usually exceed limit
     ptEnabled: true,
@@ -45,6 +47,7 @@ const SALARY_TEMPLATES = {
     broadband: 1000,
     petrol: 12000,
     lta: 2000,
+    insuranceAmount: 0,
     pfEnabled: true,
     esiEnabled: true,
     ptEnabled: true,
@@ -61,6 +64,7 @@ const SALARY_TEMPLATES = {
     broadband: 1000,
     petrol: 2000,
     lta: 1500,
+    insuranceAmount: 0,
     pfEnabled: true,
     esiEnabled: true,
     ptEnabled: true,
@@ -81,13 +85,13 @@ const SalaryCalculator = () => {
   const [activeTab, setActiveTab] = useState('ctc'); // 'ctc' | 'controls' | 'bonuses' | 'tax'
   
   const [form, setForm] = useState({
-    annualCTC: 1200000,
-    monthlyCTC: 100000,
+    annualCTC: 0,
+    monthlyCTC: 0,
     flexiAmount: 0,
     broadband: 0,
     petrol: 0,
     lta: 0,
-    insuranceAmount: 1000,
+    insuranceAmount: 0,
     employerNPS: 0,
     // Compliance Controls
     pfEnabled: true,
@@ -99,7 +103,7 @@ const SalaryCalculator = () => {
     includeGratuityInCTC: true,
     // Professional Tax State
     ptState: 'custom',
-    professionalTax: 200,
+    professionalTax: 0,
     // Bonuses
     joiningBonus: 0,
     performanceBonus: 0,
@@ -279,6 +283,22 @@ const SalaryCalculator = () => {
     }));
   };
 
+  const handleCtcChange = (value) => {
+    if (mode === 'annual') {
+      setForm((prev) => ({
+        ...prev,
+        annualCTC: value,
+        monthlyCTC: Math.round((value / 12) * 100) / 100
+      }));
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        monthlyCTC: value,
+        annualCTC: value * 12
+      }));
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
@@ -423,7 +443,7 @@ const SalaryCalculator = () => {
                 <InputField
                   label={mode === 'annual' ? 'Annual CTC' : 'Monthly CTC'}
                   value={mode === 'annual' ? form.annualCTC : form.monthlyCTC}
-                  onChange={(value) => setForm((prev) => ({ ...prev, [mode === 'annual' ? 'annualCTC' : 'monthlyCTC']: value }))}
+                  onChange={handleCtcChange}
                   suffix="INR"
                 />
                 <div className="grid grid-cols-2 gap-4">
@@ -686,204 +706,220 @@ const SalaryCalculator = () => {
 
         {/* Right Output Panel */}
         <div className="space-y-6">
-          {/* Side-by-Side Regime Comparison */}
-          {comparison && (
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-6">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-                <h2 className="text-lg font-bold text-gray-800">Regime Comparison (FY 2024-25)</h2>
-                {comparison.recommended !== 'equal' && (
-                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold flex items-center gap-1 border border-emerald-200">
-                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    {comparison.recommended === 'new' ? 'New Regime saves more!' : 'Old Regime saves more!'}
-                  </span>
-                )}
-              </div>
-
-              {/* Visual cards */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* New Regime Option Card */}
-                <div className={`p-4 rounded-xl border transition-all ${
-                  comparison.recommended === 'new'
-                    ? 'border-emerald-500 bg-emerald-50/50 shadow-sm'
-                    : 'border-gray-200 bg-white'
-                }`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-gray-400 uppercase">New Regime</span>
-                    {comparison.recommended === 'new' && (
-                      <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">Best</span>
+          {monthlyCTC > 0 ? (
+            <>
+              {/* Side-by-Side Regime Comparison */}
+              {comparison && (
+                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-6">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                    <h2 className="text-lg font-bold text-gray-800">Regime Comparison (FY 2024-25)</h2>
+                    {comparison.recommended !== 'equal' && (
+                      <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold flex items-center gap-1 border border-emerald-200">
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        {comparison.recommended === 'new' ? 'New Regime saves more!' : 'Old Regime saves more!'}
+                      </span>
                     )}
                   </div>
-                  <div className="text-xl font-extrabold text-gray-900">{fmtMoney(comparison.newRegime.monthlyTakeHome)}<span className="text-xs font-normal text-gray-500"> /mo</span></div>
-                  <p className="text-[11px] text-gray-500 mt-1">Net Take-Home Salary</p>
 
-                  <div className="border-t border-dashed border-gray-200 mt-3 pt-3 space-y-1.5 text-xs text-gray-600">
-                    <div className="flex justify-between">
-                      <span>Standard Ded.</span>
-                      <span className="font-semibold">{fmtMoney(comparison.newRegime.standardDeduction)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Other Savings</span>
-                      <span className="font-semibold">₹0</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Taxable Income</span>
-                      <span className="font-semibold">{fmtMoney(toAnnual(comparison.newRegime.netTaxableIncome) / 12)}</span>
-                    </div>
-                    <div className="flex justify-between border-t border-gray-200/50 pt-1.5">
-                      <span>Monthly TDS</span>
-                      <span className={`font-semibold ${comparison.newRegime.monthlyTax > 0 ? 'text-rose-600' : 'text-gray-500'}`}>
-                        {fmtMoney(comparison.newRegime.monthlyTax)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  {/* Visual cards */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* New Regime Option Card */}
+                    <div className={`p-4 rounded-xl border transition-all ${
+                      comparison.recommended === 'new'
+                        ? 'border-emerald-500 bg-emerald-50/50 shadow-sm'
+                        : 'border-gray-200 bg-white'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-gray-400 uppercase">New Regime</span>
+                        {comparison.recommended === 'new' && (
+                          <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">Best</span>
+                        )}
+                      </div>
+                      <div className="text-xl font-extrabold text-gray-900">{fmtMoney(comparison.newRegime.monthlyTakeHome)}<span className="text-xs font-normal text-gray-500"> /mo</span></div>
+                      <p className="text-[11px] text-gray-500 mt-1">Net Take-Home Salary</p>
 
-                {/* Old Regime Option Card */}
-                <div className={`p-4 rounded-xl border transition-all ${
-                  comparison.recommended === 'old'
-                    ? 'border-emerald-500 bg-emerald-50/50 shadow-sm'
-                    : 'border-gray-200 bg-white'
-                }`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-gray-400 uppercase">Old Regime</span>
-                    {comparison.recommended === 'old' && (
-                      <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">Best</span>
-                    )}
-                  </div>
-                  <div className="text-xl font-extrabold text-gray-900">{fmtMoney(comparison.oldRegime.monthlyTakeHome)}<span className="text-xs font-normal text-gray-500"> /mo</span></div>
-                  <p className="text-[11px] text-gray-500 mt-1">Net Take-Home Salary</p>
+                      <div className="border-t border-dashed border-gray-200 mt-3 pt-3 space-y-1.5 text-xs text-gray-600">
+                        <div className="flex justify-between">
+                          <span>Standard Ded.</span>
+                          <span className="font-semibold">{fmtMoney(comparison.newRegime.standardDeduction)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Other Savings</span>
+                          <span className="font-semibold">₹0</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Taxable Income</span>
+                          <span className="font-semibold">{fmtMoney(toAnnual(comparison.newRegime.netTaxableIncome) / 12)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-gray-200/50 pt-1.5">
+                          <span>Monthly TDS</span>
+                          <span className={`font-semibold ${comparison.newRegime.monthlyTax > 0 ? 'text-rose-600' : 'text-gray-500'}`}>
+                            {fmtMoney(comparison.newRegime.monthlyTax)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-                  <div className="border-t border-dashed border-gray-200 mt-3 pt-3 space-y-1.5 text-xs text-gray-600">
-                    <div className="flex justify-between">
-                      <span>Standard Ded.</span>
-                      <span className="font-semibold">{fmtMoney(comparison.oldRegime.standardDeduction)}</span>
-                    </div>
-                    <div className="flex justify-between" title="HRA + 80C + 80D + 24b + NPS + Other exemptions">
-                      <span className="underline decoration-dotted cursor-help">Other Savings</span>
-                      <span className="font-semibold text-emerald-600">{fmtMoney(comparison.oldRegime.otherDeductions)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Taxable Income</span>
-                      <span className="font-semibold">{fmtMoney(toAnnual(comparison.oldRegime.netTaxableIncome) / 12)}</span>
-                    </div>
-                    <div className="flex justify-between border-t border-gray-200/50 pt-1.5">
-                      <span>Monthly TDS</span>
-                      <span className={`font-semibold ${comparison.oldRegime.monthlyTax > 0 ? 'text-rose-600' : 'text-gray-500'}`}>
-                        {fmtMoney(comparison.oldRegime.monthlyTax)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                    {/* Old Regime Option Card */}
+                    <div className={`p-4 rounded-xl border transition-all ${
+                      comparison.recommended === 'old'
+                        ? 'border-emerald-500 bg-emerald-50/50 shadow-sm'
+                        : 'border-gray-200 bg-white'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-gray-400 uppercase">Old Regime</span>
+                        {comparison.recommended === 'old' && (
+                          <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">Best</span>
+                        )}
+                      </div>
+                      <div className="text-xl font-extrabold text-gray-900">{fmtMoney(comparison.oldRegime.monthlyTakeHome)}<span className="text-xs font-normal text-gray-500"> /mo</span></div>
+                      <p className="text-[11px] text-gray-500 mt-1">Net Take-Home Salary</p>
 
-              {comparison.recommended !== 'equal' && (
-                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex items-start gap-3">
-                  <div className="p-1 rounded-lg bg-emerald-500 text-white mt-0.5">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
+                      <div className="border-t border-dashed border-gray-200 mt-3 pt-3 space-y-1.5 text-xs text-gray-600">
+                        <div className="flex justify-between">
+                          <span>Standard Ded.</span>
+                          <span className="font-semibold">{fmtMoney(comparison.oldRegime.standardDeduction)}</span>
+                        </div>
+                        <div className="flex justify-between" title="HRA + 80C + 80D + 24b + NPS + Other exemptions">
+                          <span className="underline decoration-dotted cursor-help">Other Savings</span>
+                          <span className="font-semibold text-emerald-600">{fmtMoney(comparison.oldRegime.otherDeductions)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Taxable Income</span>
+                          <span className="font-semibold">{fmtMoney(toAnnual(comparison.oldRegime.netTaxableIncome) / 12)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-gray-200/50 pt-1.5">
+                          <span>Monthly TDS</span>
+                          <span className={`font-semibold ${comparison.oldRegime.monthlyTax > 0 ? 'text-rose-600' : 'text-gray-500'}`}>
+                            {fmtMoney(comparison.oldRegime.monthlyTax)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-emerald-950">
-                      Save {fmtMoney(comparison.savings)} per month!
-                    </h4>
-                    <p className="text-xs text-emerald-700 mt-0.5">
-                      By selecting the <strong className="uppercase">{comparison.recommended} regime</strong>, the projected annual tax savings is <strong>{fmtMoney(comparison.savings * 12)}</strong>.
-                    </p>
-                  </div>
+
+                  {comparison.recommended !== 'equal' && (
+                    <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex items-start gap-3">
+                      <div className="p-1 rounded-lg bg-emerald-500 text-white mt-0.5">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-emerald-950">
+                          Save {fmtMoney(comparison.savings)} per month!
+                        </h4>
+                        <p className="text-xs text-emerald-700 mt-0.5">
+                          By selecting the <strong className="uppercase">{comparison.recommended} regime</strong>, the projected annual tax savings is <strong>{fmtMoney(comparison.savings * 12)}</strong>.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
+
+              {/* Detailed Component Breakdown */}
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-5">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-800">Salary Structure Breakdown</h2>
+                    <p className="text-xs text-gray-500 mt-0.5">Estimated on the <strong className="uppercase text-blue-600">{form.taxRegime} Regime</strong> structure.</p>
+                  </div>
+                  {result.master?.esiApplicable ? (
+                    <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold border border-amber-200">
+                      ESI Active (Basic &lt; ₹21,000)
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* Earnings Component */}
+                <BreakdownTable
+                  title="Earnings"
+                  rows={[
+                    ['Basic Salary', result.master?.basicMaster],
+                    ['House Rent Allowance (HRA)', result.master?.hraMaster],
+                    ['Special Allowance (Balancing Component)', result.master?.specialAllowance],
+                    ['Flexi Benefits Wallet', result.master?.flexi],
+                    ['Broadband Allowance', result.master?.broadband],
+                    ['Petrol Reimbursement', result.master?.petrol],
+                    ['Leave Travel Allowance (LTA)', result.master?.lta],
+                    ['Conveyance Allowance', result.master?.conveyance],
+                    ['Medical Allowance', result.master?.medicalAllowance],
+                    ['Total Gross Earnings', result.payroll?.earnings?.totalEarnings],
+                  ]}
+                />
+
+                {/* Employer Contributions Component (Auto) */}
+                <BreakdownTable
+                  title="Employer Contributions (Auto)"
+                  rows={[
+                    ['PF Employer', result.master?.pfEmployer],
+                    ['Employer ESI', result.master?.esiEmployer],
+                    ['Gratuity Provision', result.master?.gratuity],
+                    ['LWF Employer', result.master?.lwfEmployer],
+                    ['Corporate Health Insurance', result.master?.insurance],
+                    ['Employer NPS Contribution', result.master?.employerNPS],
+                    ['Total Employer Cost', result.master?.totalEmployerContributions],
+                  ]}
+                />
+
+                {/* Employee Deductions Component (Auto) */}
+                <BreakdownTable
+                  title="Employee Deductions (Auto)"
+                  rows={[
+                    ['PF Employee', result.payroll?.deductions?.pfEmployee],
+                    ['Employee ESI', result.payroll?.deductions?.esiEmployee],
+                    ['LWF Employee', result.payroll?.deductions?.lwfEmployee],
+                    ['Professional Tax (PT)', result.payroll?.deductions?.professionalTax],
+                    ['Income Tax Deducted at Source (TDS)', result.payroll?.deductions?.tds],
+                    ['Total Deductions', result.payroll?.deductions?.totalDeductions],
+                  ]}
+                />
+
+                {/* One-Time Pay Component */}
+                {result.payroll?.variablePay?.totalVariablePay > 0 && (
+                  <BreakdownTable
+                    title="One-Time Pay (Bonuses)"
+                    rows={[
+                      ['Joining Bonus', Number(form.joiningBonus)],
+                      ['Performance Bonus', Number(form.performanceBonus)],
+                      ['Special Bonus', Number(form.specialBonus)],
+                      ['Retention Bonus', Number(form.retentionBonus)],
+                      ['Incentive', Number(form.incentive)],
+                      ['Arrear', Number(form.arrear)],
+                      ['Referral Bonus', Number(form.referralBonus)],
+                      ['Total One-Time Pay', result.payroll?.variablePay?.totalVariablePay],
+                    ]}
+                  />
+                )}
+
+                {/* Dynamic Summary Cards */}
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 mt-6 shadow-sm">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs divide-x divide-blue-200/50">
+                    <SummaryItem label="Net Take-Home" value={fmtMoney(result.payroll?.netSalary)} highlight={true} />
+                    <SummaryItem label="Monthly CTC" value={fmtMoney(result.monthlyCTC)} />
+                    <SummaryItem label="Gross Earnings" value={fmtMoney(result.payroll?.earnings?.totalEarnings)} />
+                    <SummaryItem label="Employer Cost" value={fmtMoney(result.payroll?.employerContributions?.grossTotalSalary + (result.payroll?.variablePay?.totalVariablePay || 0))} />
+                    <SummaryItem label="Total Deductions" value={fmtMoney(result.payroll?.deductions?.totalDeductions)} />
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 text-center flex flex-col items-center justify-center min-h-[400px]">
+              <div className="p-4 rounded-full bg-blue-50 text-blue-600 mb-4 animate-pulse">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-gray-800">No Calculation Active</h3>
+              <p className="text-sm text-gray-500 mt-1 max-w-sm">
+                Enter an Annual or Monthly CTC amount to dynamically break down components, calculate taxes, and estimate net take-home pay.
+              </p>
             </div>
           )}
-
-          {/* Detailed Component Breakdown */}
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-              <div>
-                <h2 className="text-lg font-bold text-gray-800">Salary Structure Breakdown</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Estimated on the <strong className="uppercase text-blue-600">{form.taxRegime} Regime</strong> structure.</p>
-              </div>
-              {result.master?.esiApplicable ? (
-                <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold border border-amber-200">
-                  ESI Active (Basic &lt; ₹21,000)
-                </span>
-              ) : null}
-            </div>
-
-            {/* Earnings Component */}
-            <BreakdownTable
-              title="Earnings"
-              rows={[
-                ['Basic Salary', result.master?.basicMaster],
-                ['House Rent Allowance (HRA)', result.master?.hraMaster],
-                ['Special Allowance (Balancing Component)', result.master?.specialAllowance],
-                ['Flexi Benefits Wallet', result.master?.flexi],
-                ['Broadband Allowance', result.master?.broadband],
-                ['Petrol Reimbursement', result.master?.petrol],
-                ['Leave Travel Allowance (LTA)', result.master?.lta],
-                ['Conveyance Allowance', result.master?.conveyance],
-                ['Medical Allowance', result.master?.medicalAllowance],
-                ['Total Gross Earnings', result.payroll?.earnings?.totalEarnings],
-              ]}
-            />
-
-            {/* Employer Contributions Component (Auto) */}
-            <BreakdownTable
-              title="Employer Contributions (Auto)"
-              rows={[
-                ['PF Employer', result.master?.pfEmployer],
-                ['Employer ESI', result.master?.esiEmployer],
-                ['Gratuity Provision', result.master?.gratuity],
-                ['LWF Employer', result.master?.lwfEmployer],
-                ['Corporate Health Insurance', result.master?.insurance],
-                ['Employer NPS Contribution', result.master?.employerNPS],
-                ['Total Employer Cost', result.master?.totalEmployerContributions],
-              ]}
-            />
-
-            {/* Employee Deductions Component (Auto) */}
-            <BreakdownTable
-              title="Employee Deductions (Auto)"
-              rows={[
-                ['PF Employee', result.payroll?.deductions?.pfEmployee],
-                ['Employee ESI', result.payroll?.deductions?.esiEmployee],
-                ['LWF Employee', result.payroll?.deductions?.lwfEmployee],
-                ['Professional Tax (PT)', result.payroll?.deductions?.professionalTax],
-                ['Income Tax Deducted at Source (TDS)', result.payroll?.deductions?.tds],
-                ['Total Deductions', result.payroll?.deductions?.totalDeductions],
-              ]}
-            />
-
-            {/* One-Time Pay Component */}
-            {result.payroll?.variablePay?.totalVariablePay > 0 && (
-              <BreakdownTable
-                title="One-Time Pay (Bonuses)"
-                rows={[
-                  ['Joining Bonus', Number(form.joiningBonus)],
-                  ['Performance Bonus', Number(form.performanceBonus)],
-                  ['Special Bonus', Number(form.specialBonus)],
-                  ['Retention Bonus', Number(form.retentionBonus)],
-                  ['Incentive', Number(form.incentive)],
-                  ['Arrear', Number(form.arrear)],
-                  ['Referral Bonus', Number(form.referralBonus)],
-                  ['Total One-Time Pay', result.payroll?.variablePay?.totalVariablePay],
-                ]}
-              />
-            )}
-
-            {/* Dynamic Summary Cards */}
-            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 mt-6 shadow-sm">
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs divide-x divide-blue-200/50">
-                <SummaryItem label="Net Take-Home" value={fmtMoney(result.payroll?.netSalary)} highlight={true} />
-                <SummaryItem label="Monthly CTC" value={fmtMoney(result.monthlyCTC)} />
-                <SummaryItem label="Gross Earnings" value={fmtMoney(result.payroll?.earnings?.totalEarnings)} />
-                <SummaryItem label="Employer Cost" value={fmtMoney(result.payroll?.employerContributions?.grossTotalSalary + (result.payroll?.variablePay?.totalVariablePay || 0))} />
-                <SummaryItem label="Total Deductions" value={fmtMoney(result.payroll?.deductions?.totalDeductions)} />
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
