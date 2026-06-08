@@ -28,12 +28,25 @@ const EmployeeList = () => {
   const [importPreviewCount, setImportPreviewCount] = useState(0);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+  const [payrollConfig, setPayrollConfig] = useState(null);
 
   const downloadImportTemplate = () => {
+    const basicDef = payrollConfig?.basicPercent !== undefined && payrollConfig?.basicPercent !== null
+      ? (payrollConfig.basicPercent > 1 ? payrollConfig.basicPercent / 100 : payrollConfig.basicPercent)
+      : 0.5;
+    const hraDef = payrollConfig?.hraPercent !== undefined && payrollConfig?.hraPercent !== null
+      ? (payrollConfig.hraPercent > 1 ? payrollConfig.hraPercent / 100 : payrollConfig.hraPercent)
+      : 0.5;
+    const pfRate = payrollConfig?.pfRate !== undefined && payrollConfig?.pfRate !== null ? payrollConfig.pfRate : 0.12;
+    const pfCap = payrollConfig?.pfCap !== undefined && payrollConfig?.pfCap !== null ? payrollConfig.pfCap : 15000;
+    const pfEmployerRate = payrollConfig?.pfEmployerRate !== undefined && payrollConfig?.pfEmployerRate !== null ? payrollConfig.pfEmployerRate : 0.12;
+    const gratuityRate = payrollConfig?.gratuityRate !== undefined && payrollConfig?.gratuityRate !== null ? payrollConfig.gratuityRate : 0.0481;
+
     const headers = [
       'Employee ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Date of Birth', 'Gender',
       'Joining Date', 'Date of Leaving', 'Location', 'Designation', 'Department', 'Employment Type', 'Status',
       'Monthly CTC', 'Basic %', 'HRA %',
+      'Basic Salary', 'HRA', 'Special Allowance', 'Gross Salary', 'Employer PF', 'Employer Gratuity', 'Total Deductions', 'Net Take Home',
       'Flexi Amount', 'Broadband', 'Petrol', 'LTA', 'Employer NPS', 'Insurance Amount', 'Joining Bonus',
       'Professional Tax', 'TDS',
       'Account Name', 'Account Number', 'IFSC Code', 'Bank Name', 'Branch',
@@ -44,28 +57,52 @@ const EmployeeList = () => {
       'Address Line 1', 'Address Line 2', 'City', 'State', 'Zip', 'Country',
       'Section 80C', 'Section 80D', 'Section 24b', 'Section 80CCD(1B)', 'Rent Paid Monthly', 'Is Metro City', 'Other Exemptions'
     ];
-    
-    const data = [
-      headers,
-      [
-        'EMP-001', 'John', 'Doe', 'john.doe@example.com', '9876543210', '1990-01-01', 'Male',
-        '2026-06-01', '', 'Delhi', 'Software Engineer', 'Engineering', 'full-time', 'active',
-        '50000', '', '',
-        '0', '0', '0', '0', '0', '0', '0',
-        '200', '0',
-        'John Doe', '1234567890', 'UTIB0000123', 'Axis Bank', 'Delhi',
-        'ABCDE1234F', '', '123456789012',
-        'new',
-        'No', 'No', 'No', 'No', 'No',
-        'No', 'No',
-        '123 Street Name', '', 'Delhi', 'Delhi', '110001', 'India',
-        '0', '0', '0', '0', '0', 'No', '0'
-      ]
+
+    const customCompHeaders = [];
+    if (payrollConfig?.salaryComponents) {
+      payrollConfig.salaryComponents.forEach((c) => {
+        if (!['basic', 'hra', 'special', 'conveyance', 'medical', 'flexi', 'broadband', 'petrol', 'lta'].includes(c.id)) {
+          let suffix = '';
+          if (c.frequency === 'quarterly') suffix = ' (Quarterly)';
+          else if (c.frequency === 'semi_annually') suffix = ' (Semi-Annually)';
+          else if (c.frequency === 'annually') suffix = ' (Annually)';
+          customCompHeaders.push(`${c.name || c.id}${suffix}`);
+        }
+      });
+    }
+
+    const allHeaders = [...headers, ...customCompHeaders];
+
+    const sampleRow = [
+      'EMP-001', 'John', 'Doe', 'john.doe@example.com', '9876543210', '1990-01-01', 'Male',
+      '2026-06-01', '', 'Delhi', 'Software Engineer', 'Engineering', 'full-time', 'active',
+      50000, basicDef * 100, hraDef * 100,
+      { f: `ROUND(O2 * IF(P2<>"", P2/100, ${basicDef}), 2)` },
+      { f: `ROUND(R2 * IF(Q2<>"", Q2/100, ${hraDef}), 2)` },
+      { f: `ROUND(MAX(O2 - R2 - S2 - Z2 - AA2 - AB2 - AC2 - AD2 - AE2 - IF(AW2="Yes", V2, 0) - IF(AX2="Yes", W2, 0), 0), 2)` },
+      { f: `ROUND(R2 + S2 + T2, 2)` },
+      { f: `ROUND(IF(AR2="Yes", MIN(R2, ${pfCap}) * ${pfEmployerRate}, 0), 2)` },
+      { f: `ROUND(IF(AV2="Yes", R2 * ${gratuityRate}, 0), 2)` },
+      { f: `ROUND(IF(AR2="Yes", MIN(R2, ${pfCap}) * ${pfRate}, 0) + AG2 + AH2, 2)` },
+      { f: `ROUND(U2 - X2 + Z2 + AA2 + AB2 + AC2, 2)` },
+      0, 0, 0, 0, 0, 0, 0,
+      200, 0,
+      'John Doe', '1234567890', 'UTIB0000123', 'Axis Bank', 'Delhi',
+      'ABCDE1234F', '', '123456789012',
+      'new',
+      'No', 'No', 'No', 'No', 'No',
+      'No', 'No',
+      '123 Street Name', '', 'Delhi', 'Delhi', '110001', 'India',
+      0, 0, 0, 0, 0, 'No', 0
     ];
+
+    customCompHeaders.forEach(() => sampleRow.push(0));
+
+    const data = [allHeaders, sampleRow];
     
     const worksheet = XLSX.utils.aoa_to_sheet(data);
     const workbook = XLSX.utils.book_new();
-    worksheet['!cols'] = headers.map(() => ({ wch: 18 }));
+    worksheet['!cols'] = allHeaders.map(() => ({ wch: 18 }));
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
     XLSX.writeFile(workbook, 'employee_import_template.xlsx');
     toast.success('Sample import template downloaded');
@@ -74,17 +111,21 @@ const EmployeeList = () => {
   useEffect(() => {
     const controller = new AbortController();
 
-    const fetchDepartments = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get('/departments', { signal: controller.signal });
-        setDepartments(res.data || []);
+        const [deptRes, configRes] = await Promise.all([
+          api.get('/departments', { signal: controller.signal }),
+          api.get('/payroll/config', { signal: controller.signal }),
+        ]);
+        setDepartments(deptRes.data || []);
+        setPayrollConfig(configRes.data || null);
       } catch (error) {
         if (error.name === 'CanceledError' || error.name === 'AbortError') return;
         console.error(error);
       }
     };
 
-    fetchDepartments();
+    fetchData();
     return () => controller.abort();
   }, []);
 
