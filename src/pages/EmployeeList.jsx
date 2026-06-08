@@ -56,8 +56,8 @@ const EmployeeList = () => {
         'John Doe', '1234567890', 'UTIB0000123', 'Axis Bank', 'Delhi',
         'ABCDE1234F', '', '123456789012',
         'new',
-        'Yes', 'Yes', 'Yes', 'Yes', 'Yes',
-        'Yes', 'Yes',
+        'No', 'No', 'No', 'No', 'No',
+        'No', 'No',
         '123 Street Name', '', 'Delhi', 'Delhi', '110001', 'India',
         '0', '0', '0', '0', '0', 'No', '0'
       ]
