@@ -12,23 +12,30 @@ const sumNamedAmounts = (items = []) => items.reduce((sum, item) => sum + (Numbe
 
 const getEarningValue = (snapshot, componentId) => {
   if (!snapshot?.earnings) return 0;
-  if (componentId === 'flexi') return snapshot.earnings.flexiAmount ?? snapshot.earnings.flexi ?? 0;
-  if (componentId === 'medical') return snapshot.earnings.medicalAllowance ?? snapshot.earnings.medical ?? 0;
-  return snapshot.earnings[componentId] ?? 0;
+  let val = snapshot.earnings[componentId];
+  if (val === undefined) {
+    if (componentId === 'flexi') val = snapshot.earnings.flexiAmount ?? snapshot.earnings.flexi;
+    else if (componentId === 'medical') val = snapshot.earnings.medicalAllowance ?? snapshot.earnings.medical;
+    else if (componentId === 'special') val = snapshot.earnings.specialAllowance;
+    else if (componentId === 'basic') val = snapshot.earnings.basic;
+    else if (componentId === 'hra') val = snapshot.earnings.hra;
+  }
+  return val ?? 0;
 };
 
 const getComponentBreakdown = (snapshot, component) => {
-  const cId = component.id;
+  const cId = component?.id;
+  if (!snapshot || !cId) return { paid: 0, master: 0 };
   
   // Paid amount
-  let paid = 0;
-  if (cId === 'basic') paid = snapshot.earnings.basic;
-  else if (cId === 'hra') paid = snapshot.earnings.hra;
-  else if (cId === 'flexi') paid = snapshot.earnings.flexiAmount ?? snapshot.earnings.flexi;
-  else if (cId === 'medical') paid = snapshot.earnings.medicalAllowance ?? snapshot.earnings.medical;
-  else if (cId === 'special') paid = snapshot.earnings.specialAllowance;
-  else paid = snapshot.earnings[cId];
-  
+  let paid = snapshot.earnings[cId];
+  if (paid === undefined) {
+    if (cId === 'basic') paid = snapshot.earnings.basic;
+    else if (cId === 'hra') paid = snapshot.earnings.hra;
+    else if (cId === 'flexi') paid = snapshot.earnings.flexiAmount ?? snapshot.earnings.flexi;
+    else if (cId === 'medical') paid = snapshot.earnings.medicalAllowance ?? snapshot.earnings.medical;
+    else if (cId === 'special') paid = snapshot.earnings.specialAllowance;
+  }
   paid = Number(paid) || 0;
   
   // Master amount
@@ -36,14 +43,15 @@ const getComponentBreakdown = (snapshot, component) => {
   if (snapshot.master?.earningsMap && snapshot.master.earningsMap[cId] !== undefined) {
     master = snapshot.master.earningsMap[cId];
   } else {
-    if (cId === 'basic') master = snapshot.master.basicMaster;
-    else if (cId === 'hra') master = snapshot.master.hraMaster;
-    else if (cId === 'special') master = snapshot.master.specialAllowance;
-    else if (cId === 'flexi') master = snapshot.master.flexi;
-    else if (cId === 'medical') master = snapshot.master.medicalAllowance;
-    else master = snapshot.master[cId];
+    master = snapshot.master[cId];
+    if (master === undefined) {
+      if (cId === 'basic') master = snapshot.master.basicMaster;
+      else if (cId === 'hra') master = snapshot.master.hraMaster;
+      else if (cId === 'flexi') master = snapshot.master.flexi;
+      else if (cId === 'medical') master = snapshot.master.medicalAllowance;
+      else if (cId === 'special') master = snapshot.master.specialAllowance;
+    }
   }
-  
   master = Number(master) || 0;
   
   return { paid, master };
@@ -121,63 +129,63 @@ const EmployeeRow = ({
 
   return (
     <tr key={employee._id} className="hover:bg-blue-50/40 align-top">
-      <td className="px-4 py-4">
+      <td className="px-4 py-2.5">
         <input
           type="checkbox"
           checked={Boolean(selected)}
           onChange={(e) => onToggleSelected(employee._id, e.target.checked)}
-          className="w-4 h-4"
+          className="w-3.5 h-3.5"
         />
       </td>
-      <td className="px-4 py-4 min-w-[220px]">
-        <div className="font-semibold">{employee.firstName} {employee.lastName}</div>
-        <div className="text-xs text-gray-500">{employee.employeeId} · {employee.designation || '-'}</div>
-        <div className="text-xs text-gray-400 mt-1 flex flex-col gap-1">
+      <td className="px-4 py-2.5 min-w-[220px]">
+        <div className="font-semibold text-xs text-gray-900">{employee.firstName} {employee.lastName}</div>
+        <div className="text-[10px] text-gray-400 mt-0.5">{employee.employeeId} · {employee.designation || '-'}</div>
+        <div className="text-[10px] text-gray-400 mt-0.5 flex flex-col gap-0.5">
           <span>CTC {fmtMoney(employee.monthlyCTC)}</span>
           <button
             type="button"
             onClick={() => setBreakdownEmployee(employee)}
-            className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left flex items-center gap-1 self-start"
+            className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left flex items-center gap-1 self-start mt-0.5"
           >
-            <FaCalculator className="w-2.5 h-2.5" /> Breakdown & Adjust
+            <FaCalculator className="w-2 h-2" /> Breakdown & Adjust
           </button>
           
           {/* Statutory Settings Badges */}
           <div className="flex flex-wrap gap-1 mt-1 font-mono">
-            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row?.pfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.pfEnabled !== false ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row?.esiEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.esiEnabled !== false ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row?.ptEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.ptEnabled !== false ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row?.lwfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.lwfEnabled !== false ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${row?.gratuityEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.gratuityEnabled !== false ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
+            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${row?.pfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.pfEnabled !== false ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
+            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${row?.esiEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.esiEnabled !== false ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
+            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${row?.ptEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.ptEnabled !== false ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
+            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${row?.lwfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.lwfEnabled !== false ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
+            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${row?.gratuityEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.gratuityEnabled !== false ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
             {row?.basicPercent !== undefined && row?.basicPercent !== null && Number(row?.basicPercent) !== 50 && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" title="Basic Salary Overridden percentage">
+              <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" title="Basic Salary Overridden percentage">
                 B:{row?.basicPercent}%
               </span>
             )}
             {row?.hraPercent !== undefined && row?.hraPercent !== null && Number(row?.hraPercent) !== 50 && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm" title="HRA Overridden percentage">
+              <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm" title="HRA Overridden percentage">
                 H:{row?.hraPercent}%
               </span>
             )}
           </div>
         </div>
       </td>
-      <td className="px-4 py-4 min-w-[180px]">
-        <div className="flex gap-2">
-          <input type="number" min="0" value={row?.paidDays ?? 0} onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)} className="w-20 border border-gray-300 rounded px-2 py-1 text-sm text-right" />
-          <span className="self-center text-gray-400">/</span>
-          <input type="number" min="1" value={row?.workingDays ?? monthWorkingDays} onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)} className="w-20 border border-gray-300 rounded px-2 py-1 text-sm text-right" />
+      <td className="px-4 py-2.5 min-w-[180px]">
+        <div className="flex gap-1.5">
+          <input type="number" min="0" value={row?.paidDays ?? 0} onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right" />
+          <span className="self-center text-gray-400 text-xs">/</span>
+          <input type="number" min="1" value={row?.workingDays ?? monthWorkingDays} onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right" />
         </div>
-        {paidTooHigh ? <div className="mt-2 text-xs text-red-600">Paid days cannot exceed working days.</div> : null}
+        {paidTooHigh ? <div className="mt-1 text-[10px] text-red-600">Paid days cannot exceed working days.</div> : null}
       </td>
-      <td className="px-4 py-4 text-sm whitespace-nowrap">{Math.round((snapshot.paidDays / Math.max(snapshot.workingDays, 1)) * 100)}%</td>
+      <td className="px-4 py-2.5 text-xs whitespace-nowrap">{Math.round((snapshot.paidDays / Math.max(snapshot.workingDays, 1)) * 100)}%</td>
       {earningComponents.map(c => {
         const val = getEarningValue(snapshot, c.id);
         return (
           <EditableMoneyCell key={c.id} value={val} disabled />
         );
       })}
-      <td className="px-4 py-4 text-sm font-semibold text-slate-700 whitespace-nowrap">
+      <td className="px-4 py-2.5 text-xs font-semibold text-slate-700 whitespace-nowrap">
         {fmtMoney(otherAllowancesTotal)}
       </td>
       <EditableMoneyCell value={snapshot.employerContributions.gratuity} disabled />
@@ -186,11 +194,11 @@ const EmployeeRow = ({
       <EditableMoneyCell value={row?.loyaltyBonus} onChange={(value) => updateRow(employee._id, 'loyaltyBonus', value)} />
       <EditableMoneyCell value={row?.incentive} onChange={(value) => updateRow(employee._id, 'incentive', value)} />
       <EditableMoneyCell value={row?.specialBonus} onChange={(value) => updateRow(employee._id, 'specialBonus', value)} />
-      <td className="px-4 py-4 text-sm font-semibold text-red-600 whitespace-nowrap">
+      <td className="px-4 py-2.5 text-xs font-semibold text-red-600 whitespace-nowrap">
         {fmtMoney(sumNamedAmounts(snapshot.deductions.otherDeductions))}
       </td>
       <EditableMoneyCell value={row?.tds} onChange={(value) => updateRow(employee._id, 'tds', value)} />
-      <td className="px-4 py-4 text-sm font-bold whitespace-nowrap">{fmtMoney(snapshot.netSalary)}</td>
+      <td className="px-4 py-2.5 text-xs font-bold whitespace-nowrap">{fmtMoney(snapshot.netSalary)}</td>
     </tr>
   );
 };
@@ -219,9 +227,13 @@ const PayrollProcessing = () => {
   const [localDeductions, setLocalDeductions] = useState([]);
   const [localExcludedClaimIds, setLocalExcludedClaimIds] = useState(new Set());
 
+  const remainderId = useMemo(() => {
+    return config?.salaryComponents?.find(c => c.linkedTo === 'remainder')?.id || 'special';
+  }, [config?.salaryComponents]);
+
   const earningComponents = useMemo(() => {
     if (config?.salaryComponents && config.salaryComponents.length > 0) {
-      return config.salaryComponents.filter(c => c.type === 'earning' && !['basic', 'hra', 'special'].includes(c.id));
+      return config.salaryComponents.filter(c => c.type === 'earning' && !['basic', 'hra', remainderId].includes(c.id));
     }
     return [
       { id: 'flexi', name: 'Flexi', type: 'earning' },
@@ -229,7 +241,7 @@ const PayrollProcessing = () => {
       { id: 'petrol', name: 'Petrol', type: 'earning' },
       { id: 'lta', name: 'LTA', type: 'earning' }
     ];
-  }, [config?.salaryComponents]);
+  }, [config?.salaryComponents, remainderId]);
 
   const allEarningComponents = useMemo(() => {
     if (config?.salaryComponents && config.salaryComponents.length > 0) {
@@ -539,31 +551,31 @@ const PayrollProcessing = () => {
 
   return (
     <div className="container mx-auto p-6 font-sans text-gray-900">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Process Payroll</h1>
-          <p className="text-gray-500 mt-1">Review proration, variable pay, and deduction inputs before generating payroll.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Process Payroll</h1>
+          <p className="text-xs text-gray-500 mt-1">Review proration, variable pay, and deduction inputs before generating payroll.</p>
         </div>
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
           {isHrmsEnabled && (
             <button
               type="button"
               onClick={handleSyncAttendance}
               disabled={syncingAttendance}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-3.5 py-2 rounded-lg text-sm font-semibold disabled:opacity-60 transition-colors"
+              className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors"
             >
               {syncingAttendance ? 'Syncing...' : 'Sync Attendance'}
             </button>
           )}
-          <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+          <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white">
             {Array.from({ length: 12 }, (_, i) => i + 1).map((value) => <option key={value} value={value}>{monthName(value)}</option>)}
           </select>
-          <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-          <input type="number" value={monthWorkingDays} min="1" onChange={(e) => setMonthWorkingDays(Number(e.target.value) || 1)} className="w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Working Days" />
+          <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-xs" />
+          <input type="number" value={monthWorkingDays} min="1" onChange={(e) => setMonthWorkingDays(Number(e.target.value) || 1)} className="w-28 border border-gray-300 rounded-lg px-3 py-1.5 text-xs" placeholder="Working Days" />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
         <SummaryCard label="Selected Employees" value={selectedEmployees.length} />
         <SummaryCard label="Estimated Net Payroll" value={fmtMoney(totalPreview)} />
         <SummaryCard label="Default Working Days" value={monthWorkingDays} />
@@ -608,12 +620,12 @@ const PayrollProcessing = () => {
           </table>
         </div>
 
-        <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
-          <button type="button" onClick={() => navigate('/payroll')} className="px-4 py-2 rounded-lg bg-white border text-sm font-semibold">Cancel</button>
-          <button type="button" onClick={() => submit(true)} disabled={saving || selectedEmployees.length === 0} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60">
+        <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-2.5">
+          <button type="button" onClick={() => navigate('/payroll')} className="px-3.5 py-1.5 rounded-lg bg-white border text-xs font-semibold">Cancel</button>
+          <button type="button" onClick={() => submit(true)} disabled={saving || selectedEmployees.length === 0} className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60">
             <FaSave /> Save as Draft
           </button>
-          <button type="button" onClick={() => submit(false)} disabled={saving || selectedEmployees.length === 0} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60">
+          <button type="button" onClick={() => submit(false)} disabled={saving || selectedEmployees.length === 0} className="px-3.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60">
             <FaCheck /> Process Payroll
           </button>
         </div>
@@ -818,7 +830,7 @@ const PayrollProcessing = () => {
                       <div className="divide-y divide-gray-100 text-sm">
                         {allEarningComponents.map((c) => {
                           const { paid, master } = getComponentBreakdown(localSnapshot, c);
-                          const shouldShow = ['basic', 'hra', 'special'].includes(c.id) || paid > 0 || master > 0;
+                          const shouldShow = ['basic', 'hra', remainderId].includes(c.id) || paid > 0 || master > 0;
                           if (!shouldShow) return null;
                           return (
                             <BreakdownRow
@@ -1068,23 +1080,23 @@ const PayrollProcessing = () => {
 };
 
 const SummaryCard = ({ label, value }) => (
-  <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-    <div className="text-sm text-gray-500">{label}</div>
-    <div className="text-2xl font-bold mt-2 text-gray-900">{value}</div>
+  <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
+    <div className="text-xs text-gray-500">{label}</div>
+    <div className="text-xl font-bold mt-1 text-gray-900">{value}</div>
   </div>
 );
 
 const EditableMoneyCell = ({ value, onChange, disabled = false }) => (
-  <td className="px-4 py-4">
+  <td className="px-4 py-2.5">
     {disabled ? (
-      <div className="text-sm text-gray-700 whitespace-nowrap">{fmtMoney(value)}</div>
+      <div className="text-xs text-gray-700 whitespace-nowrap">{fmtMoney(value)}</div>
     ) : (
       <input
         type="number"
         min="0"
         value={value ?? 0}
         onChange={(e) => onChange?.(e.target.value)}
-        className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right font-medium"
+        className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium"
       />
     )}
   </td>
