@@ -24,6 +24,7 @@ const EmployeeDetails = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [revisionDraft, setRevisionDraft] = useState({
     newCTC: '',
+    newAnnualCTC: '',
     effectiveDate: new Date().toISOString().slice(0, 10),
     reason: '',
   });
@@ -98,6 +99,7 @@ const EmployeeDetails = () => {
       setEmployee(res.data);
       setRevisionDraft({
         newCTC: '',
+        newAnnualCTC: '',
         effectiveDate: new Date().toISOString().slice(0, 10),
         reason: '',
       });
@@ -261,15 +263,43 @@ const EmployeeDetails = () => {
 
       <Modal isOpen={showRevisionModal} onClose={() => setShowRevisionModal(false)} title="Revise Salary">
         <div className="space-y-4">
-          <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">New Monthly CTC</label>
-            <input
-              type="number"
-              min="0"
-              value={revisionDraft.newCTC}
-              onChange={(e) => setRevisionDraft((prev) => ({ ...prev, newCTC: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">New Annual CTC</label>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                value={revisionDraft.newAnnualCTC}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? '' : (Number(e.target.value) || 0);
+                  setRevisionDraft((prev) => ({
+                    ...prev,
+                    newAnnualCTC: val,
+                    newCTC: val === '' ? '' : Math.round((val / 12) * 100) / 100
+                  }));
+                }}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">New Monthly CTC</label>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                value={revisionDraft.newCTC}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? '' : (Number(e.target.value) || 0);
+                  setRevisionDraft((prev) => ({
+                    ...prev,
+                    newCTC: val,
+                    newAnnualCTC: val === '' ? '' : Math.round(val * 12 * 100) / 100
+                  }));
+                }}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Effective Date</label>

@@ -953,6 +953,7 @@ const InputField = ({ label, value, onChange, suffix, hint }) => (
     <div className="relative mt-1.5 rounded-lg shadow-sm">
       <input
         type="number"
+        step="any"
         min="0"
         value={value === 0 ? '' : value}
         placeholder="0"

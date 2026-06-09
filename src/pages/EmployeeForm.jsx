@@ -428,6 +428,7 @@ const EmployeeForm = () => {
 
                 <input
                   type="number"
+                  step="any"
                   min="0"
                   value={
                     ctcPeriod === 'monthly'
@@ -463,6 +464,7 @@ const EmployeeForm = () => {
                     <div className="relative rounded-lg shadow-sm">
                       <input
                         type="number"
+                        step="any"
                         min="1"
                         max="100"
                         placeholder={`Company Default: ${Math.round((config?.basicPercent ?? 0.5) * 100)}%`}
@@ -481,6 +483,7 @@ const EmployeeForm = () => {
                     <div className="relative rounded-lg shadow-sm">
                       <input
                         type="number"
+                        step="any"
                         min="1"
                         max="100"
                         placeholder={`Company Default: ${Math.round((config?.hraPercent ?? 0.5) * 100)}%`}
@@ -871,6 +874,7 @@ const EmployeeForm = () => {
                         </label>
                         <input
                           type="number"
+                          step="any"
                           min="0"
                           disabled={item.isCalculated}
                           placeholder={item.customValue !== undefined ? `Live Est: ₹${item.customValue}` : (item.id === 'deductions.tds' ? `Live Est: ₹${localPreview.tds}` : `Live Est: ₹${getPreviewValue(item.id)}`)}
@@ -934,6 +938,7 @@ const EmployeeForm = () => {
                           <label className="text-[10px] font-bold text-gray-500 mb-1.5 block">Monthly Amount (₹)</label>
                           <input
                             type="number"
+                            step="any"
                             min="0"
                             required
                             placeholder="Amount"
@@ -1013,6 +1018,7 @@ const EmployeeForm = () => {
                           <label className="text-[10px] font-bold text-gray-500 mb-1.5 block">Monthly Amount (₹)</label>
                           <input
                             type="number"
+                            step="any"
                             min="0"
                             required
                             placeholder="Amount"
@@ -1048,7 +1054,7 @@ const EmployeeForm = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className={labelCls}>Joining Bonus</label>
-                    <input type="number" min="0" value={formData.joiningBonus || 0} onChange={(e) => setField('joiningBonus', e.target.value)} className={inputCls} />
+                    <input type="number" step="any" min="0" value={formData.joiningBonus || 0} onChange={(e) => setField('joiningBonus', e.target.value)} className={inputCls} />
                   </div>
                 </div>
               </div>
@@ -1093,6 +1099,7 @@ const EmployeeForm = () => {
                       <label className={labelCls}>{label}</label>
                       <input
                         type={name.startsWith('deductions.') ? 'number' : 'text'}
+                        step={name.startsWith('deductions.') ? 'any' : undefined}
                         value={name.includes('.') ? name.split('.').reduce((obj, key) => obj?.[key], formData) || '' : formData[name] || ''}
                         onChange={(e) => setField(name, e.target.value)}
                         className={inputCls}
@@ -1140,6 +1147,7 @@ const EmployeeForm = () => {
                           <label className={labelCls}>Section 80C (Max ₹1.5L)</label>
                           <input
                             type="number"
+                            step="any"
                             min="0"
                             placeholder="PPF, EPF, ELSS, etc."
                             value={formData.declarations?.section80C || 0}
@@ -1151,6 +1159,7 @@ const EmployeeForm = () => {
                           <label className={labelCls}>Section 80D (Max ₹25k)</label>
                           <input
                             type="number"
+                            step="any"
                             min="0"
                             placeholder="Medical Insurance"
                             value={formData.declarations?.section80D || 0}
@@ -1162,6 +1171,7 @@ const EmployeeForm = () => {
                           <label className={labelCls}>Section 24(b) (Max ₹2L)</label>
                           <input
                             type="number"
+                            step="any"
                             min="0"
                             placeholder="Home Loan Interest"
                             value={formData.declarations?.section24b || 0}
@@ -1173,6 +1183,7 @@ const EmployeeForm = () => {
                           <label className={labelCls}>Section 80CCD(1B) (Max ₹50k)</label>
                           <input
                             type="number"
+                            step="any"
                             min="0"
                             placeholder="NPS Self Contribution"
                             value={formData.declarations?.section80CCD1B || 0}
@@ -1184,6 +1195,7 @@ const EmployeeForm = () => {
                           <label className={labelCls}>Other Exemptions</label>
                           <input
                             type="number"
+                            step="any"
                             min="0"
                             placeholder="LTA, other exemptions"
                             value={formData.declarations?.otherExemptions || 0}
@@ -1195,6 +1207,7 @@ const EmployeeForm = () => {
                           <label className={labelCls}>Monthly Rent Paid (HRA)</label>
                           <input
                             type="number"
+                            step="any"
                             min="0"
                             placeholder="Rent paid per month"
                             value={formData.declarations?.rentPaidMonthly || 0}
@@ -1271,6 +1284,7 @@ const EmployeeForm = () => {
                     <div className="flex gap-4 items-center">
                       <input
                         type="number"
+                        step="any"
                         min="0"
                         placeholder="Manual Monthly TDS override"
                         value={formData.deductions?.tds || 0}
