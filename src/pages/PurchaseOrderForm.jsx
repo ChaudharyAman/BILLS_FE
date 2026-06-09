@@ -86,34 +86,53 @@ const PurchaseOrderForm = () => {
     qty: 1, rate: 0, discount: 0, taxRate: 0, taxSelect: '0', customTaxRate: '', amount: 0,
   });
 
-  const [formData, setFormData] = useState({
-    invoiceType: 'Tax Invoice',
-    vendorRef: '',
-    vendorName: '',
-    vendorGST: '',
-    vendorAddressObject: null,
-    vendorPhone: '',
-    vendorEmail: '',
-    vendorPAN: '',
-    importSource: '',
-    docNo: '',
-    docNoSuffix: '',
-    poNumber: '',
-    refNumber: '',
-    date: new Date().toISOString().split('T')[0],
-    validUntil: '',
-    status: 'DRAFT',
-    placeOfSupply: '',
-    items: [emptyItem()],
-    shippingCharges: 0,
-    packagingCharges: 0,
-    customChargeLabel: 'Custom Amount',
-    customChargeAmount: 0,
-    discountTotal: 0,
-    notes: '',
-    privateNotes: '',
-    terms: '',
-  });
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const getInitialPOState = () => {
+    if (!id) {
+      const source = new URLSearchParams(location.search).get('source');
+      if (!source) {
+        const saved = localStorage.getItem('flance_draft_purchaseorder_new');
+        if (saved) {
+          try {
+            return JSON.parse(saved);
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+    }
+    return {
+      invoiceType: 'Tax Invoice',
+      vendorRef: '',
+      vendorName: '',
+      vendorGST: '',
+      vendorAddressObject: null,
+      vendorPhone: '',
+      vendorEmail: '',
+      vendorPAN: '',
+      importSource: '',
+      docNo: '',
+      docNoSuffix: '',
+      poNumber: '',
+      refNumber: '',
+      date: new Date().toISOString().split('T')[0],
+      validUntil: '',
+      status: 'DRAFT',
+      placeOfSupply: '',
+      items: [emptyItem()],
+      shippingCharges: 0,
+      packagingCharges: 0,
+      customChargeLabel: 'Custom Amount',
+      customChargeAmount: 0,
+      discountTotal: 0,
+      notes: '',
+      privateNotes: '',
+      terms: '',
+    };
+  };
+
+  const [formData, setFormData] = useState(getInitialPOState);
 
   const hasTax = ['Tax Invoice', 'Excise Invoice'].includes(formData.invoiceType);
 
@@ -124,6 +143,30 @@ const PurchaseOrderForm = () => {
     };
     load();
   }, [id]);
+
+  useEffect(() => {
+    if (!id) {
+      const source = new URLSearchParams(location.search).get('source');
+      if (!source) {
+        const saved = localStorage.getItem('flance_draft_purchaseorder_new');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed.shippingCharges > 0) setShowShipping(true);
+            if (parsed.discountTotal > 0) setShowDiscountTotal(true);
+            if (Number(parsed.packagingCharges) !== 0) setShowCustomAmount(true);
+          } catch (e) {}
+        }
+      }
+    }
+  }, [id, location.search]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      const key = id ? `flance_draft_purchaseorder_edit_${id}` : 'flance_draft_purchaseorder_new';
+      localStorage.setItem(key, JSON.stringify(formData));
+    }
+  }, [formData, id, isLoaded]);
 
   useEffect(() => {
     const source = new URLSearchParams(location.search).get('source');
@@ -300,6 +343,9 @@ const PurchaseOrderForm = () => {
         purchaseOrder: sr.data?.purchaseOrderPrefix || 'PO',
       };
       setPrefixes(loadedPrefixes);
+      if (!id) {
+        setIsLoaded(true);
+      }
       return loadedPrefixes;
     } catch (e) { console.error(e); }
     finally { setCatalogReady(true); }
@@ -308,6 +354,22 @@ const PurchaseOrderForm = () => {
 
   const fetchDoc = async (docId, prefixMap = prefixes) => {
     try {
+      const savedDraft = localStorage.getItem(`flance_draft_purchaseorder_edit_${docId}`);
+      if (savedDraft) {
+        try {
+          const parsed = JSON.parse(savedDraft);
+          setFormData(parsed);
+          setCurrentStatus(parsed.status || 'DRAFT');
+          if (parsed.shippingCharges > 0) setShowShipping(true);
+          if (parsed.discountTotal > 0) setShowDiscountTotal(true);
+          if (Number(parsed.packagingCharges) !== 0) setShowCustomAmount(true);
+          setIsLoaded(true);
+          return;
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
       const res = await api.get(`${apiBase}/${docId}`);
       const d = res.data;
       const parsedDocNumber = parseDocumentNumberParts(d.poNumber, prefixMap.purchaseOrder);
@@ -345,6 +407,7 @@ const PurchaseOrderForm = () => {
       if (d.shippingCharges > 0) setShowShipping(true);
       if (d.discountTotal > 0) setShowDiscountTotal(true);
       if (Number(d.packagingCharges) !== 0) setShowCustomAmount(true);
+      setIsLoaded(true);
     } catch (e) { console.error(e); }
   };
 
@@ -479,6 +542,7 @@ const PurchaseOrderForm = () => {
         const res = await api.post(apiBase, payload);
         savedId = res.data._id;
       }
+      localStorage.removeItem(id ? `flance_draft_purchaseorder_edit_${id}` : 'flance_draft_purchaseorder_new');
       if (!saveAsDraft) {
         navigate(`${listPath}/${savedId}/print`);
       } else {
@@ -981,7 +1045,10 @@ const PurchaseOrderForm = () => {
               <FaBoxOpen size={14} /> Mark as Received
             </button>
           )}
-          <button type="button" onClick={() => navigate(listPath)}
+          <button type="button" onClick={() => {
+            localStorage.removeItem(id ? `flance_draft_purchaseorder_edit_${id}` : 'flance_draft_purchaseorder_new');
+            navigate(listPath);
+          }}
             className="px-5 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
             Cancel
           </button>

@@ -79,25 +79,42 @@ const QuoteForm = ({ docType = 'quote' }) => {
     qty: 1, rate: 0, discount: 0, taxRate: 0, taxSelect: '0', customTaxRate: '', amount: 0,
   });
 
-  const [formData, setFormData] = useState({
-    invoiceType: isProforma ? 'Tax Invoice' : 'Invoice',
-    clientRef: '',
-    docNo: '',
-    docNoSuffix: '',
-    poNumber: '',
-    date: new Date().toISOString().split('T')[0],
-    validUntil: '',
-    status: 'DRAFT',
-    placeOfSupply: '',
-    items: [emptyItem()],
-    shippingCharges: 0,
-    packagingCharges: 0,
-    customChargeLabel: 'Custom Amount',
-    customChargeAmount: 0,
-    discountTotal: 0,
-    notes: '',
-    terms: '',
-  });
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const getInitialQuoteState = () => {
+    if (!id) {
+      const type = isProforma ? 'proforma' : 'quote';
+      const saved = localStorage.getItem(`flance_draft_${type}_new`);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+    return {
+      invoiceType: isProforma ? 'Tax Invoice' : 'Invoice',
+      clientRef: '',
+      docNo: '',
+      docNoSuffix: '',
+      poNumber: '',
+      date: new Date().toISOString().split('T')[0],
+      validUntil: '',
+      status: 'DRAFT',
+      placeOfSupply: '',
+      items: [emptyItem()],
+      shippingCharges: 0,
+      packagingCharges: 0,
+      customChargeLabel: 'Custom Amount',
+      customChargeAmount: 0,
+      discountTotal: 0,
+      notes: '',
+      terms: '',
+    };
+  };
+
+  const [formData, setFormData] = useState(getInitialQuoteState);
 
   const hasTax = isProforma && ['Tax Invoice', 'Excise Invoice'].includes(formData.invoiceType);
 
@@ -108,6 +125,29 @@ const QuoteForm = ({ docType = 'quote' }) => {
     };
     load();
   }, [id]);
+
+  useEffect(() => {
+    if (!id) {
+      const type = isProforma ? 'proforma' : 'quote';
+      const saved = localStorage.getItem(`flance_draft_${type}_new`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.shippingCharges > 0) setShowShipping(true);
+          if (parsed.discountTotal > 0) setShowDiscountTotal(true);
+          if (Number(parsed.packagingCharges) !== 0) setShowCustomAmount(true);
+        } catch (e) {}
+      }
+    }
+  }, [id, isProforma]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      const type = isProforma ? 'proforma' : 'quote';
+      const key = id ? `flance_draft_${type}_edit_${id}` : `flance_draft_${type}_new`;
+      localStorage.setItem(key, JSON.stringify(formData));
+    }
+  }, [formData, id, isProforma, isLoaded]);
 
   const fetchDependencies = async () => {
     try {
@@ -123,6 +163,9 @@ const QuoteForm = ({ docType = 'quote' }) => {
         proforma: sr.data?.proformaPrefix || 'PRF',
       };
       setPrefixes(loadedPrefixes);
+      if (!id) {
+        setIsLoaded(true);
+      }
       return loadedPrefixes;
     } catch (e) { console.error(e); }
     return prefixes;
@@ -130,6 +173,22 @@ const QuoteForm = ({ docType = 'quote' }) => {
 
   const fetchDoc = async (docId, prefixMap = prefixes) => {
     try {
+      const type = isProforma ? 'proforma' : 'quote';
+      const savedDraft = localStorage.getItem(`flance_draft_${type}_edit_${docId}`);
+      if (savedDraft) {
+        try {
+          const parsed = JSON.parse(savedDraft);
+          setFormData(parsed);
+          if (parsed.shippingCharges > 0) setShowShipping(true);
+          if (parsed.discountTotal > 0) setShowDiscountTotal(true);
+          if (Number(parsed.packagingCharges) !== 0) setShowCustomAmount(true);
+          setIsLoaded(true);
+          return;
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
       const res = await api.get(`${apiBase}/${docId}`);
       const d = res.data;
       if (!isProforma && d.status === 'CONVERTED') {
@@ -169,6 +228,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
       if (d.shippingCharges > 0) setShowShipping(true);
       if (d.discountTotal > 0) setShowDiscountTotal(true);
       if (Number(d.packagingCharges) !== 0) setShowCustomAmount(true);
+      setIsLoaded(true);
     } catch (e) { console.error(e); }
   };
 
@@ -330,6 +390,8 @@ const QuoteForm = ({ docType = 'quote' }) => {
         const res = await api.post(apiBase, payload);
         savedId = res.data._id;
       }
+      const type = isProforma ? 'proforma' : 'quote';
+      localStorage.removeItem(id ? `flance_draft_${type}_edit_${id}` : `flance_draft_${type}_new`);
       if (!saveAsDraft) {
         navigate(`${listPath}/${savedId}/print`);
       } else {
@@ -819,7 +881,11 @@ const QuoteForm = ({ docType = 'quote' }) => {
             className="px-5 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60">
             Save as draft
           </button>
-          <button type="button" onClick={() => navigate(listPath)}
+          <button type="button" onClick={() => {
+            const type = isProforma ? 'proforma' : 'quote';
+            localStorage.removeItem(id ? `flance_draft_${type}_edit_${id}` : `flance_draft_${type}_new`);
+            navigate(listPath);
+          }}
             className="px-5 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
             Cancel
           </button>

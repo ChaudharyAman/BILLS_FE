@@ -61,8 +61,7 @@ test('pro user can create quote, proforma, and save settings', async ({ page }) 
   const companySettingsSave = waitForApiMutation(page, 'PUT', '/settings');
   const companyDialog = acceptNextDialog(page);
   await page.getByTestId('save-company-settings').click();
-  await companySettingsSave;
-  await companyDialog;
+  await Promise.all([companySettingsSave, companyDialog]);
   await expect(page.getByTestId('settings-contact-name')).toHaveValue(contactName);
 
   await page.getByTestId('settings-software-tab').click();
@@ -70,7 +69,6 @@ test('pro user can create quote, proforma, and save settings', async ({ page }) 
   const accountSettingsSave = waitForApiMutation(page, 'PUT', '/auth/profile');
   const accountDialog = acceptNextDialog(page);
   await page.getByTestId('save-account-settings').click();
-  await accountSettingsSave;
-  await accountDialog;
+  await Promise.all([accountSettingsSave, accountDialog]);
   await expect(page.getByTestId('settings-username')).toBeVisible();
 });

@@ -19,7 +19,7 @@ export default defineConfig({
   use: {
     baseURL,
     headless: true,
-    trace: 'off',
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'off',
   },

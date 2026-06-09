@@ -166,57 +166,75 @@ const InvoiceForm = () => {
   const [companyTaxProfile, setCompanyTaxProfile] = useState({ state: '', gstin: '' });
   const [catalogReady, setCatalogReady] = useState(false);
   const [isSyncingPdfItems, setIsSyncingPdfItems] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  const [formData, setFormData] = useState({
-    invoiceType: queryType,
-    clientRef: '',
-    clientName: '',
-    clientGST: '',
-    importSource: '',
-    invoiceNo: 'Auto-generated',
-    poNumber: '',
-    date: new Date().toISOString().split('T')[0],
-    poDate: '',
-    dueDate: '',
-    paymentMode: '',
-    paymentTerms: 'On Receipt',
-    status: 'DRAFT',
-    placeOfSupply: '',
-    reverseCharge: false,
-    items: [emptyItem()],
-    shippingCharges: 0,
-    packagingCharges: 0,
-    customChargeLabel: 'Custom Amount',
-    discountTotal: 0,
-    advancePaid: 0,
-    notes: '',
-    terms: '',
-    transport: { mode: 'Road', vehicleNumber: '', eWayBillNo: '' },
-    shippingAddress: { line1: '', line2: '', city: '', state: '', zip: '', country: 'India' },
-    bankDetails: {
-      accountName: '',
-      bankName: '',
-      accountNumber: '',
-      branch: '',
-      ifscCode: '',
-    },
-    exciseDuty: {
-      bedPercent: 0, sedPercent: 0, cessPercent: 0,
-      manufacturerName: '', manufacturerAddress: '', rangeCode: '',
-    },
-    fy: '',
-    currency: 'INR',
-    tds: 0,
-    tdsApplicable: false,
-    tdsSection: '',
-    tdsRate: 0,
-    client_will_deduct_tds: false,
-    tds_receivable_amount: 0,
-    expected_receipt: 0,
-    tcs: 0,
-    drCr: 'Dr.',
-    purchaseOrderRef: '',
-  });
+  const getInitialInvoiceState = () => {
+    if (!id) {
+      const source = new URLSearchParams(location.search).get('source');
+      if (!source) {
+        const saved = localStorage.getItem('flance_draft_invoice_new');
+        if (saved) {
+          try {
+            return JSON.parse(saved);
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+    }
+    return {
+      invoiceType: queryType,
+      clientRef: '',
+      clientName: '',
+      clientGST: '',
+      importSource: '',
+      invoiceNo: 'Auto-generated',
+      poNumber: '',
+      date: new Date().toISOString().split('T')[0],
+      poDate: '',
+      dueDate: '',
+      paymentMode: '',
+      paymentTerms: 'On Receipt',
+      status: 'DRAFT',
+      placeOfSupply: '',
+      reverseCharge: false,
+      items: [emptyItem()],
+      shippingCharges: 0,
+      packagingCharges: 0,
+      customChargeLabel: 'Custom Amount',
+      discountTotal: 0,
+      advancePaid: 0,
+      notes: '',
+      terms: '',
+      transport: { mode: 'Road', vehicleNumber: '', eWayBillNo: '' },
+      shippingAddress: { line1: '', line2: '', city: '', state: '', zip: '', country: 'India' },
+      bankDetails: {
+        accountName: '',
+        bankName: '',
+        accountNumber: '',
+        branch: '',
+        ifscCode: '',
+      },
+      exciseDuty: {
+        bedPercent: 0, sedPercent: 0, cessPercent: 0,
+        manufacturerName: '', manufacturerAddress: '', rangeCode: '',
+      },
+      fy: '',
+      currency: 'INR',
+      tds: 0,
+      tdsApplicable: false,
+      tdsSection: '',
+      tdsRate: 0,
+      client_will_deduct_tds: false,
+      tds_receivable_amount: 0,
+      expected_receipt: 0,
+      tcs: 0,
+      drCr: 'Dr.',
+      purchaseOrderRef: '',
+    };
+  };
+
+  const [formData, setFormData] = useState(getInitialInvoiceState);
 
   const invoiceType = formData.invoiceType;
   const hasTax = TAX_TYPES[invoiceType];
@@ -227,6 +245,31 @@ const InvoiceForm = () => {
     fetchDependencies();
     if (id) fetchInvoice(id);
   }, [id]);
+
+  useEffect(() => {
+    if (!id) {
+      const source = new URLSearchParams(location.search).get('source');
+      if (!source) {
+        const saved = localStorage.getItem('flance_draft_invoice_new');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed.shippingCharges > 0) setShowShipping(true);
+            if (Number(parsed.packagingCharges) !== 0) setShowCustomAmount(true);
+            if (parsed.discountTotal > 0) setShowDiscountTotal(true);
+            if (parsed.advancePaid > 0) setShowAdvance(true);
+          } catch (e) {}
+        }
+      }
+    }
+  }, [id, location.search]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      const key = id ? `flance_draft_invoice_edit_${id}` : 'flance_draft_invoice_new';
+      localStorage.setItem(key, JSON.stringify(formData));
+    }
+  }, [formData, id, isLoaded]);
 
   // ── PDF Import: Read extracted data from sessionStorage ────────
   useEffect(() => {
@@ -401,17 +444,23 @@ const InvoiceForm = () => {
       });
       
       // If creating a NEW invoice, pre-fill bank details from settings
-      if (!id && sr.data?.bankDetails) {
-        setFormData(prev => ({
-          ...prev,
-          bankDetails: {
-            accountName: sr.data.bankDetails.accountName || '',
-            bankName: sr.data.bankDetails.bankName || '',
-            accountNumber: sr.data.bankDetails.accountNumber || '',
-            branch: sr.data.bankDetails.branch || '',
-            ifscCode: sr.data.bankDetails.ifscCode || '',
+      if (!id) {
+        if (sr.data?.bankDetails) {
+          const saved = localStorage.getItem('flance_draft_invoice_new');
+          if (!saved) {
+            setFormData(prev => ({
+              ...prev,
+              bankDetails: {
+                accountName: sr.data.bankDetails.accountName || '',
+                bankName: sr.data.bankDetails.bankName || '',
+                accountNumber: sr.data.bankDetails.accountNumber || '',
+                branch: sr.data.bankDetails.branch || '',
+                ifscCode: sr.data.bankDetails.ifscCode || '',
+              }
+            }));
           }
-        }));
+        }
+        setIsLoaded(true);
       }
     } catch (e) { console.error(e); }
     finally { setCatalogReady(true); }
@@ -420,6 +469,24 @@ const InvoiceForm = () => {
   const fetchInvoice = async (invoiceId) => {
     try {
       setLoading(true);
+
+      const savedDraft = localStorage.getItem(`flance_draft_invoice_edit_${invoiceId}`);
+      if (savedDraft) {
+        try {
+          const parsed = JSON.parse(savedDraft);
+          setFormData(parsed);
+          if (parsed.shippingCharges > 0) setShowShipping(true);
+          if (Number(parsed.packagingCharges) !== 0) setShowCustomAmount(true);
+          if (parsed.discountTotal > 0) setShowDiscountTotal(true);
+          if (parsed.advancePaid > 0) setShowAdvance(true);
+          setIsLoaded(true);
+          setLoading(false);
+          return;
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
       const res = await api.get(`/invoices/${invoiceId}`);
       const inv = res.data;
       const fmt = (d) => d ? new Date(d).toISOString().split('T')[0] : '';
@@ -510,6 +577,7 @@ const InvoiceForm = () => {
       if (Number(inv.packagingCharges) !== 0) setShowCustomAmount(true);
       if (inv.discountTotal > 0) setShowDiscountTotal(true);
       if (inv.advancePaid > 0) setShowAdvance(true);
+      setIsLoaded(true);
     } catch (e) {
       console.error(e);
       alert('Failed to load invoice');
@@ -754,6 +822,7 @@ const InvoiceForm = () => {
         await api.post('/invoices', payload);
         alert('Invoice created successfully');
       }
+      localStorage.removeItem(id ? `flance_draft_invoice_edit_${id}` : 'flance_draft_invoice_new');
       sessionStorage.removeItem('pdfImportData');
       navigate('/invoices');
     } catch (err) {
@@ -869,7 +938,10 @@ const InvoiceForm = () => {
           </div>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => navigate('/invoices')} className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-medium">
+          <button onClick={() => {
+            localStorage.removeItem(id ? `flance_draft_invoice_edit_${id}` : 'flance_draft_invoice_new');
+            navigate('/invoices');
+          }} className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-medium">
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={loading} data-testid="save-invoice" className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold disabled:opacity-60">
