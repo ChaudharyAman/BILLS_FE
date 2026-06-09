@@ -79,7 +79,6 @@ const SALARY_TEMPLATES = {
 
 const SalaryCalculator = () => {
   const [config, setConfig] = useState(DEFAULT_PAYROLL_CONFIG);
-  const [mode, setMode] = useState('annual');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('ctc'); // 'ctc' | 'controls' | 'bonuses' | 'tax'
@@ -154,9 +153,7 @@ const SalaryCalculator = () => {
     return () => controller.abort();
   }, []);
 
-  const monthlyCTC = mode === 'annual'
-    ? (Number(form.annualCTC) || 0) / 12
-    : Number(form.monthlyCTC) || 0;
+  const monthlyCTC = Number(form.monthlyCTC) || 0;
 
   const localSource = useMemo(() => ({
     monthlyCTC,
@@ -330,29 +327,13 @@ const SalaryCalculator = () => {
     }));
   };
 
-  const handleCtcChange = (value) => {
-    if (mode === 'annual') {
-      setForm((prev) => ({
-        ...prev,
-        annualCTC: value,
-        monthlyCTC: Math.round((value / 12) * 100) / 100
-      }));
-    } else {
-      setForm((prev) => ({
-        ...prev,
-        monthlyCTC: value,
-        annualCTC: value * 12
-      }));
-    }
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
       setSubmitting(true);
       const payload = {
-        monthlyCTC: mode === 'monthly' ? Number(form.monthlyCTC) || 0 : undefined,
-        annualCTC: mode === 'annual' ? Number(form.annualCTC) || 0 : undefined,
+        monthlyCTC: Number(form.monthlyCTC) || 0,
+        annualCTC: Number(form.annualCTC) || 0,
         flexiAmount: Number(form.flexiAmount) || 0,
         broadband: Number(form.broadband) || 0,
         petrol: Number(form.petrol) || 0,
@@ -416,7 +397,7 @@ const SalaryCalculator = () => {
       {/* Premium Header */}
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-150 pb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             Enterprise Salary Calculator
           </h1>
           <p className="text-gray-500 mt-1">
@@ -443,25 +424,6 @@ const SalaryCalculator = () => {
       <div className="grid grid-cols-1 lg:grid-cols-[1.1fr,0.9fr] gap-6 items-start">
         {/* Left Form Panel */}
         <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-6">
-          {/* Mode Switcher */}
-          <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Input Mode</label>
-            <div className="flex bg-gray-100 p-1 rounded-xl mt-2">
-              {['annual', 'monthly'].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setMode(value)}
-                  className={`flex-1 py-2 text-center rounded-lg text-sm font-semibold transition-all ${
-                    mode === value ? 'bg-white shadow-sm text-blue-600' : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  {value === 'annual' ? 'Annual CTC' : 'Monthly CTC'}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Form Tabs */}
           <div className="flex border-b border-gray-100">
             {[
@@ -487,12 +449,32 @@ const SalaryCalculator = () => {
           <div className="space-y-4 min-h-[380px]">
             {activeTab === 'ctc' && (
               <div className="space-y-4 animate-fadeIn">
-                <InputField
-                  label={mode === 'annual' ? 'Annual CTC' : 'Monthly CTC'}
-                  value={mode === 'annual' ? form.annualCTC : form.monthlyCTC}
-                  onChange={handleCtcChange}
-                  suffix="INR"
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <InputField
+                    label="Annual CTC"
+                    value={form.annualCTC}
+                    onChange={(value) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        annualCTC: value,
+                        monthlyCTC: Math.round((value / 12) * 100) / 100
+                      }));
+                    }}
+                    suffix="INR"
+                  />
+                  <InputField
+                    label="Monthly CTC"
+                    value={form.monthlyCTC}
+                    onChange={(value) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        monthlyCTC: value,
+                        annualCTC: Math.round(value * 12 * 100) / 100
+                      }));
+                    }}
+                    suffix="INR"
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <InputField label="Flexi Wallet (Monthly)" value={form.flexiAmount} onChange={(value) => setForm((prev) => ({ ...prev, flexiAmount: value }))} />
                   <InputField label="Broadband Allowance (Monthly)" value={form.broadband} onChange={(value) => setForm((prev) => ({ ...prev, broadband: value }))} />
