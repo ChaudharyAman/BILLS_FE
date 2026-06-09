@@ -210,7 +210,7 @@ const Settings = () => {
           Object.keys(formData.address).forEach(k => data.append(`address[${k}]`, formData.address[k]));
         } else if (key === 'bankDetails') {
           Object.keys(formData.bankDetails).forEach(k => data.append(`bankDetails[${k}]`, formData.bankDetails[k] || ''));
-        } else if (!['logoFile', 'logoUrl', 'signatureFile', 'signatureUrl', '_id', 'createdAt', 'updatedAt', '__v', 'user'].includes(key)) {
+        } else if (!['logoFile', 'logoUrl', 'signatureFile', 'signatureUrl', '_id', 'createdAt', 'updatedAt', '__v', 'user', 'integration'].includes(key)) {
           data.append(key, formData[key] || '');
         }
       });
