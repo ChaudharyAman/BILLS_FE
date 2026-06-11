@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   FaThLarge, FaUsers, FaBox, FaFileInvoice,
   FaClipboardList, FaCog, FaSignOutAlt,
-  FaChevronDown, FaChevronRight, FaMinus, FaPlus, FaStar,
+  FaChevronDown, FaChevronRight, FaChevronLeft, FaMinus, FaPlus, FaStar,
   FaChartBar, FaWallet, FaLock, FaTimes, FaTruck, FaShoppingCart, FaTags, FaMoneyBillWave, FaBalanceScale, FaRedo, FaProjectDiagram
 } from 'react-icons/fa';
 import * as Icons from 'react-icons/fa';
@@ -18,6 +18,100 @@ const Layout = ({ children }) => {
 
   // Premium Modal State
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('flance_sidebar_collapsed') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const toggleSidebar = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('flance_sidebar_collapsed', String(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
+  };
+
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [popupStyles, setPopupStyles] = useState({});
+  const [tooltip, setTooltip] = useState({ visible: false, text: '', rect: null });
+
+  const calculatePopupStyle = (itemId, element) => {
+    if (!element) return;
+    const rect = element.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    
+    if (spaceBelow < 220) {
+      setPopupStyles(prev => ({
+        ...prev,
+        [itemId]: {
+          position: 'fixed',
+          left: `${rect.right + 12}px`,
+          bottom: `${window.innerHeight - rect.bottom}px`,
+          top: 'auto'
+        }
+      }));
+    } else {
+      setPopupStyles(prev => ({
+        ...prev,
+        [itemId]: {
+          position: 'fixed',
+          left: `${rect.right + 12}px`,
+          top: `${rect.top}px`,
+          bottom: 'auto'
+        }
+      }));
+    }
+  };
+
+  const showTooltip = (text, e) => {
+    if (!isCollapsed) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltip({ visible: true, text, rect });
+  };
+
+  const hideTooltip = () => {
+    setTooltip({ visible: false, text: '', rect: null });
+  };
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest('aside')) {
+        setActiveDropdown(null);
+      }
+    };
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setActiveDropdown(null);
+      hideTooltip();
+    };
+    const navEl = document.querySelector('nav');
+    if (navEl) {
+      navEl.addEventListener('scroll', handleScroll);
+    }
+    return () => {
+      if (navEl) {
+        navEl.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [isCollapsed]);
+
+  useEffect(() => {
+    setActiveDropdown(null);
+    setPopupStyles({});
+    hideTooltip();
+  }, [isCollapsed]);
 
   // Dynamic Sidebar Preferences State
   const [sidebarLayout, setSidebarLayout] = useState([]);
@@ -85,7 +179,7 @@ const Layout = ({ children }) => {
   };
 
   const linkCls = (path) =>
-    `flex items-center gap-[9px] px-[18px] py-[5px] text-[12px] font-medium transition-colors cursor-pointer w-full text-left
+    `flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-[9px] px-[18px]'} py-[5px] text-[12px] font-medium transition-all duration-200 cursor-pointer w-full text-left relative group
     ${isActive(path)
       ? 'bg-white/10 text-white border-l-2 border-blue-400'
       : 'text-slate-300 hover:bg-white/5 hover:text-white border-l-2 border-transparent'}`;
@@ -108,6 +202,8 @@ const Layout = ({ children }) => {
     // Admin Panel super admin check
     if (item.isSuperAdmin && !isSuperAdmin) return null;
 
+    const currentIconSize = isCollapsed ? 16 : ICON_SIZE;
+
     // Check collapsible item
     if (item.type === 'collapsible') {
       const isCollapsibleActive = item.children.some(child => isActive(child.path));
@@ -129,37 +225,69 @@ const Layout = ({ children }) => {
       }
 
       const handleToggle = (e) => {
+        e.stopPropagation();
+        const wrapper = e.currentTarget.closest('.group');
+        calculatePopupStyle(item.id, wrapper);
         if (item.isPremium && !hasPremiumAccess) {
           handlePremiumClick(e);
+        } else if (isCollapsed) {
+          setActiveDropdown(prev => prev === item.id ? null : item.id);
         } else if (setOpen) {
           setOpen(o => !o);
         }
       };
 
       return (
-        <div key={item.id} className="w-full">
+        <div
+          key={item.id}
+          className="w-full relative group"
+          onMouseEnter={(e) => calculatePopupStyle(item.id, e.currentTarget)}
+        >
           <button
             onClick={handleToggle}
-            className={`flex items-center justify-between px-[18px] py-[5px] text-[12px] font-medium transition-colors w-full border-l-2
+            className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-[18px]'} py-[5px] text-[12px] font-medium transition-all duration-200 w-full border-l-2
               ${isCollapsibleActive
                 ? 'bg-white/10 text-white border-blue-400'
                 : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
           >
-            <span className="flex items-center gap-[9px]">
-              {renderIcon(item.iconName, ICON_SIZE)} {item.label}
-              {item.isPremium && !hasPremiumAccess && (
+            <span className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-[9px]'}`}>
+              {renderIcon(item.iconName, currentIconSize)}
+              {!isCollapsed && <span>{item.label}</span>}
+              {!isCollapsed && item.isPremium && !hasPremiumAccess && (
                 <span className="text-[8px] font-bold bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded uppercase ml-1">Pro</span>
               )}
             </span>
-            {isOpen
+            {!isCollapsed && (isOpen
               ? <FaChevronDown size={10} className="text-slate-400" />
-              : <FaChevronRight size={10} className="text-slate-400" />}
+              : <FaChevronRight size={10} className="text-slate-400" />)}
           </button>
 
-          {isOpen && (item.isPremium ? hasPremiumAccess : true) && (
+          {/* Floating popup sub-menu for collapsed state */}
+          {isCollapsed && (item.isPremium ? hasPremiumAccess : true) && (
+            <div
+              className={`fixed ml-3 bg-[#1a2e44] rounded-lg shadow-xl border border-white/10 py-2 w-48 z-50 ${(activeDropdown === item.id) ? 'block' : 'hidden group-hover:block'}`}
+              style={popupStyles[item.id] || { display: 'none' }}
+            >
+              <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 border-b border-white/5 mb-1 uppercase tracking-wider text-left">
+                {item.label}
+              </div>
+              {item.children.map(child => (
+                <Link
+                  key={child.id}
+                  to={child.path}
+                  onClick={() => setActiveDropdown(null)}
+                  className={`block px-3 py-1.5 text-[11px] transition-colors text-left ${isActive(child.path) ? 'text-white font-semibold bg-white/10' : 'text-slate-300 hover:text-white hover:bg-white/5'}`}
+                >
+                  {child.label}
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {/* Inline submenu for expanded state */}
+          {!isCollapsed && isOpen && (item.isPremium ? hasPremiumAccess : true) && (
             <div className="bg-black/10">
               {item.children.map(child => {
-                const isChildActive = isActive(child.path, child.path === '/payroll');
                 return (
                   <Link
                     key={child.id}
@@ -179,9 +307,17 @@ const Layout = ({ children }) => {
     // Special styling for Upgrade
     if (item.isSpecial) {
       return (
-        <Link key={item.id} to={item.path} className={linkCls(item.path)}>
-          <div className="flex items-center gap-[9px] text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 font-bold tracking-wide">
-            {renderIcon(item.iconName, ICON_SIZE, "text-amber-400")} {item.label}
+        <Link
+          key={item.id}
+          to={item.path}
+          className={linkCls(item.path)}
+          onMouseEnter={(e) => showTooltip(item.label, e)}
+          onMouseLeave={hideTooltip}
+          onClick={hideTooltip}
+        >
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-[9px]'} text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 font-bold tracking-wide`}>
+            {renderIcon(item.iconName, currentIconSize, "text-amber-400")}
+            {!isCollapsed && <span>{item.label}</span>}
           </div>
         </Link>
       );
@@ -189,8 +325,16 @@ const Layout = ({ children }) => {
 
     // Default item
     return (
-      <Link key={item.id} to={item.path} className={linkCls(item.path)}>
-        {renderIcon(item.iconName, ICON_SIZE)} {item.label}
+      <Link
+        key={item.id}
+        to={item.path}
+        className={linkCls(item.path)}
+        onMouseEnter={(e) => showTooltip(item.label, e)}
+        onMouseLeave={hideTooltip}
+        onClick={hideTooltip}
+      >
+        {renderIcon(item.iconName, currentIconSize)}
+        {!isCollapsed && <span>{item.label}</span>}
       </Link>
     );
   };
@@ -199,21 +343,36 @@ const Layout = ({ children }) => {
     <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
 
       {/* ── Sidebar ── */}
-      <aside className="w-[216px] h-full flex-shrink-0 hidden md:flex flex-col"
+      <aside className={`h-full flex-shrink-0 hidden md:flex flex-col relative transition-all duration-300 ease-in-out ${isCollapsed ? 'w-[64px]' : 'w-[216px]'}`}
         style={{ background: '#1a2e44' }}>
 
-        <div className="px-[18px] py-[16px] border-b border-white/10">
-          <div className="flex flex-col">
-            <h1 className="text-[17px] font-bold text-white flex items-center gap-2 tracking-wide">
-              <FaThLarge size={18} className="text-blue-400" />
-              Flance
-            </h1>
-            {hasPremiumAccess && (
-              <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase ml-[26px] mt-[2px]">
-                {isSuperAdmin ? 'Super Admin' : 'Pro Member'}
-              </span>
-            )}
-          </div>
+        {/* Floating circular expand/collapse toggle button on divider */}
+        <button
+          onClick={toggleSidebar}
+          className="absolute -right-3 top-6 bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 w-6 h-6 rounded-full flex items-center justify-center border border-white/10 shadow-md transition-transform duration-200 z-50 cursor-pointer"
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {isCollapsed ? <FaChevronRight size={8} /> : <FaChevronLeft size={8} />}
+        </button>
+
+        <div className="px-[18px] py-[16px] border-b border-white/10 flex items-center min-h-[57px]">
+          {!isCollapsed ? (
+            <div className="flex flex-col">
+              <h1 className="text-[17px] font-bold text-white flex items-center gap-2 tracking-wide">
+                <FaThLarge size={18} className="text-blue-400" />
+                Flance
+              </h1>
+              {hasPremiumAccess && (
+                <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase ml-[26px] mt-[2px]">
+                  {isSuperAdmin ? 'Super Admin' : 'Pro Member'}
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center w-full">
+              <FaThLarge size={20} className="text-blue-400" />
+            </div>
+          )}
         </div>
 
         {/* Nav */}
@@ -232,9 +391,13 @@ const Layout = ({ children }) => {
 
             return (
               <div key={section.id} className="mb-2">
-                <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
-                  {section.title}
-                </div>
+                {!isCollapsed ? (
+                  <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
+                    {section.title}
+                  </div>
+                ) : (
+                  <hr className="border-t border-white/5 my-3 mx-4" />
+                )}
                 {section.items.map(item => renderSidebarItem(item))}
               </div>
             );
@@ -242,9 +405,10 @@ const Layout = ({ children }) => {
         </nav>
 
         {/* Logout */}
-        <div className="border-t border-white/10 p-[10px]">
+        <div className="border-t border-white/10 p-[10px] flex justify-center">
           <button
-            onClick={async () => {
+            onClick={async (e) => {
+              hideTooltip();
               try {
                 await api.post('/auth/logout');
               } catch (err) {
@@ -253,10 +417,13 @@ const Layout = ({ children }) => {
               clearAuthSession();
               window.location.href = '/login';
             }}
+            onMouseEnter={(e) => showTooltip('Logout', e)}
+            onMouseLeave={hideTooltip}
             data-testid="logout-button"
-            className="flex items-center gap-[9px] px-[16px] py-[8px] rounded text-[12px] font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors w-full"
+            className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-[9px] px-[16px]'} py-[8px] rounded text-[12px] font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200 w-full relative group`}
           >
-            <FaSignOutAlt size={ICON_SIZE} /> Logout
+            <FaSignOutAlt size={isCollapsed ? 16 : ICON_SIZE} />
+            {!isCollapsed && <span>Logout</span>}
           </button>
         </div>
       </aside>
@@ -308,6 +475,19 @@ const Layout = ({ children }) => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Global Tooltip for Collapsed Sidebar */}
+      {tooltip.visible && tooltip.rect && (
+        <div
+          className="fixed bg-slate-900 text-white text-[10px] font-semibold px-2.5 py-1.5 rounded-md shadow-lg pointer-events-none z-50 whitespace-nowrap"
+          style={{
+            left: `${tooltip.rect.right + 12}px`,
+            top: `${tooltip.rect.top + (tooltip.rect.height / 2) - 12}px`
+          }}
+        >
+          {tooltip.text}
         </div>
       )}
     </div>

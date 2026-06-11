@@ -99,105 +99,22 @@ const Signup = () => {
         </div>
       </div>
 
-      {/* Right Side - Form */}
-      <div className="w-full lg:w-[40%] bg-white flex flex-col justify-center items-center p-4 md:p-8 overflow-hidden h-screen">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-slate-900">Create an account</h1>
+      {/* Right Side - Message */}
+      <div className="w-full lg:w-[40%] bg-white flex flex-col justify-center items-center p-8 md:p-16 overflow-y-auto">
+        <div className="w-full max-w-md text-center">
+          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <FaExclamationCircle className="w-8 h-8" />
           </div>
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl flex items-center gap-2">
-              <FaExclamationCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-700">Username</label>
-              <input
-                type="text"
-                name="username"
-                required
-                data-testid="signup-username"
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm text-sm"
-                placeholder="Choose a username"
-                value={formData.username}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-700">Email Address</label>
-              <input
-                type="email"
-                name="email"
-                required
-                data-testid="signup-email"
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm text-sm"
-                placeholder="Enter your email"
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-700">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  required
-                  data-testid="signup-password"
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm text-sm pr-11"
-                  placeholder="Create a password"
-                  value={formData.password}
-                  onChange={handleChange}
-                />
-                <button type="button" onClick={() => setShowPassword(o => !o)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                  {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-700">Confirm Password</label>
-              <div className="relative">
-                <input
-                  type={showConfirm ? 'text' : 'password'}
-                  name="confirmPassword"
-                  required
-                  data-testid="signup-confirm-password"
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm text-sm pr-11"
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                />
-                <button type="button" onClick={() => setShowConfirm(o => !o)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                  {showConfirm ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              data-testid="signup-submit"
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.99] mt-2 text-sm"
-            >
-              {loading ? 'Creating account...' : 'Sign up'}
-            </button>
-          </form>
-
-
-
-          <p className="mt-6 text-center text-slate-600 text-sm">
-            Already have an account?{' '}
-            <Link to="/login" className="font-semibold text-teal-600 hover:text-teal-700">Log in</Link>
+          <h1 className="text-3xl font-bold text-slate-900 mb-4" data-testid="registration-disabled-title">Registration Disabled</h1>
+          <p className="text-slate-600 mb-8 leading-relaxed">
+            Public self-registration is currently disabled. Please contact your system administrator to request an account and obtain access.
           </p>
+          <Link
+            to="/login"
+            className="inline-block bg-slate-900 hover:bg-slate-800 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.99] text-sm"
+          >
+            Back to Sign In
+          </Link>
         </div>
       </div>
     </div>

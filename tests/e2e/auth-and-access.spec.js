@@ -1,21 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { login, logout, readSeededUsers, uniqueName } from './support/helpers.js';
 
-test('signup logs the user in and logout returns to login', async ({ page }) => {
-  const seeded = readSeededUsers();
-  const username = uniqueName(`${seeded.runId}-signup`);
-
+test('self-registration is disabled and displays message', async ({ page }) => {
   await page.goto('/signup');
-  await page.getByTestId('signup-username').fill(username);
-  await page.getByTestId('signup-email').fill(`${username}@example.com`);
-  await page.getByTestId('signup-password').fill(seeded.password);
-  await page.getByTestId('signup-confirm-password').fill(seeded.password);
-  await page.getByTestId('signup-submit').click();
-
-  await expect(page).toHaveURL(/\/invoices/);
-  await expect(page.getByRole('heading', { name: 'Invoices' })).toBeVisible();
-
-  await logout(page);
+  await expect(page.getByTestId('registration-disabled-title')).toHaveText('Registration Disabled');
+  await expect(page.getByText('Public self-registration is currently disabled.')).toBeVisible();
+  
+  // Verify back to login works
+  await page.getByRole('link', { name: 'Back to Sign In' }).click();
+  await expect(page).toHaveURL(/\/login/);
 });
 
 test('free user sees premium modal on protected navigation', async ({ page }) => {
