@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { FaDownload } from 'react-icons/fa';
+import * as XLSX from 'xlsx';
 import api from '../api/axios';
 import Skeleton from '../components/Skeleton';
 import { buildPayrollSnapshot, buildMasterSalaryStructure, DEFAULT_PAYROLL_CONFIG, fmtMoney } from '../utils/payroll';
@@ -111,8 +113,6 @@ const SalaryCalculator = () => {
     incentive: 0,
     arrear: 0,
     referralBonus: 0,
-    // Metadata
-    salaryEffectiveFrom: new Date().toISOString().split('T')[0],
     remarks: '',
     salaryTemplate: 'custom',
     // Tax Savings Declarations
@@ -357,8 +357,6 @@ const SalaryCalculator = () => {
         incentive: Number(form.incentive) || 0,
         arrear: Number(form.arrear) || 0,
         referralBonus: Number(form.referralBonus) || 0,
-        // Metadata
-        salaryEffectiveFrom: form.salaryEffectiveFrom,
         remarks: form.remarks,
         taxRegime: form.taxRegime,
         declarations: {
@@ -382,6 +380,128 @@ const SalaryCalculator = () => {
       setSubmitting(false);
     }
   };
+
+  const handleDownloadBreakup = () => {
+    if (!result || !result.master) return;
+
+    const data = [
+      ['SIMULATED SALARY BREAKUP / CTC STRUCTURE', ''],
+      ['Target Tax Regime', form.taxRegime === 'old' ? 'Old Regime' : 'New Regime'],
+      ['Annual CTC Input', `₹${(form.annualCTC).toLocaleString('en-IN')}/yr`],
+      ['Monthly CTC Input', `₹${(form.monthlyCTC).toLocaleString('en-IN')}/mo`],
+      ['', ''],
+      ['SALARY COMPONENTS', 'Monthly (INR)', 'Annual (INR)'],
+    ];
+
+    const comps = config?.salaryComponents && config.salaryComponents.length > 0
+      ? config.salaryComponents
+      : [
+          { id: 'basic', name: 'Basic Salary', type: 'earning' },
+          { id: 'hra', name: 'House Rent Allowance (HRA)', type: 'earning' },
+          { id: 'special', name: 'Special Allowance (Balancing Component)', type: 'earning' },
+          { id: 'flexi', name: 'Flexi Benefits Wallet', type: 'earning' },
+          { id: 'broadband', name: 'Broadband Allowance', type: 'earning' },
+          { id: 'petrol', name: 'Petrol Reimbursement', type: 'earning' },
+          { id: 'lta', name: 'Leave Travel Allowance (LTA)', type: 'earning' },
+          { id: 'conveyance', name: 'Conveyance Allowance', type: 'earning' },
+          { id: 'medical', name: 'Medical Allowance', type: 'earning' }
+        ];
+
+    const getEarningValue = (cId) => {
+      if (result.master?.earningsMap && result.master.earningsMap[cId] !== undefined) {
+        return result.master.earningsMap[cId];
+      }
+      if (cId === 'basic') return result.master?.basicMaster || 0;
+      if (cId === 'hra') return result.master?.hraMaster || 0;
+      if (cId === 'special') return result.master?.specialAllowance || 0;
+      if (cId === 'flexi') return result.master?.flexi || 0;
+      if (cId === 'broadband') return result.master?.broadband || 0;
+      if (cId === 'petrol') return result.master?.petrol || 0;
+      if (cId === 'lta') return result.master?.lta || 0;
+      if (cId === 'conveyance') return result.master?.conveyance || 0;
+      if (cId === 'medical') return result.master?.medicalAllowance || 0;
+      return 0;
+    };
+
+    comps.filter(c => c.type === 'earning').forEach(c => {
+      const val = getEarningValue(c.id);
+      if (c.id === 'basic' || c.id === 'hra' || val > 0) {
+        data.push([c.name || c.id, val, toAnnual(val)]);
+      }
+    });
+
+    data.push(['Gross Salary (Total Earnings)', result.payroll?.earnings?.totalEarnings || result.master?.grossSalary || 0, toAnnual(result.payroll?.earnings?.totalEarnings || result.master?.grossSalary || 0)]);
+    data.push(['', '', '']);
+    
+    data.push(['EMPLOYER CONTRIBUTIONS', 'Monthly (INR)', 'Annual (INR)']);
+    if (result.master?.pfEmployer > 0) {
+      data.push(['PF Employer', result.master.pfEmployer, toAnnual(result.master.pfEmployer)]);
+    }
+    if (result.master?.esiEmployer > 0) {
+      data.push(['ESI Employer', result.master.esiEmployer, toAnnual(result.master.esiEmployer)]);
+    }
+    if (result.master?.gratuity > 0) {
+      data.push(['Gratuity Provision', result.master.gratuity, toAnnual(result.master.gratuity)]);
+    }
+    if (result.master?.lwfEmployer > 0) {
+      data.push(['LWF Employer', result.master.lwfEmployer, toAnnual(result.master.lwfEmployer)]);
+    }
+    if (result.master?.insurance > 0) {
+      data.push(['Corporate Health Insurance', result.master.insurance, toAnnual(result.master.insurance)]);
+    }
+    if (result.master?.employerNPS > 0) {
+      data.push(['Employer NPS Contribution', result.master.employerNPS, toAnnual(result.master.employerNPS)]);
+    }
+    data.push(['Total Employer Cost (CTC)', result.master?.grossTotalSalary || result.monthlyCTC, toAnnual(result.master?.grossTotalSalary || result.monthlyCTC)]);
+
+    data.push(['', '', '']);
+    data.push(['EMPLOYEE DEDUCTIONS', 'Monthly (INR)', 'Annual (INR)']);
+    if (result.payroll?.deductions?.pfEmployee > 0) {
+      data.push(['PF Employee', result.payroll.deductions.pfEmployee, toAnnual(result.payroll.deductions.pfEmployee)]);
+    }
+    if (result.payroll?.deductions?.esiEmployee > 0) {
+      data.push(['ESI Employee', result.payroll.deductions.esiEmployee, toAnnual(result.payroll.deductions.esiEmployee)]);
+    }
+    if (result.payroll?.deductions?.lwfEmployee > 0) {
+      data.push(['LWF Employee', result.payroll.deductions.lwfEmployee, toAnnual(result.payroll.deductions.lwfEmployee)]);
+    }
+    if (result.payroll?.deductions?.professionalTax > 0) {
+      data.push(['Professional Tax (PT)', result.payroll.deductions.professionalTax, toAnnual(result.payroll.deductions.professionalTax)]);
+    }
+    if (result.payroll?.deductions?.tds > 0) {
+      data.push(['Income Tax (TDS)', result.payroll.deductions.tds, toAnnual(result.payroll.deductions.tds)]);
+    }
+    data.push(['Total Deductions', result.payroll?.deductions?.totalDeductions || 0, toAnnual(result.payroll?.deductions?.totalDeductions || 0)]);
+
+    if (result.payroll?.variablePay?.totalVariablePay > 0) {
+      data.push(['', '', '']);
+      data.push(['ONE-TIME PAY (BONUSES)', 'Monthly (INR)', 'Annual (INR)']);
+      if (form.joiningBonus > 0) data.push(['Joining Bonus', Number(form.joiningBonus), toAnnual(Number(form.joiningBonus))]);
+      if (form.performanceBonus > 0) data.push(['Performance Bonus', Number(form.performanceBonus), toAnnual(Number(form.performanceBonus))]);
+      if (form.specialBonus > 0) data.push(['Special Bonus', Number(form.specialBonus), toAnnual(Number(form.specialBonus))]);
+      if (form.retentionBonus > 0) data.push(['Retention Bonus', Number(form.retentionBonus), toAnnual(Number(form.retentionBonus))]);
+      if (form.incentive > 0) data.push(['Incentive', Number(form.incentive), toAnnual(Number(form.incentive))]);
+      if (form.arrear > 0) data.push(['Arrear', Number(form.arrear), toAnnual(Number(form.arrear))]);
+      if (form.referralBonus > 0) data.push(['Referral Bonus', Number(form.referralBonus), toAnnual(Number(form.referralBonus))]);
+      data.push(['Total One-Time Pay', result.payroll.variablePay.totalVariablePay, toAnnual(result.payroll.variablePay.totalVariablePay)]);
+    }
+
+    data.push(['', '', '']);
+    data.push(['ESTIMATED NET TAKE-HOME', result.payroll?.netSalary || 0, toAnnual(result.payroll?.netSalary || 0)]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    worksheet['!cols'] = [
+      { wch: 38 },
+      { wch: 15 },
+      { wch: 15 }
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Simulated Salary Breakup');
+    XLSX.writeFile(workbook, `Simulated_Salary_Breakup_${form.taxRegime}_Regime.xlsx`);
+    toast.success('Simulated salary breakup downloaded successfully');
+  };
+
 
   if (loading) {
     return (
@@ -488,21 +608,12 @@ const SalaryCalculator = () => {
                   <InputField label="Employer NPS Contribution (Monthly)" value={form.employerNPS} onChange={(value) => setForm((prev) => ({ ...prev, employerNPS: value }))} />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Salary Effective From</label>
-                    <input
-                      type="date"
-                      value={form.salaryEffectiveFrom}
-                      onChange={(e) => setForm((prev) => ({ ...prev, salaryEffectiveFrom: e.target.value }))}
-                      className="w-full mt-1.5 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
+                <div className="grid grid-cols-1 gap-4 pt-2 border-t border-gray-100">
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Payroll Notes</label>
                     <textarea
                       placeholder="Special revision notes or remarks..."
-                      rows="1"
+                      rows="2"
                       value={form.remarks}
                       onChange={(e) => setForm((prev) => ({ ...prev, remarks: e.target.value }))}
                       className="w-full mt-1.5 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -851,16 +962,25 @@ const SalaryCalculator = () => {
 
               {/* Detailed Component Breakdown */}
               <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-5">
-                <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 pb-4 gap-3">
                   <div>
                     <h2 className="text-lg font-bold text-gray-800">Salary Structure Breakdown</h2>
                     <p className="text-xs text-gray-500 mt-0.5">Estimated on the <strong className="uppercase text-blue-600">{form.taxRegime} Regime</strong> structure.</p>
                   </div>
-                  {result.master?.esiApplicable ? (
-                    <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold border border-amber-200">
-                      ESI Active (Basic &lt; ₹21,000)
-                    </span>
-                  ) : null}
+                  <div className="flex items-center gap-2">
+                    {result.master?.esiApplicable ? (
+                      <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold border border-amber-200">
+                        ESI Active (Basic &lt; ₹21,000)
+                      </span>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={handleDownloadBreakup}
+                      className="bg-white border border-gray-300 hover:bg-gray-50 text-blue-600 px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold shadow-sm"
+                    >
+                      <FaDownload size={10} /> Download Breakup
+                    </button>
+                  </div>
                 </div>
 
                 {/* Earnings Component */}

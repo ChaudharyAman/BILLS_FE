@@ -5,8 +5,9 @@ import {
   FaWallet, FaFileInvoiceDollar, FaHandHoldingUsd, FaReceipt,
   FaFilePdf, FaLock, FaUnlock, FaPrint, FaCloudUploadAlt,
   FaCheckCircle, FaTimesCircle, FaHourglassHalf, FaCalculator,
-  FaUserCircle, FaInfoCircle
+  FaUserCircle, FaInfoCircle, FaDownload
 } from 'react-icons/fa';
+import * as XLSX from 'xlsx';
 import api from '../api/axios';
 import Skeleton from '../components/Skeleton';
 import Modal from '../components/Modal';
@@ -292,7 +293,118 @@ const EmployeePortal = () => {
     }
   };
 
+  const handleDownloadBreakup = () => {
+    if (!employee || !salaryStructure) return;
+
+    const toAnnual = (val) => (Number(val) || 0) * 12;
+
+    const data = [
+      ['SALARY BREAKUP / CTC STRUCTURE', ''],
+      ['', ''],
+      ['EMPLOYEE DETAILS', ''],
+      ['Employee ID', employee.employeeId],
+      ['Name', `${employee.firstName} ${employee.lastName}`.trim()],
+      ['Designation', employee.designation || '-'],
+      ['Department', employee.department?.name || '-'],
+      ['Date of Joining', formatIndianDate(employee.joiningDate)],
+      ['Location', employee.location || '-'],
+      ['Employment Type', employee.employmentType || '-'],
+      ['Tax Regime', employee.taxRegime === 'old' ? 'Old Regime' : 'New Regime'],
+      ['', ''],
+      ['SALARY COMPONENTS', 'Monthly (INR)', 'Annual (INR)'],
+    ];
+
+    allEarningComponents.forEach(c => {
+      const val = getMasterComponentValue(salaryStructure, c.id);
+      const shouldShow = ['basic', 'hra', 'special'].includes(c.id) || val > 0;
+      if (shouldShow) {
+        let label = c.name;
+        if (c.id === 'basic') {
+          const pct = employee.basicPercent !== undefined && employee.basicPercent !== null ? employee.basicPercent : 50;
+          label = `${c.name} (${pct}% of CTC)`;
+        } else if (c.id === 'hra') {
+          const pct = employee.hraPercent !== undefined && employee.hraPercent !== null ? employee.hraPercent : 50;
+          label = `${c.name} (${pct}% of Basic)`;
+        }
+        data.push([label, val, toAnnual(val)]);
+      }
+    });
+
+    if (salaryStructure.employerNPS > 0) {
+      data.push(['Employer NPS Contribution', salaryStructure.employerNPS, toAnnual(salaryStructure.employerNPS)]);
+    }
+
+    data.push(['Gross Salary (Total Earnings)', salaryStructure.totalEarnings, toAnnual(salaryStructure.totalEarnings)]);
+    data.push(['', '', '']);
+    
+    data.push(['EMPLOYER CONTRIBUTIONS', 'Monthly (INR)', 'Annual (INR)']);
+    if (salaryStructure.pfEmployer > 0) {
+      const pfLabel = config?.pfCalculationType === 'fixed' ? "Employer PF (Fixed)" : "Employer PF (12% of Basic)";
+      data.push([pfLabel, salaryStructure.pfEmployer, toAnnual(salaryStructure.pfEmployer)]);
+    }
+    if (salaryStructure.esiEmployer > 0) {
+      data.push(['Employer ESI Contribution', salaryStructure.esiEmployer, toAnnual(salaryStructure.esiEmployer)]);
+    }
+    if (salaryStructure.gratuity > 0) {
+      data.push(['Gratuity Provision (4.81%)', salaryStructure.gratuity, toAnnual(salaryStructure.gratuity)]);
+    }
+    if (salaryStructure.lwfEmployer > 0) {
+      data.push(['Labor Welfare Fund (Employer)', salaryStructure.lwfEmployer, toAnnual(salaryStructure.lwfEmployer)]);
+    }
+    if (salaryStructure.insurance > 0) {
+      data.push(['Corporate Medical Insurance', salaryStructure.insurance, toAnnual(salaryStructure.insurance)]);
+    }
+
+    data.push(['Total Employer Cost (Stated CTC)', salaryStructure.grossTotalSalary, toAnnual(salaryStructure.grossTotalSalary)]);
+    
+    data.push(['', '', '']);
+    data.push(['STATUTORY DEDUCTIONS (EMPLOYEE)', 'Monthly (INR)', 'Annual (INR)']);
+    
+    const activePayroll = payrolls && payrolls.length > 0 ? payrolls[0] : null;
+    const pfEmp = activePayroll?.deductions?.pfEmployee ?? salaryStructure.pfEmployee ?? 0;
+    const esiEmp = activePayroll?.deductions?.esiEmployee ?? salaryStructure.esiEmployee ?? 0;
+    const lwfEmp = activePayroll?.deductions?.lwfEmployee ?? salaryStructure.lwfEmployee ?? 0;
+    const ptVal = activePayroll?.deductions?.professionalTax ?? salaryStructure.professionalTax ?? 0;
+    const tdsVal = activePayroll?.deductions?.tds ?? salaryStructure.tds ?? 0;
+
+    if (pfEmp > 0) {
+      data.push(['PF Employee Deduction', pfEmp, toAnnual(pfEmp)]);
+    }
+    if (esiEmp > 0) {
+      data.push(['ESI Employee Deduction', esiEmp, toAnnual(esiEmp)]);
+    }
+    if (lwfEmp > 0) {
+      data.push(['LWF Employee Deduction', lwfEmp, toAnnual(lwfEmp)]);
+    }
+    if (ptVal > 0) {
+      data.push(['Professional Tax (PT)', ptVal, toAnnual(ptVal)]);
+    }
+    if (tdsVal > 0) {
+      data.push(['Income Tax (TDS)', tdsVal, toAnnual(tdsVal)]);
+    }
+
+    const totalDeds = pfEmp + esiEmp + lwfEmp + ptVal + tdsVal;
+    data.push(['Total Deductions', totalDeds, toAnnual(totalDeds)]);
+
+    data.push(['', '', '']);
+    data.push(['ESTIMATED TAKE-HOME PAY', salaryStructure.netTakeHome, toAnnual(salaryStructure.netTakeHome)]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    worksheet['!cols'] = [
+      { wch: 38 },
+      { wch: 15 },
+      { wch: 15 }
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    workbook.Workbook = { WBProps: { fullCalcOnLoad: true } };
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Salary Breakup');
+    XLSX.writeFile(workbook, `${employee.firstName}_${employee.lastName}_Salary_Breakup.xlsx`);
+    toast.success('Salary breakup downloaded successfully');
+  };
+
   // Submit Claim
+
   const handleClaimSubmit = async (e) => {
     e.preventDefault();
     if (!employee) return;
@@ -721,14 +833,23 @@ const EmployeePortal = () => {
 
                   {/* CTC Salary Structure Breakup */}
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-slate-100 flex justify-between items-center">
+                    <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                       <div>
                         <h2 className="text-lg font-bold text-slate-800">Master CTC Compensation Structure</h2>
                         <p className="text-xs text-slate-500">Monthly components projected under statutory regulations.</p>
                       </div>
-                      <span className="text-xs bg-slate-100 border px-3 py-1 rounded-xl text-slate-600 font-semibold">
-                        Monthly CTC: {fmtMoney(employee.monthlyCTC)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs bg-slate-100 border px-3 py-1 rounded-xl text-slate-600 font-semibold">
+                          Monthly CTC: {fmtMoney(employee.monthlyCTC)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleDownloadBreakup}
+                          className="bg-white border border-gray-300 hover:bg-gray-50 text-blue-600 px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold shadow-sm"
+                        >
+                          <FaDownload size={10} /> Download Breakup
+                        </button>
+                      </div>
                     </div>
 
                     <table className="w-full text-sm text-slate-700">
