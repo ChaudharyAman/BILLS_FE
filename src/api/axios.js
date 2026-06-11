@@ -8,6 +8,9 @@ export const storeAuthSession = (authData) => {
   if (authData?.user) {
     localStorage.setItem('user', JSON.stringify({ user: authData.user }));
   }
+  if (authData?.token) {
+    localStorage.setItem('authToken', authData.token);
+  }
 };
 
 export const clearAuthSession = () => {
@@ -22,6 +25,20 @@ const api = axios.create({
   },
   withCredentials: true, // Send cookies with every request
 });
+
+// Add a request interceptor to inject the Bearer token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 // Add a response interceptor
 api.interceptors.response.use(
