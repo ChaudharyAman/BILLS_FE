@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api, { storeAuthSession } from '../api/axios';
-import { FaEye, FaEyeSlash, FaExclamationCircle } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaExclamationCircle, FaLock, FaEnvelope, FaChartLine, FaShieldAlt, FaChartPie } from 'react-icons/fa';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -49,69 +49,73 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex overflow-hidden font-sans">
-
-      {/* Left Side - Fullscreen Illustration */}
-      <div className="hidden lg:flex w-[60%] bg-[#0F3D3E] relative items-center justify-center overflow-hidden p-12">
-
-        {/* Abstract Invoice/Receipt Pattern Background */}
-        <div className="absolute inset-0 opacity-20 flex items-center justify-center">
-          {/* Pattern removed as per request to remove SVGs */}
+    <div className="min-h-screen w-full flex bg-white overflow-hidden font-sans">
+      
+      {/* Left Side - Presentation */}
+      <div className="hidden lg:flex lg:w-1/2 bg-[#f4f7fa] relative flex-col justify-between p-16 select-none">
+        {/* Top brand */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+            <FaChartLine size={18} className="transform -rotate-12" />
+          </div>
+          <span className="text-xl font-bold tracking-tight text-slate-800">Flance</span>
         </div>
 
-        {/* Ambient Glows */}
-        <div className="absolute top-[-20%] right-[-20%] w-[80%] h-[80%] bg-[#1A4D55] opacity-40 blur-[150px] rounded-full"></div>
-        <div className="absolute bottom-[-20%] left-[-20%] w-[80%] h-[80%] bg-[#2C7A7B] opacity-30 blur-[150px] rounded-full"></div>
-
-        {/* Central Composition */}
-        <div className="relative z-10 text-center">
-          <div className="relative inline-block mb-8">
-            {/* Floating Invoice Graphic */}
-            <div className="w-64 h-80 bg-white rounded-lg shadow-2xl p-6 transform rotate-6 relative z-10 mx-auto">
-              <div className="h-4 w-24 bg-teal-500 rounded mb-4"></div>
-              <div className="space-y-3">
-                <div className="h-2 w-full bg-slate-100 rounded"></div>
-                <div className="h-2 w-full bg-slate-100 rounded"></div>
-                <div className="h-2 w-3/4 bg-slate-100 rounded"></div>
-              </div>
-
-              {/* Growth Chart graphic for signup appeal */}
-              <div className="mt-8 h-24 flex items-end justify-between px-2 gap-2">
-                <div className="w-4 bg-teal-200 rounded-t h-[40%]"></div>
-                <div className="w-4 bg-teal-300 rounded-t h-[60%]"></div>
-                <div className="w-4 bg-teal-400 rounded-t h-[50%]"></div>
-                <div className="w-4 bg-teal-500 rounded-t h-[80%]"></div>
-                <div className="w-4 bg-teal-600 rounded-t h-[100%] shadow-lg"></div>
-              </div>
-
-              {/* Stamped seal */}
-              <div className="absolute -top-4 -right-4 w-14 h-14 bg-teal-500 rounded-full flex items-center justify-center shadow-lg text-white font-bold">
-                NEW
-              </div>
-            </div>
-
-            {/* Background stacked paper */}
-            <div className="absolute top-4 -left-6 w-64 h-80 bg-slate-200 rounded-lg shadow-lg transform -rotate-3 -z-10"></div>
+        {/* Central visual block */}
+        <div className="max-w-md my-auto space-y-10">
+          <div>
+            <h2 className="text-4xl font-extrabold tracking-tight text-slate-900 leading-[1.2]">
+              Manage your <br />
+              <span className="text-blue-600 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">finances smarter.</span>
+            </h2>
+            <p className="text-slate-500 text-sm mt-4 leading-relaxed font-medium">
+              Invoices, bills, payroll and insights — all in one clean, powerful workspace.
+            </p>
           </div>
 
-          <h2 className="text-4xl font-bold text-white mb-4">Join the Future <br /> of Invoicing</h2>
-          <p className="text-teal-200 text-lg max-w-md mx-auto leading-relaxed">Start your journey today and experience seamless financial management.</p>
+          {/* Cards */}
+          <div className="space-y-4">
+            {[
+              { title: 'Real-time Analytics', desc: 'Track your growth and margins instantly.', icon: FaChartPie, color: 'text-blue-600 bg-blue-50 border-blue-100' },
+              { title: 'Financial Insights', desc: 'Get automated summaries of cash flow and taxes.', icon: FaChartLine, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
+              { title: 'Bank-grade Security', desc: 'Your financial data is encrypted and secure.', icon: FaShieldAlt, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
+            ].map((card, idx) => (
+              <div key={idx} className="flex items-center gap-4 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${card.color} flex-shrink-0`}>
+                  <card.icon size={16} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800">{card.title}</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">{card.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-xs text-slate-400 font-medium">
+          © 2026 Flance. All rights reserved.
         </div>
       </div>
 
-      {/* Right Side - Message */}
-      <div className="w-full lg:w-[40%] bg-white flex flex-col justify-center items-center p-8 md:p-16 overflow-y-auto">
-        <div className="w-full max-w-md text-center">
-          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <FaExclamationCircle className="w-8 h-8" />
+      {/* Right Side - Registration Disabled Message */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 md:p-16 bg-white overflow-y-auto">
+        <div className="w-full max-w-[400px] text-center space-y-6">
+          <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto border border-rose-100 shadow-sm shadow-rose-100/50">
+            <FaExclamationCircle size={28} />
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-4" data-testid="registration-disabled-title">Registration Disabled</h1>
-          <p className="text-slate-600 mb-8 leading-relaxed">
-            Public self-registration is currently disabled. Please contact your system administrator to request an account and obtain access.
-          </p>
+          
+          <div className="space-y-2">
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight" data-testid="registration-disabled-title">Registration Disabled</h1>
+            <p className="text-slate-500 text-sm leading-relaxed font-medium">
+              Public self-registration is currently disabled. Please contact your system administrator to request an account and obtain access.
+            </p>
+          </div>
+
           <Link
             to="/login"
-            className="inline-block bg-slate-900 hover:bg-slate-800 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.99] text-sm"
+            className="w-full inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-blue-200 text-sm active:scale-[0.99]"
           >
             Back to Sign In
           </Link>

@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { FaEdit, FaHistory, FaTrash } from 'react-icons/fa';
+import { FaEdit, FaHistory, FaTrash, FaDownload } from 'react-icons/fa';
+import * as XLSX from 'xlsx';
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import Skeleton from '../components/Skeleton';
@@ -122,6 +123,102 @@ const EmployeeDetails = () => {
     }
   };
 
+  const handleDownloadBreakup = () => {
+    if (!employee || !salaryPreview) return;
+
+    const toAnnual = (val) => (Number(val) || 0) * 12;
+
+    const data = [
+      ['SALARY BREAKUP / CTC STRUCTURE', ''],
+      ['', ''],
+      ['EMPLOYEE DETAILS', ''],
+      ['Employee ID', employee.employeeId],
+      ['Name', `${employee.firstName} ${employee.lastName}`.trim()],
+      ['Designation', employee.designation || '-'],
+      ['Department', employee.department?.name || '-'],
+      ['Date of Joining', fmtDate(employee.joiningDate)],
+      ['Location', employee.location || '-'],
+      ['Employment Type', employee.employmentType || '-'],
+      ['Tax Regime', employee.taxRegime === 'old' ? 'Old Regime' : 'New Regime'],
+      ['', ''],
+      ['SALARY COMPONENTS', 'Monthly (INR)', 'Annual (INR)'],
+      ['Basic Salary', salaryPreview.basicMaster, toAnnual(salaryPreview.basicMaster)],
+      ['House Rent Allowance (HRA)', salaryPreview.hraMaster, toAnnual(salaryPreview.hraMaster)],
+    ];
+
+    earningsList.forEach(c => {
+      if (c.id !== 'basic' && c.id !== 'hra') {
+        const val = getEarningValue(c.id);
+        if (val > 0) {
+          data.push([c.name || c.id, val, toAnnual(val)]);
+        }
+      }
+    });
+
+    data.push(['Gross Salary', salaryPreview.grossSalary, toAnnual(salaryPreview.grossSalary)]);
+    data.push(['', '', '']);
+    data.push(['EMPLOYER CONTRIBUTIONS', 'Monthly (INR)', 'Annual (INR)']);
+    
+    if (salaryPreview.pfEmployer > 0) {
+      data.push(['Provident Fund (PF) Employer', salaryPreview.pfEmployer, toAnnual(salaryPreview.pfEmployer)]);
+    }
+    if (salaryPreview.gratuity > 0) {
+      data.push(['Gratuity Provision', salaryPreview.gratuity, toAnnual(salaryPreview.gratuity)]);
+    }
+    if (salaryPreview.insurance > 0) {
+      data.push(['Health Insurance', salaryPreview.insurance, toAnnual(salaryPreview.insurance)]);
+    }
+    if (salaryPreview.employerNPS > 0) {
+      data.push(['Employer NPS Contribution', salaryPreview.employerNPS, toAnnual(salaryPreview.employerNPS)]);
+    }
+    if (salaryPreview.lwfEmployer > 0) {
+      data.push(['LWF Employer', salaryPreview.lwfEmployer, toAnnual(salaryPreview.lwfEmployer)]);
+    }
+    if (salaryPreview.esiEmployer > 0) {
+      data.push(['ESI Employer', salaryPreview.esiEmployer, toAnnual(salaryPreview.esiEmployer)]);
+    }
+
+    data.push(['Total Employer Cost', salaryPreview.totalEmployerContributions, toAnnual(salaryPreview.totalEmployerContributions)]);
+    data.push(['', '', '']);
+    data.push(['COST TO COMPANY (CTC)', salaryPreview.monthlyCTC, salaryPreview.annualCTC]);
+    data.push(['', '', '']);
+    data.push(['STATUTORY DEDUCTIONS (EMPLOYEE)', 'Monthly (INR)', 'Annual (INR)']);
+    
+    if (salaryPreview.pfEmployee > 0) {
+      data.push(['PF Employee Deduction', salaryPreview.pfEmployee, toAnnual(salaryPreview.pfEmployee)]);
+    }
+    if (salaryPreview.esiEmployee > 0) {
+      data.push(['ESI Employee Deduction', salaryPreview.esiEmployee, toAnnual(salaryPreview.esiEmployee)]);
+    }
+    if (salaryPreview.professionalTax > 0) {
+      data.push(['Professional Tax (PT)', salaryPreview.professionalTax, toAnnual(salaryPreview.professionalTax)]);
+    }
+    if (salaryPreview.tds > 0) {
+      data.push(['Income Tax (TDS) Projection', salaryPreview.tds, toAnnual(salaryPreview.tds)]);
+    }
+    if (salaryPreview.lwfEmployee > 0) {
+      data.push(['LWF Employee Deduction', salaryPreview.lwfEmployee, toAnnual(salaryPreview.lwfEmployee)]);
+    }
+    
+    data.push(['Total Deductions', salaryPreview.totalDeductions, toAnnual(salaryPreview.totalDeductions)]);
+    data.push(['', '', '']);
+    data.push(['ESTIMATED TAKE-HOME PAY', salaryPreview.netTakeHome, toAnnual(salaryPreview.netTakeHome)]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    
+    worksheet['!cols'] = [
+      { wch: 35 },
+      { wch: 15 },
+      { wch: 15 }
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Salary Breakup');
+    
+    XLSX.writeFile(workbook, `${employee.firstName}_${employee.lastName}_Salary_Breakup.xlsx`);
+    toast.success('Salary breakup downloaded successfully');
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-6 font-sans text-gray-900 space-y-4">
@@ -174,7 +271,16 @@ const EmployeeDetails = () => {
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-          <h2 className="font-semibold text-sm text-gray-700 mb-4">CTC Snapshot</h2>
+          <div className="flex justify-between items-center mb-4 border-b border-gray-150 pb-2">
+            <h2 className="font-semibold text-sm text-gray-700">CTC Snapshot</h2>
+            <button
+              onClick={handleDownloadBreakup}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1.5"
+            >
+              <FaDownload size={10} />
+              Download Breakup
+            </button>
+          </div>
           <div className="space-y-2 text-xs">
             <Info label="Monthly CTC" value={fmtMoney(employee.monthlyCTC)} strong />
             <Info label="Gross Salary" value={fmtMoney(salaryPreview.grossSalary)} />
