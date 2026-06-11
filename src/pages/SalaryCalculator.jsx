@@ -111,8 +111,6 @@ const SalaryCalculator = () => {
     incentive: 0,
     arrear: 0,
     referralBonus: 0,
-    // Metadata
-    salaryEffectiveFrom: new Date().toISOString().split('T')[0],
     remarks: '',
     salaryTemplate: 'custom',
     // Tax Savings Declarations
@@ -357,8 +355,6 @@ const SalaryCalculator = () => {
         incentive: Number(form.incentive) || 0,
         arrear: Number(form.arrear) || 0,
         referralBonus: Number(form.referralBonus) || 0,
-        // Metadata
-        salaryEffectiveFrom: form.salaryEffectiveFrom,
         remarks: form.remarks,
         taxRegime: form.taxRegime,
         declarations: {
@@ -488,21 +484,12 @@ const SalaryCalculator = () => {
                   <InputField label="Employer NPS Contribution (Monthly)" value={form.employerNPS} onChange={(value) => setForm((prev) => ({ ...prev, employerNPS: value }))} />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Salary Effective From</label>
-                    <input
-                      type="date"
-                      value={form.salaryEffectiveFrom}
-                      onChange={(e) => setForm((prev) => ({ ...prev, salaryEffectiveFrom: e.target.value }))}
-                      className="w-full mt-1.5 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
+                <div className="grid grid-cols-1 gap-4 pt-2 border-t border-gray-100">
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Payroll Notes</label>
                     <textarea
                       placeholder="Special revision notes or remarks..."
-                      rows="1"
+                      rows="2"
                       value={form.remarks}
                       onChange={(e) => setForm((prev) => ({ ...prev, remarks: e.target.value }))}
                       className="w-full mt-1.5 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
