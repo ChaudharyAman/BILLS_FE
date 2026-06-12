@@ -236,6 +236,53 @@ const PayslipGeneration = () => {
             </SectionCard>
           </div>
 
+          {slip.salarySplits && slip.salarySplits.length > 1 && (
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-4">
+                Mid-Month Revision Calculation Split
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      <th className="p-3">Period</th>
+                      <th className="p-3 text-right">Monthly CTC</th>
+                      <th className="p-3 text-right">Basic</th>
+                      <th className="p-3 text-right">HRA</th>
+                      <th className="p-3 text-right">PF (EE / ER)</th>
+                      <th className="p-3 text-right">ESI (EE / ER)</th>
+                      <th className="p-3 text-right">Gratuity</th>
+                      <th className="p-3 text-right">Period Earnings</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {slip.salarySplits.map((split, index) => (
+                      <tr key={index} className="hover:bg-slate-50/50">
+                        <td className="p-3 font-medium text-slate-900">
+                          <div>{fmtDate(split.startDate)} - {fmtDate(split.endDate)}</div>
+                          <div className="text-xs text-slate-500 font-normal mt-0.5">{split.daysCount} days in period</div>
+                        </td>
+                        <td className="p-3 text-right font-medium text-slate-700">{fmtMoney(split.monthlyCTC)}</td>
+                        <td className="p-3 text-right text-slate-700">{fmtMoney(split.basic)}</td>
+                        <td className="p-3 text-right text-slate-700">{fmtMoney(split.hra)}</td>
+                        <td className="p-3 text-right text-slate-700">
+                          <div>{fmtMoney(split.pfEmployee)} <span className="text-[10px] text-slate-400">EE</span></div>
+                          <div className="text-[11px] text-slate-500">{fmtMoney(split.pfEmployer)} <span className="text-[10px] text-slate-400">ER</span></div>
+                        </td>
+                        <td className="p-3 text-right text-slate-700">
+                          <div>{fmtMoney(split.esiEmployee)} <span className="text-[10px] text-slate-400">EE</span></div>
+                          <div className="text-[11px] text-slate-500">{fmtMoney(split.esiEmployer)} <span className="text-[10px] text-slate-400">ER</span></div>
+                        </td>
+                        <td className="p-3 text-right text-slate-700">{fmtMoney(split.gratuity)}</td>
+                        <td className="p-3 text-right font-semibold text-slate-900">{fmtMoney(split.totalEarnings)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           <div className="mt-6 grid gap-6 md:grid-cols-2">
             <AmountTable title="Earnings" rows={sections.earnings} totalLabel="Total Earnings" total={slip.earnings?.totalEarnings} />
             <AmountTable title="Deductions" rows={sections.deductions} totalLabel="Total Deductions" total={slip.deductions?.totalDeductions} />

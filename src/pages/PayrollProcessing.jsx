@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { FaCheck, FaSave, FaPlus, FaTrash, FaCalculator, FaTimes } from 'react-icons/fa';
 import api from '../api/axios';
 import Skeleton from '../components/Skeleton';
-import { buildPayrollSnapshot, DEFAULT_PAYROLL_CONFIG, fmtMoney, serializeRow } from '../utils/payroll';
+import { buildPayrollSnapshot, DEFAULT_PAYROLL_CONFIG, fmtMoney, serializeRow, getSalarySplits } from '../utils/payroll';
 import { usePayrollSnapshot } from '../hooks/usePayrollSnapshot';
 
 const monthName = (month) => new Date(0, month - 1).toLocaleString('en-US', { month: 'long' });
@@ -104,6 +104,7 @@ const EmployeeRow = ({
   updateRow,
   claimsMap,
   month,
+  year,
   earningComponents,
 }) => {
   const filteredReimbursements = useMemo(() => {
@@ -111,8 +112,8 @@ const EmployeeRow = ({
   }, [claimsMap, employee._id, row?.excludedClaimIds]);
 
   const rowWithReimbursements = useMemo(() => {
-    return { ...row, reimbursements: filteredReimbursements, month };
-  }, [row, filteredReimbursements, month]);
+    return { ...row, reimbursements: filteredReimbursements, month, year };
+  }, [row, filteredReimbursements, month, year]);
 
   const snapshot = usePayrollSnapshot(employee, config, rowWithReimbursements, monthWorkingDays);
   if (!snapshot) return null;
@@ -126,6 +127,24 @@ const EmployeeRow = ({
     );
     return sumNamedAmounts(filtered);
   }, [snapshot?.earnings?.otherEarnings, earningComponents]);
+
+  const isPfEnabled = row?.pfEnabled !== undefined ? row.pfEnabled : snapshot?.master?.pfEnabled !== false;
+  const isEsiEnabled = row?.esiEnabled !== undefined ? row.esiEnabled : snapshot?.master?.esiEnabled !== false;
+  const isPtEnabled = row?.ptEnabled !== undefined ? row.ptEnabled : snapshot?.master?.ptEnabled !== false;
+  const isLwfEnabled = row?.lwfEnabled !== undefined ? row.lwfEnabled : snapshot?.master?.lwfEnabled !== false;
+  const isGratuityEnabled = row?.gratuityEnabled !== undefined ? row.gratuityEnabled : snapshot?.master?.gratuityEnabled !== false;
+
+  const basicPercentVal = row?.basicPercent !== undefined && row?.basicPercent !== null
+    ? row.basicPercent
+    : (snapshot?.master?.basicPercent !== undefined
+        ? (snapshot.master.basicPercent > 1 ? snapshot.master.basicPercent : snapshot.master.basicPercent * 100)
+        : 50);
+
+  const hraPercentVal = row?.hraPercent !== undefined && row?.hraPercent !== null
+    ? row.hraPercent
+    : (snapshot?.master?.hraPercent !== undefined
+        ? (snapshot.master.hraPercent > 1 ? snapshot.master.hraPercent : snapshot.master.hraPercent * 100)
+        : 50);
 
   return (
     <tr key={employee._id} className="hover:bg-blue-50/40 align-top">
@@ -141,7 +160,7 @@ const EmployeeRow = ({
         <div className="font-semibold text-xs text-gray-900">{employee.firstName} {employee.lastName}</div>
         <div className="text-[10px] text-gray-400 mt-0.5">{employee.employeeId} · {employee.designation || '-'}</div>
         <div className="text-[10px] text-gray-400 mt-0.5 flex flex-col gap-0.5">
-          <span>CTC {fmtMoney(employee.monthlyCTC)}</span>
+          <span>CTC {fmtMoney(snapshot?.master?.monthlyCTC || employee.monthlyCTC)}</span>
           <button
             type="button"
             onClick={() => setBreakdownEmployee(employee)}
@@ -152,19 +171,19 @@ const EmployeeRow = ({
           
           {/* Statutory Settings Badges */}
           <div className="flex flex-wrap gap-1 mt-1 font-mono">
-            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${row?.pfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.pfEnabled !== false ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
-            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${row?.esiEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.esiEnabled !== false ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
-            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${row?.ptEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.ptEnabled !== false ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
-            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${row?.lwfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.lwfEnabled !== false ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
-            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${row?.gratuityEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={row?.gratuityEnabled !== false ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
-            {row?.basicPercent !== undefined && row?.basicPercent !== null && Number(row?.basicPercent) !== 50 && (
+            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPfEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isPfEnabled ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
+            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isEsiEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isEsiEnabled ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
+            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPtEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isPtEnabled ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
+            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isLwfEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isLwfEnabled ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
+            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isGratuityEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isGratuityEnabled ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
+            {Number(basicPercentVal) !== 50 && (
               <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" title="Basic Salary Overridden percentage">
-                B:{row?.basicPercent}%
+                B:{Math.round(basicPercentVal)}%
               </span>
             )}
-            {row?.hraPercent !== undefined && row?.hraPercent !== null && Number(row?.hraPercent) !== 50 && (
+            {Number(hraPercentVal) !== 50 && (
               <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm" title="HRA Overridden percentage">
-                H:{row?.hraPercent}%
+                H:{Math.round(hraPercentVal)}%
               </span>
             )}
           </div>
@@ -197,7 +216,7 @@ const EmployeeRow = ({
       <td className="px-4 py-2.5 text-xs font-semibold text-red-600 whitespace-nowrap">
         {fmtMoney(sumNamedAmounts(snapshot.deductions.otherDeductions))}
       </td>
-      <EditableMoneyCell value={row?.tds} onChange={(value) => updateRow(employee._id, 'tds', value)} />
+      <EditableMoneyCell value={row?.tds !== undefined ? row.tds : snapshot.deductions.tds} onChange={(value) => updateRow(employee._id, 'tds', value)} />
       <td className="px-4 py-2.5 text-xs font-bold whitespace-nowrap">{fmtMoney(snapshot.netSalary)}</td>
     </tr>
   );
@@ -355,18 +374,19 @@ const PayrollProcessing = () => {
             otherAllowanceArrear: 0,
             loanDeduction: 0,
             advanceDeduction: 0,
-            tds: Number(emp.deductions?.tds) || 0,
-            otherEarnings: emp.salaryStructure?.otherAllowances?.map(x => ({ name: x.name, amount: Number(x.amount) || 0 })) || [],
-            otherDeductions: emp.deductions?.otherDeductions?.map(x => ({ name: x.name, amount: Number(x.amount) || 0 })) || [],
-            pfEnabled: emp.pfEnabled !== false,
-            esiEnabled: emp.esiEnabled !== false,
-            ptEnabled: emp.ptEnabled !== false,
-            lwfEnabled: emp.lwfEnabled !== false,
-            gratuityEnabled: emp.gratuityEnabled !== false,
-            includePfInCTC: emp.includePfInCTC !== false,
-            includeGratuityInCTC: emp.includeGratuityInCTC !== false,
-            basicPercent: emp.basicPercent !== undefined && emp.basicPercent !== null ? emp.basicPercent : 50,
-            hraPercent: emp.hraPercent !== undefined && emp.hraPercent !== null ? emp.hraPercent : 50,
+            tds: Number(emp.deductions?.tds) > 0 ? Number(emp.deductions.tds) : undefined,
+            otherEarnings: undefined,
+            otherDeductions: undefined,
+            pfEnabled: undefined,
+            esiEnabled: undefined,
+            ptEnabled: undefined,
+            lwfEnabled: undefined,
+            gratuityEnabled: undefined,
+            includePfInCTC: undefined,
+            includeGratuityInCTC: undefined,
+            basicPercent: undefined,
+            hraPercent: undefined,
+            lopStrategy: 'proportional',
             excludedClaimIds: [],
           }];
         })));
@@ -392,7 +412,7 @@ const PayrollProcessing = () => {
   const selectedEmployees = useMemo(() => employees.filter((emp) => selected[emp._id]), [employees, selected]);
 
   const getSnapshot = (employee) => {
-    return usePayrollSnapshot(employee, config, { ...rows[employee._id], month }, monthWorkingDays);
+    return usePayrollSnapshot(employee, config, { ...rows[employee._id], month, year }, monthWorkingDays);
   };
 
   const totalPreview = useMemo(() => selectedEmployees.reduce((sum, employee) => {
@@ -423,10 +443,12 @@ const PayrollProcessing = () => {
       includeGratuityInCTC: row.includeGratuityInCTC,
       basicPercent: row.basicPercent,
       hraPercent: row.hraPercent,
+      lopStrategy: row.lopStrategy,
+      segmentLops: row.segmentLops,
       reimbursements: (claimsMap.get(employee._id) || []).filter(c => !(row.excludedClaimIds || []).includes(c._id)),
-    }, month);
+    }, month, year);
     return sum + (Number(snapshot.netSalary) || 0);
-  }, 0), [selectedEmployees, rows, claimsMap, config, monthWorkingDays, month]);
+  }, 0), [selectedEmployees, rows, claimsMap, config, monthWorkingDays, month, year]);
 
   const updateRow = (employeeId, field, value) => {
     setRows((prev) => ({
@@ -474,8 +496,47 @@ const PayrollProcessing = () => {
     }
   };
 
+  const handleSegmentLopChange = (index, valStr) => {
+    if (!breakdownEmployee) return;
+    const val = Math.max(0, Number(valStr) || 0);
+    const totalLop = Math.max(0, (Number(rows[breakdownEmployee._id]?.workingDays) || monthWorkingDays) - (Number(rows[breakdownEmployee._id]?.paidDays) || 0));
+    const totalDays = new Date(year, month, 0).getDate();
+
+    const currentSegmentLops = [...(rows[breakdownEmployee._id]?.segmentLops || [])];
+    while (currentSegmentLops.length < localSplits.length) {
+      currentSegmentLops.push(0);
+    }
+
+    currentSegmentLops[index] = val;
+
+    if (localSplits.length === 2) {
+      const otherIndex = index === 0 ? 1 : 0;
+      const otherMaxDays = (localSplits[otherIndex].daysCount / totalDays) * (Number(rows[breakdownEmployee._id]?.workingDays) || monthWorkingDays);
+      const otherVal = Math.max(0, Math.min(otherMaxDays, totalLop - val));
+      currentSegmentLops[otherIndex] = Math.round(otherVal * 100) / 100;
+
+      const currentMaxDays = (localSplits[index].daysCount / totalDays) * (Number(rows[breakdownEmployee._id]?.workingDays) || monthWorkingDays);
+      currentSegmentLops[index] = Math.round(Math.min(currentMaxDays, val) * 100) / 100;
+    } else {
+      const currentMaxDays = (localSplits[index].daysCount / totalDays) * (Number(rows[breakdownEmployee._id]?.workingDays) || monthWorkingDays);
+      currentSegmentLops[index] = Math.round(Math.min(currentMaxDays, val) * 100) / 100;
+    }
+
+    updateRow(breakdownEmployee._id, 'segmentLops', currentSegmentLops);
+  };
+
   const handleSaveAdjustments = () => {
     if (!breakdownEmployee) return;
+    const row = rows[breakdownEmployee._id] || {};
+    if (row.lopStrategy === 'custom') {
+      const totalLop = Math.max(0, (Number(row.workingDays) || monthWorkingDays) - (Number(row.paidDays) || 0));
+      const currentSegmentLops = row.segmentLops || [];
+      const sum = currentSegmentLops.reduce((s, val) => s + (Number(val) || 0), 0);
+      if (Math.abs(sum - totalLop) > 0.01) {
+        toast.error(`The sum of segment LOP days (${Math.round(sum * 100)/100}) must equal the total LOP days (${totalLop})`);
+        return;
+      }
+    }
     updateRow(breakdownEmployee._id, 'otherEarnings', localEarnings.filter(e => e.name.trim() !== ''));
     updateRow(breakdownEmployee._id, 'otherDeductions', localDeductions.filter(d => d.name.trim() !== ''));
     updateRow(breakdownEmployee._id, 'excludedClaimIds', Array.from(localExcludedClaimIds));
@@ -495,11 +556,38 @@ const PayrollProcessing = () => {
   const localSnapshot = usePayrollSnapshot(
     breakdownEmployee,
     config,
-    { ...localSnapshotFilteredRow, month },
+    { ...localSnapshotFilteredRow, month, year },
     monthWorkingDays,
     localEarnings,
     localDeductions
   );
+
+  const localSplits = useMemo(() => {
+    if (!breakdownEmployee) return [];
+    const row = rows[breakdownEmployee._id] || {};
+    const adjustments = {
+      pfEnabled: row.pfEnabled,
+      esiEnabled: row.esiEnabled,
+      ptEnabled: row.ptEnabled,
+      lwfEnabled: row.lwfEnabled,
+      gratuityEnabled: row.gratuityEnabled,
+      includePfInCTC: row.includePfInCTC,
+      includeGratuityInCTC: row.includeGratuityInCTC,
+      basicPercent: row.basicPercent,
+      hraPercent: row.hraPercent,
+      lopStrategy: row.lopStrategy,
+      segmentLops: row.segmentLops,
+    };
+    return getSalarySplits(
+      breakdownEmployee,
+      config,
+      month,
+      year,
+      row.paidDays,
+      row.workingDays,
+      adjustments
+    );
+  }, [breakdownEmployee, rows, config, month, year]);
 
   const submit = async (saveAsDraft) => {
     const invalid = selectedEmployees.find((employee) => {
@@ -613,6 +701,7 @@ const PayrollProcessing = () => {
                   updateRow={updateRow}
                   claimsMap={claimsMap}
                   month={month}
+                  year={year}
                   earningComponents={earningComponents}
                 />
               ))}
@@ -671,6 +760,84 @@ const PayrollProcessing = () => {
                 </div>
               )}
 
+              {localSplits && localSplits.length > 1 && (
+                <div className="border border-blue-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                  <div className="bg-blue-50 px-4 py-3 border-b border-blue-100 font-bold text-blue-900 text-sm">
+                    Mid-Month Revision Calculation Split
+                  </div>
+                  <div className="p-4 overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                          <th className="p-2.5">Period</th>
+                          {rows[breakdownEmployee._id]?.lopStrategy === 'custom' && (
+                            <th className="p-2.5 text-right w-20">LOP Days</th>
+                          )}
+                          <th className="p-2.5 text-right">Monthly CTC</th>
+                          <th className="p-2.5 text-right">Basic</th>
+                          <th className="p-2.5 text-right">HRA</th>
+                          <th className="p-2.5 text-right">PF (EE / ER)</th>
+                          <th className="p-2.5 text-right">ESI (EE / ER)</th>
+                          <th className="p-2.5 text-right">Gratuity</th>
+                          <th className="p-2.5 text-right">Period Earnings</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {localSplits.map((split, index) => (
+                          <tr key={index} className="hover:bg-slate-50/50">
+                            <td className="p-2.5 font-medium text-slate-900">
+                              <div>{new Date(split.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} - {new Date(split.endDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
+                              <div className="text-[10px] text-slate-500 font-normal mt-0.5">{split.daysCount} days in period</div>
+                            </td>
+                            {rows[breakdownEmployee._id]?.lopStrategy === 'custom' && (
+                              <td className="p-2.5 text-right">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  max={split.daysCount}
+                                  value={(rows[breakdownEmployee._id]?.segmentLops || [])[index] ?? 0}
+                                  onChange={(e) => handleSegmentLopChange(index, e.target.value)}
+                                  className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-semibold"
+                                />
+                              </td>
+                            )}
+                            <td className="p-2.5 text-right font-medium text-slate-700">{fmtMoney(split.monthlyCTC)}</td>
+                            <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.basic)}</td>
+                            <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.hra)}</td>
+                            <td className="p-2.5 text-right text-slate-700">
+                              <div>{fmtMoney(split.pfEmployee)} <span className="text-[9px] text-slate-400">EE</span></div>
+                              <div className="text-[10px] text-slate-500">{fmtMoney(split.pfEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
+                            </td>
+                            <td className="p-2.5 text-right text-slate-700">
+                              <div>{fmtMoney(split.esiEmployee)} <span className="text-[9px] text-slate-400">EE</span></div>
+                              <div className="text-[10px] text-slate-500">{fmtMoney(split.esiEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
+                            </td>
+                            <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.gratuity)}</td>
+                            <td className="p-2.5 text-right font-semibold text-slate-900">{fmtMoney(split.totalEarnings)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {rows[breakdownEmployee._id]?.lopStrategy === 'custom' && (() => {
+                      const totalLop = Math.max(0, (Number(rows[breakdownEmployee._id]?.workingDays) || monthWorkingDays) - (Number(rows[breakdownEmployee._id]?.paidDays) || 0));
+                      const currentSegmentLops = rows[breakdownEmployee._id]?.segmentLops || [];
+                      const sum = currentSegmentLops.reduce((s, val) => s + (Number(val) || 0), 0);
+                      const isMatching = Math.abs(sum - totalLop) < 0.01;
+                      return (
+                        <div className={`mt-3 text-[11px] font-semibold px-3 py-2 rounded-lg ${isMatching ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
+                          {isMatching ? (
+                            <span>✓ Total LOP Days allocated: {totalLop} days (matches overall LOP).</span>
+                          ) : (
+                            <span>⚠️ Allocated LOP Days sum ({Math.round(sum*100)/100}) must match the employee's total LOP days ({totalLop}).</span>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
               {localSnapshot && (
                 <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
                   <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 font-bold text-slate-700 text-sm flex items-center justify-between">
@@ -686,7 +853,11 @@ const PayrollProcessing = () => {
                       </div>
                       <input
                         type="checkbox"
-                        checked={rows[breakdownEmployee._id]?.pfEnabled !== false}
+                        checked={
+                          rows[breakdownEmployee._id]?.pfEnabled !== undefined
+                            ? rows[breakdownEmployee._id].pfEnabled
+                            : localSnapshot?.master?.pfEnabled !== false
+                        }
                         onChange={(e) => updateRow(breakdownEmployee._id, 'pfEnabled', e.target.checked)}
                         className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                       />
@@ -700,7 +871,11 @@ const PayrollProcessing = () => {
                       </div>
                       <input
                         type="checkbox"
-                        checked={rows[breakdownEmployee._id]?.esiEnabled !== false}
+                        checked={
+                          rows[breakdownEmployee._id]?.esiEnabled !== undefined
+                            ? rows[breakdownEmployee._id].esiEnabled
+                            : localSnapshot?.master?.esiEnabled !== false
+                        }
                         onChange={(e) => updateRow(breakdownEmployee._id, 'esiEnabled', e.target.checked)}
                         className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                       />
@@ -714,7 +889,11 @@ const PayrollProcessing = () => {
                       </div>
                       <input
                         type="checkbox"
-                        checked={rows[breakdownEmployee._id]?.ptEnabled !== false}
+                        checked={
+                          rows[breakdownEmployee._id]?.ptEnabled !== undefined
+                            ? rows[breakdownEmployee._id].ptEnabled
+                            : localSnapshot?.master?.ptEnabled !== false
+                        }
                         onChange={(e) => updateRow(breakdownEmployee._id, 'ptEnabled', e.target.checked)}
                         className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                       />
@@ -728,7 +907,11 @@ const PayrollProcessing = () => {
                       </div>
                       <input
                         type="checkbox"
-                        checked={rows[breakdownEmployee._id]?.lwfEnabled !== false}
+                        checked={
+                          rows[breakdownEmployee._id]?.lwfEnabled !== undefined
+                            ? rows[breakdownEmployee._id].lwfEnabled
+                            : localSnapshot?.master?.lwfEnabled !== false
+                        }
                         onChange={(e) => updateRow(breakdownEmployee._id, 'lwfEnabled', e.target.checked)}
                         className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                       />
@@ -742,7 +925,11 @@ const PayrollProcessing = () => {
                       </div>
                       <input
                         type="checkbox"
-                        checked={rows[breakdownEmployee._id]?.gratuityEnabled !== false}
+                        checked={
+                          rows[breakdownEmployee._id]?.gratuityEnabled !== undefined
+                            ? rows[breakdownEmployee._id].gratuityEnabled
+                            : localSnapshot?.master?.gratuityEnabled !== false
+                        }
                         onChange={(e) => updateRow(breakdownEmployee._id, 'gratuityEnabled', e.target.checked)}
                         className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                       />
@@ -756,7 +943,11 @@ const PayrollProcessing = () => {
                       </div>
                       <input
                         type="checkbox"
-                        checked={rows[breakdownEmployee._id]?.includePfInCTC !== false}
+                        checked={
+                          rows[breakdownEmployee._id]?.includePfInCTC !== undefined
+                            ? rows[breakdownEmployee._id].includePfInCTC
+                            : localSnapshot?.master?.includePfInCTC !== false
+                        }
                         onChange={(e) => updateRow(breakdownEmployee._id, 'includePfInCTC', e.target.checked)}
                         className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                       />
@@ -770,7 +961,11 @@ const PayrollProcessing = () => {
                       </div>
                       <input
                         type="checkbox"
-                        checked={rows[breakdownEmployee._id]?.includeGratuityInCTC !== false}
+                        checked={
+                          rows[breakdownEmployee._id]?.includeGratuityInCTC !== undefined
+                            ? rows[breakdownEmployee._id].includeGratuityInCTC
+                            : localSnapshot?.master?.includeGratuityInCTC !== false
+                        }
                         onChange={(e) => updateRow(breakdownEmployee._id, 'includeGratuityInCTC', e.target.checked)}
                         className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                       />
@@ -787,7 +982,15 @@ const PayrollProcessing = () => {
                           type="number"
                           min="1"
                           max="100"
-                          value={rows[breakdownEmployee._id]?.basicPercent ?? 50}
+                          value={
+                            rows[breakdownEmployee._id]?.basicPercent !== undefined
+                              ? rows[breakdownEmployee._id].basicPercent
+                              : (localSnapshot?.master?.basicPercent !== undefined
+                                  ? (localSnapshot.master.basicPercent > 1
+                                      ? localSnapshot.master.basicPercent
+                                      : Math.round(localSnapshot.master.basicPercent * 100))
+                                  : 50)
+                          }
                           onChange={(e) => updateRow(breakdownEmployee._id, 'basicPercent', Number(e.target.value) || 0)}
                           className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
                         />
@@ -806,13 +1009,53 @@ const PayrollProcessing = () => {
                           type="number"
                           min="0"
                           max="100"
-                          value={rows[breakdownEmployee._id]?.hraPercent ?? 50}
+                          value={
+                            rows[breakdownEmployee._id]?.hraPercent !== undefined
+                              ? rows[breakdownEmployee._id].hraPercent
+                              : (localSnapshot?.master?.hraPercent !== undefined
+                                  ? (localSnapshot.master.hraPercent > 1
+                                      ? localSnapshot.master.hraPercent
+                                      : Math.round(localSnapshot.master.hraPercent * 100))
+                                  : 50)
+                          }
                           onChange={(e) => updateRow(breakdownEmployee._id, 'hraPercent', Number(e.target.value) || 0)}
                           className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
                         />
                         <span className="text-slate-500 font-medium">%</span>
                       </div>
                     </div>
+
+                    {/* Leave Deduction Strategy Preference Dropdown */}
+                    {localSplits && localSplits.length > 1 && (
+                      <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-slate-800">Leave Deduction Preference</span>
+                          <span className="text-[10px] text-slate-500">For mid-month revisions</span>
+                        </div>
+                        <select
+                          value={rows[breakdownEmployee._id]?.lopStrategy || 'proportional'}
+                          onChange={(e) => {
+                            const strategy = e.target.value;
+                            updateRow(breakdownEmployee._id, 'lopStrategy', strategy);
+                            if (strategy === 'custom') {
+                              const totalLop = Math.max(0, (Number(rows[breakdownEmployee._id]?.workingDays) || monthWorkingDays) - (Number(rows[breakdownEmployee._id]?.paidDays) || 0));
+                              const totalDays = new Date(year, month, 0).getDate();
+                              const initialLops = localSplits.map(split => {
+                                const segRatio = split.daysCount / totalDays;
+                                return Math.round(segRatio * totalLop * 100) / 100;
+                              });
+                              updateRow(breakdownEmployee._id, 'segmentLops', initialLops);
+                            }
+                          }}
+                          className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white font-medium cursor-pointer"
+                        >
+                          <option value="proportional">Proportional (Default)</option>
+                          <option value="older_first">Older Period first</option>
+                          <option value="newer_first">Newer Period first</option>
+                          <option value="custom">Custom Strategy</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -919,7 +1162,7 @@ const PayrollProcessing = () => {
                         {localSnapshot.deductions.esiEmployee > 0 && <DeductionRow label="ESI (Employee Contribution)" amount={localSnapshot.deductions.esiEmployee} />}
                         {localSnapshot.deductions.lwfEmployee > 0 && <DeductionRow label="LWF (Employee Contribution)" amount={localSnapshot.deductions.lwfEmployee} />}
                         {localSnapshot.deductions.professionalTax > 0 && <DeductionRow label="Professional Tax (PT)" amount={localSnapshot.deductions.professionalTax} />}
-                        <DeductionRow label="Income Tax (TDS)" amount={localSnapshot.deductions.tds} isEditable value={rows[breakdownEmployee._id]?.tds ?? 0} onChange={(val) => updateRow(breakdownEmployee._id, 'tds', Number(val) || 0)} />
+                        <DeductionRow label="Income Tax (TDS)" amount={localSnapshot.deductions.tds} isEditable value={rows[breakdownEmployee._id]?.tds !== undefined ? rows[breakdownEmployee._id].tds : localSnapshot.deductions.tds} onChange={(val) => updateRow(breakdownEmployee._id, 'tds', Number(val) || 0)} />
                       </div>
                     </div>
 

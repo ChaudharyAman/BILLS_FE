@@ -756,6 +756,49 @@ const PayrollDashboard = () => {
                   ['Total Payable', fmtMoney(drawerSlip.totalPayable)],
                   ['Status', drawerSlip.status],
                 ]} />
+                {drawerSlip.salarySplits && drawerSlip.salarySplits.length > 1 && (
+                  <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
+                    <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">
+                      Mid-Month Revision Calculation Split
+                    </div>
+                    <div className="p-4 space-y-4">
+                      {drawerSlip.salarySplits.map((split, index) => (
+                        <div key={index} className="space-y-2 pb-3 border-b border-gray-100 last:border-0 last:pb-0">
+                          <div className="flex justify-between items-center text-sm font-semibold text-gray-900">
+                            <span>{new Date(split.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} - {new Date(split.endDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
+                            <span className="text-xs text-slate-500 font-normal">{split.daysCount} days</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
+                            <div className="flex justify-between">
+                              <span>Monthly CTC:</span>
+                              <span className="font-medium">{fmtMoney(split.monthlyCTC)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Period Earnings:</span>
+                              <span className="font-semibold text-gray-900">{fmtMoney(split.totalEarnings)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Basic / HRA:</span>
+                              <span className="font-medium">{fmtMoney(split.basic)} / {fmtMoney(split.hra)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>PF (EE/ER):</span>
+                              <span className="font-medium">{fmtMoney(split.pfEmployee)} / {fmtMoney(split.pfEmployer)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>ESI (EE/ER):</span>
+                              <span className="font-medium">{fmtMoney(split.esiEmployee)} / {fmtMoney(split.esiEmployer)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Gratuity:</span>
+                              <span className="font-medium">{fmtMoney(split.gratuity)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <DrawerSection title="Earnings" rows={[
                   ['Basic', fmtMoney(drawerSlip.earnings?.basic)],
                   ['HRA', fmtMoney(drawerSlip.earnings?.hra)],
