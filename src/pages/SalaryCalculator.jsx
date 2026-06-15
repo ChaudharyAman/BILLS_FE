@@ -205,7 +205,7 @@ const SalaryCalculator = () => {
     incentive: Number(form.incentive) || 0,
     arrear: Number(form.arrear) || 0,
     referralBonus: Number(form.referralBonus) || 0,
-  }), [localSource, config, form.joiningBonus, form.performanceBonus, form.specialBonus, form.retentionBonus, form.incentive, form.arrear, form.referralBonus]);
+  }, new Date().getMonth() + 1, new Date().getFullYear()), [localSource, config, form.joiningBonus, form.performanceBonus, form.specialBonus, form.retentionBonus, form.incentive, form.arrear, form.referralBonus]);
 
   const result = serverResult || { master: localMaster, payroll: localPayroll, monthlyCTC: localMaster.monthlyCTC, annualCTC: localMaster.annualCTC };
 

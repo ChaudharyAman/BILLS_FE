@@ -34,9 +34,12 @@ export const usePayrollSnapshot = (employee, config, row, monthWorkingDays, over
         includeGratuityInCTC: row?.includeGratuityInCTC,
         basicPercent: row?.basicPercent,
         hraPercent: row?.hraPercent,
+        lopStrategy: row?.lopStrategy,
+        segmentLops: row?.segmentLops,
         reimbursements: row?.reimbursements || [],
       },
-      row?.month
+      row?.month,
+      row?.year
     );
   }, [employee, config, row, monthWorkingDays, overrideEarnings, overrideDeductions]);
 };
