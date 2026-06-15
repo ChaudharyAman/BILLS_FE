@@ -153,6 +153,7 @@ const EmployeeForm = () => {
       setCalculating(true);
       const res = await api.post('/payroll/calculate-salary', {
         monthlyCTC,
+        employmentType: merged.employmentType,
         basicPercent: merged.basicPercent === null || merged.basicPercent === '' ? null : Number(merged.basicPercent),
         hraPercent: merged.hraPercent === null || merged.hraPercent === '' ? null : Number(merged.hraPercent),
         basic: merged.salaryStructure?.basic !== undefined ? Number(merged.salaryStructure.basic) : undefined,
@@ -449,56 +450,64 @@ const EmployeeForm = () => {
 
           {step === 3 && (
             <div className="space-y-6">
+              {formData.employmentType === 'intern' && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm font-semibold text-blue-800 animate-fade-in">
+                  Interns/Trainees receive a consolidated stipend (100% Basic Salary) without HRA or statutory contributions.
+                </div>
+              )}
+
               {/* Custom Overrides Card */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-5 shadow-sm">
-                <h3 className="text-base font-bold text-blue-900 mb-1 flex items-center gap-2">
-                  <span>Employee Salary Ratios (Overrides)</span>
-                  <span className="text-[10px] bg-blue-600 text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Optional</span>
-                </h3>
-                <p className="text-xs text-gray-500 mb-4">
-                  By default, this employee's Basic and HRA are computed using the global company payroll settings. You can set employee-specific overrides below.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>Basic Salary % Override</label>
-                    <div className="relative rounded-lg shadow-sm">
-                      <input
-                        type="number"
-                        step="any"
-                        min="1"
-                        max="100"
-                        placeholder={`Company Default: ${Math.round((config?.basicPercent ?? 0.5) * 100)}%`}
-                        value={formData.basicPercent ?? ''}
-                        onChange={(e) => setField('basicPercent', e.target.value === '' ? null : Number(e.target.value))}
-                        onBlur={refreshSalaryFromCTC}
-                        className={inputCls}
-                      />
-                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                        <span className="text-gray-400 text-sm">%</span>
+              {formData.employmentType !== 'intern' && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-5 shadow-sm">
+                  <h3 className="text-base font-bold text-blue-900 mb-1 flex items-center gap-2">
+                    <span>Employee Salary Ratios (Overrides)</span>
+                    <span className="text-[10px] bg-blue-600 text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Optional</span>
+                  </h3>
+                  <p className="text-xs text-gray-500 mb-4">
+                    By default, this employee's Basic and HRA are computed using the global company payroll settings. You can set employee-specific overrides below.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelCls}>Basic Salary % Override</label>
+                      <div className="relative rounded-lg shadow-sm">
+                        <input
+                          type="number"
+                          step="any"
+                          min="1"
+                          max="100"
+                          placeholder={`Company Default: ${Math.round((config?.basicPercent ?? 0.5) * 100)}%`}
+                          value={formData.basicPercent ?? ''}
+                          onChange={(e) => setField('basicPercent', e.target.value === '' ? null : Number(e.target.value))}
+                          onBlur={refreshSalaryFromCTC}
+                          className={inputCls}
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                          <span className="text-gray-400 text-sm">%</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div>
-                    <label className={labelCls}>HRA % Override (of Basic)</label>
-                    <div className="relative rounded-lg shadow-sm">
-                      <input
-                        type="number"
-                        step="any"
-                        min="1"
-                        max="100"
-                        placeholder={`Company Default: ${Math.round((config?.hraPercent ?? 0.5) * 100)}%`}
-                        value={formData.hraPercent ?? ''}
-                        onChange={(e) => setField('hraPercent', e.target.value === '' ? null : Number(e.target.value))}
-                        onBlur={refreshSalaryFromCTC}
-                        className={inputCls}
-                      />
-                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                        <span className="text-gray-400 text-sm">%</span>
+                    <div>
+                      <label className={labelCls}>HRA % Override (of Basic)</label>
+                      <div className="relative rounded-lg shadow-sm">
+                        <input
+                          type="number"
+                          step="any"
+                          min="1"
+                          max="100"
+                          placeholder={`Company Default: ${Math.round((config?.hraPercent ?? 0.5) * 100)}%`}
+                          value={formData.hraPercent ?? ''}
+                          onChange={(e) => setField('hraPercent', e.target.value === '' ? null : Number(e.target.value))}
+                          onBlur={refreshSalaryFromCTC}
+                          className={inputCls}
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                          <span className="text-gray-400 text-sm">%</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
                 <div className="flex items-center justify-between mb-4">
@@ -506,9 +515,9 @@ const EmployeeForm = () => {
                   <span className="text-xs text-gray-500">Synced with payroll settings</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <SummaryCard label="PF Employer" value={fmtMoney(localPreview.pfEmployer)} />
-                  <SummaryCard label="Gratuity" value={fmtMoney(localPreview.gratuity)} />
-                  <SummaryCard label="LWF Employer" value={fmtMoney(localPreview.lwfEmployer)} />
+                  {formData.employmentType !== 'intern' && <SummaryCard label="PF Employer" value={fmtMoney(localPreview.pfEmployer)} />}
+                  {formData.employmentType !== 'intern' && <SummaryCard label="Gratuity" value={fmtMoney(localPreview.gratuity)} />}
+                  {formData.employmentType !== 'intern' && <SummaryCard label="LWF Employer" value={fmtMoney(localPreview.lwfEmployer)} />}
                   <SummaryCard label="Annual CTC" value={fmtMoney(localPreview.annualCTC)} />
                   <SummaryCard label="Gross Salary" value={fmtMoney(localPreview.grossSalary)} />
                   <SummaryCard label="Net Take-Home Estimate" value={fmtMoney(localPreview.netTakeHome)} />
@@ -516,7 +525,8 @@ const EmployeeForm = () => {
               </div>
 
               {/* Statutory & Contribution Switches */}
-              <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+              {formData.employmentType !== 'intern' && (
+                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
                 <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                   <span>Statutory Components & Contribution Toggles</span>
                   <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-full font-semibold">Statutory Toggles</span>
@@ -707,7 +717,8 @@ const EmployeeForm = () => {
                     )}
                   </div>
                 )}
-              </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {(() => {
@@ -760,10 +771,11 @@ const EmployeeForm = () => {
                     return 0;
                   };
 
+                  const isIntern = formData.employmentType === 'intern';
                   const comps = config?.salaryComponents || [];
                   
                   // Filter out company-wide configuration parameters
-                  const filtered = comps.filter(c => ![
+                  let filtered = comps.filter(c => ![
                     'pf_rate_employee',
                     'pf_rate_employer',
                     'pf_salary_ceiling',
@@ -777,8 +789,12 @@ const EmployeeForm = () => {
                     'lta_max_percent'
                   ].includes(c.id));
 
+                  if (isIntern) {
+                    filtered = filtered.filter(c => c.id === 'basic');
+                  }
+
                   const list = filtered.map(c => {
-                    const isCalculated = c.linkedTo !== 'fixed';
+                    const isCalculated = isIntern ? true : (c.linkedTo !== 'fixed');
                     let suffix = '';
                     let freqSuffix = '';
                     if (c.frequency === 'quarterly') freqSuffix = ' — Quarterly';
@@ -786,8 +802,12 @@ const EmployeeForm = () => {
                     else if (c.frequency === 'annually') freqSuffix = ' — Annually';
 
                     if (c.id === 'basic') {
-                      const pct = formData.basicPercent !== null && formData.basicPercent !== undefined ? formData.basicPercent : Math.round(c.linkValue * 100);
-                      suffix = ` (${pct}% of CTC${freqSuffix})`;
+                      if (isIntern) {
+                        suffix = ' (Consolidated Stipend)';
+                      } else {
+                        const pct = formData.basicPercent !== null && formData.basicPercent !== undefined ? formData.basicPercent : Math.round(c.linkValue * 100);
+                        suffix = ` (${pct}% of CTC${freqSuffix})`;
+                      }
                     } else if (c.id === 'hra') {
                       const pct = formData.hraPercent !== null && formData.hraPercent !== undefined ? formData.hraPercent : Math.round(c.linkValue * 100);
                       suffix = ` (${pct}% of Basic${freqSuffix})`;
@@ -809,45 +829,51 @@ const EmployeeForm = () => {
                     };
                   });
 
-                  // Always append insuranceAmount, employerNPS and deductions.tds if they aren't already included
-                  if (!list.some(item => item.id === 'default_insurance_amount')) {
-                    list.push({ id: 'default_insurance_amount', name: 'insuranceAmount', label: 'Insurance Amount', isCalculated: false });
-                  }
-                  if (!list.some(item => item.id === 'employerNPS')) {
-                    list.push({ id: 'employerNPS', name: 'employerNPS', label: 'Employer NPS', isCalculated: false });
-                  }
-                  if (!list.some(item => item.id === 'deductions.tds')) {
-                    list.push({ id: 'deductions.tds', name: 'deductions.tds', label: 'Income Tax (TDS) / Tax Amount', isCalculated: false });
-                  }
-
-                  // Append dynamic statutory components if enabled
-                  if (formData.pfEnabled !== false && localPreview) {
-                    if (config?.pfCalculationType === 'fixed') {
-                      list.push({ id: 'pf_employee', name: 'pf_employee', label: 'Employee PF contribution (Fixed)', isCalculated: true, customValue: localPreview.pfEmployee });
-                      list.push({ id: 'pf_employer', name: 'pf_employer', label: 'Employer PF contribution (Fixed)', isCalculated: true, customValue: localPreview.pfEmployer });
-                    } else {
-                      const pfEEPct = Math.round((config?.pfRate ?? 0.12) * 100);
-                      const pfERPct = Math.round((config?.pfEmployerRate ?? 0.12) * 100);
-                      list.push({ id: 'pf_employee', name: 'pf_employee', label: `Employee PF contribution (${pfEEPct}%)`, isCalculated: true, customValue: localPreview.pfEmployee });
-                      list.push({ id: 'pf_employer', name: 'pf_employer', label: `Employer PF contribution (${pfERPct}%)`, isCalculated: true, customValue: localPreview.pfEmployer });
+                  if (isIntern) {
+                    if (!list.some(item => item.id === 'deductions.tds')) {
+                      list.push({ id: 'deductions.tds', name: 'deductions.tds', label: 'Income Tax (TDS) / Tax Amount', isCalculated: false });
                     }
-                  }
-                  if (formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0) {
-                    const esiEEPct = (config?.esiEmployeeRate ?? 0.0075) * 100;
-                    const esiERPct = (config?.esiEmployerRate ?? 0.0325) * 100;
-                    list.push({ id: 'esi_employee', name: 'esi_employee', label: `Employee ESI deduction (${esiEEPct}%)`, isCalculated: true, customValue: localPreview.esiEmployee });
-                    list.push({ id: 'esi_employer', name: 'esi_employer', label: `Employer ESI contribution (${esiERPct}%)`, isCalculated: true, customValue: localPreview.esiEmployer });
-                  }
-                  if (formData.ptEnabled !== false && localPreview && localPreview.professionalTax > 0) {
-                    list.push({ id: 'pt_amount', name: 'deductions.professionalTax', label: 'Professional Tax (PT)', isCalculated: true, customValue: localPreview.professionalTax });
-                  }
-                  if (formData.lwfEnabled !== false && localPreview && (localPreview.lwfEmployee + localPreview.lwfEmployer) > 0) {
-                    list.push({ id: 'lwf_employee', name: 'lwf_employee', label: 'Employee LWF contribution', isCalculated: true, customValue: localPreview.lwfEmployee });
-                    list.push({ id: 'lwf_employer', name: 'lwf_employer', label: 'Employer LWF contribution', isCalculated: true, customValue: localPreview.lwfEmployer });
-                  }
-                  if (formData.gratuityEnabled !== false && localPreview && localPreview.gratuity > 0) {
-                    const gratPct = Math.round((config?.gratuityRate ?? 0.0481) * 10000) / 100;
-                    list.push({ id: 'gratuity_amount', name: 'gratuity_amount', label: `Gratuity Provision (${gratPct}%)`, isCalculated: true, customValue: localPreview.gratuity });
+                  } else {
+                    // Always append insuranceAmount, employerNPS and deductions.tds if they aren't already included
+                    if (!list.some(item => item.id === 'default_insurance_amount')) {
+                      list.push({ id: 'default_insurance_amount', name: 'insuranceAmount', label: 'Insurance Amount', isCalculated: false });
+                    }
+                    if (!list.some(item => item.id === 'employerNPS')) {
+                      list.push({ id: 'employerNPS', name: 'employerNPS', label: 'Employer NPS', isCalculated: false });
+                    }
+                    if (!list.some(item => item.id === 'deductions.tds')) {
+                      list.push({ id: 'deductions.tds', name: 'deductions.tds', label: 'Income Tax (TDS) / Tax Amount', isCalculated: false });
+                    }
+
+                    // Append dynamic statutory components if enabled
+                    if (formData.pfEnabled !== false && localPreview) {
+                      if (config?.pfCalculationType === 'fixed') {
+                        list.push({ id: 'pf_employee', name: 'pf_employee', label: 'Employee PF contribution (Fixed)', isCalculated: true, customValue: localPreview.pfEmployee });
+                        list.push({ id: 'pf_employer', name: 'pf_employer', label: 'Employer PF contribution (Fixed)', isCalculated: true, customValue: localPreview.pfEmployer });
+                      } else {
+                        const pfEEPct = Math.round((config?.pfRate ?? 0.12) * 100);
+                        const pfERPct = Math.round((config?.pfEmployerRate ?? 0.12) * 100);
+                        list.push({ id: 'pf_employee', name: 'pf_employee', label: `Employee PF contribution (${pfEEPct}%)`, isCalculated: true, customValue: localPreview.pfEmployee });
+                        list.push({ id: 'pf_employer', name: 'pf_employer', label: `Employer PF contribution (${pfERPct}%)`, isCalculated: true, customValue: localPreview.pfEmployer });
+                      }
+                    }
+                    if (formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0) {
+                      const esiEEPct = (config?.esiEmployeeRate ?? 0.0075) * 100;
+                      const esiERPct = (config?.esiEmployerRate ?? 0.0325) * 100;
+                      list.push({ id: 'esi_employee', name: 'esi_employee', label: `Employee ESI deduction (${esiEEPct}%)`, isCalculated: true, customValue: localPreview.esiEmployee });
+                      list.push({ id: 'esi_employer', name: 'esi_employer', label: `Employer ESI contribution (${esiERPct}%)`, isCalculated: true, customValue: localPreview.esiEmployer });
+                    }
+                    if (formData.ptEnabled !== false && localPreview && localPreview.professionalTax > 0) {
+                      list.push({ id: 'pt_amount', name: 'deductions.professionalTax', label: 'Professional Tax (PT)', isCalculated: true, customValue: localPreview.professionalTax });
+                    }
+                    if (formData.lwfEnabled !== false && localPreview && (localPreview.lwfEmployee + localPreview.lwfEmployer) > 0) {
+                      list.push({ id: 'lwf_employee', name: 'lwf_employee', label: 'Employee LWF contribution', isCalculated: true, customValue: localPreview.lwfEmployee });
+                      list.push({ id: 'lwf_employer', name: 'lwf_employer', label: 'Employer LWF contribution', isCalculated: true, customValue: localPreview.lwfEmployer });
+                    }
+                    if (formData.gratuityEnabled !== false && localPreview && localPreview.gratuity > 0) {
+                      const gratPct = Math.round((config?.gratuityRate ?? 0.0481) * 10000) / 100;
+                      list.push({ id: 'gratuity_amount', name: 'gratuity_amount', label: `Gratuity Provision (${gratPct}%)`, isCalculated: true, customValue: localPreview.gratuity });
+                    }
                   }
 
                   return list.map((item) => {
