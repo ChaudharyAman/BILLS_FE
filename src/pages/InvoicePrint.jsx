@@ -1057,7 +1057,7 @@ const InvoicePrint = () => {
   const invType     = invoice.invoiceType || 'Tax Invoice';
   const hasTax      = invType === 'Tax Invoice' || invType === 'Excise Invoice';
   const hasExcise   = invType === 'Excise Invoice';
-  const isIntra     = !invoice.totalIGST || invoice.totalIGST === 0;
+  const isIntra     = (Number(invoice.totalIGST) || 0) === 0;
   const hasDiscount = items.some(it => Number(it.discount) > 0);
 
   const grandTotal  = Number(invoice.grandTotal)  || 0;

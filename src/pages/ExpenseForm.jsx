@@ -16,6 +16,7 @@ const ExpenseForm = () => {
   const [categories, setCategories] = useState([]);
   const [budgetInfo, setBudgetInfo] = useState(null);
   const [isReady, setIsReady] = useState(false);
+  const [expenseType, setExpenseType] = useState('Vendor Expense');
   const initialValues = React.useRef(null);
 
   // Form State matching Sleekbills screenshot
@@ -74,6 +75,11 @@ const ExpenseForm = () => {
       if (id) {
         const eRes = await api.get(`/expenses/${id}`);
         const data = eRes.data;
+        if (data.vendor?.vendorRef || data.vendor?.name) {
+          setExpenseType('Vendor Expense');
+        } else {
+          setExpenseType('Category Expense');
+        }
         
         let prefix = 'EXP-';
         let suffix = data.expenseNumber || '';
@@ -282,6 +288,7 @@ const ExpenseForm = () => {
   // Auto-Suggest TDS based on Category Selection
   useEffect(() => {
     if (!isReady) return;
+    if (expenseType !== 'Vendor Expense') return;
 
     if (id && initialValues.current) {
       if (formData.category === initialValues.current.category) {
@@ -323,7 +330,7 @@ const ExpenseForm = () => {
         tds_rate: rate,
       }));
     }
-  }, [isReady, formData.category, categories, formData.vendorRef, vendors]);
+  }, [isReady, formData.category, categories, formData.vendorRef, vendors, expenseType]);
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...formData.items];
@@ -396,14 +403,15 @@ const ExpenseForm = () => {
       const scannedVendorName = formData.vendorName?.trim();
       const scannedClientName = formData.clientName?.trim();
 
-      if (!selectedVendor._id && !scannedVendorName) {
+      if (expenseType === 'Vendor Expense' && !selectedVendor._id && !scannedVendorName) {
         alert('Please select a vendor.');
         setLoading(false);
         return;
       }
 
+      const suffix = formData.expenseNumberSuffix?.trim() || String(Date.now()).slice(-6);
       const payload = {
-        expenseNumber: `${formData.expenseNumberPrefix}${formData.expenseNumberSuffix}`,
+        expenseNumber: `${formData.expenseNumberPrefix}${suffix}`,
         date: formData.date,
         dueDate: formData.dueDate || null,
         paymentMethod: formData.paymentMethod,
@@ -499,50 +507,82 @@ const ExpenseForm = () => {
         <form onSubmit={handleSave} className="bg-white shadow-sm border border-gray-200 rounded font-sans overflow-hidden">
           
           {/* Header Title */}
-          <div className="bg-white px-6 py-4 border-b border-gray-200">
+          <div className="bg-white px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h1 className="text-lg font-bold text-[#2d4b6b]">
               {id ? 'Edit Expense' : 'Add New Expense'}
             </h1>
+            {/* Expense Type Tabs */}
+            <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+              {['Vendor Expense', 'Category Expense'].map(type => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => {
+                    setExpenseType(type);
+                    if (type === 'Category Expense') {
+                      setFormData(prev => ({
+                        ...prev,
+                        tds_applicable: false,
+                        tds_section: '',
+                        tds_rate: 0,
+                        tds_amount: 0,
+                      }));
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                    expenseType === type
+                      ? 'bg-white text-blue-700 shadow-sm border border-blue-100'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Top Info Section */}
           <div className={`flex flex-col md:flex-row bg-[#fdfdfd] ${rowBorder}`}>
             {/* Vendor Col */}
-            <div className="w-full md:w-1/3 p-6 border-r border-gray-200">
-              <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
-                <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Vendor name</span>
-                <div className="flex-1 min-w-0">
-                  <select 
-                    data-testid="expense-vendor-select"
-                    className={`${inputBaseCls} w-full`}
-                    value={formData.vendorRef}
-                    onChange={e => {
-                      const vendor = vendors.find(v => v._id === e.target.value);
-                      const tdsApp = vendor?.tds_applicable || false;
-                      setFormData(p => ({
-                        ...p,
-                        vendorRef: e.target.value,
-                        vendorName: vendor?.name || p.vendorName,
-                        tds_applicable: tdsApp,
-                        tds_section: tdsApp ? (vendor.default_tds_section || '194C') : '',
-                        tds_rate: tdsApp ? (vendor.default_tds_rate || 0) : 0,
-                      }));
-                    }}
-                  >
-                    <option value="">{formData.vendorName && !formData.vendorRef ? `${formData.vendorName} (will be created on save)` : 'Select Vendor'}</option>
-                    {vendors.map(v => (
-                      <option key={v._id} value={v._id}>{v.name}</option>
-                    ))}
-                  </select>
-                  {!formData.vendorRef && formData.vendorName && (
-                    <p className="mt-1 text-xs text-amber-600">Scanned: {formData.vendorName}</p>
-                  )}
+            {expenseType === 'Vendor Expense' && (
+              <div className="w-full md:w-1/3 p-6 border-r border-gray-200">
+                <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
+                  <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Vendor name</span>
+                  <div className="flex-1 min-w-0">
+                    <select 
+                      data-testid="expense-vendor-select"
+                      className={`${inputBaseCls} w-full`}
+                      value={formData.vendorRef}
+                      onChange={e => {
+                        const vendor = vendors.find(v => v._id === e.target.value);
+                        const tdsApp = vendor?.tds_applicable || false;
+                        setFormData(p => ({
+                          ...p,
+                          vendorRef: e.target.value,
+                          vendorName: vendor?.name || p.vendorName,
+                          tds_applicable: tdsApp,
+                          tds_section: tdsApp ? (vendor.default_tds_section || '194C') : '',
+                          tds_rate: tdsApp ? (vendor.default_tds_rate || 0) : 0,
+                        }));
+                      }}
+                    >
+                      <option value="">{formData.vendorName && !formData.vendorRef ? `${formData.vendorName} (will be created on save)` : 'Select Vendor'}</option>
+                      {vendors.map(v => (
+                        <option key={v._id} value={v._id}>{v.name}</option>
+                      ))}
+                    </select>
+                    {!formData.vendorRef && formData.vendorName && (
+                      <p className="mt-1 text-xs text-amber-600">Scanned: {formData.vendorName}</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Config Col (Grid Layout) */}
-            <div className="w-full md:w-2/3 p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <div className={`p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 ${
+              expenseType === 'Vendor Expense' ? 'w-full md:w-2/3' : 'w-full'
+            }`}>
                 
               {/* Number */}
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
@@ -562,7 +602,6 @@ const ExpenseForm = () => {
                     value={formData.expenseNumberSuffix}
                     onChange={e => setFormData(p => ({ ...p, expenseNumberSuffix: e.target.value }))}
                     placeholder="e.g. 4567"
-                    required
                   />
                 </div>
               </div>
@@ -670,6 +709,33 @@ const ExpenseForm = () => {
                   </select>
                 </div>
               </div>
+
+              {/* Ref Vendor */}
+              {expenseType === 'Category Expense' && (
+                <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
+                  <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Ref Vendor</span>
+                  <div className="flex-1 min-w-0">
+                    <select 
+                      data-testid="expense-ref-vendor-select"
+                      className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                      value={formData.vendorRef}
+                      onChange={e => {
+                        const vendor = vendors.find(v => v._id === e.target.value);
+                        setFormData(p => ({
+                          ...p,
+                          vendorRef: e.target.value,
+                          vendorName: vendor?.name || '',
+                        }));
+                      }}
+                    >
+                      <option value="">Select Vendor (Optional)</option>
+                      {vendors.map(v => (
+                        <option key={v._id} value={v._id}>{v.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
 
               {/* Client Reference */}
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">

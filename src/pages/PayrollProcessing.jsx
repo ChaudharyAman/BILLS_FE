@@ -171,23 +171,25 @@ const EmployeeRow = ({
           </button>
           
           {/* Statutory Settings Badges */}
-          <div className="flex flex-wrap gap-1 mt-1 font-mono">
-            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPfEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isPfEnabled ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
-            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isEsiEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isEsiEnabled ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
-            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPtEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isPtEnabled ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
-            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isLwfEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isLwfEnabled ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
-            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isGratuityEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isGratuityEnabled ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
-            {Number(basicPercentVal) !== 50 && (
-              <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" title="Basic Salary Overridden percentage">
-                B:{Math.round(basicPercentVal)}%
-              </span>
-            )}
-            {Number(hraPercentVal) !== 50 && (
-              <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm" title="HRA Overridden percentage">
-                H:{Math.round(hraPercentVal)}%
-              </span>
-            )}
-          </div>
+          {!isHourly && (
+            <div className="flex flex-wrap gap-1 mt-1 font-mono">
+              <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPfEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isPfEnabled ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
+              <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isEsiEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isEsiEnabled ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
+              <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPtEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isPtEnabled ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
+              <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isLwfEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isLwfEnabled ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
+              <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isGratuityEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isGratuityEnabled ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
+              {Number(basicPercentVal) !== 50 && (
+                <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" title="Basic Salary Overridden percentage">
+                  B:{Math.round(basicPercentVal)}%
+                </span>
+              )}
+              {Number(hraPercentVal) !== 50 && (
+                <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm" title="HRA Overridden percentage">
+                  H:{Math.round(hraPercentVal)}%
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </td>
       <td className="px-4 py-2.5 min-w-[180px]">
@@ -749,7 +751,13 @@ const PayrollProcessing = () => {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">{breakdownEmployee.firstName} {breakdownEmployee.lastName}</h2>
-                  <p className="text-xs text-gray-400">{breakdownEmployee.employeeId || 'EMP-001'} · {breakdownEmployee.designation || 'SDE'} · CTC {fmtMoney(breakdownEmployee.monthlyCTC)}</p>
+                  <p className="text-xs text-gray-400">
+                    {breakdownEmployee.employeeId || 'EMP-001'} · {breakdownEmployee.designation || 'SDE'} · {
+                      breakdownEmployee.payType === 'hourly'
+                        ? `Hourly Rate: ${fmtMoney(breakdownEmployee.hourlyRate)}/hr`
+                        : `CTC ${fmtMoney(breakdownEmployee.monthlyCTC)}`
+                    }
+                  </p>
                 </div>
               </div>
               <button
@@ -875,7 +883,7 @@ const PayrollProcessing = () => {
               )}
 
               {localSnapshot && (() => {
-                const showStatutoryOverrides = breakdownEmployee.useSalaryComponents !== false;
+                const showStatutoryOverrides = breakdownEmployee.useSalaryComponents !== false && breakdownEmployee.payType !== 'hourly';
                 const showLopStrategy = localSplits && localSplits.length > 1 && breakdownEmployee.payType !== 'hourly';
                 
                 if (!showStatutoryOverrides && !showLopStrategy) return null;
@@ -1121,14 +1129,17 @@ const PayrollProcessing = () => {
                         {allEarningComponents.map((c) => {
                           const { paid, master } = getComponentBreakdown(localSnapshot, c);
                           const isFlatSalary = breakdownEmployee.useSalaryComponents === false;
-                          const shouldShow = isFlatSalary 
-                            ? c.id === 'basic'
-                            : (['basic', 'hra', remainderId].includes(c.id) || paid > 0 || master > 0);
+                          const isHourly = breakdownEmployee.payType === 'hourly';
+                          const shouldShow = isHourly
+                            ? (paid > 0 || master > 0)
+                            : (isFlatSalary 
+                              ? c.id === 'basic'
+                              : (['basic', 'hra', remainderId].includes(c.id) || paid > 0 || master > 0));
                           if (!shouldShow) return null;
                           return (
                             <BreakdownRow
                               key={c.id}
-                              label={c.name}
+                              label={(isHourly && c.id === 'basic') ? 'Contract Wages (Hourly)' : c.name}
                               paid={paid}
                               master={master}
                             />
@@ -1203,20 +1214,24 @@ const PayrollProcessing = () => {
                   {/* Right Column: Deductions, Contributions & Net Pay */}
                   <div className="space-y-4">
                     {/* Deductions Card */}
-                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
-                        Statutory & Voluntary Deductions
+                    {(breakdownEmployee.payType !== 'hourly' || (localSnapshot.deductions.pfEmployee || 0) + (localSnapshot.deductions.esiEmployee || 0) + (localSnapshot.deductions.lwfEmployee || 0) + (localSnapshot.deductions.professionalTax || 0) + (localSnapshot.deductions.tds || 0) > 0) && (
+                      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
+                          Statutory & Voluntary Deductions
+                        </div>
+                        <div className="divide-y divide-gray-100 text-sm">
+                          {breakdownEmployee.useSalaryComponents !== false && breakdownEmployee.payType !== 'hourly' && localSnapshot.deductions.pfEmployee > 0 && (
+                            <DeductionRow label="Provident Fund (Employee PF Contribution)" amount={localSnapshot.deductions.pfEmployee} />
+                          )}
+                          {localSnapshot.deductions.esiEmployee > 0 && <DeductionRow label="ESI (Employee Contribution)" amount={localSnapshot.deductions.esiEmployee} />}
+                          {localSnapshot.deductions.lwfEmployee > 0 && <DeductionRow label="LWF (Employee Contribution)" amount={localSnapshot.deductions.lwfEmployee} />}
+                          {localSnapshot.deductions.professionalTax > 0 && <DeductionRow label="Professional Tax (PT)" amount={localSnapshot.deductions.professionalTax} />}
+                          {(breakdownEmployee.payType !== 'hourly' || localSnapshot.deductions.tds > 0) && (
+                            <DeductionRow label="Income Tax (TDS)" amount={localSnapshot.deductions.tds} isEditable value={rows[breakdownEmployee._id]?.tds !== undefined ? rows[breakdownEmployee._id].tds : localSnapshot.deductions.tds} onChange={(val) => updateRow(breakdownEmployee._id, 'tds', Number(val) || 0)} />
+                          )}
+                        </div>
                       </div>
-                      <div className="divide-y divide-gray-100 text-sm">
-                        {breakdownEmployee.useSalaryComponents !== false && (
-                          <DeductionRow label="Provident Fund (Employee PF Contribution)" amount={localSnapshot.deductions.pfEmployee} />
-                        )}
-                        {localSnapshot.deductions.esiEmployee > 0 && <DeductionRow label="ESI (Employee Contribution)" amount={localSnapshot.deductions.esiEmployee} />}
-                        {localSnapshot.deductions.lwfEmployee > 0 && <DeductionRow label="LWF (Employee Contribution)" amount={localSnapshot.deductions.lwfEmployee} />}
-                        {localSnapshot.deductions.professionalTax > 0 && <DeductionRow label="Professional Tax (PT)" amount={localSnapshot.deductions.professionalTax} />}
-                        <DeductionRow label="Income Tax (TDS)" amount={localSnapshot.deductions.tds} isEditable value={rows[breakdownEmployee._id]?.tds !== undefined ? rows[breakdownEmployee._id].tds : localSnapshot.deductions.tds} onChange={(val) => updateRow(breakdownEmployee._id, 'tds', Number(val) || 0)} />
-                      </div>
-                    </div>
+                    )}
 
                     {/* Custom Deductions Editor */}
                     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
@@ -1275,7 +1290,7 @@ const PayrollProcessing = () => {
                     </div>
 
                     {/* Employer Contributions Card */}
-                    {breakdownEmployee.useSalaryComponents !== false && (
+                    {breakdownEmployee.useSalaryComponents !== false && breakdownEmployee.payType !== 'hourly' && (
                       <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
                         <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
                           Employer Contributions (Non-Takehome CTC Components)

@@ -279,6 +279,7 @@ const EmployeeDetails = () => {
     setRevisionDraft({
       newCTC: employee.monthlyCTC || '',
       newAnnualCTC: employee.monthlyCTC ? Math.round(employee.monthlyCTC * 12 * 100) / 100 : '',
+      newHourlyRate: employee.hourlyRate || '',
       effectiveDate: new Date().toISOString().slice(0, 10),
       reason: '',
       pfEnabled: employee.pfEnabled !== false,
@@ -379,45 +380,54 @@ const EmployeeDetails = () => {
 
   const handleSalaryRevision = async () => {
     try {
+      const isHourly = employee.payType === 'hourly';
       const payload = {
-        newCTC: Number(revisionDraft.newCTC),
         effectiveDate: revisionDraft.effectiveDate,
         reason: revisionDraft.reason,
-        pfEnabled: revisionDraft.pfEnabled !== false,
-        esiEnabled: revisionDraft.esiEnabled !== false,
-        ptEnabled: revisionDraft.ptEnabled !== false,
-        lwfEnabled: revisionDraft.lwfEnabled !== false,
-        gratuityEnabled: revisionDraft.gratuityEnabled !== false,
-        includePfInCTC: revisionDraft.includePfInCTC !== false,
-        includeGratuityInCTC: revisionDraft.includeGratuityInCTC !== false,
-        basicPercent: revisionDraft.basicPercent === null || revisionDraft.basicPercent === '' ? null : Number(revisionDraft.basicPercent),
-        hraPercent: revisionDraft.hraPercent === null || revisionDraft.hraPercent === '' ? null : Number(revisionDraft.hraPercent),
-        joiningBonus: Number(revisionDraft.joiningBonus) || 0,
-        flexiAmount: Number(revisionDraft.flexiAmount) || 0,
-        broadband: Number(revisionDraft.broadband) || 0,
-        petrol: Number(revisionDraft.petrol) || 0,
-        lta: Number(revisionDraft.lta) || 0,
-        insuranceAmount: Number(revisionDraft.insuranceAmount) || 0,
-        employerNPS: Number(revisionDraft.employerNPS) || 0,
-        tds: Number(revisionDraft.deductions?.tds) || 0,
-        professionalTax: Number(revisionDraft.deductions?.professionalTax) || 0,
-        conveyance: Number(revisionDraft.salaryStructure?.conveyance) || 0,
-        medicalAllowance: Number(revisionDraft.salaryStructure?.medicalAllowance) || 0,
-        otherAllowances: (revisionDraft.salaryStructure?.otherAllowances || []).map(a => ({
+      };
+
+      if (isHourly) {
+        payload.newHourlyRate = Number(revisionDraft.newHourlyRate) || 0;
+        payload.newCTC = 0;
+      } else {
+        payload.newCTC = Number(revisionDraft.newCTC);
+        payload.pfEnabled = revisionDraft.pfEnabled !== false;
+        payload.esiEnabled = revisionDraft.esiEnabled !== false;
+        payload.ptEnabled = revisionDraft.ptEnabled !== false;
+        payload.lwfEnabled = revisionDraft.lwfEnabled !== false;
+        payload.gratuityEnabled = revisionDraft.gratuityEnabled !== false;
+        payload.includePfInCTC = revisionDraft.includePfInCTC !== false;
+        payload.includeGratuityInCTC = revisionDraft.includeGratuityInCTC !== false;
+        payload.basicPercent = revisionDraft.basicPercent === null || revisionDraft.basicPercent === '' ? null : Number(revisionDraft.basicPercent);
+        payload.hraPercent = revisionDraft.hraPercent === null || revisionDraft.hraPercent === '' ? null : Number(revisionDraft.hraPercent);
+        payload.joiningBonus = Number(revisionDraft.joiningBonus) || 0;
+        payload.flexiAmount = Number(revisionDraft.flexiAmount) || 0;
+        payload.broadband = Number(revisionDraft.broadband) || 0;
+        payload.petrol = Number(revisionDraft.petrol) || 0;
+        payload.lta = Number(revisionDraft.lta) || 0;
+        payload.insuranceAmount = Number(revisionDraft.insuranceAmount) || 0;
+        payload.employerNPS = Number(revisionDraft.employerNPS) || 0;
+        payload.tds = Number(revisionDraft.deductions?.tds) || 0;
+        payload.professionalTax = Number(revisionDraft.deductions?.professionalTax) || 0;
+        payload.conveyance = Number(revisionDraft.salaryStructure?.conveyance) || 0;
+        payload.medicalAllowance = Number(revisionDraft.salaryStructure?.medicalAllowance) || 0;
+        payload.otherAllowances = (revisionDraft.salaryStructure?.otherAllowances || []).map(a => ({
           name: a.name,
           amount: Number(a.amount) || 0
-        })),
-        otherDeductions: (revisionDraft.deductions?.otherDeductions || []).map(d => ({
+        }));
+        payload.otherDeductions = (revisionDraft.deductions?.otherDeductions || []).map(d => ({
           name: d.name,
           amount: Number(d.amount) || 0
-        })),
-      };
+        }));
+      }
+
       await api.post(`/employees/${id}/salary-revision`, payload);
       const res = await api.get(`/employees/${id}`);
       setEmployee(res.data);
       setRevisionDraft({
         newCTC: '',
         newAnnualCTC: '',
+        newHourlyRate: '',
         effectiveDate: new Date().toISOString().slice(0, 10),
         reason: '',
         pfEnabled: true,
@@ -453,7 +463,7 @@ const EmployeeDetails = () => {
         }
       });
       setShowRevisionModal(false);
-      toast.success('Salary revised successfully');
+      toast.success(isHourly ? 'Hourly rate revised successfully' : 'Salary revised successfully');
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Failed to revise salary');
@@ -620,7 +630,9 @@ const EmployeeDetails = () => {
 
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
           <div className="flex justify-between items-center mb-4 border-b border-gray-150 pb-2">
-            <h2 className="font-semibold text-sm text-gray-700">CTC Snapshot</h2>
+            <h2 className="font-semibold text-sm text-gray-700">
+              {employee.payType === 'hourly' ? 'Hourly Rate Snapshot' : 'CTC Snapshot'}
+            </h2>
             <button
               onClick={handleDownloadBreakup}
               className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1.5"
@@ -629,29 +641,42 @@ const EmployeeDetails = () => {
               Download Breakup
             </button>
           </div>
-          <div className="space-y-2 text-xs">
-            <Info label="Monthly CTC" value={fmtMoney(employee.monthlyCTC)} strong />
-            <Info label="Gross Salary" value={fmtMoney(salaryPreview.grossSalary)} />
-            
-            {earningsList.map(c => {
-              const val = getEarningValue(c.id);
-              // Always show basic and HRA, show others if they are non-zero
-              if (c.id === 'basic' || c.id === 'hra' || val > 0) {
-                return (
-                  <Info key={c.id} label={c.name || c.id} value={fmtMoney(val)} />
-                );
-              }
-              return null;
-            })}
+          {employee.payType === 'hourly' ? (
+            <div className="space-y-2 text-xs">
+              <Info label="Pay Contract Type" value="Hourly Contractor" strong />
+              <Info label="Hourly Rate" value={`${fmtMoney(employee.hourlyRate)}/hr`} strong />
+              <Info label="Estimated Monthly Hours" value="160 hours" />
+              <Info label="Est. Monthly Gross" value={fmtMoney((employee.hourlyRate || 0) * 160)} />
+              <div className="border-t border-dashed border-gray-100 my-2 pt-2 text-[10px] text-amber-700 leading-normal">
+                Statutory deductions (PF, ESI, PT, LWF, Gratuity) are not applicable for hourly contractors.
+              </div>
+              <Info label="Est. Net Take-Home" value={fmtMoney((employee.hourlyRate || 0) * 160)} strong />
+            </div>
+          ) : (
+            <div className="space-y-2 text-xs">
+              <Info label="Monthly CTC" value={fmtMoney(employee.monthlyCTC)} strong />
+              <Info label="Gross Salary" value={fmtMoney(salaryPreview.grossSalary)} />
+              
+              {earningsList.map(c => {
+                const val = getEarningValue(c.id);
+                // Always show basic and HRA, show others if they are non-zero
+                if (c.id === 'basic' || c.id === 'hra' || val > 0) {
+                  return (
+                    <Info key={c.id} label={c.name || c.id} value={fmtMoney(val)} />
+                  );
+                }
+                return null;
+              })}
 
-            <Info label="PF Employer" value={fmtMoney(salaryPreview.pfEmployer)} />
-            <Info label="Gratuity" value={fmtMoney(salaryPreview.gratuity)} />
-            <Info label="Insurance" value={fmtMoney(salaryPreview.insurance)} />
-            {salaryPreview.employerNPS > 0 && (
-              <Info label="Employer NPS" value={fmtMoney(salaryPreview.employerNPS)} />
-            )}
-            <Info label="Net Take-Home" value={fmtMoney(salaryPreview.netTakeHome)} strong />
-          </div>
+              <Info label="PF Employer" value={fmtMoney(salaryPreview.pfEmployer)} />
+              <Info label="Gratuity" value={fmtMoney(salaryPreview.gratuity)} />
+              <Info label="Insurance" value={fmtMoney(salaryPreview.insurance)} />
+              {salaryPreview.employerNPS > 0 && (
+                <Info label="Employer NPS" value={fmtMoney(salaryPreview.employerNPS)} />
+              )}
+              <Info label="Net Take-Home" value={fmtMoney(salaryPreview.netTakeHome)} strong />
+            </div>
+          )}
         </div>
       </div>
 
@@ -661,8 +686,12 @@ const EmployeeDetails = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Effective Date</th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Previous CTC</th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">New CTC</th>
+              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
+                {employee.payType === 'hourly' ? 'Previous Rate' : 'Previous CTC'}
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
+                {employee.payType === 'hourly' ? 'New Rate' : 'New CTC'}
+              </th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Reason</th>
             </tr>
           </thead>
@@ -670,8 +699,16 @@ const EmployeeDetails = () => {
             {employee.salaryRevisions?.length ? employee.salaryRevisions.map((revision, index) => (
               <tr key={`revision-${index}`}>
                 <td className="px-6 py-4 text-sm">{fmtDate(revision.effectiveDate)}</td>
-                <td className="px-6 py-4 text-sm text-right">{fmtMoney(revision.previousCTC)}</td>
-                <td className="px-6 py-4 text-sm text-right font-semibold">{fmtMoney(revision.newCTC)}</td>
+                <td className="px-6 py-4 text-sm text-right text-slate-800">
+                  {employee.payType === 'hourly'
+                    ? `${fmtMoney(revision.previousHourlyRate || revision.hourlyRate || 0)}/hr`
+                    : fmtMoney(revision.previousCTC)}
+                </td>
+                <td className="px-6 py-4 text-sm text-right font-semibold">
+                  {employee.payType === 'hourly'
+                    ? `${fmtMoney(revision.newHourlyRate || revision.hourlyRate || 0)}/hr`
+                    : fmtMoney(revision.newCTC)}
+                </td>
                 <td className="px-6 py-4 text-sm text-gray-600">{revision.reason || '-'}</td>
               </tr>
             )) : (
@@ -715,48 +752,83 @@ const EmployeeDetails = () => {
         </table>
       </div>
 
-      <Modal isOpen={showRevisionModal} onClose={() => setShowRevisionModal(false)} title="Revise Salary">
+      <Modal 
+        isOpen={showRevisionModal} 
+        onClose={() => setShowRevisionModal(false)} 
+        title={employee.payType === 'hourly' ? 'Revise Hourly Rate' : 'Revise Salary'}
+      >
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>New Annual CTC</label>
-              <input
-                type="number"
-                step="any"
-                min="0"
-                value={revisionDraft.newAnnualCTC}
-                onChange={(e) => {
-                  const val = e.target.value === '' ? '' : (Number(e.target.value) || 0);
-                  setRevisionDraft((prev) => ({
-                    ...prev,
-                    newAnnualCTC: val,
-                    newCTC: val === '' ? '' : Math.round((val / 12) * 100) / 100
-                  }));
-                }}
-                onBlur={refreshDraftSalaryFromCTC}
-                className={inputCls}
-              />
+          {employee.payType === 'hourly' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Current Hourly Rate</label>
+                <div className="w-full bg-gray-50 border border-gray-200 text-gray-500 rounded-lg px-3 py-2 text-sm font-semibold select-none">
+                  {fmtMoney(employee.hourlyRate)}/hr
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>New Hourly Rate *</label>
+                <div className="relative rounded-lg shadow-sm">
+                  <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 text-sm font-semibold">₹</span>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    value={revisionDraft.newHourlyRate}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? '' : Number(e.target.value);
+                      setRevisionDraft((prev) => ({
+                        ...prev,
+                        newHourlyRate: val
+                      }));
+                    }}
+                    className={inputCls + ' pl-7'}
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className={labelCls}>New Monthly CTC</label>
-              <input
-                type="number"
-                step="any"
-                min="0"
-                value={revisionDraft.newCTC}
-                onChange={(e) => {
-                  const val = e.target.value === '' ? '' : (Number(e.target.value) || 0);
-                  setRevisionDraft((prev) => ({
-                    ...prev,
-                    newCTC: val,
-                    newAnnualCTC: val === '' ? '' : Math.round(val * 12 * 100) / 100
-                  }));
-                }}
-                onBlur={refreshDraftSalaryFromCTC}
-                className={inputCls}
-              />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>New Annual CTC</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={revisionDraft.newAnnualCTC}
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? '' : (Number(e.target.value) || 0);
+                    setRevisionDraft((prev) => ({
+                      ...prev,
+                      newAnnualCTC: val,
+                      newCTC: val === '' ? '' : Math.round((val / 12) * 100) / 100
+                    }));
+                  }}
+                  onBlur={refreshDraftSalaryFromCTC}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>New Monthly CTC</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={revisionDraft.newCTC}
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? '' : (Number(e.target.value) || 0);
+                    setRevisionDraft((prev) => ({
+                      ...prev,
+                      newCTC: val,
+                      newAnnualCTC: val === '' ? '' : Math.round(val * 12 * 100) / 100
+                    }));
+                  }}
+                  onBlur={refreshDraftSalaryFromCTC}
+                  className={inputCls}
+                />
+              </div>
             </div>
-          </div>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -779,7 +851,9 @@ const EmployeeDetails = () => {
             </div>
           </div>
 
-          {/* CTC Components Summary */}
+          {employee.payType !== 'hourly' && (
+            <>
+              {/* CTC Components Summary */}
           {(() => {
             const activePreview = draftSalaryPreview || salaryPreview || {};
             return (
@@ -1437,6 +1511,8 @@ const EmployeeDetails = () => {
                 </table>
               </div>
             </div>
+          )}
+            </>
           )}
 
           <div className="flex justify-end gap-3">

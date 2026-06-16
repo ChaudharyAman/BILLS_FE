@@ -83,7 +83,8 @@ const EmployeeForm = () => {
   const [ctcPeriod, setCtcPeriod] = useState('monthly');
 
   const isIntern = formData.employmentType === 'intern';
-  const useComponents = formData.useSalaryComponents !== false && !isIntern;
+  const isHourly = formData.payType === 'hourly';
+  const useComponents = formData.useSalaryComponents !== false && !isIntern && !isHourly;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -963,7 +964,8 @@ const EmployeeForm = () => {
                   };
 
                   const isIntern = formData.employmentType === 'intern';
-                  const useComponents = formData.useSalaryComponents !== false && !isIntern;
+                  const isHourly = formData.payType === 'hourly';
+                  const useComponents = formData.useSalaryComponents !== false && !isIntern && !isHourly;
                   const comps = config?.salaryComponents || [];
                   
                   // Filter out company-wide configuration parameters
@@ -986,16 +988,21 @@ const EmployeeForm = () => {
                   }
 
                   const list = filtered.map(c => {
-                    const isCalculated = isIntern ? true : (c.linkedTo !== 'fixed');
+                    const isHourly = formData.payType === 'hourly';
+                    const isCalculated = isIntern || isHourly ? true : (c.linkedTo !== 'fixed');
                     let suffix = '';
                     let freqSuffix = '';
                     if (c.frequency === 'quarterly') freqSuffix = ' — Quarterly';
                     else if (c.frequency === 'semi_annually') freqSuffix = ' — Semi-Annually';
                     else if (c.frequency === 'annually') freqSuffix = ' — Annually';
 
+                    let labelName = c.name || c.id;
                     if (c.id === 'basic') {
                       if (isIntern) {
                         suffix = ' (Consolidated Stipend)';
+                      } else if (isHourly) {
+                        labelName = 'Contract Wages (Hourly)';
+                        suffix = ' (Hourly Rate × 160 hrs)';
                       } else if (!useComponents) {
                         suffix = ' (Flat Salary)';
                       } else {
@@ -1018,7 +1025,7 @@ const EmployeeForm = () => {
                     return {
                       id: c.id,
                       name: getFieldMapping(c.id),
-                      label: `${c.name}${suffix}`,
+                      label: `${labelName}${suffix}`,
                       isCalculated
                     };
                   });
