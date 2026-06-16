@@ -94,6 +94,11 @@ const isStatutoryOrSpecial = (id) => {
 };
 
 const PayrollSettings = () => {
+  const [activeTab, setActiveTab] = useState('general');
+  const [roles, setRoles] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+  const [editingRole, setEditingRole] = useState(null);
+
   const [form, setForm] = useState(DEFAULT_PAYROLL_CONFIG);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -152,6 +157,87 @@ const PayrollSettings = () => {
     return () => controller.abort();
   }, []);
 
+  const fetchRoles = async () => {
+    try {
+      setRolesLoading(true);
+      const res = await api.get('/roles');
+      setRoles(res.data || []);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load roles');
+    } finally {
+      setRolesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'roles') {
+      fetchRoles();
+    }
+  }, [activeTab]);
+
+  const handleSaveRole = async (e) => {
+    e.preventDefault();
+    try {
+      if (!editingRole.name.trim()) {
+        toast.error('Role name is required');
+        return;
+      }
+      const payload = {
+        ...editingRole,
+        monthlyCTC: editingRole.payType === 'salaried' ? Number(editingRole.monthlyCTC) : 0,
+        hourlyRate: editingRole.payType === 'hourly' ? Number(editingRole.hourlyRate) : 0,
+        basicPercent: editingRole.basicPercent !== '' && editingRole.basicPercent !== null ? Number(editingRole.basicPercent) : null,
+        hraPercent: editingRole.hraPercent !== '' && editingRole.hraPercent !== null ? Number(editingRole.hraPercent) : null,
+      };
+      if (editingRole._id) {
+        await api.put(`/roles/${editingRole._id}`, payload);
+        toast.success('Role updated successfully');
+      } else {
+        await api.post('/roles', payload);
+        toast.success('Role created successfully');
+      }
+      setEditingRole(null);
+      fetchRoles();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to save role');
+    }
+  };
+
+  const handleDeleteRole = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this job role?')) return;
+    try {
+      await api.delete(`/roles/${id}`);
+      toast.success('Role deleted successfully');
+      fetchRoles();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete role');
+    }
+  };
+
+  const handleNewRole = () => {
+    setEditingRole({
+      name: '',
+      description: '',
+      employmentType: 'full-time',
+      payType: 'salaried',
+      useSalaryComponents: true,
+      monthlyCTC: 0,
+      hourlyRate: 0,
+      basicPercent: '',
+      hraPercent: '',
+      pfEnabled: true,
+      esiEnabled: true,
+      ptEnabled: true,
+      lwfEnabled: true,
+      gratuityEnabled: true,
+      includePfInCTC: true,
+      includeGratuityInCTC: true,
+    });
+  };
+
   const handleSyncEmployees = async () => {
     try {
       setSyncing(true);
@@ -177,7 +263,8 @@ const PayrollSettings = () => {
         ...prev,
         salaryComponents: [
           ...current,
-          { id: newId, name: '', type: 'earning', taxable: true, linkedTo: 'fixed', linkValue: 0, frequency: 'monthly', isCustom: true }
+          // _idFrozen=false: ID may still be set from the name on first entry
+          { id: newId, name: '', type: 'earning', taxable: true, linkedTo: 'fixed', linkValue: 0, frequency: 'monthly', isCustom: true, _idFrozen: false }
         ]
       };
     });
@@ -200,10 +287,16 @@ const PayrollSettings = () => {
           ...current[index],
           [key]: value
         };
-        if (key === 'name' && (current[index].id?.startsWith('custom_') || current[index].isCustom)) {
-          const cleanName = value.toLowerCase().replace(/[^a-z0-9]/g, '_');
-          current[index].id = cleanName ? `custom_${cleanName}` : `custom_${Date.now()}`;
-          current[index].isCustom = true;
+        // Only derive ID from name if the component ID has NOT yet been frozen.
+        // Once an ID is frozen (component was saved or name was first set), renaming
+        // must never change the ID — doing so would orphan all payroll records
+        // that reference the old ID.
+        if (key === 'name' && current[index].isCustom && !current[index]._idFrozen) {
+          if (value.trim()) {
+            const cleanName = value.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            current[index].id = cleanName ? `custom_${cleanName}` : current[index].id;
+            current[index]._idFrozen = true; // Freeze ID now that a real name has been entered
+          }
         }
 
         // Two-way binding: If linkValue is updated and it matches a config field, sync it
@@ -221,6 +314,7 @@ const PayrollSettings = () => {
       return { ...prev, salaryComponents: current };
     });
   };
+
 
   const deleteComponent = (index) => {
     setForm((prev) => {
@@ -326,7 +420,37 @@ const PayrollSettings = () => {
         <p className="text-gray-500 text-xs mt-0.5">Changes take effect on the next payroll run. Existing payroll records are not affected.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 mb-6">
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('general');
+            setEditingRole(null);
+          }}
+          className={`py-2 px-4 text-sm font-medium border-b-2 focus:outline-none transition-colors ${
+            activeTab === 'general'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+        >
+          General Settings
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('roles')}
+          className={`py-2 px-4 text-sm font-medium border-b-2 focus:outline-none transition-colors ${
+            activeTab === 'roles'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+        >
+          Job Roles & Pay Grades
+        </button>
+      </div>
+
+      {activeTab === 'general' && (
+        <div className="grid grid-cols-1 gap-4">
         {/* Salary Components Section */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
           <div className="flex justify-between items-center mb-3">
@@ -858,17 +982,478 @@ const PayrollSettings = () => {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      )}
 
+      {activeTab === 'general' && (
+        <div className="mt-4 flex justify-end gap-3">
+          <button type="button" onClick={resetToDefaults} className="bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-4 py-2 rounded-md text-xs font-semibold">
+            Reset to Defaults
+          </button>
+          <button type="button" onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-xs font-semibold disabled:opacity-60">
+            {saving ? 'Saving...' : 'Save Settings'}
+          </button>
+        </div>
+      )}
 
-      <div className="mt-4 flex justify-end gap-3">
-        <button type="button" onClick={resetToDefaults} className="bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-4 py-2 rounded-md text-xs font-semibold">
-          Reset to Defaults
-        </button>
-        <button type="button" onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-xs font-semibold disabled:opacity-60">
-          {saving ? 'Saving...' : 'Save Settings'}
-        </button>
-      </div>
+      {activeTab === 'roles' && (
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+          {editingRole ? (
+            /* Create / Edit Role Form */
+            <form onSubmit={handleSaveRole} className="space-y-6">
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <h2 className="text-lg font-bold text-gray-800">
+                  {editingRole._id ? 'Edit Job Role' : 'Create New Job Role'}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setEditingRole(null)}
+                  className="text-gray-500 hover:text-gray-700 text-xs font-semibold flex items-center gap-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to List
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Side: General Profile Info */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Role Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editingRole.name}
+                      onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
+                      placeholder="e.g. Senior Software Engineer"
+                      className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Employment Type
+                    </label>
+                    <select
+                      value={editingRole.employmentType || 'full-time'}
+                      onChange={(e) => {
+                        const et = e.target.value;
+                        setEditingRole(prev => ({
+                          ...prev,
+                          employmentType: et,
+                          // Auto-configure intern defaults
+                          ...(et === 'intern' ? {
+                            useSalaryComponents: false,
+                            pfEnabled: false,
+                            esiEnabled: false,
+                            ptEnabled: false,
+                            lwfEnabled: false,
+                            gratuityEnabled: false,
+                            includePfInCTC: false,
+                            includeGratuityInCTC: false,
+                          } : {}),
+                          // Restore salaried defaults when switching away from intern
+                          ...(prev.employmentType === 'intern' && et !== 'intern' ? {
+                            useSalaryComponents: true,
+                            pfEnabled: true,
+                            esiEnabled: true,
+                            ptEnabled: true,
+                            lwfEnabled: true,
+                            gratuityEnabled: true,
+                            includePfInCTC: true,
+                            includeGratuityInCTC: true,
+                          } : {}),
+                        }));
+                      }}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option value="full-time">Full Time</option>
+                      <option value="part-time">Part Time</option>
+                      <option value="contract">Contract</option>
+                      <option value="intern">Intern / Trainee</option>
+                    </select>
+                    {editingRole.employmentType === 'intern' && (
+                      <p className="text-[10px] text-amber-600 font-semibold mt-1">🎓 Auto-configured: flat stipend, statutory deductions disabled.</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={editingRole.description || ''}
+                      onChange={(e) => setEditingRole({ ...editingRole, description: e.target.value })}
+                      placeholder="Brief description of the job responsibilities and pay guidelines"
+                      rows="2"
+                      className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    />
+                  </div>
+
+                  {/* Pay Contract Type */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Pay Contract Type
+                    </label>
+                    <select
+                      value={editingRole.payType}
+                      onChange={(e) => setEditingRole({ ...editingRole, payType: e.target.value })}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option value="salaried">Salaried (Monthly)</option>
+                      <option value="hourly">Hourly Contractor</option>
+                    </select>
+                  </div>
+
+                  {/* Hourly Rate — only for hourly */}
+                  {editingRole.payType === 'hourly' && (
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                        Hourly Rate
+                      </label>
+                      <div className="relative rounded-md shadow-sm">
+                        <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 text-xs font-semibold">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={editingRole.hourlyRate}
+                          onChange={(e) => setEditingRole({ ...editingRole, hourlyRate: e.target.value })}
+                          className="border border-gray-300 rounded-md pl-6 pr-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-1">Paid per hour logged. No salary breakdown applied.</p>
+                    </div>
+                  )}
+
+                  {/* Salaried fields */}
+                  {editingRole.payType === 'salaried' && (
+                    <>
+                      {/* Salary mode toggle */}
+                      <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                        <div>
+                          <p className="text-xs font-bold text-gray-700">Use Salary Components</p>
+                          <p className="text-[10px] text-gray-500 mt-0.5">Break salary into Basic, HRA, etc. Disable for a flat monthly amount.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditingRole({ ...editingRole, useSalaryComponents: !editingRole.useSalaryComponents })}
+                          className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            editingRole.useSalaryComponents !== false ? 'bg-blue-600' : 'bg-gray-300'
+                          }`}
+                        >
+                          <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            editingRole.useSalaryComponents !== false ? 'translate-x-4' : 'translate-x-0'
+                          }`} />
+                        </button>
+                      </div>
+
+                      {/* Monthly CTC */}
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                          Monthly CTC
+                        </label>
+                        <div className="relative rounded-md shadow-sm">
+                          <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 text-xs font-semibold">₹</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={editingRole.monthlyCTC}
+                            onChange={(e) => setEditingRole({ ...editingRole, monthlyCTC: e.target.value })}
+                            className="border border-gray-300 rounded-md pl-6 pr-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          />
+                        </div>
+                        {editingRole.useSalaryComponents === false && (
+                          <p className="text-[10px] text-gray-400 mt-1">Paid as a single flat amount. No component breakdown.</p>
+                        )}
+                      </div>
+
+                      {/* Basic % / HRA % — only when using components */}
+                      {editingRole.useSalaryComponents !== false && (
+                        <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-3">
+                          <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                              Basic Salary % (Override)
+                            </label>
+                            <input
+                              type="number"
+                              placeholder="e.g. 50"
+                              min="0"
+                              max="100"
+                              value={editingRole.basicPercent ?? ''}
+                              onChange={(e) => setEditingRole({ ...editingRole, basicPercent: e.target.value })}
+                              className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            />
+                            <p className="text-[10px] text-gray-400 mt-1">Leave empty to use org default.</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                              HRA % (Override)
+                            </label>
+                            <input
+                              type="number"
+                              placeholder="e.g. 50"
+                              min="0"
+                              max="100"
+                              value={editingRole.hraPercent ?? ''}
+                              onChange={(e) => setEditingRole({ ...editingRole, hraPercent: e.target.value })}
+                              className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            />
+                            <p className="text-[10px] text-gray-400 mt-1">Leave empty to use org default.</p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Right Side: Statutory Switches — salaried only */}
+                {editingRole.payType === 'salaried' ? (
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
+                    <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider border-b border-gray-200 pb-2 flex items-center">
+                      <span className="w-1.5 h-3 bg-blue-600 rounded-full mr-2"></span>
+                      Statutory Rules & Deductions
+                    </h3>
+
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 cursor-pointer" htmlFor="pfEnabled">Enable Provident Fund (PF)</label>
+                          <p className="text-[10px] text-gray-500">Calculate employee & employer PF contributions</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          id="pfEnabled"
+                          checked={editingRole.pfEnabled}
+                          onChange={(e) => setEditingRole({ ...editingRole, pfEnabled: e.target.checked })}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </div>
+
+                      {editingRole.pfEnabled && (
+                        <div className="flex items-start justify-between pl-4 border-l-2 border-blue-200 py-1">
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-600 cursor-pointer" htmlFor="includePfInCTC">Include Employer PF in CTC</label>
+                            <p className="text-[9px] text-gray-400">Employer contribution is balanced from Special Allowance</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            id="includePfInCTC"
+                            checked={editingRole.includePfInCTC}
+                            onChange={(e) => setEditingRole({ ...editingRole, includePfInCTC: e.target.checked })}
+                            className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex items-start justify-between border-t border-gray-150 pt-2">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 cursor-pointer" htmlFor="esiEnabled">Enable ESI (Health Insurance)</label>
+                          <p className="text-[10px] text-gray-500">Calculate ESIC employee & employer shares</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          id="esiEnabled"
+                          checked={editingRole.esiEnabled}
+                          onChange={(e) => setEditingRole({ ...editingRole, esiEnabled: e.target.checked })}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="flex items-start justify-between border-t border-gray-150 pt-2">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 cursor-pointer" htmlFor="ptEnabled">Enable Professional Tax (PT)</label>
+                          <p className="text-[10px] text-gray-500">Apply monthly state Professional Tax deduction</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          id="ptEnabled"
+                          checked={editingRole.ptEnabled}
+                          onChange={(e) => setEditingRole({ ...editingRole, ptEnabled: e.target.checked })}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="flex items-start justify-between border-t border-gray-150 pt-2">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 cursor-pointer" htmlFor="lwfEnabled">Enable Labour Welfare Fund (LWF)</label>
+                          <p className="text-[10px] text-gray-500">Apply monthly state LWF deduction</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          id="lwfEnabled"
+                          checked={editingRole.lwfEnabled}
+                          onChange={(e) => setEditingRole({ ...editingRole, lwfEnabled: e.target.checked })}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="flex items-start justify-between border-t border-gray-150 pt-2">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 cursor-pointer" htmlFor="gratuityEnabled">Enable Gratuity Accrual</label>
+                          <p className="text-[10px] text-gray-500">Accrue gratuity monthly based on basic salary</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          id="gratuityEnabled"
+                          checked={editingRole.gratuityEnabled}
+                          onChange={(e) => setEditingRole({ ...editingRole, gratuityEnabled: e.target.checked })}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </div>
+
+                      {editingRole.gratuityEnabled && (
+                        <div className="flex items-start justify-between pl-4 border-l-2 border-blue-200 py-1">
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-600 cursor-pointer" htmlFor="includeGratuityInCTC">Include Gratuity in CTC</label>
+                            <p className="text-[9px] text-gray-400">Accrued gratuity is balanced from Special Allowance</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            id="includeGratuityInCTC"
+                            checked={editingRole.includeGratuityInCTC}
+                            onChange={(e) => setEditingRole({ ...editingRole, includeGratuityInCTC: e.target.checked })}
+                            className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                    <svg className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-xs font-bold text-amber-800">Hourly Contractor</p>
+                      <p className="text-[10px] text-amber-700 mt-1 leading-relaxed">Statutory deductions (PF, ESI, PT, LWF, Gratuity) are not applicable for hourly contractors. Only the hours worked × hourly rate is paid.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingRole(null)}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-4 py-2 rounded-md text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-xs font-semibold"
+                >
+                  Save Job Role
+                </button>
+              </div>
+            </form>
+          ) : (
+            /* Roles Grid / Table view */
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-base font-bold">Job Role & Pay Grade Templates</h2>
+                  <p className="text-[11px] text-gray-500">Configure standardized roles that define pay type, statutory switches, and basic salary override defaults.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleNewRole}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-xs font-semibold"
+                >
+                  + Add Job Role
+                </button>
+              </div>
+
+              {rolesLoading ? (
+                <div className="space-y-2 py-4">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              ) : roles.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 text-xs border border-dashed border-gray-300 rounded-lg">
+                  No Job Roles configured yet. Click "+ Add Job Role" to set up your first template.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-gray-200 text-gray-500 text-[10px] font-bold uppercase tracking-wider">
+                        <th className="py-2.5 px-3">Role Name</th>
+                        <th className="py-2.5 px-3">Employment Type</th>
+                        <th className="py-2.5 px-3">Pay Type</th>
+                        <th className="py-2.5 px-3">Standard Pay Rate</th>
+                        <th className="py-2.5 px-3">Statutory</th>
+                        <th className="py-2.5 px-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {roles.map((role) => (
+                        <tr key={role._id} className="hover:bg-gray-50/50">
+                          <td className="py-3 px-3 font-semibold text-gray-800">{role.name}</td>
+                          <td className="py-3 px-3">
+                            {(() => {
+                              const ET_LABELS = { 'full-time': 'Full Time', 'part-time': 'Part Time', 'contract': 'Contract', 'intern': 'Intern' };
+                              const ET_COLORS = { 'full-time': 'bg-green-100 text-green-800', 'part-time': 'bg-teal-100 text-teal-800', 'contract': 'bg-purple-100 text-purple-800', 'intern': 'bg-amber-100 text-amber-800' };
+                              const et = role.employmentType || 'full-time';
+                              return <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${ET_COLORS[et] || 'bg-gray-100 text-gray-700'}`}>{ET_LABELS[et] || et}</span>;
+                            })()}
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              role.payType === 'hourly'
+                                ? 'bg-amber-100 text-amber-800'
+                                : role.useSalaryComponents === false ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {role.payType === 'hourly' ? 'Hourly' : role.useSalaryComponents === false ? 'Flat' : 'Salaried'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 font-medium text-gray-700">
+                            {role.payType === 'hourly'
+                              ? `₹${(role.hourlyRate || 0).toLocaleString()}/hr`
+                              : `₹${(role.monthlyCTC || 0).toLocaleString()}/mo`
+                            }
+                          </td>
+                          <td className="py-3 px-3 space-x-1">
+                            {role.pfEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">PF</span>}
+                            {role.esiEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">ESI</span>}
+                            {role.ptEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">PT</span>}
+                            {role.lwfEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">LWF</span>}
+                            {role.gratuityEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">Gratuity</span>}
+                            {!role.pfEnabled && !role.esiEnabled && !role.ptEnabled && !role.lwfEnabled && !role.gratuityEnabled && (
+                              <span className="text-gray-400 italic text-[10px]">None</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 text-right space-x-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditingRole(role)}
+                              className="text-blue-600 hover:text-blue-800 font-semibold"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRole(role._id)}
+                              className="text-red-600 hover:text-red-800 font-semibold"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

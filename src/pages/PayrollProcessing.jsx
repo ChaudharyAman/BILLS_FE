@@ -118,7 +118,8 @@ const EmployeeRow = ({
   const snapshot = usePayrollSnapshot(employee, config, rowWithReimbursements, monthWorkingDays);
   if (!snapshot) return null;
 
-  const paidTooHigh = Number(row?.paidDays) > Number(row?.workingDays || monthWorkingDays);
+  const isHourly = employee.payType === 'hourly';
+  const paidTooHigh = !isHourly && Number(row?.paidDays) > Number(row?.workingDays || monthWorkingDays);
 
   const otherAllowancesTotal = useMemo(() => {
     if (!snapshot?.earnings?.otherEarnings) return 0;
@@ -160,7 +161,7 @@ const EmployeeRow = ({
         <div className="font-semibold text-xs text-gray-900">{employee.firstName} {employee.lastName}</div>
         <div className="text-[10px] text-gray-400 mt-0.5">{employee.employeeId} · {employee.designation || '-'}</div>
         <div className="text-[10px] text-gray-400 mt-0.5 flex flex-col gap-0.5">
-          <span>CTC {fmtMoney(snapshot?.master?.monthlyCTC || employee.monthlyCTC)}</span>
+          <span>{isHourly ? `Rate: ${fmtMoney(employee.hourlyRate)}/hr` : `CTC ${fmtMoney(snapshot?.master?.monthlyCTC || employee.monthlyCTC)}`}</span>
           <button
             type="button"
             onClick={() => setBreakdownEmployee(employee)}
@@ -190,14 +191,29 @@ const EmployeeRow = ({
         </div>
       </td>
       <td className="px-4 py-2.5 min-w-[180px]">
-        <div className="flex gap-1.5">
-          <input type="number" min="0" value={row?.paidDays ?? 0} onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right" />
-          <span className="self-center text-gray-400 text-xs">/</span>
-          <input type="number" min="1" value={row?.workingDays ?? monthWorkingDays} onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right" />
-        </div>
+        {isHourly ? (
+          <div className="flex items-center gap-1">
+            <input
+              type="number"
+              min="0"
+              value={row?.hoursWorked ?? 160}
+              onChange={(e) => updateRow(employee._id, 'hoursWorked', Number(e.target.value) || 0)}
+              className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium"
+            />
+            <span className="text-gray-400 text-xs">hrs</span>
+          </div>
+        ) : (
+          <div className="flex gap-1.5">
+            <input type="number" min="0" value={row?.paidDays ?? 0} onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right" />
+            <span className="self-center text-gray-400 text-xs">/</span>
+            <input type="number" min="1" value={row?.workingDays ?? monthWorkingDays} onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right" />
+          </div>
+        )}
         {paidTooHigh ? <div className="mt-1 text-[10px] text-red-600">Paid days cannot exceed working days.</div> : null}
       </td>
-      <td className="px-4 py-2.5 text-xs whitespace-nowrap">{Math.round((snapshot.paidDays / Math.max(snapshot.workingDays, 1)) * 100)}%</td>
+      <td className="px-4 py-2.5 text-xs whitespace-nowrap">
+        {isHourly ? 'Hourly (N/A)' : `${Math.round((snapshot.paidDays / Math.max(snapshot.workingDays, 1)) * 100)}%`}
+      </td>
       {earningComponents.map(c => {
         const val = getEarningValue(snapshot, c.id);
         return (
@@ -288,7 +304,7 @@ const PayrollProcessing = () => {
   };
 
   const headers = useMemo(() => {
-    const baseHeadersBefore = ['Include', 'Employee', 'Paid / Working', 'Proration'];
+    const baseHeadersBefore = ['Include', 'Employee', 'Paid/Working / Hours', 'Proration'];
     const dynamicHeaders = earningComponents.map(c => `${c.name}${getFreqSuffix(c.frequency)}`);
     const baseHeadersAfter = ['Other Allowances', 'Gratuity', 'LWF', 'Joining Bonus', 'Loyalty Bonus', 'Incentive', 'Special Bonus', 'Other Deductions', 'TDS', 'Net Preview'];
     return [...baseHeadersBefore, ...dynamicHeaders, ...baseHeadersAfter];
@@ -357,15 +373,13 @@ const PayrollProcessing = () => {
 
           const defaultDays = nextConfig.defaultWorkingDays || 26;
           let proratedPaidDays = defaultDays;
-          if (activeDays < calendarDays) {
-            proratedPaidDays = Math.max(0, Math.min(defaultDays, Math.round(defaultDays * (activeDays / calendarDays))));
-          }
 
           return [emp._id, {
             workingDays: defaultDays,
             paidDays: proratedPaidDays,
             paidLeaves: 0,
             unpaidLeaves: 0,
+            hoursWorked: emp.payType === 'hourly' ? 160 : 0,
             overtime: 0,
             joiningBonus: autoJoiningBonus,
             loyaltyBonus: 0,
@@ -422,6 +436,7 @@ const PayrollProcessing = () => {
       paidDays: Number(row.paidDays) || 0,
       paidLeaves: Number(row.paidLeaves) || 0,
       unpaidLeaves: Number(row.unpaidLeaves) || 0,
+      hoursWorked: Number(row.hoursWorked) || 0,
     }, {
       overtime: Number(row.overtime) || 0,
       joiningBonus: Number(row.joiningBonus) || 0,
@@ -432,6 +447,7 @@ const PayrollProcessing = () => {
       loanDeduction: Number(row.loanDeduction) || 0,
       advanceDeduction: Number(row.advanceDeduction) || 0,
       tds: Number(row.tds) || 0,
+      hoursWorked: Number(row.hoursWorked) || 0,
       otherEarnings: row.otherEarnings || [],
       otherDeductions: row.otherDeductions || [],
       pfEnabled: row.pfEnabled,
@@ -480,7 +496,8 @@ const PayrollProcessing = () => {
               workingDays: record.workingDays,
               paidDays: record.paidDays,
               unpaidLeaves: record.unpaidLeaves,
-              paidLeaves: record.paidLeaves
+              paidLeaves: record.paidLeaves,
+              hoursWorked: record.hoursWorked || 0
             };
           }
         });
@@ -592,7 +609,7 @@ const PayrollProcessing = () => {
   const submit = async (saveAsDraft) => {
     const invalid = selectedEmployees.find((employee) => {
       const row = rows[employee._id] || {};
-      return Number(row.paidDays) > Number(row.workingDays || monthWorkingDays);
+      return employee.payType !== 'hourly' && Number(row.paidDays) > Number(row.workingDays || monthWorkingDays);
     });
 
     if (invalid) {
@@ -749,18 +766,29 @@ const PayrollProcessing = () => {
               {/* Proration Summary Banner */}
               {localSnapshot && (
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-900 text-sm">
-                  <div>
-                    <span className="font-semibold text-blue-900">Paid / Working Days:</span> {localSnapshot.paidDays} / {localSnapshot.workingDays} days
-                    <span className="mx-2 text-blue-300">|</span>
-                    <span className="font-semibold text-blue-900">Proration Ratio:</span> {Math.round((localSnapshot.paidDays / localSnapshot.workingDays) * 100)}%
-                  </div>
+                  {breakdownEmployee.payType === 'hourly' ? (
+                    <div>
+                      <span className="font-semibold text-blue-900">Hours Worked:</span> {rows[breakdownEmployee._id]?.hoursWorked ?? 160} hrs
+                      <span className="mx-2 text-blue-300">|</span>
+                      <span className="font-semibold text-blue-900">Hourly Rate:</span> {fmtMoney(breakdownEmployee.hourlyRate)}/hr
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="font-semibold text-blue-900">Paid / Working Days:</span> {localSnapshot.paidDays} / {localSnapshot.workingDays} days
+                      <span className="mx-2 text-blue-300">|</span>
+                      <span className="font-semibold text-blue-900">Proration Ratio:</span> {Math.round((localSnapshot.paidDays / localSnapshot.workingDays) * 100)}%
+                    </div>
+                  )}
                   <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold self-start sm:self-auto">
-                    {localSnapshot.lop > 0 ? `${localSnapshot.lop} LOP Days` : 'Full Attendance'}
+                    {breakdownEmployee.payType === 'hourly' 
+                      ? `${rows[breakdownEmployee._id]?.hoursWorked ?? 160} hrs logged` 
+                      : (localSnapshot.lop > 0 ? `${localSnapshot.lop} LOP Days` : 'Full Attendance')
+                    }
                   </div>
                 </div>
               )}
 
-              {localSplits && localSplits.length > 1 && (
+              {localSplits && localSplits.length > 1 && breakdownEmployee.payType !== 'hourly' && (
                 <div className="border border-blue-200 rounded-xl overflow-hidden bg-white shadow-sm">
                   <div className="bg-blue-50 px-4 py-3 border-b border-blue-100 font-bold text-blue-900 text-sm">
                     Mid-Month Revision Calculation Split
@@ -774,11 +802,15 @@ const PayrollProcessing = () => {
                             <th className="p-2.5 text-right w-20">LOP Days</th>
                           )}
                           <th className="p-2.5 text-right">Monthly CTC</th>
-                          <th className="p-2.5 text-right">Basic</th>
-                          <th className="p-2.5 text-right">HRA</th>
-                          <th className="p-2.5 text-right">PF (EE / ER)</th>
-                          <th className="p-2.5 text-right">ESI (EE / ER)</th>
-                          <th className="p-2.5 text-right">Gratuity</th>
+                          {breakdownEmployee.useSalaryComponents !== false && (
+                            <>
+                              <th className="p-2.5 text-right">Basic</th>
+                              <th className="p-2.5 text-right">HRA</th>
+                              <th className="p-2.5 text-right">PF (EE / ER)</th>
+                              <th className="p-2.5 text-right">ESI (EE / ER)</th>
+                              <th className="p-2.5 text-right">Gratuity</th>
+                            </>
+                          )}
                           <th className="p-2.5 text-right">Period Earnings</th>
                         </tr>
                       </thead>
@@ -803,17 +835,21 @@ const PayrollProcessing = () => {
                               </td>
                             )}
                             <td className="p-2.5 text-right font-medium text-slate-700">{fmtMoney(split.monthlyCTC)}</td>
-                            <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.basic)}</td>
-                            <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.hra)}</td>
-                            <td className="p-2.5 text-right text-slate-700">
-                              <div>{fmtMoney(split.pfEmployee)} <span className="text-[9px] text-slate-400">EE</span></div>
-                              <div className="text-[10px] text-slate-500">{fmtMoney(split.pfEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
-                            </td>
-                            <td className="p-2.5 text-right text-slate-700">
-                              <div>{fmtMoney(split.esiEmployee)} <span className="text-[9px] text-slate-400">EE</span></div>
-                              <div className="text-[10px] text-slate-500">{fmtMoney(split.esiEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
-                            </td>
-                            <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.gratuity)}</td>
+                            {breakdownEmployee.useSalaryComponents !== false && (
+                              <>
+                                <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.basic)}</td>
+                                <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.hra)}</td>
+                                <td className="p-2.5 text-right text-slate-700">
+                                  <div>{fmtMoney(split.pfEmployee)} <span className="text-[9px] text-slate-400">EE</span></div>
+                                  <div className="text-[10px] text-slate-500">{fmtMoney(split.pfEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
+                                </td>
+                                <td className="p-2.5 text-right text-slate-700">
+                                  <div>{fmtMoney(split.esiEmployee)} <span className="text-[9px] text-slate-400">EE</span></div>
+                                  <div className="text-[10px] text-slate-500">{fmtMoney(split.esiEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
+                                </td>
+                                <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.gratuity)}</td>
+                              </>
+                            )}
                             <td className="p-2.5 text-right font-semibold text-slate-900">{fmtMoney(split.totalEarnings)}</td>
                           </tr>
                         ))}
@@ -838,227 +874,238 @@ const PayrollProcessing = () => {
                 </div>
               )}
 
-              {localSnapshot && (
-                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                  <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 font-bold text-slate-700 text-sm flex items-center justify-between">
-                    <span>Statutory Components & Ratio Overrides</span>
-                    <span className="text-[11px] text-slate-400 font-normal">Apply dynamically to this payroll run only</span>
-                  </div>
-                  <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-                    {/* PF Toggle */}
-                    <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                      <div className="flex flex-col pr-2">
-                        <span className="font-semibold text-slate-800">Provident Fund (PF)</span>
-                        <span className="text-[10px] text-slate-500 mt-0.5">Matching contributions</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={
-                          rows[breakdownEmployee._id]?.pfEnabled !== undefined
-                            ? rows[breakdownEmployee._id].pfEnabled
-                            : localSnapshot?.master?.pfEnabled !== false
-                        }
-                        onChange={(e) => updateRow(breakdownEmployee._id, 'pfEnabled', e.target.checked)}
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                      />
+              {localSnapshot && (() => {
+                const showStatutoryOverrides = breakdownEmployee.useSalaryComponents !== false;
+                const showLopStrategy = localSplits && localSplits.length > 1 && breakdownEmployee.payType !== 'hourly';
+                
+                if (!showStatutoryOverrides && !showLopStrategy) return null;
+                
+                return (
+                  <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                    <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 font-bold text-slate-700 text-sm flex items-center justify-between">
+                      <span>Statutory Components & Ratio Overrides</span>
+                      <span className="text-[11px] text-slate-400 font-normal">Apply dynamically to this payroll run only</span>
                     </div>
+                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                      {showStatutoryOverrides && (
+                        <>
+                          {/* PF Toggle */}
+                          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex flex-col pr-2">
+                              <span className="font-semibold text-slate-800">Provident Fund (PF)</span>
+                              <span className="text-[10px] text-slate-500 mt-0.5">Matching contributions</span>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={
+                                rows[breakdownEmployee._id]?.pfEnabled !== undefined
+                                  ? rows[breakdownEmployee._id].pfEnabled
+                                  : localSnapshot?.master?.pfEnabled !== false
+                              }
+                              onChange={(e) => updateRow(breakdownEmployee._id, 'pfEnabled', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                            />
+                          </div>
 
-                    {/* ESI Toggle */}
-                    <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                      <div className="flex flex-col pr-2">
-                        <span className="font-semibold text-slate-800">ESI Scheme</span>
-                        <span className="text-[10px] text-slate-500 mt-0.5">State insurance matches</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={
-                          rows[breakdownEmployee._id]?.esiEnabled !== undefined
-                            ? rows[breakdownEmployee._id].esiEnabled
-                            : localSnapshot?.master?.esiEnabled !== false
-                        }
-                        onChange={(e) => updateRow(breakdownEmployee._id, 'esiEnabled', e.target.checked)}
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                      />
-                    </div>
+                          {/* ESI Toggle */}
+                          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex flex-col pr-2">
+                              <span className="font-semibold text-slate-800">ESI Scheme</span>
+                              <span className="text-[10px] text-slate-500 mt-0.5">State insurance matches</span>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={
+                                rows[breakdownEmployee._id]?.esiEnabled !== undefined
+                                  ? rows[breakdownEmployee._id].esiEnabled
+                                  : localSnapshot?.master?.esiEnabled !== false
+                              }
+                              onChange={(e) => updateRow(breakdownEmployee._id, 'esiEnabled', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                            />
+                          </div>
 
-                    {/* PT Toggle */}
-                    <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                      <div className="flex flex-col pr-2">
-                        <span className="font-semibold text-slate-800">Professional Tax (PT)</span>
-                        <span className="text-[10px] text-slate-500 mt-0.5">State professional tax</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={
-                          rows[breakdownEmployee._id]?.ptEnabled !== undefined
-                            ? rows[breakdownEmployee._id].ptEnabled
-                            : localSnapshot?.master?.ptEnabled !== false
-                        }
-                        onChange={(e) => updateRow(breakdownEmployee._id, 'ptEnabled', e.target.checked)}
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                      />
-                    </div>
+                          {/* PT Toggle */}
+                          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex flex-col pr-2">
+                              <span className="font-semibold text-slate-800">Professional Tax (PT)</span>
+                              <span className="text-[10px] text-slate-500 mt-0.5">State professional tax</span>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={
+                                rows[breakdownEmployee._id]?.ptEnabled !== undefined
+                                  ? rows[breakdownEmployee._id].ptEnabled
+                                  : localSnapshot?.master?.ptEnabled !== false
+                              }
+                              onChange={(e) => updateRow(breakdownEmployee._id, 'ptEnabled', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                            />
+                          </div>
 
-                    {/* LWF Toggle */}
-                    <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                      <div className="flex flex-col pr-2">
-                        <span className="font-semibold text-slate-800">Labour Welfare Fund</span>
-                        <span className="text-[10px] text-slate-500 mt-0.5">State welfare fund (LWF)</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={
-                          rows[breakdownEmployee._id]?.lwfEnabled !== undefined
-                            ? rows[breakdownEmployee._id].lwfEnabled
-                            : localSnapshot?.master?.lwfEnabled !== false
-                        }
-                        onChange={(e) => updateRow(breakdownEmployee._id, 'lwfEnabled', e.target.checked)}
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                      />
-                    </div>
+                          {/* LWF Toggle */}
+                          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex flex-col pr-2">
+                              <span className="font-semibold text-slate-800">Labour Welfare Fund</span>
+                              <span className="text-[10px] text-slate-500 mt-0.5">State welfare fund (LWF)</span>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={
+                                rows[breakdownEmployee._id]?.lwfEnabled !== undefined
+                                  ? rows[breakdownEmployee._id].lwfEnabled
+                                  : localSnapshot?.master?.lwfEnabled !== false
+                              }
+                              onChange={(e) => updateRow(breakdownEmployee._id, 'lwfEnabled', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                            />
+                          </div>
 
-                    {/* Gratuity Toggle */}
-                    <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                      <div className="flex flex-col pr-2">
-                        <span className="font-semibold text-slate-800">Gratuity Provision</span>
-                        <span className="text-[10px] text-slate-500 mt-0.5">4.81% basic salary match</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={
-                          rows[breakdownEmployee._id]?.gratuityEnabled !== undefined
-                            ? rows[breakdownEmployee._id].gratuityEnabled
-                            : localSnapshot?.master?.gratuityEnabled !== false
-                        }
-                        onChange={(e) => updateRow(breakdownEmployee._id, 'gratuityEnabled', e.target.checked)}
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                      />
-                    </div>
+                          {/* Gratuity Toggle */}
+                          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex flex-col pr-2">
+                              <span className="font-semibold text-slate-800">Gratuity Provision</span>
+                              <span className="text-[10px] text-slate-500 mt-0.5">4.81% basic salary match</span>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={
+                                rows[breakdownEmployee._id]?.gratuityEnabled !== undefined
+                                  ? rows[breakdownEmployee._id].gratuityEnabled
+                                  : localSnapshot?.master?.gratuityEnabled !== false
+                              }
+                              onChange={(e) => updateRow(breakdownEmployee._id, 'gratuityEnabled', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                            />
+                          </div>
 
-                    {/* Include PF in CTC */}
-                    <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                      <div className="flex flex-col pr-2">
-                        <span className="font-semibold text-slate-800">Include PF in CTC</span>
-                        <span className="text-[10px] text-slate-500 mt-0.5">Employer PF inside CTC limit</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={
-                          rows[breakdownEmployee._id]?.includePfInCTC !== undefined
-                            ? rows[breakdownEmployee._id].includePfInCTC
-                            : localSnapshot?.master?.includePfInCTC !== false
-                        }
-                        onChange={(e) => updateRow(breakdownEmployee._id, 'includePfInCTC', e.target.checked)}
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                      />
-                    </div>
+                          {/* Include PF in CTC */}
+                          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex flex-col pr-2">
+                              <span className="font-semibold text-slate-800">Include PF in CTC</span>
+                              <span className="text-[10px] text-slate-500 mt-0.5">Employer PF inside CTC limit</span>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={
+                                rows[breakdownEmployee._id]?.includePfInCTC !== undefined
+                                  ? rows[breakdownEmployee._id].includePfInCTC
+                                  : localSnapshot?.master?.includePfInCTC !== false
+                              }
+                              onChange={(e) => updateRow(breakdownEmployee._id, 'includePfInCTC', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                            />
+                          </div>
 
-                    {/* Include Gratuity in CTC */}
-                    <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                      <div className="flex flex-col pr-2">
-                        <span className="font-semibold text-slate-800">Include Gratuity in CTC</span>
-                        <span className="text-[10px] text-slate-500 mt-0.5">Gratuity inside CTC limit</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={
-                          rows[breakdownEmployee._id]?.includeGratuityInCTC !== undefined
-                            ? rows[breakdownEmployee._id].includeGratuityInCTC
-                            : localSnapshot?.master?.includeGratuityInCTC !== false
-                        }
-                        onChange={(e) => updateRow(breakdownEmployee._id, 'includeGratuityInCTC', e.target.checked)}
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                      />
-                    </div>
+                          {/* Include Gratuity in CTC */}
+                          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex flex-col pr-2">
+                              <span className="font-semibold text-slate-800">Include Gratuity in CTC</span>
+                              <span className="text-[10px] text-slate-500 mt-0.5">Gratuity inside CTC limit</span>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={
+                                rows[breakdownEmployee._id]?.includeGratuityInCTC !== undefined
+                                  ? rows[breakdownEmployee._id].includeGratuityInCTC
+                                  : localSnapshot?.master?.includeGratuityInCTC !== false
+                              }
+                              onChange={(e) => updateRow(breakdownEmployee._id, 'includeGratuityInCTC', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                            />
+                          </div>
 
-                    {/* Basic Override */}
-                    <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
-                      <div className="flex justify-between items-center">
-                        <span className="font-semibold text-slate-800">Basic Salary Override</span>
-                        <span className="text-[10px] text-slate-500">Default: 50%</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <input
-                          type="number"
-                          min="1"
-                          max="100"
-                          value={
-                            rows[breakdownEmployee._id]?.basicPercent !== undefined
-                              ? rows[breakdownEmployee._id].basicPercent
-                              : (localSnapshot?.master?.basicPercent !== undefined
-                                  ? (localSnapshot.master.basicPercent > 1
-                                      ? localSnapshot.master.basicPercent
-                                      : Math.round(localSnapshot.master.basicPercent * 100))
-                                  : 50)
-                          }
-                          onChange={(e) => updateRow(breakdownEmployee._id, 'basicPercent', Number(e.target.value) || 0)}
-                          className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
-                        />
-                        <span className="text-slate-500 font-medium">%</span>
-                      </div>
-                    </div>
+                          {/* Basic Override */}
+                          <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold text-slate-800">Basic Salary Override</span>
+                              <span className="text-[10px] text-slate-500">Default: 50%</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <input
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={
+                                  rows[breakdownEmployee._id]?.basicPercent !== undefined
+                                    ? rows[breakdownEmployee._id].basicPercent
+                                    : (localSnapshot?.master?.basicPercent !== undefined
+                                        ? (localSnapshot.master.basicPercent > 1
+                                            ? localSnapshot.master.basicPercent
+                                            : Math.round(localSnapshot.master.basicPercent * 100))
+                                        : 50)
+                                }
+                                onChange={(e) => updateRow(breakdownEmployee._id, 'basicPercent', Number(e.target.value) || 0)}
+                                className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
+                              />
+                              <span className="text-slate-500 font-medium">%</span>
+                            </div>
+                          </div>
 
-                    {/* HRA Override */}
-                    <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
-                      <div className="flex justify-between items-center">
-                        <span className="font-semibold text-slate-800">HRA Override (% of Basic)</span>
-                        <span className="text-[10px] text-slate-500">Default: 50%</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={
-                            rows[breakdownEmployee._id]?.hraPercent !== undefined
-                              ? rows[breakdownEmployee._id].hraPercent
-                              : (localSnapshot?.master?.hraPercent !== undefined
-                                  ? (localSnapshot.master.hraPercent > 1
-                                      ? localSnapshot.master.hraPercent
-                                      : Math.round(localSnapshot.master.hraPercent * 100))
-                                  : 50)
-                          }
-                          onChange={(e) => updateRow(breakdownEmployee._id, 'hraPercent', Number(e.target.value) || 0)}
-                          className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
-                        />
-                        <span className="text-slate-500 font-medium">%</span>
-                      </div>
-                    </div>
+                          {/* HRA Override */}
+                          <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold text-slate-800">HRA Override (% of Basic)</span>
+                              <span className="text-[10px] text-slate-500">Default: 50%</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={
+                                  rows[breakdownEmployee._id]?.hraPercent !== undefined
+                                    ? rows[breakdownEmployee._id].hraPercent
+                                    : (localSnapshot?.master?.hraPercent !== undefined
+                                        ? (localSnapshot.master.hraPercent > 1
+                                            ? localSnapshot.master.hraPercent
+                                            : Math.round(localSnapshot.master.hraPercent * 100))
+                                        : 50)
+                                }
+                                onChange={(e) => updateRow(breakdownEmployee._id, 'hraPercent', Number(e.target.value) || 0)}
+                                className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
+                              />
+                              <span className="text-slate-500 font-medium">%</span>
+                            </div>
+                          </div>
+                        </>
+                      )}
 
-                    {/* Leave Deduction Strategy Preference Dropdown */}
-                    {localSplits && localSplits.length > 1 && (
-                      <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold text-slate-800">Leave Deduction Preference</span>
-                          <span className="text-[10px] text-slate-500">For mid-month revisions</span>
+                      {/* Leave Deduction Strategy Preference Dropdown */}
+                      {showLopStrategy && (
+                        <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-slate-800">Leave Deduction Preference</span>
+                            <span className="text-[10px] text-slate-500">For mid-month revisions</span>
+                          </div>
+                          <select
+                            value={rows[breakdownEmployee._id]?.lopStrategy || 'proportional'}
+                            onChange={(e) => {
+                              const strategy = e.target.value;
+                              updateRow(breakdownEmployee._id, 'lopStrategy', strategy);
+                              if (strategy === 'custom') {
+                                const totalLop = Math.max(0, (Number(rows[breakdownEmployee._id]?.workingDays) || monthWorkingDays) - (Number(rows[breakdownEmployee._id]?.paidDays) || 0));
+                                const totalDays = new Date(year, month, 0).getDate();
+                                const initialLops = localSplits.map(split => {
+                                  const segRatio = split.daysCount / totalDays;
+                                  return Math.round(segRatio * totalLop * 100) / 100;
+                                });
+                                updateRow(breakdownEmployee._id, 'segmentLops', initialLops);
+                              }
+                            }}
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white font-medium cursor-pointer"
+                          >
+                            <option value="proportional">Proportional (Default)</option>
+                            <option value="older_first">Older Period first</option>
+                            <option value="newer_first">Newer Period first</option>
+                            <option value="custom">Custom Strategy</option>
+                          </select>
                         </div>
-                        <select
-                          value={rows[breakdownEmployee._id]?.lopStrategy || 'proportional'}
-                          onChange={(e) => {
-                            const strategy = e.target.value;
-                            updateRow(breakdownEmployee._id, 'lopStrategy', strategy);
-                            if (strategy === 'custom') {
-                              const totalLop = Math.max(0, (Number(rows[breakdownEmployee._id]?.workingDays) || monthWorkingDays) - (Number(rows[breakdownEmployee._id]?.paidDays) || 0));
-                              const totalDays = new Date(year, month, 0).getDate();
-                              const initialLops = localSplits.map(split => {
-                                const segRatio = split.daysCount / totalDays;
-                                return Math.round(segRatio * totalLop * 100) / 100;
-                              });
-                              updateRow(breakdownEmployee._id, 'segmentLops', initialLops);
-                            }
-                          }}
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white font-medium cursor-pointer"
-                        >
-                          <option value="proportional">Proportional (Default)</option>
-                          <option value="older_first">Older Period first</option>
-                          <option value="newer_first">Newer Period first</option>
-                          <option value="custom">Custom Strategy</option>
-                        </select>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {localSnapshot && (
                 <>
@@ -1073,7 +1120,10 @@ const PayrollProcessing = () => {
                       <div className="divide-y divide-gray-100 text-sm">
                         {allEarningComponents.map((c) => {
                           const { paid, master } = getComponentBreakdown(localSnapshot, c);
-                          const shouldShow = ['basic', 'hra', remainderId].includes(c.id) || paid > 0 || master > 0;
+                          const isFlatSalary = breakdownEmployee.useSalaryComponents === false;
+                          const shouldShow = isFlatSalary 
+                            ? c.id === 'basic'
+                            : (['basic', 'hra', remainderId].includes(c.id) || paid > 0 || master > 0);
                           if (!shouldShow) return null;
                           return (
                             <BreakdownRow
@@ -1158,7 +1208,9 @@ const PayrollProcessing = () => {
                         Statutory & Voluntary Deductions
                       </div>
                       <div className="divide-y divide-gray-100 text-sm">
-                        <DeductionRow label="Provident Fund (Employee PF Contribution)" amount={localSnapshot.deductions.pfEmployee} />
+                        {breakdownEmployee.useSalaryComponents !== false && (
+                          <DeductionRow label="Provident Fund (Employee PF Contribution)" amount={localSnapshot.deductions.pfEmployee} />
+                        )}
                         {localSnapshot.deductions.esiEmployee > 0 && <DeductionRow label="ESI (Employee Contribution)" amount={localSnapshot.deductions.esiEmployee} />}
                         {localSnapshot.deductions.lwfEmployee > 0 && <DeductionRow label="LWF (Employee Contribution)" amount={localSnapshot.deductions.lwfEmployee} />}
                         {localSnapshot.deductions.professionalTax > 0 && <DeductionRow label="Professional Tax (PT)" amount={localSnapshot.deductions.professionalTax} />}
@@ -1223,19 +1275,21 @@ const PayrollProcessing = () => {
                     </div>
 
                     {/* Employer Contributions Card */}
-                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
-                        Employer Contributions (Non-Takehome CTC Components)
+                    {breakdownEmployee.useSalaryComponents !== false && (
+                      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
+                          Employer Contributions (Non-Takehome CTC Components)
+                        </div>
+                        <div className="divide-y divide-gray-100 text-sm">
+                          <DeductionRow label="Provident Fund (Employer PF Contribution)" amount={localSnapshot.employerContributions.pfEmployer} isContrib />
+                          {localSnapshot.employerContributions.esiEmployer > 0 && <DeductionRow label="ESI (Employer Contribution)" amount={localSnapshot.employerContributions.esiEmployer} isContrib />}
+                          {localSnapshot.employerContributions.gratuity > 0 && <DeductionRow label="Gratuity Provision" amount={localSnapshot.employerContributions.gratuity} isContrib />}
+                          {localSnapshot.employerContributions.lwfEmployer > 0 && <DeductionRow label="LWF (Employer Contribution)" amount={localSnapshot.employerContributions.lwfEmployer} isContrib />}
+                          {localSnapshot.employerContributions.insuranceEmployer > 0 && <DeductionRow label="Insurance" amount={localSnapshot.employerContributions.insuranceEmployer} isContrib />}
+                          {localSnapshot.employerContributions.nps > 0 && <DeductionRow label="Employer NPS" amount={localSnapshot.employerContributions.nps} isContrib />}
+                        </div>
                       </div>
-                      <div className="divide-y divide-gray-100 text-sm">
-                        <DeductionRow label="Provident Fund (Employer PF Contribution)" amount={localSnapshot.employerContributions.pfEmployer} isContrib />
-                        {localSnapshot.employerContributions.esiEmployer > 0 && <DeductionRow label="ESI (Employer Contribution)" amount={localSnapshot.employerContributions.esiEmployer} isContrib />}
-                        {localSnapshot.employerContributions.gratuity > 0 && <DeductionRow label="Gratuity Provision" amount={localSnapshot.employerContributions.gratuity} isContrib />}
-                        {localSnapshot.employerContributions.lwfEmployer > 0 && <DeductionRow label="LWF (Employer Contribution)" amount={localSnapshot.employerContributions.lwfEmployer} isContrib />}
-                        {localSnapshot.employerContributions.insuranceEmployer > 0 && <DeductionRow label="Insurance" amount={localSnapshot.employerContributions.insuranceEmployer} isContrib />}
-                        {localSnapshot.employerContributions.nps > 0 && <DeductionRow label="Employer NPS" amount={localSnapshot.employerContributions.nps} isContrib />}
-                      </div>
-                    </div>
+                    )}
 
                     {/* Net Take-Home Salary Callout */}
                     <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex justify-between items-center font-bold text-emerald-900 shadow-sm">

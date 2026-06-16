@@ -66,7 +66,7 @@ const EmployeePortal = () => {
   const [claimDraft, setClaimDraft] = useState({
     category: 'broadband',
     amount: '',
-    billUrl: 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?auto=format&fit=crop&w=300&q=80', // sample bill receipt
+    billUrl: '', // intentionally empty — user must provide a real bill URL or upload
   });
   
   const [loanDraft, setLoanDraft] = useState({
@@ -120,14 +120,19 @@ const EmployeePortal = () => {
   // Fetch employee-specific data when selectedEmployeeId changes
   useEffect(() => {
     if (!selectedEmployeeId) return;
+    // AbortController prevents stale data from a previous (slower) request overwriting
+    // the results from a later (faster) request when the user rapidly switches employees.
+    const controller = new AbortController();
+    const signal = controller.signal;
+
     const fetchEmployeeData = async () => {
       try {
         setLoadingEmployee(true);
         const [empRes, payrollsRes, claimsRes, loansRes] = await Promise.all([
-          api.get(`/employees/${selectedEmployeeId}`),
-          api.get(`/payroll?employeeId=${selectedEmployeeId}&limit=12`),
-          api.get(`/reimbursements?employee=${selectedEmployeeId}`),
-          api.get(`/loans?employee=${selectedEmployeeId}`)
+          api.get(`/employees/${selectedEmployeeId}`, { signal }),
+          api.get(`/payroll?employeeId=${selectedEmployeeId}&limit=12`, { signal }),
+          api.get(`/reimbursements?employee=${selectedEmployeeId}`, { signal }),
+          api.get(`/loans?employee=${selectedEmployeeId}`, { signal })
         ]);
 
         setEmployee(empRes.data);
@@ -135,14 +140,18 @@ const EmployeePortal = () => {
         setClaims(claimsRes.data || []);
         setLoans(loansRes.data || []);
       } catch (err) {
+        if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return; // aborted — ignore
         console.error(err);
         toast.error('Failed to fetch employee records');
       } finally {
-        setLoadingEmployee(false);
-        setLoading(false);
+        if (!signal.aborted) {
+          setLoadingEmployee(false);
+          setLoading(false);
+        }
       }
     };
     fetchEmployeeData();
+    return () => controller.abort(); // cleanup on employee change or unmount
   }, [selectedEmployeeId]);
 
   // Master Structure build
@@ -196,6 +205,7 @@ const EmployeePortal = () => {
         rentPaidMonthly: Number(d.rentPaidMonthly) || 0,
         isMetroCity: !!d.isMetroCity,
         section80C: Number(d.section80C) || 0,
+        // 80C breakdown sub-fields — persisted to DB and restored on reload
         epf: Number(d.epf) || 0,
         ppf: Number(d.ppf) || 0,
         elss: Number(d.elss) || 0,
@@ -214,6 +224,7 @@ const EmployeePortal = () => {
       const updated = { ...prev, [key]: value };
 
       if (['epf', 'ppf', 'elss', 'lic', 'homeLoanPrincipal'].includes(key)) {
+        // Sum from sub-fields
         const sum = (Number(updated.epf) || 0) +
                     (Number(updated.ppf) || 0) +
                     (Number(updated.elss) || 0) +
@@ -221,7 +232,14 @@ const EmployeePortal = () => {
                     (Number(updated.homeLoanPrincipal) || 0);
         updated.section80C = Math.min(sum, 150000);
       } else if (key === 'section80C') {
+        // Direct edit of the 80C total — reset sub-fields to avoid stale sum
+        // conflicts on the next sub-field change.
         updated.section80C = Math.min(Number(value) || 0, 150000);
+        updated.epf = 0;
+        updated.ppf = 0;
+        updated.elss = 0;
+        updated.lic = 0;
+        updated.homeLoanPrincipal = 0;
       } else if (key === 'section80D') {
         updated.section80D = Math.min(Number(value) || 0, 25000);
       } else if (key === 'section24b') {
@@ -275,6 +293,12 @@ const EmployeePortal = () => {
         taxRegime: decForm.taxRegime,
         declarations: {
           section80C: Number(decForm.section80C) || 0,
+          // 80C breakdown sub-fields — persisted so the UI can restore them on reload
+          epf: Number(decForm.epf) || 0,
+          ppf: Number(decForm.ppf) || 0,
+          elss: Number(decForm.elss) || 0,
+          lic: Number(decForm.lic) || 0,
+          homeLoanPrincipal: Number(decForm.homeLoanPrincipal) || 0,
           section80D: Number(decForm.section80D) || 0,
           section24b: Number(decForm.section24b) || 0,
           section80CCD1B: Number(decForm.section80CCD1B) || 0,
@@ -320,10 +344,13 @@ const EmployeePortal = () => {
       if (shouldShow) {
         let label = c.name;
         if (c.id === 'basic') {
-          const pct = employee.basicPercent !== undefined && employee.basicPercent !== null ? employee.basicPercent : 50;
+          // Normalize: value may be stored as 0.5 (fraction) or 50 (percent)
+          const rawPct = employee.basicPercent !== undefined && employee.basicPercent !== null ? employee.basicPercent : 50;
+          const pct = rawPct > 1 ? rawPct : rawPct * 100;
           label = `${c.name} (${pct}% of CTC)`;
         } else if (c.id === 'hra') {
-          const pct = employee.hraPercent !== undefined && employee.hraPercent !== null ? employee.hraPercent : 50;
+          const rawPct = employee.hraPercent !== undefined && employee.hraPercent !== null ? employee.hraPercent : 50;
+          const pct = rawPct > 1 ? rawPct : rawPct * 100;
           label = `${c.name} (${pct}% of Basic)`;
         }
         data.push([label, val, toAnnual(val)]);
@@ -424,7 +451,7 @@ const EmployeePortal = () => {
 
       setClaims([res.data, ...claims]);
       setShowClaimModal(false);
-      setClaimDraft({ category: 'broadband', amount: '', billUrl: 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?auto=format&fit=crop&w=300&q=80' });
+      setClaimDraft({ category: 'broadband', amount: '', billUrl: '' });
       toast.success('Reimbursement claim submitted successfully');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit claim');

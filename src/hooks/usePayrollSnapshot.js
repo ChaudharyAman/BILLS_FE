@@ -12,6 +12,7 @@ export const usePayrollSnapshot = (employee, config, row, monthWorkingDays, over
         paidDays: Number(row?.paidDays) || 0,
         paidLeaves: Number(row?.paidLeaves) || 0,
         unpaidLeaves: Number(row?.unpaidLeaves) || 0,
+        hoursWorked: Number(row?.hoursWorked) || 0,
       },
       {
         overtime: Number(row?.overtime) || 0,
@@ -23,6 +24,7 @@ export const usePayrollSnapshot = (employee, config, row, monthWorkingDays, over
         loanDeduction: Number(row?.loanDeduction) || 0,
         advanceDeduction: Number(row?.advanceDeduction) || 0,
         tds: Number(row?.tds) || 0,
+        hoursWorked: Number(row?.hoursWorked) || 0,
         otherEarnings: overrideEarnings ?? (row?.otherEarnings || []),
         otherDeductions: overrideDeductions ?? (row?.otherDeductions || []),
         pfEnabled: row?.pfEnabled,

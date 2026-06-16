@@ -21,7 +21,11 @@ const defaultForm = {
   dateOfLeaving: '',
   location: '',
   employmentType: 'full-time',
+  useSalaryComponents: true,
   status: 'active',
+  role: '',
+  payType: 'salaried',
+  hourlyRate: 0,
   monthlyCTC: 0,
   flexiAmount: 0,
   broadband: 0,
@@ -69,6 +73,7 @@ const EmployeeForm = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState(defaultForm);
   const [departments, setDepartments] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [config, setConfig] = useState(DEFAULT_PAYROLL_CONFIG);
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -77,17 +82,22 @@ const EmployeeForm = () => {
   const [departmentDraft, setDepartmentDraft] = useState({ name: '', code: '' });
   const [ctcPeriod, setCtcPeriod] = useState('monthly');
 
+  const isIntern = formData.employmentType === 'intern';
+  const useComponents = formData.useSalaryComponents !== false && !isIntern;
+
   useEffect(() => {
     const controller = new AbortController();
 
     const fetchData = async () => {
       try {
-        const [deptRes, configRes] = await Promise.all([
+        const [deptRes, configRes, rolesRes] = await Promise.all([
           api.get('/departments', { signal: controller.signal }),
           api.get('/payroll/config', { signal: controller.signal }),
+          api.get('/roles', { signal: controller.signal }),
         ]);
         setDepartments(deptRes.data || []);
         setConfig({ ...DEFAULT_PAYROLL_CONFIG, ...(configRes.data || {}) });
+        setRoles(rolesRes.data || []);
       } catch (error) {
         if (error.name === 'CanceledError' || error.name === 'AbortError') return;
         console.error(error);
@@ -141,6 +151,88 @@ const EmployeeForm = () => {
     setFormData((prev) => ({ ...prev, [parent]: { ...prev[parent], [child]: value } }));
   };
 
+  const handleRoleChange = (roleId) => {
+    const selectedRole = roles.find((r) => r._id === roleId);
+    if (!selectedRole) {
+      setFormData((prev) => ({
+        ...prev,
+        role: '',
+      }));
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      role: selectedRole._id,
+      employmentType: selectedRole.employmentType || prev.employmentType,
+      payType: selectedRole.payType,
+      useSalaryComponents: selectedRole.useSalaryComponents !== false,
+      monthlyCTC: selectedRole.payType === 'salaried' ? selectedRole.monthlyCTC : 0,
+      hourlyRate: selectedRole.payType === 'hourly' ? selectedRole.hourlyRate : 0,
+      pfEnabled: selectedRole.pfEnabled,
+      esiEnabled: selectedRole.esiEnabled,
+      ptEnabled: selectedRole.ptEnabled,
+      lwfEnabled: selectedRole.lwfEnabled,
+      gratuityEnabled: selectedRole.gratuityEnabled,
+      includePfInCTC: selectedRole.includePfInCTC,
+      includeGratuityInCTC: selectedRole.includeGratuityInCTC,
+      basicPercent: selectedRole.basicPercent !== null ? selectedRole.basicPercent : null,
+      hraPercent: selectedRole.hraPercent !== null ? selectedRole.hraPercent : null,
+    }));
+
+    toast.success(`Applied template settings for Job Role: ${selectedRole.name}`);
+  };
+
+  const handleEmploymentTypeChange = (newType) => {
+    if (newType === 'intern') {
+      // Interns get a flat consolidated stipend — no components, no statutory deductions
+      setFormData((prev) => ({
+        ...prev,
+        employmentType: 'intern',
+        useSalaryComponents: false,
+        pfEnabled: false,
+        esiEnabled: false,
+        ptEnabled: false,
+        lwfEnabled: false,
+        gratuityEnabled: false,
+        includePfInCTC: false,
+        includeGratuityInCTC: false,
+        basicPercent: null,
+        hraPercent: null,
+      }));
+      toast('Intern mode: flat stipend, no statutory deductions.', { icon: '🎓' });
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        employmentType: newType,
+        // Restore defaults when switching away from intern
+        ...(prev.employmentType === 'intern' ? {
+          useSalaryComponents: true,
+          pfEnabled: true,
+          esiEnabled: true,
+          ptEnabled: true,
+          lwfEnabled: true,
+          gratuityEnabled: true,
+          includePfInCTC: true,
+          includeGratuityInCTC: true,
+        } : {}),
+      }));
+    }
+  };
+
+  // Derive Employment Type options from configured roles (only those that exist in templates)
+  const ALL_EMPLOYMENT_TYPES = [
+    { value: 'full-time', label: 'Full Time' },
+    { value: 'part-time', label: 'Part Time' },
+    { value: 'contract', label: 'Contract' },
+    { value: 'intern', label: 'Intern / Trainee' },
+  ];
+  const configuredEmploymentTypes = useMemo(() => {
+    if (!roles || roles.length === 0) return ALL_EMPLOYMENT_TYPES;
+    const seen = new Set(roles.map(r => r.employmentType || 'full-time'));
+    return ALL_EMPLOYMENT_TYPES.filter(et => seen.has(et.value));
+  }, [roles]);
+
   const localPreview = useMemo(() => buildMasterSalaryStructure(formData, config), [formData, config]);
 
   const refreshSalaryFromCTC = async (overrideFields) => {
@@ -156,6 +248,7 @@ const EmployeeForm = () => {
         employmentType: merged.employmentType,
         basicPercent: merged.basicPercent === null || merged.basicPercent === '' ? null : Number(merged.basicPercent),
         hraPercent: merged.hraPercent === null || merged.hraPercent === '' ? null : Number(merged.hraPercent),
+        useSalaryComponents: merged.useSalaryComponents !== false,
         basic: merged.salaryStructure?.basic !== undefined ? Number(merged.salaryStructure.basic) : undefined,
         hra: merged.salaryStructure?.hra !== undefined ? Number(merged.salaryStructure.hra) : undefined,
         specialAllowance: merged.salaryStructure?.specialAllowance !== undefined ? Number(merged.salaryStructure.specialAllowance) : undefined,
@@ -366,6 +459,46 @@ const EmployeeForm = () => {
           {step === 2 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
+                <label className={labelCls}>Job Role Template</label>
+                <select
+                  value={formData.role || ''}
+                  onChange={(e) => handleRoleChange(e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">No Role (Custom Salary Components)</option>
+                  {roles.map((r) => (
+                    <option key={r._id} value={r._id}>
+                      {r.name} ({r.payType === 'hourly' ? 'Hourly' : 'Salaried'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Pay Type</label>
+                <select
+                  value={formData.payType || 'salaried'}
+                  onChange={(e) => setField('payType', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="salaried">Salaried (Monthly Base)</option>
+                  <option value="hourly">Hourly Rate contract</option>
+                </select>
+              </div>
+
+              {formData.role && (
+                <div className="col-span-1 md:col-span-2 bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-800 flex flex-wrap items-center gap-2">
+                  <span className="font-bold">Job Role Template Applied:</span>
+                  <span>Selecting this role pre-populated salary parameters and statutory switches. You can still modify values manually.</span>
+                  {formData.useSalaryComponents === false && (
+                    <span className="ml-auto bg-amber-100 text-amber-800 border border-amber-200 rounded-full px-2.5 py-0.5 font-bold text-[10px] uppercase tracking-wide">Flat Salary — No Component Breakdown</span>
+                  )}
+                  {formData.payType === 'hourly' && (
+                    <span className="ml-auto bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-full px-2.5 py-0.5 font-bold text-[10px] uppercase tracking-wide">Hourly Rate Contract</span>
+                  )}
+                </div>
+              )}
+
+              <div>
                 <label className={labelCls}>Designation</label>
                 <input value={formData.designation} onChange={(e) => setField('designation', e.target.value)} className={inputCls} />
               </div>
@@ -387,15 +520,7 @@ const EmployeeForm = () => {
                 <label className={labelCls}>Date of Leaving</label>
                 <input type="date" value={formData.dateOfLeaving} onChange={(e) => setField('dateOfLeaving', e.target.value)} className={inputCls} />
               </div>
-              <div>
-                <label className={labelCls}>Employment Type</label>
-                <select value={formData.employmentType} onChange={(e) => setField('employmentType', e.target.value)} className={inputCls}>
-                  <option value="full-time">Full Time</option>
-                  <option value="part-time">Part Time</option>
-                  <option value="contract">Contract</option>
-                  <option value="intern">Intern</option>
-                </select>
-              </div>
+
               <div>
                 <label className={labelCls}>Status</label>
                 <select value={formData.status} onChange={(e) => setField('status', e.target.value)} className={inputCls}>
@@ -404,46 +529,112 @@ const EmployeeForm = () => {
                   <option value="terminated">Terminated</option>
                 </select>
               </div>
-              <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="text-xs font-semibold text-gray-600 inline-block m-0">
-                    {ctcPeriod === 'monthly' ? 'Monthly CTC *' : 'Annual CTC *'}
-                  </label>
-                  <div className="flex bg-gray-100 p-0.5 rounded-lg border border-gray-200">
-                    <button
-                      type="button"
-                      onClick={() => setCtcPeriod('monthly')}
-                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${ctcPeriod === 'monthly' ? 'bg-white text-slate-800 shadow-sm border border-gray-100 font-extrabold' : 'text-gray-500 hover:text-slate-800'}`}
-                    >
-                      Monthly
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCtcPeriod('annual')}
-                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${ctcPeriod === 'annual' ? 'bg-white text-slate-800 shadow-sm border border-gray-100 font-extrabold' : 'text-gray-500 hover:text-slate-800'}`}
-                    >
-                      Annually
-                    </button>
-                  </div>
-                </div>
 
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={
-                    ctcPeriod === 'monthly'
-                      ? (formData.monthlyCTC || 0)
-                      : Math.round((formData.monthlyCTC || 0) * 12)
-                  }
-                  onChange={(e) => {
-                    const val = Number(e.target.value) || 0;
-                    setField('monthlyCTC', ctcPeriod === 'monthly' ? val : Math.round((val / 12) * 100) / 100);
-                  }}
-                  onBlur={refreshSalaryFromCTC}
-                  className={inputCls}
-                />
-                <div className="mt-1 text-xs text-gray-500">{calculating ? 'Calculating salary structure...' : 'Auto-fills Basic, HRA, and Special Allowance using payroll settings.'}</div>
+              {formData.payType === 'salaried' && formData.employmentType !== 'intern' && (
+                <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                  <div>
+                    <p className="text-xs font-bold text-gray-700">Use Salary Components</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Break salary into Basic, HRA, etc. Disable for a flat monthly amount.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newVal = formData.useSalaryComponents === false;
+                      const extraOverrides = !newVal ? {
+                        pfEnabled: false,
+                        esiEnabled: false,
+                        ptEnabled: false,
+                        lwfEnabled: false,
+                        gratuityEnabled: false,
+                        includePfInCTC: false,
+                        includeGratuityInCTC: false,
+                      } : {
+                        pfEnabled: true,
+                        esiEnabled: true,
+                        ptEnabled: true,
+                        lwfEnabled: true,
+                        gratuityEnabled: true,
+                        includePfInCTC: true,
+                        includeGratuityInCTC: true,
+                      };
+                      setFormData(prev => ({
+                        ...prev,
+                        useSalaryComponents: newVal,
+                        ...extraOverrides,
+                      }));
+                      refreshSalaryFromCTC({ useSalaryComponents: newVal, ...extraOverrides });
+                    }}
+                    className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      formData.useSalaryComponents !== false ? 'bg-blue-600' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      formData.useSalaryComponents !== false ? 'translate-x-4' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+              )}
+
+              <div>
+                {formData.payType === 'hourly' ? (
+                  <div>
+                    <label className={labelCls}>Hourly Rate *</label>
+                    <div className="relative rounded-lg shadow-sm">
+                      <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 text-sm font-semibold">₹</span>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        value={formData.hourlyRate || 0}
+                        onChange={(e) => setField('hourlyRate', Number(e.target.value) || 0)}
+                        className={inputCls + ' pl-7'}
+                      />
+                    </div>
+                    <p className="mt-1 text-[10px] text-gray-400">Estimates in next steps are calculated assuming 160 hours/month.</p>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="text-xs font-semibold text-gray-600 inline-block m-0">
+                        {ctcPeriod === 'monthly' ? 'Monthly CTC *' : 'Annual CTC *'}
+                      </label>
+                      <div className="flex bg-gray-100 p-0.5 rounded-lg border border-gray-200">
+                        <button
+                          type="button"
+                          onClick={() => setCtcPeriod('monthly')}
+                          className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${ctcPeriod === 'monthly' ? 'bg-white text-slate-800 shadow-sm border border-gray-100 font-extrabold' : 'text-gray-500 hover:text-slate-800'}`}
+                        >
+                          Monthly
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCtcPeriod('annual')}
+                          className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${ctcPeriod === 'annual' ? 'bg-white text-slate-800 shadow-sm border border-gray-100 font-extrabold' : 'text-gray-500 hover:text-slate-800'}`}
+                        >
+                          Annually
+                        </button>
+                      </div>
+                    </div>
+
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={
+                        ctcPeriod === 'monthly'
+                          ? (formData.monthlyCTC || 0)
+                          : Math.round((formData.monthlyCTC || 0) * 12)
+                      }
+                      onChange={(e) => {
+                        const val = Number(e.target.value) || 0;
+                        setField('monthlyCTC', ctcPeriod === 'monthly' ? val : Math.round((val / 12) * 100) / 100);
+                      }}
+                      onBlur={refreshSalaryFromCTC}
+                      className={inputCls}
+                    />
+                    <div className="mt-1 text-xs text-gray-500">{calculating ? 'Calculating salary structure...' : 'Auto-fills Basic, HRA, and Special Allowance using payroll settings.'}</div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -456,8 +647,8 @@ const EmployeeForm = () => {
                 </div>
               )}
 
-              {/* Custom Overrides Card */}
-              {formData.employmentType !== 'intern' && (
+              {/* Custom Overrides Card — only for salaried with components, not intern */}
+              {formData.employmentType !== 'intern' && formData.payType !== 'hourly' && formData.useSalaryComponents !== false && (
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-5 shadow-sm">
                   <h3 className="text-base font-bold text-blue-900 mb-1 flex items-center gap-2">
                     <span>Employee Salary Ratios (Overrides)</span>
@@ -515,9 +706,9 @@ const EmployeeForm = () => {
                   <span className="text-xs text-gray-500">Synced with payroll settings</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  {formData.employmentType !== 'intern' && <SummaryCard label="PF Employer" value={fmtMoney(localPreview.pfEmployer)} />}
-                  {formData.employmentType !== 'intern' && <SummaryCard label="Gratuity" value={fmtMoney(localPreview.gratuity)} />}
-                  {formData.employmentType !== 'intern' && <SummaryCard label="LWF Employer" value={fmtMoney(localPreview.lwfEmployer)} />}
+                  {useComponents && <SummaryCard label="PF Employer" value={fmtMoney(localPreview.pfEmployer)} />}
+                  {useComponents && <SummaryCard label="Gratuity" value={fmtMoney(localPreview.gratuity)} />}
+                  {useComponents && <SummaryCard label="LWF Employer" value={fmtMoney(localPreview.lwfEmployer)} />}
                   <SummaryCard label="Annual CTC" value={fmtMoney(localPreview.annualCTC)} />
                   <SummaryCard label="Gross Salary" value={fmtMoney(localPreview.grossSalary)} />
                   <SummaryCard label="Net Take-Home Estimate" value={fmtMoney(localPreview.netTakeHome)} />
@@ -525,7 +716,7 @@ const EmployeeForm = () => {
               </div>
 
               {/* Statutory & Contribution Switches */}
-              {formData.employmentType !== 'intern' && (
+              {useComponents && (
                 <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
                 <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                   <span>Statutory Components & Contribution Toggles</span>
@@ -772,6 +963,7 @@ const EmployeeForm = () => {
                   };
 
                   const isIntern = formData.employmentType === 'intern';
+                  const useComponents = formData.useSalaryComponents !== false && !isIntern;
                   const comps = config?.salaryComponents || [];
                   
                   // Filter out company-wide configuration parameters
@@ -789,7 +981,7 @@ const EmployeeForm = () => {
                     'lta_max_percent'
                   ].includes(c.id));
 
-                  if (isIntern) {
+                  if (!useComponents) {
                     filtered = filtered.filter(c => c.id === 'basic');
                   }
 
@@ -804,6 +996,8 @@ const EmployeeForm = () => {
                     if (c.id === 'basic') {
                       if (isIntern) {
                         suffix = ' (Consolidated Stipend)';
+                      } else if (!useComponents) {
+                        suffix = ' (Flat Salary)';
                       } else {
                         const pct = formData.basicPercent !== null && formData.basicPercent !== undefined ? formData.basicPercent : Math.round(c.linkValue * 100);
                         suffix = ` (${pct}% of CTC${freqSuffix})`;
@@ -829,7 +1023,7 @@ const EmployeeForm = () => {
                     };
                   });
 
-                  if (isIntern) {
+                  if (!useComponents) {
                     if (!list.some(item => item.id === 'deductions.tds')) {
                       list.push({ id: 'deductions.tds', name: 'deductions.tds', label: 'Income Tax (TDS) / Tax Amount', isCalculated: false });
                     }
@@ -916,174 +1110,180 @@ const EmployeeForm = () => {
               </div>
 
               {/* Custom Allowances Section */}
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                    <span>Custom Allowances</span>
-                    <span className="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-full font-semibold">Other Earnings</span>
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const currentAllowances = formData.salaryStructure?.otherAllowances || [];
-                      setField('salaryStructure.otherAllowances', [...currentAllowances, { name: '', amount: 0 }]);
-                    }}
-                    className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5"
-                  >
-                    <FaPlus size={10} /> Add Custom Allowance
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mb-4">
-                  Define additional custom allowance types for this employee (e.g. Children Education, Uniform Allowance). These will increase Gross Salary and be balanced under Special Allowance.
-                </p>
+              {useComponents && (
+                <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                      <span>Custom Allowances</span>
+                      <span className="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-full font-semibold">Other Earnings</span>
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentAllowances = formData.salaryStructure?.otherAllowances || [];
+                        setField('salaryStructure.otherAllowances', [...currentAllowances, { name: '', amount: 0 }]);
+                      }}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5"
+                    >
+                      <FaPlus size={10} /> Add Custom Allowance
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-4">
+                    Define additional custom allowance types for this employee (e.g. Children Education, Uniform Allowance). These will increase Gross Salary and be balanced under Special Allowance.
+                  </p>
 
-                {(!formData.salaryStructure?.otherAllowances || formData.salaryStructure.otherAllowances.length === 0) ? (
-                  <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl text-gray-400 text-xs font-medium bg-gray-50/20">
-                    No custom allowances defined. Click "+ Add Custom Allowance" above to add one.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {formData.salaryStructure.otherAllowances.map((allowance, index) => (
-                      <div key={index} className="flex gap-3 items-end bg-gray-50/50 p-3 rounded-lg border border-gray-200">
-                        <div className="flex-1">
-                          <label className="text-[10px] font-bold text-gray-500 mb-1.5 block">Allowance Name</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. Children Education"
-                            value={allowance.name || ''}
-                            onChange={(e) => {
-                              const updated = [...(formData.salaryStructure?.otherAllowances || [])];
-                              updated[index] = { ...updated[index], name: e.target.value };
+                  {(!formData.salaryStructure?.otherAllowances || formData.salaryStructure.otherAllowances.length === 0) ? (
+                    <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl text-gray-400 text-xs font-medium bg-gray-50/20">
+                      No custom allowances defined. Click "+ Add Custom Allowance" above to add one.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {formData.salaryStructure.otherAllowances.map((allowance, index) => (
+                        <div key={index} className="flex gap-3 items-end bg-gray-50/50 p-3 rounded-lg border border-gray-200">
+                          <div className="flex-1">
+                            <label className="text-[10px] font-bold text-gray-500 mb-1.5 block">Allowance Name</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Children Education"
+                              value={allowance.name || ''}
+                              onChange={(e) => {
+                                const updated = [...(formData.salaryStructure?.otherAllowances || [])];
+                                updated[index] = { ...updated[index], name: e.target.value };
+                                setField('salaryStructure.otherAllowances', updated);
+                              }}
+                              className={inputCls}
+                            />
+                          </div>
+                          <div className="w-1/3">
+                            <label className="text-[10px] font-bold text-gray-500 mb-1.5 block">Monthly Amount (₹)</label>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              required
+                              placeholder="Amount"
+                              value={allowance.amount || ''}
+                              onChange={(e) => {
+                                const updated = [...(formData.salaryStructure?.otherAllowances || [])];
+                                updated[index] = { ...updated[index], amount: e.target.value === '' ? '' : Number(e.target.value) };
+                                setField('salaryStructure.otherAllowances', updated);
+                              }}
+                              onBlur={refreshSalaryFromCTC}
+                              className={inputCls}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = (formData.salaryStructure?.otherAllowances || []).filter((_, idx) => idx !== index);
                               setField('salaryStructure.otherAllowances', updated);
+                              refreshSalaryFromCTC({ salaryStructure: { ...formData.salaryStructure, otherAllowances: updated } });
                             }}
-                            className={inputCls}
-                          />
+                            className="px-3.5 py-2 text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 rounded-lg border border-red-200 transition-colors"
+                          >
+                            Remove
+                          </button>
                         </div>
-                        <div className="w-1/3">
-                          <label className="text-[10px] font-bold text-gray-500 mb-1.5 block">Monthly Amount (₹)</label>
-                          <input
-                            type="number"
-                            step="any"
-                            min="0"
-                            required
-                            placeholder="Amount"
-                            value={allowance.amount || ''}
-                            onChange={(e) => {
-                              const updated = [...(formData.salaryStructure?.otherAllowances || [])];
-                              updated[index] = { ...updated[index], amount: e.target.value === '' ? '' : Number(e.target.value) };
-                              setField('salaryStructure.otherAllowances', updated);
-                            }}
-                            onBlur={refreshSalaryFromCTC}
-                            className={inputCls}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updated = (formData.salaryStructure?.otherAllowances || []).filter((_, idx) => idx !== index);
-                            setField('salaryStructure.otherAllowances', updated);
-                            refreshSalaryFromCTC({ salaryStructure: { ...formData.salaryStructure, otherAllowances: updated } });
-                          }}
-                          className="px-3.5 py-2 text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 rounded-lg border border-red-200 transition-colors"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Custom Deductions Section */}
-              <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
-                    <span>Custom Deductions</span>
-                    <span className="text-[10px] bg-red-50 text-red-600 px-2.5 py-0.5 rounded-full font-semibold">Other Deductions</span>
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const currentDeductions = formData.deductions?.otherDeductions || [];
-                      setField('deductions.otherDeductions', [...currentDeductions, { name: '', amount: 0 }]);
-                    }}
-                    className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1.5"
-                  >
-                    <FaPlus size={10} /> Add Custom Deduction
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mb-4">
-                  Define additional custom monthly deductions for this employee (e.g. Car Lease, Corporate Accommodation). These will automatically reduce the Net Take-Home Salary estimate.
-                </p>
+              {useComponents && (
+                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                      <span>Custom Deductions</span>
+                      <span className="text-[10px] bg-red-50 text-red-600 px-2.5 py-0.5 rounded-full font-semibold">Other Deductions</span>
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentDeductions = formData.deductions?.otherDeductions || [];
+                        setField('deductions.otherDeductions', [...currentDeductions, { name: '', amount: 0 }]);
+                      }}
+                      className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1.5"
+                    >
+                      <FaPlus size={10} /> Add Custom Deduction
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-4">
+                    Define additional custom monthly deductions for this employee (e.g. Car Lease, Corporate Accommodation). These will automatically reduce the Net Take-Home Salary estimate.
+                  </p>
 
-                {(!formData.deductions?.otherDeductions || formData.deductions.otherDeductions.length === 0) ? (
-                  <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl text-gray-400 text-xs font-medium bg-gray-50/20">
-                    No custom deductions defined. Click "+ Add Custom Deduction" above to add one.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {formData.deductions.otherDeductions.map((deduction, index) => (
-                      <div key={index} className="flex gap-3 items-end bg-gray-50/50 p-3 rounded-lg border border-gray-200">
-                        <div className="flex-1">
-                          <label className="text-[10px] font-bold text-gray-500 mb-1.5 block">Deduction Name</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. Car Lease Deduction"
-                            value={deduction.name || ''}
-                            onChange={(e) => {
-                              const updated = [...(formData.deductions?.otherDeductions || [])];
-                              updated[index] = { ...updated[index], name: e.target.value };
+                  {(!formData.deductions?.otherDeductions || formData.deductions.otherDeductions.length === 0) ? (
+                    <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl text-gray-400 text-xs font-medium bg-gray-50/20">
+                      No custom deductions defined. Click "+ Add Custom Deduction" above to add one.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {formData.deductions.otherDeductions.map((deduction, index) => (
+                        <div key={index} className="flex gap-3 items-end bg-gray-50/50 p-3 rounded-lg border border-gray-200">
+                          <div className="flex-1">
+                            <label className="text-[10px] font-bold text-gray-500 mb-1.5 block">Deduction Name</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Car Lease Deduction"
+                              value={deduction.name || ''}
+                              onChange={(e) => {
+                                const updated = [...(formData.deductions?.otherDeductions || [])];
+                                updated[index] = { ...updated[index], name: e.target.value };
+                                setField('deductions.otherDeductions', updated);
+                              }}
+                              className={inputCls}
+                            />
+                          </div>
+                          <div className="w-1/3">
+                            <label className="text-[10px] font-bold text-gray-500 mb-1.5 block">Monthly Amount (₹)</label>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              required
+                              placeholder="Amount"
+                              value={deduction.amount || ''}
+                              onChange={(e) => {
+                                const updated = [...(formData.deductions?.otherDeductions || [])];
+                                updated[index] = { ...updated[index], amount: e.target.value === '' ? '' : Number(e.target.value) };
+                                setField('deductions.otherDeductions', updated);
+                              }}
+                              onBlur={refreshSalaryFromCTC}
+                              className={inputCls}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = (formData.deductions?.otherDeductions || []).filter((_, idx) => idx !== index);
                               setField('deductions.otherDeductions', updated);
+                              refreshSalaryFromCTC({ deductions: { ...formData.deductions, otherDeductions: updated } });
                             }}
-                            className={inputCls}
-                          />
+                            className="px-3.5 py-2 text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 rounded-lg border border-red-200 transition-colors"
+                          >
+                            Remove
+                          </button>
                         </div>
-                        <div className="w-1/3">
-                          <label className="text-[10px] font-bold text-gray-500 mb-1.5 block">Monthly Amount (₹)</label>
-                          <input
-                            type="number"
-                            step="any"
-                            min="0"
-                            required
-                            placeholder="Amount"
-                            value={deduction.amount || ''}
-                            onChange={(e) => {
-                              const updated = [...(formData.deductions?.otherDeductions || [])];
-                              updated[index] = { ...updated[index], amount: e.target.value === '' ? '' : Number(e.target.value) };
-                              setField('deductions.otherDeductions', updated);
-                            }}
-                            onBlur={refreshSalaryFromCTC}
-                            className={inputCls}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updated = (formData.deductions?.otherDeductions || []).filter((_, idx) => idx !== index);
-                            setField('deductions.otherDeductions', updated);
-                            refreshSalaryFromCTC({ deductions: { ...formData.deductions, otherDeductions: updated } });
-                          }}
-                          className="px-3.5 py-2 text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 rounded-lg border border-red-200 transition-colors"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-                <h2 className="text-lg font-bold mb-4">One-Time Pay</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>Joining Bonus</label>
-                    <input type="number" step="any" min="0" value={formData.joiningBonus || 0} onChange={(e) => setField('joiningBonus', e.target.value)} className={inputCls} />
+              {useComponents && (
+                <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+                  <h2 className="text-lg font-bold mb-4">One-Time Pay</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelCls}>Joining Bonus</label>
+                      <input type="number" step="any" min="0" value={formData.joiningBonus || 0} onChange={(e) => setField('joiningBonus', e.target.value)} className={inputCls} />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 

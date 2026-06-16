@@ -81,10 +81,15 @@ const TdsSummary = () => {
   const getTdsDueDate = (recordDate) => {
     const dateObj = new Date(recordDate);
     if (isNaN(dateObj.getTime())) return 'N/A';
-    
-    // TDS must be paid by 7th of the next month (except March which is April 30th, but standard is 7th)
-    const nextMonth = new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 7);
-    return nextMonth.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+    // Statutory TDS deposit dates:
+    // - All months except March: 7th of the following month
+    // - March (Q4 year-end): April 30th of the same year
+    const isMarch = dateObj.getMonth() === 2;
+    const dueDate = isMarch
+      ? new Date(dateObj.getFullYear(), 3, 30)   // April 30
+      : new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 7);
+    return dueDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   const filterByDate = (dateStr) => {
