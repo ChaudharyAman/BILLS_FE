@@ -52,6 +52,7 @@ const ProjectDashboard = lazy(() => import('./pages/ProjectDashboard'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Subscription = lazy(() => import('./pages/Subscription'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const BankStatementDashboard = lazy(() => import('./pages/BankStatementDashboard'));
 
 // Reports
 const GstReport = lazy(() => import('./pages/reports/GstReport'));
@@ -212,6 +213,7 @@ function App() {
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/dashboard" element={<FinancialDashboard />} />
                     <Route path="/tax-dashboard" element={<TaxDashboard />} />
+                    <Route path="/bank-statement" element={<BankStatementDashboard />} />
 
                     {/* Invoices */}
                     <Route path="/invoices" element={<InvoiceList />} />
