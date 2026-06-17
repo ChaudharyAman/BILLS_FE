@@ -25,6 +25,18 @@ const fmtCompact = (v) => {
   return `₹${n.toFixed(0)}`;
 };
 
+const EXPENSE_CATEGORIES = [
+  'Admin', 'Payroll', 'Client Relationship', 'Vendor', 'GST', 'Tax',
+  'Food & Dining', 'Travel & Transport', 'Rent & Accommodation', 'Bills & Utilities', 
+  'Shopping & Entertainment', 'Salary & Payroll', 'Taxes & GST', 'Bank Charges', 
+  'Investments', 'UPI', 'NEFT/RTGS', 'IMPS', 'ATM', 'Other Expense'
+];
+const INCOME_CATEGORIES = [
+  'Client Name', 'Reverse',
+  'Salary & Wages', 'Sales & Revenue', 'Interest Income', 'Dividends', 
+  'Refunds & Reversals', 'Transfers', 'Other Income'
+];
+
 const PALETTE = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316', '#ef4444', '#84cc16'];
 
 /* ─── Date Parsing ─── */
@@ -66,26 +78,112 @@ const formatDate = (d) => {
 };
 
 /* ─── Category Detection ─── */
-const categorize = (desc) => {
-  if (!desc) return 'Other';
-  const d = desc.toLowerCase();
-  if (d.includes('upi')) return 'UPI';
-  if (d.includes('neft') || d.includes('rtgs')) return 'NEFT/RTGS';
-  if (d.includes('imps')) return 'IMPS';
-  if (d.includes('atm') || d.includes('cash withdrawal')) return 'ATM';
-  if (d.includes('interest') || d.includes('int ')) return 'Interest';
-  if (d.includes('salary') || d.includes('sal ')) return 'Salary';
-  if (d.includes('emi') || d.includes('loan')) return 'EMI/Loan';
-  if (d.includes('gst') || d.includes('tax') || d.includes('tds')) return 'Tax/GST';
-  if (d.includes('chg') || d.includes('charge') || d.includes('fee') || d.includes('commission')) return 'Bank Charges';
-  if (d.includes('transfer') || d.includes('trf')) return 'Transfer';
-  if (d.includes('card') || d.includes('pos')) return 'Card/POS';
-  if (d.includes('cheque') || d.includes('chq')) return 'Cheque';
-  if (d.includes('refund') || d.includes('reversal')) return 'Refund';
-  if (d.includes('dividend')) return 'Dividend';
-  if (d.includes('insurance')) return 'Insurance';
-  if (d.includes('bill') || d.includes('recharge') || d.includes('electricity') || d.includes('mobile')) return 'Bills/Utilities';
-  return 'Other';
+const autoCategorize = (desc, type) => {
+  const d = String(desc || '').toLowerCase();
+  
+  // Default values
+  let category = '';
+  let subCategory = '';
+
+  if (type === 'Income') {
+    if (d.includes('refund') || d.includes('reversal') || d.includes('reverse') || d.includes('rev ')) {
+      category = 'Reverse';
+    } else {
+      category = 'Client Name';
+    }
+  } else {
+    // 1. Explicit Category name matching first to respect direct labels
+    if (d.includes('payroll')) {
+      category = 'Payroll';
+    } else if (d.includes('client relationship')) {
+      category = 'Client Relationship';
+    } else if (d.includes('vendor')) {
+      category = 'Vendor';
+    } else if (d.includes('gst')) {
+      category = 'GST';
+    } else if (d.includes('tax') || d.includes('income tax')) {
+      category = 'Tax';
+    } else if (d.includes('admin')) {
+      category = 'Admin';
+    }
+
+    // 2. Specific sub-category keyword matching
+    // Payroll sub-categories
+    if (d.includes('salary') || d.includes('sal ') || d.includes('wage')) {
+      category = 'Payroll';
+      subCategory = 'Salary';
+    } else if (d.includes('pf') || d.includes('provident')) {
+      category = 'Payroll';
+      subCategory = 'PF';
+    } else if (d.includes('tds')) {
+      category = 'Payroll';
+      subCategory = 'TDS';
+    } else if (d.includes('esi')) {
+      category = 'Payroll';
+      subCategory = 'ESI';
+    } else if (d.includes('gratuity')) {
+      category = 'Payroll';
+      subCategory = 'Gratuity';
+    } else if (d.includes('insurance') || d.includes('lic') || d.includes('ins ')) {
+      category = 'Payroll';
+      subCategory = 'Insurance';
+    } else if (d.includes('bonus')) {
+      category = 'Payroll';
+      subCategory = 'Bonus';
+    } else if (d.includes('incentive')) {
+      category = 'Payroll';
+      subCategory = 'Incentive';
+    } else if (d.includes('gift') || d.includes('voucher')) {
+      category = 'Payroll';
+      subCategory = 'Gift Voucher';
+    } else if (d.includes('consultant') || d.includes('consulting')) {
+      category = 'Payroll';
+      subCategory = 'Consultant';
+    } else if (d.includes('advisor') || d.includes('advisory')) {
+      category = 'Payroll';
+      subCategory = 'Advisor';
+    }
+    // Client Relationship sub-categories
+    else if (d.includes('food') || d.includes('dining') || d.includes('restaurant') || d.includes('zomato') || d.includes('swiggy') || d.includes('meal')) {
+      category = 'Client Relationship';
+      subCategory = 'Food';
+    } else if (d.includes('meeting') || d.includes('conference')) {
+      category = 'Client Relationship';
+      subCategory = 'Meeting';
+    }
+    // Vendor sub-categories
+    else if (d.includes('office') || d.includes('stationery')) {
+      category = 'Vendor';
+      subCategory = 'Office';
+    } else if (d.includes('laptop') || d.includes('macbook') || d.includes('computer') || d.includes('dell')) {
+      category = 'Vendor';
+      subCategory = 'Laptop';
+    } else if (d.includes('it') || d.includes('software') || d.includes('aws') || d.includes('cloud') || d.includes('server') || d.includes('hosting')) {
+      category = 'Vendor';
+      subCategory = 'IT';
+    } else if (d.includes('gst')) {
+      category = 'GST';
+    } else if (d.includes('tax') || d.includes('income tax')) {
+      category = 'Tax';
+    }
+    // Admin / Porter / Travel / Employee welfare (checked last to prevent false positives on compounds like porterPFdocs)
+    else if (d.includes('porter') || d.includes('devendra')) {
+      category = 'Admin';
+      subCategory = 'Porter';
+    } else if (d.includes('welfare') || d.includes('pantry') || d.includes('staff')) {
+      category = 'Admin';
+      subCategory = 'Employee welfare';
+    } else if (d.includes('travel') || d.includes('cab') || d.includes('taxi') || d.includes('uber') || d.includes('ola') || d.includes('autorickshaw') || d.includes('auto-rickshaw')) {
+      if (d.includes('client') || d.includes('meeting')) {
+        category = 'Client Relationship';
+      } else {
+        category = 'Admin';
+      }
+      subCategory = 'Travel';
+    }
+  }
+
+  return { category, subCategory };
 };
 
 /* ─── Smart Column Mapper ─── */
@@ -146,6 +244,23 @@ const parseNum = (v) => {
   return Math.abs(Number(s)) || 0;
 };
 
+const detectCustomColumns = (mapping, cols) => {
+  if (!mapping) return;
+  const lower = cols.map(c => String(c || '').toLowerCase().trim());
+  
+  const typeIdx = lower.findIndex(c => c === 'expense/income' || c === 'expense_income' || c === 'type' || c === 'expense or income');
+  if (typeIdx >= 0) mapping.rowType = cols[typeIdx];
+
+  const catIdx = lower.findIndex(c => c === 'category');
+  if (catIdx >= 0) mapping.rowCat = cols[catIdx];
+
+  const subIdx = lower.findIndex(c => c === 'sub-category' || c === 'subcategory' || c === 'sub_category' || c === 'sub category');
+  if (subIdx >= 0) mapping.rowSub = cols[subIdx];
+
+  const remIdx = lower.findIndex(c => c === 'remark' || c === 'remarks' || c === 'comment' || c === 'remarks/comment');
+  if (remIdx >= 0) mapping.rowRemark = cols[remIdx];
+};
+
 /* ─── Normalize Rows ─── */
 
 /** Check if a set of column names matches any known format */
@@ -192,6 +307,7 @@ const normalizeData = (rawRows) => {
   let dataRows = rawRows;
 
   if (mapping) {
+    detectCustomColumns(mapping, cols);
     debug.detectedHeaders = cols;
     debug.headerRowIndex = 0;
     debug.hadTitleRows = false;
@@ -208,6 +324,7 @@ const normalizeData = (rawRows) => {
         mapping = tryDetect(newCols);
 
         if (mapping) {
+          detectCustomColumns(mapping, newCols);
           debug.headerRowIndex = i;
           debug.hadTitleRows = true;
           debug.detectedHeaders = newCols;
@@ -250,6 +367,7 @@ const normalizeData = (rawRows) => {
       mapping.deposit = finalCols[depIdx];
       mapping.type = 'wd';
     }
+    detectCustomColumns(mapping, finalCols);
     debug.detectedHeaders = finalCols;
     debug.formatType = 'fallback';
   }
@@ -288,11 +406,38 @@ const normalizeData = (rawRows) => {
     const balance = parseNum(row[mapping.balance]);
     if (debit === 0 && credit === 0 && balance === 0) { skipped++; continue; }
 
+    let type = debit > 0 ? 'Expense' : 'Income';
+    if (mapping.rowType && row[mapping.rowType]) {
+      const typeVal = String(row[mapping.rowType]).trim().toLowerCase();
+      if (typeVal.includes('income')) {
+        type = 'Income';
+      } else if (typeVal.includes('expense') || typeVal.includes('expenses')) {
+        type = 'Expense';
+      }
+    }
+
+    let category = '';
+    let subCategory = '';
+    let remark = '';
+
+    if (mapping.rowCat && row[mapping.rowCat]) {
+      category = String(row[mapping.rowCat]).trim();
+    }
+    if (mapping.rowSub && row[mapping.rowSub]) {
+      subCategory = String(row[mapping.rowSub]).trim();
+    }
+    if (mapping.rowRemark && row[mapping.rowRemark]) {
+      remark = String(row[mapping.rowRemark]).trim();
+    }
+
     normalized.push({
       date, dateStr: formatDate(date),
       description: String(row[mapping.description] || '').trim(),
       debit, credit, balance,
-      category: categorize(String(row[mapping.description] || '')),
+      category,
+      type,
+      subCategory,
+      remark,
       txnId: String(row[mapping.txnId] || '').trim(),
     });
   }
@@ -414,6 +559,37 @@ export default function BankStatementDashboard() {
     setFileName(file?.name || 'Uploaded File');
   }, []);
 
+  const handleUpdatePreviewTxn = useCallback((index, field, value) => {
+    setPreviewData(prev => {
+      if (!prev) return null;
+      const updated = [...prev.transactions];
+      updated[index] = {
+        ...updated[index],
+        [field]: value
+      };
+      return { ...prev, transactions: updated };
+    });
+  }, []);
+
+  const handleTypeChange = useCallback((index, newType) => {
+    setPreviewData(prev => {
+      if (!prev) return null;
+      const updated = [...prev.transactions];
+      const txn = { ...updated[index] };
+      const amount = txn.debit || txn.credit || 0;
+      txn.type = newType;
+      if (newType === 'Expense') {
+        txn.debit = amount;
+        txn.credit = 0;
+      } else {
+        txn.credit = amount;
+        txn.debit = 0;
+      }
+      updated[index] = txn;
+      return { ...prev, transactions: updated };
+    });
+  }, []);
+
   /* ─── Confirm, save to backend, and proceed to dashboard ─── */
   const confirmAndProceed = useCallback(async () => {
     if (!previewData?.transactions?.length) return;
@@ -432,6 +608,9 @@ export default function BankStatementDashboard() {
           credit: t.credit,
           balance: t.balance,
           category: t.category,
+          type: t.type,
+          subCategory: t.subCategory,
+          remark: t.remark,
           txnId: t.txnId,
         })),
       };
@@ -540,7 +719,7 @@ export default function BankStatementDashboard() {
     if (!transactions.length) return [];
     const map = new Map();
     transactions.forEach(t => {
-      const cat = t.category;
+      const cat = t.category || 'Uncategorized';
       const amt = t.debit + t.credit;
       map.set(cat, (map.get(cat) || 0) + amt);
     });
@@ -634,8 +813,8 @@ export default function BankStatementDashboard() {
 
   /* ─── CSV Export ─── */
   const exportCSV = () => {
-    const headers = ['Date', 'Description', 'Debit', 'Credit', 'Balance', 'Category', 'Transaction ID'];
-    const rows = filtered.map(t => [t.dateStr, `"${t.description}"`, t.debit || '', t.credit || '', t.balance, t.category, t.txnId]);
+    const headers = ['Date', 'Description', 'Type', 'Category', 'Sub-Category', 'Remark', 'Debit', 'Credit', 'Balance', 'Transaction ID'];
+    const rows = filtered.map(t => [t.dateStr, `"${t.description}"`, t.type || 'Expense', t.category, `"${t.subCategory || ''}"`, `"${t.remark || ''}"`, t.debit || '', t.credit || '', t.balance, t.txnId]);
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -646,7 +825,45 @@ export default function BankStatementDashboard() {
     URL.revokeObjectURL(url);
   };
 
-  const categories = useMemo(() => [...new Set(transactions.map(t => t.category))].sort(), [transactions]);
+  const categories = useMemo(() => [...new Set(transactions.map(t => t.category).filter(Boolean))].sort(), [transactions]);
+
+  const categoriesForSummary = useMemo(() => {
+    const list = [...categories];
+    if (transactions.some(t => !t.category)) {
+      list.push('');
+    }
+    return list;
+  }, [categories, transactions]);
+
+  const subCategorySummary = useMemo(() => {
+    if (!transactions.length) return [];
+    const map = new Map();
+    transactions.forEach(t => {
+      const sub = (t.subCategory && t.subCategory.trim()) ? t.subCategory.trim() : '—';
+      const cat = t.category || 'Uncategorized';
+      const key = `${cat} | ${sub}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          subCategory: sub,
+          category: cat,
+          count: 0,
+          debit: 0,
+          credit: 0,
+        });
+      }
+      const item = map.get(key);
+      item.count += 1;
+      item.debit += t.debit || 0;
+      item.credit += t.credit || 0;
+    });
+    return [...map.values()]
+      .map(item => ({
+        ...item,
+        net: item.credit - item.debit
+      }))
+      .sort((a, b) => (b.debit + b.credit) - (a.debit + a.credit));
+  }, [transactions]);
 
   /* ─── KPI Definitions ─── */
   const KPIs = stats ? [
@@ -821,7 +1038,10 @@ export default function BankStatementDashboard() {
                     <th className="text-left py-2 px-2 font-bold text-[9px] uppercase tracking-wider text-gray-400">#</th>
                     <th className="text-left py-2 px-2 font-bold text-[9px] uppercase tracking-wider text-gray-400">Date</th>
                     <th className="text-left py-2 px-2 font-bold text-[9px] uppercase tracking-wider text-gray-400">Description</th>
+                    <th className="text-left py-2 px-2 font-bold text-[9px] uppercase tracking-wider text-gray-400">Type</th>
                     <th className="text-left py-2 px-2 font-bold text-[9px] uppercase tracking-wider text-gray-400">Category</th>
+                    <th className="text-left py-2 px-2 font-bold text-[9px] uppercase tracking-wider text-gray-400">Sub-Category</th>
+                    <th className="text-left py-2 px-2 font-bold text-[9px] uppercase tracking-wider text-gray-400">Remark</th>
                     <th className="text-right py-2 px-2 font-bold text-[9px] uppercase tracking-wider text-gray-400">Debit</th>
                     <th className="text-right py-2 px-2 font-bold text-[9px] uppercase tracking-wider text-gray-400">Credit</th>
                     <th className="text-right py-2 px-2 font-bold text-[9px] uppercase tracking-wider text-gray-400">Balance</th>
@@ -833,10 +1053,60 @@ export default function BankStatementDashboard() {
                     <tr key={i} className="border-b border-white/40 hover:bg-white/20 transition-colors">
                       <td className="py-1.5 px-2 text-gray-400 font-mono">{i + 1}</td>
                       <td className="py-1.5 px-2 text-gray-600 whitespace-nowrap">{t.dateStr}</td>
-                      <td className="py-1.5 px-2 text-gray-700 font-medium max-w-[250px] truncate" title={t.description}>{t.description || '—'}</td>
-                      <td className="py-1.5 px-2">
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold" style={{ background: 'rgba(99,102,241,0.08)', color: '#6366f1' }}>{t.category}</span>
+                      <td className="py-1.5 px-2 text-gray-700 font-medium max-w-[200px] truncate" title={t.description}>{t.description || '—'}</td>
+                      
+                      {/* Type (Expense/Income) dropdown */}
+                      <td className="py-1 px-2">
+                        <select
+                          value={t.type || ''}
+                          onChange={e => handleTypeChange(i, e.target.value)}
+                          className="bg-white/80 border border-gray-200 rounded-lg px-2 py-1 text-[10px] font-semibold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-200 transition-all cursor-pointer"
+                        >
+                          <option value="">Select Type...</option>
+                          <option value="Expense">Expense</option>
+                          <option value="Income">Income</option>
+                        </select>
                       </td>
+
+                      {/* Category dropdown */}
+                      <td className="py-1 px-2">
+                        <select
+                          value={t.category || ''}
+                          onChange={e => handleUpdatePreviewTxn(i, 'category', e.target.value)}
+                          className="bg-white/80 border border-gray-200 rounded-lg px-2 py-1 text-[10px] font-semibold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-200 transition-all cursor-pointer min-w-[120px]"
+                        >
+                          <option value="">Select Category...</option>
+                          {t.category && !(t.type === 'Income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).includes(t.category) && (
+                            <option value={t.category}>{t.category}</option>
+                          )}
+                          {(t.type === 'Income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </td>
+
+                      {/* Sub-Category input */}
+                      <td className="py-1 px-2">
+                        <input
+                          type="text"
+                          value={t.subCategory || ''}
+                          placeholder="e.g. Office, Travel..."
+                          onChange={e => handleUpdatePreviewTxn(i, 'subCategory', e.target.value)}
+                          className="bg-white/80 border border-gray-200 rounded-lg px-2 py-1 text-[10px] font-medium text-gray-700 outline-none focus:ring-2 focus:ring-indigo-200 transition-all min-w-[100px]"
+                        />
+                      </td>
+
+                      {/* Remark input */}
+                      <td className="py-1 px-2">
+                        <input
+                          type="text"
+                          value={t.remark || ''}
+                          placeholder="Add remark..."
+                          onChange={e => handleUpdatePreviewTxn(i, 'remark', e.target.value)}
+                          className="bg-white/80 border border-gray-200 rounded-lg px-2 py-1 text-[10px] font-medium text-gray-700 outline-none focus:ring-2 focus:ring-indigo-200 transition-all min-w-[120px]"
+                        />
+                      </td>
+
                       <td className="py-1.5 px-2 text-right font-bold text-rose-500 whitespace-nowrap">{t.debit > 0 ? fmt(t.debit) : ''}</td>
                       <td className="py-1.5 px-2 text-right font-bold text-emerald-600 whitespace-nowrap">{t.credit > 0 ? fmt(t.credit) : ''}</td>
                       <td className="py-1.5 px-2 text-right font-bold text-gray-800 whitespace-nowrap">{fmt(t.balance)}</td>
@@ -1456,7 +1726,10 @@ export default function BankStatementDashboard() {
                   <tr className="border-b border-indigo-100/50">
                     <th className="text-left py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Date</th>
                     <th className="text-left py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Description</th>
+                    <th className="text-left py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Type</th>
                     <th className="text-left py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Category</th>
+                    <th className="text-left py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Sub-Category</th>
+                    <th className="text-left py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Remark</th>
                     <th className="text-right py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Debit</th>
                     <th className="text-right py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Credit</th>
                     <th className="text-right py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Balance</th>
@@ -1467,17 +1740,44 @@ export default function BankStatementDashboard() {
                   {paged.map((t, i) => (
                     <tr key={i} className="border-b border-white/50 hover:bg-white/30 transition-colors">
                       <td className="py-2.5 px-2 text-gray-600 whitespace-nowrap">{t.dateStr}</td>
-                      <td className="py-2.5 px-2 text-gray-700 font-medium max-w-[300px] truncate" title={t.description}>
+                      <td className="py-2.5 px-2 text-gray-700 font-medium max-w-[200px] truncate" title={t.description}>
                         {t.description || '—'}
                       </td>
+                      
+                      {/* Type Badge */}
                       <td className="py-2.5 px-2">
-                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{
-                          background: PALETTE[categories.indexOf(t.category) % PALETTE.length] + '18',
-                          color: PALETTE[categories.indexOf(t.category) % PALETTE.length]
+                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider`} style={{
+                          background: t.type === 'Income' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+                          color: t.type === 'Income' ? '#10b981' : '#ef4444'
                         }}>
-                          {t.category}
+                          {t.type || 'Expense'}
                         </span>
                       </td>
+
+                      {/* Category Badge */}
+                      <td className="py-2.5 px-2">
+                        {t.category ? (
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{
+                            background: (PALETTE[categories.indexOf(t.category) % PALETTE.length] || '#e2e8f0') + '18',
+                            color: PALETTE[categories.indexOf(t.category) % PALETTE.length] || '#64748b'
+                          }}>
+                            {t.category}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+
+                      {/* Sub-Category */}
+                      <td className="py-2.5 px-2 text-gray-600 font-medium truncate max-w-[120px]" title={t.subCategory}>
+                        {t.subCategory || <span className="text-gray-300">—</span>}
+                      </td>
+
+                      {/* Remark */}
+                      <td className="py-2.5 px-2 text-gray-600 italic truncate max-w-[150px]" title={t.remark}>
+                        {t.remark || <span className="text-gray-300">—</span>}
+                      </td>
+
                       <td className="py-2.5 px-2 text-right font-bold text-rose-500 whitespace-nowrap">
                         {t.debit > 0 ? fmt(t.debit) : ''}
                       </td>
@@ -1616,8 +1916,8 @@ export default function BankStatementDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {categories.map((cat, i) => {
-                    const catTxns = transactions.filter(t => t.category === cat);
+                  {categoriesForSummary.map((cat, i) => {
+                    const catTxns = transactions.filter(t => (t.category || '') === cat);
                     const totalD = catTxns.reduce((s, t) => s + t.debit, 0);
                     const totalC = catTxns.reduce((s, t) => s + t.credit, 0);
                     const net = totalC - totalD;
@@ -1626,7 +1926,7 @@ export default function BankStatementDashboard() {
                         <td className="py-2.5 px-2">
                           <span className="flex items-center gap-2 font-semibold text-gray-700">
                             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PALETTE[i % PALETTE.length] }} />
-                            {cat}
+                            {cat || 'Uncategorized'}
                           </span>
                         </td>
                         <td className="py-2.5 px-2 text-center text-gray-600 font-medium">{catTxns.length}</td>
@@ -1650,12 +1950,60 @@ export default function BankStatementDashboard() {
             </div>
           </GW>
 
-          {/* Daily Credits vs Debits Area Chart */}
+          {/* Sub-Category-wise Summary Table */}
+          <GW>
+            <SLabel>Sub-Category-wise Summary</SLabel>
+            <div className="overflow-x-auto -mx-5 px-5">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-indigo-100/50">
+                    <th className="text-left py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Sub-Category</th>
+                    <th className="text-left py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Parent Category</th>
+                    <th className="text-center py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Count</th>
+                    <th className="text-right py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Total Debit</th>
+                    <th className="text-right py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Total Credit</th>
+                    <th className="text-right py-3 px-2 font-bold text-[10px] uppercase tracking-wider text-gray-400">Net</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subCategorySummary.map((sub, i) => (
+                    <tr key={sub.key} className="border-b border-white/50 hover:bg-white/30 transition-colors">
+                      <td className="py-2.5 px-2">
+                        <span className="font-semibold text-gray-700">
+                          {sub.subCategory}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-2">
+                        <span className="text-gray-500 font-medium">
+                          {sub.category}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-2 text-center text-gray-600 font-medium">{sub.count}</td>
+                      <td className="py-2.5 px-2 text-right font-bold text-rose-500">{sub.debit > 0 ? fmt(sub.debit) : '—'}</td>
+                      <td className="py-2.5 px-2 text-right font-bold text-emerald-600">{sub.credit > 0 ? fmt(sub.credit) : '—'}</td>
+                      <td className={`py-2.5 px-2 text-right font-bold ${sub.net >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>{fmt(sub.net)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-indigo-100/50">
+                    <td className="py-3 px-2 font-extrabold text-gray-800" colSpan={2}>Total</td>
+                    <td className="py-3 px-2 text-center font-bold text-gray-800">{transactions.length}</td>
+                    <td className="py-3 px-2 text-right font-extrabold text-rose-500">{fmt(stats.totalDebits)}</td>
+                    <td className="py-3 px-2 text-right font-extrabold text-emerald-600">{fmt(stats.totalCredits)}</td>
+                    <td className={`py-3 px-2 text-right font-extrabold ${stats.netFlow >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>{fmt(stats.netFlow)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </GW>
+
+          {/* Daily Credits vs Debits Chart */}
           <GW>
             <SLabel>Daily Credits vs Debits</SLabel>
-            <div className="h-52">
+            <div className="h-64 mt-2">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={balanceTrend} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                <AreaChart data={balanceTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gDayCr" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} /><stop offset="95%" stopColor="#10b981" stopOpacity={0} />
@@ -1770,3 +2118,4 @@ export default function BankStatementDashboard() {
     </div>
   );
 }
+
