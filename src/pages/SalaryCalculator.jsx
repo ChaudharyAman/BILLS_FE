@@ -86,6 +86,9 @@ const SalaryCalculator = () => {
   const [activeTab, setActiveTab] = useState('ctc'); // 'ctc' | 'controls' | 'bonuses' | 'tax'
   
   const [form, setForm] = useState({
+    payType: 'salaried',
+    hourlyRate: 0,
+    hoursWorked: 160,
     annualCTC: 0,
     monthlyCTC: 0,
     flexiAmount: 0,
@@ -157,6 +160,9 @@ const SalaryCalculator = () => {
 
   const localSource = useMemo(() => ({
     monthlyCTC,
+    payType: form.payType || 'salaried',
+    hourlyRate: Number(form.hourlyRate) || 0,
+    hoursWorked: Number(form.hoursWorked) || 160,
     flexiAmount: Number(form.flexiAmount) || 0,
     broadband: Number(form.broadband) || 0,
     petrol: Number(form.petrol) || 0,
@@ -184,7 +190,7 @@ const SalaryCalculator = () => {
       otherExemptions: Number(form.otherExemptions) || 0,
     }
   }), [
-    monthlyCTC, form.flexiAmount, form.broadband, form.petrol, form.lta,
+    monthlyCTC, form.payType, form.hourlyRate, form.hoursWorked, form.flexiAmount, form.broadband, form.petrol, form.lta,
     form.insuranceAmount, form.employerNPS, form.taxRegime,
     form.pfEnabled, form.esiEnabled, form.ptEnabled, form.lwfEnabled, form.gratuityEnabled,
     form.includePfInCTC, form.includeGratuityInCTC, form.professionalTax,
@@ -244,9 +250,18 @@ const SalaryCalculator = () => {
       .filter(c => c.type === 'earning')
       .map(c => {
         const val = getEarningValue(c.id);
-        return { id: c.id, name: c.name || c.id, val };
+        let name = c.name || c.id;
+        if (form.payType === 'hourly' && c.id === 'basic') {
+          name = 'Contract Wages (Hourly)';
+        }
+        return { id: c.id, name, val };
       })
-      .filter(r => r.id === 'basic' || r.id === 'hra' || r.val > 0)
+      .filter(r => {
+        if (form.payType === 'hourly') {
+          return r.val > 0;
+        }
+        return r.id === 'basic' || r.id === 'hra' || r.val > 0;
+      })
       .map(r => [r.name, r.val]);
 
     return [
@@ -332,6 +347,9 @@ const SalaryCalculator = () => {
     try {
       setSubmitting(true);
       const payload = {
+        payType: form.payType || 'salaried',
+        hourlyRate: Number(form.hourlyRate) || 0,
+        hoursWorked: Number(form.hoursWorked) || 160,
         monthlyCTC: Number(form.monthlyCTC) || 0,
         annualCTC: Number(form.annualCTC) || 0,
         flexiAmount: Number(form.flexiAmount) || 0,
@@ -570,43 +588,123 @@ const SalaryCalculator = () => {
             {activeTab === 'ctc' && (
               <div className="space-y-4 animate-fadeIn">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <InputField
-                    label="Annual CTC"
-                    value={form.annualCTC}
-                    onChange={(value) => {
-                      setForm((prev) => ({
-                        ...prev,
-                        annualCTC: value,
-                        monthlyCTC: Math.round((value / 12) * 100) / 100
-                      }));
-                    }}
-                    suffix="INR"
-                  />
-                  <InputField
-                    label="Monthly CTC"
-                    value={form.monthlyCTC}
-                    onChange={(value) => {
-                      setForm((prev) => ({
-                        ...prev,
-                        monthlyCTC: value,
-                        annualCTC: Math.round(value * 12 * 100) / 100
-                      }));
-                    }}
-                    suffix="INR"
-                  />
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Pay Type</label>
+                    <select
+                      data-testid="pay-type-select"
+                      value={form.payType || 'salaried'}
+                      onChange={(e) => {
+                        const type = e.target.value;
+                        setForm((prev) => ({
+                          ...prev,
+                          payType: type,
+                          // If switching to hourly, disable statutory components and clear allowances
+                          ...(type === 'hourly' ? {
+                            pfEnabled: false,
+                            esiEnabled: false,
+                            ptEnabled: false,
+                            lwfEnabled: false,
+                            gratuityEnabled: false,
+                            includePfInCTC: false,
+                            includeGratuityInCTC: false,
+                            flexiAmount: 0,
+                            broadband: 0,
+                            petrol: 0,
+                            lta: 0,
+                            insuranceAmount: 0,
+                            employerNPS: 0,
+                            monthlyCTC: (prev.hourlyRate || 0) * (prev.hoursWorked || 160),
+                            annualCTC: (prev.hourlyRate || 0) * (prev.hoursWorked || 160) * 12
+                          } : {
+                            pfEnabled: true,
+                            esiEnabled: true,
+                            ptEnabled: true,
+                            lwfEnabled: true,
+                            gratuityEnabled: true,
+                            includePfInCTC: true,
+                            includeGratuityInCTC: true,
+                          })
+                        }));
+                      }}
+                      className="w-full mt-1.5 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="salaried">Salaried (Monthly Base)</option>
+                      <option value="hourly">Hourly Contractor</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <InputField label="Flexi Wallet (Monthly)" value={form.flexiAmount} onChange={(value) => setForm((prev) => ({ ...prev, flexiAmount: value }))} />
-                  <InputField label="Broadband Allowance (Monthly)" value={form.broadband} onChange={(value) => setForm((prev) => ({ ...prev, broadband: value }))} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <InputField label="Petrol Reimbursement (Monthly)" value={form.petrol} onChange={(value) => setForm((prev) => ({ ...prev, petrol: value }))} />
-                  <InputField label="LTA (Monthly)" value={form.lta} onChange={(value) => setForm((prev) => ({ ...prev, lta: value }))} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <InputField label="Medical Insurance Contribution (Monthly)" value={form.insuranceAmount} onChange={(value) => setForm((prev) => ({ ...prev, insuranceAmount: value }))} />
-                  <InputField label="Employer NPS Contribution (Monthly)" value={form.employerNPS} onChange={(value) => setForm((prev) => ({ ...prev, employerNPS: value }))} />
-                </div>
+
+                {form.payType === 'hourly' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <InputField
+                      label="Hourly Rate"
+                      value={form.hourlyRate || 0}
+                      onChange={(value) => {
+                        setForm((prev) => ({
+                          ...prev,
+                          hourlyRate: value,
+                          monthlyCTC: value * (prev.hoursWorked || 160),
+                          annualCTC: value * (prev.hoursWorked || 160) * 12
+                        }));
+                      }}
+                      suffix="INR/hr"
+                    />
+                    <InputField
+                      label="Estimated Monthly Hours"
+                      value={form.hoursWorked || 160}
+                      onChange={(value) => {
+                        setForm((prev) => ({
+                          ...prev,
+                          hoursWorked: value,
+                          monthlyCTC: (prev.hourlyRate || 0) * value,
+                          annualCTC: (prev.hourlyRate || 0) * value * 12
+                        }));
+                      }}
+                      suffix="hours"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <InputField
+                        label="Annual CTC"
+                        value={form.annualCTC}
+                        onChange={(value) => {
+                          setForm((prev) => ({
+                            ...prev,
+                            annualCTC: value,
+                            monthlyCTC: Math.round((value / 12) * 100) / 100
+                          }));
+                        }}
+                        suffix="INR"
+                      />
+                      <InputField
+                        label="Monthly CTC"
+                        value={form.monthlyCTC}
+                        onChange={(value) => {
+                          setForm((prev) => ({
+                            ...prev,
+                            monthlyCTC: value,
+                            annualCTC: Math.round(value * 12 * 100) / 100
+                          }));
+                        }}
+                        suffix="INR"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <InputField label="Flexi Wallet (Monthly)" value={form.flexiAmount} onChange={(value) => setForm((prev) => ({ ...prev, flexiAmount: value }))} />
+                      <InputField label="Broadband Allowance (Monthly)" value={form.broadband} onChange={(value) => setForm((prev) => ({ ...prev, broadband: value }))} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <InputField label="Petrol Reimbursement (Monthly)" value={form.petrol} onChange={(value) => setForm((prev) => ({ ...prev, petrol: value }))} />
+                      <InputField label="LTA (Monthly)" value={form.lta} onChange={(value) => setForm((prev) => ({ ...prev, lta: value }))} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <InputField label="Medical Insurance Contribution (Monthly)" value={form.insuranceAmount} onChange={(value) => setForm((prev) => ({ ...prev, insuranceAmount: value }))} />
+                      <InputField label="Employer NPS Contribution (Monthly)" value={form.employerNPS} onChange={(value) => setForm((prev) => ({ ...prev, employerNPS: value }))} />
+                    </div>
+                  </>
+                )}
 
                 <div className="grid grid-cols-1 gap-4 pt-2 border-t border-gray-100">
                   <div>
@@ -990,31 +1088,35 @@ const SalaryCalculator = () => {
                 />
 
                 {/* Employer Contributions Component (Auto) */}
-                <BreakdownTable
-                  title="Employer Contributions (Auto)"
-                  rows={[
-                    ['PF Employer', result.master?.pfEmployer],
-                    ['Employer ESI', result.master?.esiEmployer],
-                    ['Gratuity Provision', result.master?.gratuity],
-                    ['LWF Employer', result.master?.lwfEmployer],
-                    ['Corporate Health Insurance', result.master?.insurance],
-                    ['Employer NPS Contribution', result.master?.employerNPS],
-                    ['Total Employer Cost', result.master?.totalEmployerContributions],
-                  ]}
-                />
+                {(form.payType !== 'hourly' || (result.master?.totalEmployerContributions || 0) > 0) && (
+                  <BreakdownTable
+                    title="Employer Contributions (Auto)"
+                    rows={[
+                      ['PF Employer', result.master?.pfEmployer],
+                      ['Employer ESI', result.master?.esiEmployer],
+                      ['Gratuity Provision', result.master?.gratuity],
+                      ['LWF Employer', result.master?.lwfEmployer],
+                      ['Corporate Health Insurance', result.master?.insurance],
+                      ['Employer NPS Contribution', result.master?.employerNPS],
+                      ['Total Employer Cost', result.master?.totalEmployerContributions],
+                    ]}
+                  />
+                )}
 
                 {/* Employee Deductions Component (Auto) */}
-                <BreakdownTable
-                  title="Employee Deductions (Auto)"
-                  rows={[
-                    ['PF Employee', result.payroll?.deductions?.pfEmployee],
-                    ['Employee ESI', result.payroll?.deductions?.esiEmployee],
-                    ['LWF Employee', result.payroll?.deductions?.lwfEmployee],
-                    ['Professional Tax (PT)', result.payroll?.deductions?.professionalTax],
-                    ['Income Tax Deducted at Source (TDS)', result.payroll?.deductions?.tds],
-                    ['Total Deductions', result.payroll?.deductions?.totalDeductions],
-                  ]}
-                />
+                {(form.payType !== 'hourly' || (result.payroll?.deductions?.totalDeductions || 0) > 0) && (
+                  <BreakdownTable
+                    title="Employee Deductions (Auto)"
+                    rows={[
+                      ['PF Employee', result.payroll?.deductions?.pfEmployee],
+                      ['Employee ESI', result.payroll?.deductions?.esiEmployee],
+                      ['LWF Employee', result.payroll?.deductions?.lwfEmployee],
+                      ['Professional Tax (PT)', result.payroll?.deductions?.professionalTax],
+                      ['Income Tax Deducted at Source (TDS)', result.payroll?.deductions?.tds],
+                      ['Total Deductions', result.payroll?.deductions?.totalDeductions],
+                    ]}
+                  />
+                )}
 
                 {/* One-Time Pay Component */}
                 {result.payroll?.variablePay?.totalVariablePay > 0 && (

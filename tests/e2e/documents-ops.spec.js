@@ -55,3 +55,48 @@ test('pro user can create vendor, purchase order, and expense', async ({ page })
   await expenseSave;
   await expect(page).toHaveURL(/\/expenses$/);
 });
+
+test('pro user can create category-only expense with reference vendor', async ({ page }) => {
+  const seeded = readSeededUsers();
+  const vendorName = uniqueName('Ref Vendor');
+  const itemName = uniqueName('Category Ops Item');
+  const expenseNumber = `${Date.now()}`.slice(-5);
+
+  await login(page, seeded.pro.username, seeded.password);
+
+  // Create vendor first
+  await page.goto('/vendors/new');
+  const vendorSave = waitForApiMutation(page, 'POST', '/clients');
+  await page.getByTestId('vendor-name').fill(vendorName);
+  await page.getByTestId('save-vendor').click();
+  await vendorSave;
+
+  // Create category expense
+  await page.goto('/expenses/new');
+  
+  // Switch to Category Expense tab
+  await page.getByRole('button', { name: 'Category Expense' }).click();
+
+  // Assert standard vendor select is hidden
+  await expect(page.getByTestId('expense-vendor-select')).not.toBeVisible();
+
+  // Fill category expense details (leave suffix empty to test autogeneration)
+  await page.getByTestId('expense-payment-method').selectOption('UPI');
+  
+  // Select optional reference vendor
+  await page.getByTestId('expense-ref-vendor-select').selectOption({ label: vendorName });
+
+  await page.getByTestId('expense-item-name-0').fill(`${itemName} category expense`);
+  await page.getByTestId('expense-item-qty-0').fill('2');
+  await page.getByTestId('expense-item-rate-0').fill('50');
+
+  const expenseSave = waitForApiMutation(page, 'POST', '/expenses');
+  await page.getByTestId('save-expense').click();
+  await expenseSave;
+
+  await expect(page).toHaveURL(/\/expenses$/);
+  
+  // Verify reference vendor is shown in list
+  await expect(page.getByText(vendorName).first()).toBeVisible();
+});
+

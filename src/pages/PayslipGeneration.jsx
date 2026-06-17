@@ -224,19 +224,26 @@ const PayslipGeneration = () => {
             </SectionCard>
 
             <SectionCard title="Attendance & Payroll">
-              <div className="grid grid-cols-2 gap-4">
-                <MetricTile label="Working Days" value={slip?.workingDays ?? '-'} />
-                <MetricTile label="Paid Days" value={slip?.paidDays ?? '-'} />
-                <MetricTile label="Paid Leaves" value={slip?.paidLeaves ?? 0} />
-                <MetricTile label="LOP Days" value={slip?.lop ?? 0} />
-              </div>
+              {slip.payType === 'hourly' ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <MetricTile label="Hours Worked" value={`${slip.hoursWorked || 0} hrs`} />
+                  <MetricTile label="Hourly Rate" value={fmtMoney(slip.hourlyRate || 0)} />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <MetricTile label="Working Days" value={slip?.workingDays ?? '-'} />
+                  <MetricTile label="Paid Days" value={slip?.paidDays ?? '-'} />
+                  <MetricTile label="Paid Leaves" value={slip?.paidLeaves ?? 0} />
+                  <MetricTile label="LOP Days" value={slip?.lop ?? 0} />
+                </div>
+              )}
               <div className="mt-4 border-t border-slate-200 pt-4">
                 <Info label="Transaction ID" value={slip?.transactionId || '-'} />
               </div>
             </SectionCard>
           </div>
 
-          {slip.salarySplits && slip.salarySplits.length > 1 && (
+          {slip.salarySplits && slip.salarySplits.length > 1 && slip.payType !== 'hourly' && (
             <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
               <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-4">
                 Mid-Month Revision Calculation Split

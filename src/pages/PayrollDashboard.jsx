@@ -469,8 +469,12 @@ const PayrollDashboard = () => {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-right text-sm">{payroll.paidDays}</td>
-                        <td className="px-6 py-4 text-right text-sm">{payroll.workingDays}</td>
+                        <td className="px-6 py-4 text-right text-sm">
+                          {payroll.payType === 'hourly' ? `${payroll.hoursWorked || 0} hrs` : payroll.paidDays}
+                        </td>
+                        <td className="px-6 py-4 text-right text-sm">
+                          {payroll.payType === 'hourly' ? 'Hourly (N/A)' : payroll.workingDays}
+                        </td>
                         <td className="px-6 py-4 text-right text-sm">{fmtMoney(payroll.earnings?.totalEarnings)}</td>
                         <td className="px-6 py-4 text-right text-sm">{fmtMoney(employerContribution)}</td>
                         <td className="px-6 py-4 text-right text-sm">{fmtMoney(payroll.variablePay?.totalVariablePay)}</td>
@@ -755,8 +759,17 @@ const PayrollDashboard = () => {
                   ['Net Salary', fmtMoney(drawerSlip.netSalary)],
                   ['Total Payable', fmtMoney(drawerSlip.totalPayable)],
                   ['Status', drawerSlip.status],
+                  ...(drawerSlip.payType === 'hourly' ? [
+                    ['Hours Worked', `${drawerSlip.hoursWorked || 0} hrs`],
+                    ['Hourly Rate', `${fmtMoney(drawerSlip.hourlyRate || 0)}/hr`],
+                  ] : [
+                    ['Working Days', drawerSlip.workingDays],
+                    ['Paid Days', drawerSlip.paidDays],
+                    ['LOP Days', drawerSlip.lop || 0],
+                    ['Proration Ratio', `${Math.round((drawerSlip.paidDays / Math.max(drawerSlip.workingDays || 1, 1)) * 100)}%`],
+                  ])
                 ]} />
-                {drawerSlip.salarySplits && drawerSlip.salarySplits.length > 1 && (
+                {drawerSlip.salarySplits && drawerSlip.salarySplits.length > 1 && drawerSlip.payType !== 'hourly' && (
                   <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
                     <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">
                       Mid-Month Revision Calculation Split
