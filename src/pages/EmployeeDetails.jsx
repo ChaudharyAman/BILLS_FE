@@ -23,6 +23,7 @@ const EmployeeDetails = () => {
   const [loading, setLoading] = useState(true);
   const [showRevisionModal, setShowRevisionModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editingRevision, setEditingRevision] = useState(null);
   const [calculating, setCalculating] = useState(false);
   const [roles, setRoles] = useState([]);
   const [revisionDraft, setRevisionDraft] = useState({
@@ -335,49 +336,107 @@ const EmployeeDetails = () => {
     return roles.filter(r => r.payType === (employee?.payType || 'salaried'));
   }, [roles, employee]);
 
-  const openRevisionModal = () => {
+  const openRevisionModal = (revision = null) => {
     if (!employee) return;
-    setRevisionDraft({
-      role: employee.role?._id || employee.role || '',
-      newCTC: employee.monthlyCTC || '',
-      newAnnualCTC: employee.monthlyCTC ? Math.round(employee.monthlyCTC * 12 * 100) / 100 : '',
-      newHourlyRate: employee.hourlyRate || '',
-      effectiveDate: new Date().toISOString().slice(0, 10),
-      reason: '',
-      pfEnabled: employee.pfEnabled !== false,
-      esiEnabled: employee.esiEnabled !== false,
-      ptEnabled: employee.ptEnabled !== false,
-      lwfEnabled: employee.lwfEnabled !== false,
-      gratuityEnabled: employee.gratuityEnabled !== false,
-      includePfInCTC: employee.includePfInCTC === true,
-      includeGratuityInCTC: employee.includeGratuityInCTC !== false,
-      basicPercent: employee.basicPercent ?? null,
-      hraPercent: employee.hraPercent ?? null,
-      useSalaryComponents: employee.useSalaryComponents !== false,
-      employmentType: employee.employmentType || 'full-time',
-      flexiAmount: employee.flexiAmount || 0,
-      broadband: employee.broadband || 0,
-      petrol: employee.petrol || 0,
-      lta: employee.lta || 0,
-      insuranceAmount: employee.insuranceAmount || 0,
-      employerNPS: employee.employerNPS || 0,
-      joiningBonus: employee.joiningBonus || 0,
-      salaryStructure: {
-        basic: employee.salaryStructure?.basic || 0,
-        hra: employee.salaryStructure?.hra || 0,
-        conveyance: employee.salaryStructure?.conveyance || 0,
-        medicalAllowance: employee.salaryStructure?.medicalAllowance || 0,
-        specialAllowance: employee.salaryStructure?.specialAllowance || 0,
-        otherAllowances: employee.salaryStructure?.otherAllowances ? JSON.parse(JSON.stringify(employee.salaryStructure.otherAllowances)) : [],
-      },
-      deductions: {
-        pf: employee.deductions?.pf || 0,
-        esi: employee.deductions?.esi || 0,
-        professionalTax: employee.deductions?.professionalTax || 0,
-        tds: employee.deductions?.tds || 0,
-        otherDeductions: employee.deductions?.otherDeductions ? JSON.parse(JSON.stringify(employee.deductions.otherDeductions)) : [],
-      }
-    });
+    let revisionDraftObj;
+    if (revision) {
+      setEditingRevision(revision);
+      const effDateStr = revision.effectiveDate ? new Date(revision.effectiveDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+      const ctcVal = revision.newCTC !== undefined ? revision.newCTC : (revision.monthlyCTC || '');
+      const hourlyVal = revision.newHourlyRate !== undefined ? revision.newHourlyRate : (revision.hourlyRate || '');
+      revisionDraftObj = {
+        role: revision.role?._id || revision.role || '',
+        newCTC: ctcVal,
+        newAnnualCTC: ctcVal ? Math.round(ctcVal * 12 * 100) / 100 : '',
+        newHourlyRate: hourlyVal,
+        effectiveDate: effDateStr,
+        reason: revision.reason || '',
+        pfEnabled: revision.pfEnabled !== false,
+        esiEnabled: revision.esiEnabled !== false,
+        ptEnabled: revision.ptEnabled !== false,
+        lwfEnabled: revision.lwfEnabled !== false,
+        gratuityEnabled: revision.gratuityEnabled !== false,
+        includePfInCTC: revision.includePfInCTC === true,
+        includeGratuityInCTC: revision.includeGratuityInCTC !== false,
+        basicPercent: revision.basicPercent ?? null,
+        hraPercent: revision.hraPercent ?? null,
+        useSalaryComponents: revision.useSalaryComponents !== false,
+        employmentType: revision.employmentType || 'full-time',
+        flexiAmount: revision.flexiAmount || 0,
+        broadband: revision.broadband || 0,
+        petrol: revision.petrol || 0,
+        lta: revision.lta || 0,
+        insuranceAmount: revision.insuranceAmount || 0,
+        employerNPS: revision.employerNPS || 0,
+        joiningBonus: revision.joiningBonus || 0,
+        salaryStructure: {
+          basic: revision.salaryStructure?.basic || 0,
+          hra: revision.salaryStructure?.hra || 0,
+          conveyance: revision.salaryStructure?.conveyance || 0,
+          medicalAllowance: revision.salaryStructure?.medicalAllowance || 0,
+          specialAllowance: revision.salaryStructure?.specialAllowance || 0,
+          otherAllowances: revision.salaryStructure?.otherAllowances ? JSON.parse(JSON.stringify(revision.salaryStructure.otherAllowances)) : [],
+        },
+        deductions: {
+          pf: revision.deductions?.pf || 0,
+          esi: revision.deductions?.esi || 0,
+          professionalTax: revision.deductions?.professionalTax || 0,
+          tds: revision.deductions?.tds || 0,
+          otherDeductions: revision.deductions?.otherDeductions ? JSON.parse(JSON.stringify(revision.deductions.otherDeductions)) : [],
+        }
+      };
+    } else {
+      setEditingRevision(null);
+      revisionDraftObj = {
+        role: employee.role?._id || employee.role || '',
+        newCTC: employee.monthlyCTC || '',
+        newAnnualCTC: employee.monthlyCTC ? Math.round(employee.monthlyCTC * 12 * 100) / 100 : '',
+        newHourlyRate: employee.hourlyRate || '',
+        effectiveDate: new Date().toISOString().slice(0, 10),
+        reason: '',
+        pfEnabled: employee.pfEnabled !== false,
+        esiEnabled: employee.esiEnabled !== false,
+        ptEnabled: employee.ptEnabled !== false,
+        lwfEnabled: employee.lwfEnabled !== false,
+        gratuityEnabled: employee.gratuityEnabled !== false,
+        includePfInCTC: employee.includePfInCTC === true,
+        includeGratuityInCTC: employee.includeGratuityInCTC !== false,
+        basicPercent: employee.basicPercent ?? null,
+        hraPercent: employee.hraPercent ?? null,
+        useSalaryComponents: employee.useSalaryComponents !== false,
+        employmentType: employee.employmentType || 'full-time',
+        flexiAmount: employee.flexiAmount || 0,
+        broadband: employee.broadband || 0,
+        petrol: employee.petrol || 0,
+        lta: employee.lta || 0,
+        insuranceAmount: employee.insuranceAmount || 0,
+        employerNPS: employee.employerNPS || 0,
+        joiningBonus: employee.joiningBonus || 0,
+        salaryStructure: {
+          basic: employee.salaryStructure?.basic || 0,
+          hra: employee.salaryStructure?.hra || 0,
+          conveyance: employee.salaryStructure?.conveyance || 0,
+          medicalAllowance: employee.salaryStructure?.medicalAllowance || 0,
+          specialAllowance: employee.salaryStructure?.specialAllowance || 0,
+          otherAllowances: employee.salaryStructure?.otherAllowances ? JSON.parse(JSON.stringify(employee.salaryStructure.otherAllowances)) : [],
+        },
+        deductions: {
+          pf: employee.deductions?.pf || 0,
+          esi: employee.deductions?.esi || 0,
+          professionalTax: employee.deductions?.professionalTax || 0,
+          tds: employee.deductions?.tds || 0,
+          otherDeductions: employee.deductions?.otherDeductions ? JSON.parse(JSON.stringify(employee.deductions.otherDeductions)) : [],
+        }
+      };
+    }
+
+    setRevisionDraft(revisionDraftObj);
+
+    if (employee.payType === 'salaried' && revisionDraftObj.newCTC) {
+      setTimeout(() => {
+        refreshDraftSalaryFromCTC(revisionDraftObj);
+      }, 0);
+    }
     setShowRevisionModal(true);
   };
 
@@ -490,7 +549,11 @@ const EmployeeDetails = () => {
         }));
       }
 
-      await api.post(`/employees/${id}/salary-revision`, payload);
+      if (editingRevision) {
+        await api.put(`/employees/${id}/salary-revision/${editingRevision._id}`, payload);
+      } else {
+        await api.post(`/employees/${id}/salary-revision`, payload);
+      }
       const res = await api.get(`/employees/${id}`);
       setEmployee(res.data);
       setRevisionDraft({
@@ -534,11 +597,25 @@ const EmployeeDetails = () => {
           otherDeductions: [],
         }
       });
+      setEditingRevision(null);
       setShowRevisionModal(false);
-      toast.success(isHourly ? 'Hourly rate revised successfully' : 'Salary revised successfully');
+      toast.success(editingRevision ? 'Salary revision updated successfully' : (isHourly ? 'Hourly rate revised successfully' : 'Salary revised successfully'));
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || 'Failed to revise salary');
+      toast.error(error.response?.data?.message || 'Failed to save salary revision');
+    }
+  };
+
+  const handleDeleteSalaryRevision = async (revisionId) => {
+    if (!window.confirm('Are you sure you want to delete this salary revision?')) return;
+    try {
+      await api.delete(`/employees/${id}/salary-revision/${revisionId}`);
+      const res = await api.get(`/employees/${id}`);
+      setEmployee(res.data);
+      toast.success('Salary revision deleted successfully');
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to delete salary revision');
     }
   };
 
@@ -765,6 +842,7 @@ const EmployeeDetails = () => {
                 {employee.payType === 'hourly' ? 'New Rate' : 'New CTC'}
               </th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Reason</th>
+              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -782,9 +860,27 @@ const EmployeeDetails = () => {
                     : fmtMoney(revision.newCTC)}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600">{revision.reason || '-'}</td>
+                <td className="px-6 py-4 text-sm text-right">
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => openRevisionModal(revision)}
+                      className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit Revision"
+                    >
+                      <FaEdit size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteSalaryRevision(revision._id)}
+                      className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete Revision"
+                    >
+                      <FaTrash size={14} />
+                    </button>
+                  </div>
+                </td>
               </tr>
             )) : (
-              <tr><td colSpan="4" className="px-6 py-8 text-center text-gray-500">No salary revisions recorded yet.</td></tr>
+              <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500">No salary revisions recorded yet.</td></tr>
             )}
           </tbody>
         </table>
@@ -827,7 +923,11 @@ const EmployeeDetails = () => {
       <Modal 
         isOpen={showRevisionModal} 
         onClose={() => setShowRevisionModal(false)} 
-        title={employee.payType === 'hourly' ? 'Revise Hourly Rate' : 'Revise Salary'}
+        title={
+          editingRevision
+            ? (employee.payType === 'hourly' ? 'Edit Hourly Rate Revision' : 'Edit Salary Revision')
+            : (employee.payType === 'hourly' ? 'Revise Hourly Rate' : 'Revise Salary')
+        }
       >
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
