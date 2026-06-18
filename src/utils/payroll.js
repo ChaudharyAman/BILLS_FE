@@ -287,7 +287,7 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
   const ptEnabled = !isIntern && !isHourly && source.ptEnabled !== false;
   const lwfEnabled = !isIntern && !isHourly && source.lwfEnabled !== false;
   const gratuityEnabled = !isIntern && !isHourly && source.gratuityEnabled !== false;
-  const includePfInCTC = !isIntern && !isHourly && source.includePfInCTC !== false;
+  const includePfInCTC = !isIntern && !isHourly && source.includePfInCTC === true;
   const includeGratuityInCTC = !isIntern && !isHourly && source.includeGratuityInCTC !== false;
 
   let basicPercent = !useComponents ? 1.0 : config.basicPercent;
@@ -658,7 +658,7 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
       ptEnabled: getVal('ptEnabled', true),
       lwfEnabled: getVal('lwfEnabled', true),
       gratuityEnabled: getVal('gratuityEnabled', true),
-      includePfInCTC: getVal('includePfInCTC', true),
+      includePfInCTC: getVal('includePfInCTC', false),
       includeGratuityInCTC: getVal('includeGratuityInCTC', true),
       basicPercent: getVal('basicPercent', null),
       hraPercent: getVal('hraPercent', null),
@@ -1143,7 +1143,7 @@ export const getSalarySplits = (employeeInput, configInput, monthNum, yearNum, p
       ptEnabled: getVal('ptEnabled', true),
       lwfEnabled: getVal('lwfEnabled', true),
       gratuityEnabled: getVal('gratuityEnabled', true),
-      includePfInCTC: getVal('includePfInCTC', true),
+      includePfInCTC: getVal('includePfInCTC', false),
       includeGratuityInCTC: getVal('includeGratuityInCTC', true),
       basicPercent: getVal('basicPercent', null),
       hraPercent: getVal('hraPercent', null),

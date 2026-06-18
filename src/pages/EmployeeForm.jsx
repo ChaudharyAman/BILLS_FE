@@ -41,7 +41,7 @@ const defaultForm = {
   ptEnabled: true,
   lwfEnabled: true,
   gratuityEnabled: true,
-  includePfInCTC: true,
+  includePfInCTC: false,
   includeGratuityInCTC: true,
   salaryStructure: {
     basic: 0,
@@ -128,7 +128,7 @@ const EmployeeForm = () => {
           ptEnabled: data.ptEnabled !== false,
           lwfEnabled: data.lwfEnabled !== false,
           gratuityEnabled: data.gratuityEnabled !== false,
-          includePfInCTC: data.includePfInCTC !== false,
+          includePfInCTC: data.includePfInCTC === true,
           includeGratuityInCTC: data.includeGratuityInCTC !== false,
         });
       } catch (error) {
@@ -214,7 +214,7 @@ const EmployeeForm = () => {
           ptEnabled: true,
           lwfEnabled: true,
           gratuityEnabled: true,
-          includePfInCTC: true,
+          includePfInCTC: false,
           includeGratuityInCTC: true,
         } : {}),
       }));
@@ -250,9 +250,9 @@ const EmployeeForm = () => {
         basicPercent: merged.basicPercent === null || merged.basicPercent === '' ? null : Number(merged.basicPercent),
         hraPercent: merged.hraPercent === null || merged.hraPercent === '' ? null : Number(merged.hraPercent),
         useSalaryComponents: merged.useSalaryComponents !== false,
-        basic: merged.salaryStructure?.basic !== undefined ? Number(merged.salaryStructure.basic) : undefined,
-        hra: merged.salaryStructure?.hra !== undefined ? Number(merged.salaryStructure.hra) : undefined,
-        specialAllowance: merged.salaryStructure?.specialAllowance !== undefined ? Number(merged.salaryStructure.specialAllowance) : undefined,
+        basic: config.salaryComponents?.find(c => c.id === 'basic')?.linkedTo === 'fixed' ? Number(merged.salaryStructure?.basic) : undefined,
+        hra: config.salaryComponents?.find(c => c.id === 'hra')?.linkedTo === 'fixed' ? Number(merged.salaryStructure?.hra) : undefined,
+        specialAllowance: config.salaryComponents?.find(c => c.id === 'special')?.linkedTo === 'fixed' ? Number(merged.salaryStructure?.specialAllowance) : undefined,
         flexiAmount: Number(merged.flexiAmount) || 0,
         broadband: Number(merged.broadband) || 0,
         petrol: Number(merged.petrol) || 0,
@@ -276,7 +276,7 @@ const EmployeeForm = () => {
         ptEnabled: merged.ptEnabled !== false,
         lwfEnabled: merged.lwfEnabled !== false,
         gratuityEnabled: merged.gratuityEnabled !== false,
-        includePfInCTC: merged.includePfInCTC !== false,
+        includePfInCTC: merged.includePfInCTC === true,
         includeGratuityInCTC: merged.includeGratuityInCTC !== false,
       });
       const master = res.data.master;
@@ -361,7 +361,7 @@ const EmployeeForm = () => {
         ptEnabled: formData.ptEnabled !== false,
         lwfEnabled: formData.lwfEnabled !== false,
         gratuityEnabled: formData.gratuityEnabled !== false,
-        includePfInCTC: formData.includePfInCTC !== false,
+        includePfInCTC: formData.includePfInCTC === true,
         includeGratuityInCTC: formData.includeGratuityInCTC !== false,
         flexiAmount: Number(formData.flexiAmount) || 0,
         broadband: Number(formData.broadband) || 0,
@@ -555,7 +555,7 @@ const EmployeeForm = () => {
                         ptEnabled: true,
                         lwfEnabled: true,
                         gratuityEnabled: true,
-                        includePfInCTC: true,
+                        includePfInCTC: false,
                         includeGratuityInCTC: true,
                       };
                       setFormData(prev => ({
@@ -870,7 +870,7 @@ const EmployeeForm = () => {
                       <label className="flex items-center gap-2.5 cursor-pointer select-none border border-gray-100 rounded-xl p-3 bg-gray-50/30">
                         <input
                           type="checkbox"
-                          checked={formData.includePfInCTC ?? true}
+                          checked={formData.includePfInCTC ?? false}
                           onChange={(e) => {
                             const val = e.target.checked;
                             setField('includePfInCTC', val);
@@ -880,7 +880,7 @@ const EmployeeForm = () => {
                         />
                         <div>
                           <span className="text-xs font-semibold text-gray-800 block">
-                            Include Employer PF in CTC {formData.includePfInCTC !== false && localPreview && `(${fmtMoney(localPreview.pfEmployer)})`}
+                            Include Employer PF in CTC {formData.includePfInCTC === true && localPreview && `(${fmtMoney(localPreview.pfEmployer)})`}
                           </span>
                           <span className="text-[10px] text-gray-400">Employer contribution reduces Gross take-home</span>
                         </div>
