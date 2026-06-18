@@ -233,7 +233,7 @@ const PayrollSettings = () => {
       ptEnabled: true,
       lwfEnabled: true,
       gratuityEnabled: true,
-      includePfInCTC: true,
+      includePfInCTC: false,
       includeGratuityInCTC: true,
     });
   };
@@ -1064,7 +1064,7 @@ const PayrollSettings = () => {
                             ptEnabled: true,
                             lwfEnabled: true,
                             gratuityEnabled: true,
-                            includePfInCTC: true,
+                            includePfInCTC: false,
                             includeGratuityInCTC: true,
                           } : {}),
                         }));

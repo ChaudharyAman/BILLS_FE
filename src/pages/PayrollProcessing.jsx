@@ -998,7 +998,7 @@ const PayrollProcessing = () => {
                               checked={
                                 rows[breakdownEmployee._id]?.includePfInCTC !== undefined
                                   ? rows[breakdownEmployee._id].includePfInCTC
-                                  : localSnapshot?.master?.includePfInCTC !== false
+                                  : localSnapshot?.master?.includePfInCTC === true
                               }
                               onChange={(e) => updateRow(breakdownEmployee._id, 'includePfInCTC', e.target.checked)}
                               className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"

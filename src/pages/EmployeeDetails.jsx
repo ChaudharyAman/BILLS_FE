@@ -24,9 +24,12 @@ const EmployeeDetails = () => {
   const [showRevisionModal, setShowRevisionModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [calculating, setCalculating] = useState(false);
+  const [roles, setRoles] = useState([]);
   const [revisionDraft, setRevisionDraft] = useState({
+    role: '',
     newCTC: '',
     newAnnualCTC: '',
+    newHourlyRate: '',
     effectiveDate: new Date().toISOString().slice(0, 10),
     reason: '',
     pfEnabled: true,
@@ -34,10 +37,12 @@ const EmployeeDetails = () => {
     ptEnabled: true,
     lwfEnabled: true,
     gratuityEnabled: true,
-    includePfInCTC: true,
+    includePfInCTC: false,
     includeGratuityInCTC: true,
     basicPercent: null,
     hraPercent: null,
+    useSalaryComponents: true,
+    employmentType: 'full-time',
     flexiAmount: 0,
     broadband: 0,
     petrol: 0,
@@ -71,14 +76,16 @@ const EmployeeDetails = () => {
     const fetchPageData = async () => {
       try {
         setLoading(true);
-        const [employeeRes, payrollRes, configRes] = await Promise.all([
+        const [employeeRes, payrollRes, configRes, rolesRes] = await Promise.all([
           api.get(`/employees/${id}`, { signal: controller.signal }),
           api.get(`/payroll?employeeId=${id}&limit=12`, { signal: controller.signal }),
           api.get('/payroll/config', { signal: controller.signal }),
+          api.get('/roles', { signal: controller.signal }),
         ]);
         setEmployee(employeeRes.data);
         setPayrolls(payrollRes.data.data || []);
         setConfig({ ...DEFAULT_PAYROLL_CONFIG, ...(configRes.data || {}) });
+        setRoles(rolesRes.data || []);
       } catch (error) {
         if (error.name === 'CanceledError' || error.name === 'AbortError') return;
         console.error(error);
@@ -104,10 +111,11 @@ const EmployeeDetails = () => {
       ptEnabled: revisionDraft.ptEnabled !== false,
       lwfEnabled: revisionDraft.lwfEnabled !== false,
       gratuityEnabled: revisionDraft.gratuityEnabled !== false,
-      includePfInCTC: revisionDraft.includePfInCTC !== false,
+      includePfInCTC: revisionDraft.includePfInCTC === true,
       includeGratuityInCTC: revisionDraft.includeGratuityInCTC !== false,
       basicPercent: revisionDraft.basicPercent,
       hraPercent: revisionDraft.hraPercent,
+      useSalaryComponents: revisionDraft.useSalaryComponents !== false,
       flexiAmount: Number(revisionDraft.flexiAmount) || 0,
       broadband: Number(revisionDraft.broadband) || 0,
       petrol: Number(revisionDraft.petrol) || 0,
@@ -117,6 +125,9 @@ const EmployeeDetails = () => {
       joiningBonus: Number(revisionDraft.joiningBonus) || 0,
       salaryStructure: {
         ...(employee?.salaryStructure || {}),
+        basic: config.salaryComponents?.find(c => c.id === 'basic')?.linkedTo === 'fixed' ? (employee?.salaryStructure?.basic) : undefined,
+        hra: config.salaryComponents?.find(c => c.id === 'hra')?.linkedTo === 'fixed' ? (employee?.salaryStructure?.hra) : undefined,
+        specialAllowance: config.salaryComponents?.find(c => c.id === 'special')?.linkedTo === 'fixed' ? (employee?.salaryStructure?.specialAllowance) : undefined,
         conveyance: Number(revisionDraft.salaryStructure?.conveyance) || 0,
         medicalAllowance: Number(revisionDraft.salaryStructure?.medicalAllowance) || 0,
         otherAllowances: (revisionDraft.salaryStructure?.otherAllowances || []).map(a => ({
@@ -274,9 +285,60 @@ const EmployeeDetails = () => {
     setRevisionDraft((prev) => ({ ...prev, [parent]: { ...prev[parent], [child]: value } }));
   };
 
+  const handleRoleChange = (roleId) => {
+    const selectedRole = roles.find((r) => r._id === roleId);
+    if (!selectedRole) {
+      setRevisionDraft((prev) => ({
+        ...prev,
+        role: '',
+      }));
+      return;
+    }
+
+    const ctc = selectedRole.payType === 'salaried' ? selectedRole.monthlyCTC : 0;
+    const hourly = selectedRole.payType === 'hourly' ? selectedRole.hourlyRate : 0;
+
+    setRevisionDraft((prev) => {
+      const updated = {
+        ...prev,
+        role: selectedRole._id,
+        newCTC: ctc,
+        newAnnualCTC: ctc ? Math.round(ctc * 12 * 100) / 100 : '',
+        newHourlyRate: hourly,
+        pfEnabled: selectedRole.pfEnabled,
+        esiEnabled: selectedRole.esiEnabled,
+        ptEnabled: selectedRole.ptEnabled,
+        lwfEnabled: selectedRole.lwfEnabled,
+        gratuityEnabled: selectedRole.gratuityEnabled,
+        includePfInCTC: selectedRole.includePfInCTC,
+        includeGratuityInCTC: selectedRole.includeGratuityInCTC,
+        basicPercent: selectedRole.basicPercent !== null ? selectedRole.basicPercent : null,
+        hraPercent: selectedRole.hraPercent !== null ? selectedRole.hraPercent : null,
+        useSalaryComponents: selectedRole.useSalaryComponents !== false,
+        employmentType: selectedRole.employmentType || 'full-time',
+      };
+
+      // Trigger recalculation if salaried
+      if (selectedRole.payType === 'salaried') {
+        setTimeout(() => {
+          refreshDraftSalaryFromCTC(updated);
+        }, 0);
+      }
+
+      return updated;
+    });
+
+    toast.success(`Applied template settings for Job Role: ${selectedRole.name}`);
+  };
+
+  const filteredRoles = useMemo(() => {
+    return roles.filter(r => r.payType === (employee?.payType || 'salaried'));
+  }, [roles, employee]);
+
   const openRevisionModal = () => {
     if (!employee) return;
     setRevisionDraft({
+      role: employee.role?._id || employee.role || '',
       newCTC: employee.monthlyCTC || '',
       newAnnualCTC: employee.monthlyCTC ? Math.round(employee.monthlyCTC * 12 * 100) / 100 : '',
       newHourlyRate: employee.hourlyRate || '',
@@ -287,10 +349,12 @@ const EmployeeDetails = () => {
       ptEnabled: employee.ptEnabled !== false,
       lwfEnabled: employee.lwfEnabled !== false,
       gratuityEnabled: employee.gratuityEnabled !== false,
-      includePfInCTC: employee.includePfInCTC !== false,
+      includePfInCTC: employee.includePfInCTC === true,
       includeGratuityInCTC: employee.includeGratuityInCTC !== false,
       basicPercent: employee.basicPercent ?? null,
       hraPercent: employee.hraPercent ?? null,
+      useSalaryComponents: employee.useSalaryComponents !== false,
+      employmentType: employee.employmentType || 'full-time',
       flexiAmount: employee.flexiAmount || 0,
       broadband: employee.broadband || 0,
       petrol: employee.petrol || 0,
@@ -327,11 +391,13 @@ const EmployeeDetails = () => {
       setCalculating(true);
       const res = await api.post('/payroll/calculate-salary', {
         monthlyCTC,
+        employmentType: merged.employmentType,
         basicPercent: merged.basicPercent === null || merged.basicPercent === '' ? null : Number(merged.basicPercent),
         hraPercent: merged.hraPercent === null || merged.hraPercent === '' ? null : Number(merged.hraPercent),
-        basic: merged.salaryStructure?.basic !== undefined ? Number(merged.salaryStructure.basic) : undefined,
-        hra: merged.salaryStructure?.hra !== undefined ? Number(merged.salaryStructure.hra) : undefined,
-        specialAllowance: merged.salaryStructure?.specialAllowance !== undefined ? Number(merged.salaryStructure.specialAllowance) : undefined,
+        basic: config.salaryComponents?.find(c => c.id === 'basic')?.linkedTo === 'fixed' ? Number(merged.salaryStructure?.basic) : undefined,
+        hra: config.salaryComponents?.find(c => c.id === 'hra')?.linkedTo === 'fixed' ? Number(merged.salaryStructure?.hra) : undefined,
+        specialAllowance: config.salaryComponents?.find(c => c.id === 'special')?.linkedTo === 'fixed' ? Number(merged.salaryStructure?.specialAllowance) : undefined,
+        useSalaryComponents: merged.useSalaryComponents !== false,
         flexiAmount: Number(merged.flexiAmount) || 0,
         broadband: Number(merged.broadband) || 0,
         petrol: Number(merged.petrol) || 0,
@@ -384,6 +450,7 @@ const EmployeeDetails = () => {
       const payload = {
         effectiveDate: revisionDraft.effectiveDate,
         reason: revisionDraft.reason,
+        role: revisionDraft.role || '',
       };
 
       if (isHourly) {
@@ -391,6 +458,8 @@ const EmployeeDetails = () => {
         payload.newCTC = 0;
       } else {
         payload.newCTC = Number(revisionDraft.newCTC);
+        payload.employmentType = revisionDraft.employmentType || 'full-time';
+        payload.useSalaryComponents = revisionDraft.useSalaryComponents !== false;
         payload.pfEnabled = revisionDraft.pfEnabled !== false;
         payload.esiEnabled = revisionDraft.esiEnabled !== false;
         payload.ptEnabled = revisionDraft.ptEnabled !== false;
@@ -425,6 +494,7 @@ const EmployeeDetails = () => {
       const res = await api.get(`/employees/${id}`);
       setEmployee(res.data);
       setRevisionDraft({
+        role: '',
         newCTC: '',
         newAnnualCTC: '',
         newHourlyRate: '',
@@ -435,10 +505,12 @@ const EmployeeDetails = () => {
         ptEnabled: true,
         lwfEnabled: true,
         gratuityEnabled: true,
-        includePfInCTC: true,
+        includePfInCTC: false,
         includeGratuityInCTC: true,
         basicPercent: null,
         hraPercent: null,
+        useSalaryComponents: true,
+        employmentType: 'full-time',
         flexiAmount: 0,
         broadband: 0,
         petrol: 0,
@@ -758,6 +830,41 @@ const EmployeeDetails = () => {
         title={employee.payType === 'hourly' ? 'Revise Hourly Rate' : 'Revise Salary'}
       >
         <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Job Role Template</label>
+              <select
+                value={revisionDraft.role || ''}
+                onChange={(e) => handleRoleChange(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">No Role (Custom Salary Components)</option>
+                {filteredRoles.map((r) => (
+                  <option key={r._id} value={r._id}>
+                    {r.name} ({r.payType === 'hourly' ? 'Hourly' : 'Salaried'})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Employment Type</label>
+              <select
+                value={revisionDraft.employmentType || 'full-time'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDraftField('employmentType', val);
+                  refreshDraftSalaryFromCTC({ employmentType: val });
+                }}
+                className={inputCls}
+              >
+                <option value="full-time">Full Time</option>
+                <option value="part-time">Part Time</option>
+                <option value="contract">Contract</option>
+                <option value="intern">Intern / Trainee</option>
+              </select>
+            </div>
+          </div>
+
           {employee.payType === 'hourly' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -887,6 +994,28 @@ const EmployeeDetails = () => {
                   Enable or disable specific statutory contributions for this employee. Disabling a component will zero out its values in salary calculations immediately.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Use Salary Components Toggle */}
+                  <div className="flex flex-col border border-blue-100 rounded-xl p-3 bg-blue-50/20">
+                    <label className="flex items-center justify-between cursor-pointer select-none">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-semibold text-blue-900">Use Salary Components</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={revisionDraft.useSalaryComponents ?? true}
+                        onChange={(e) => {
+                          const val = e.target.checked;
+                          setDraftField('useSalaryComponents', val);
+                          refreshDraftSalaryFromCTC({ useSalaryComponents: val });
+                        }}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                      />
+                    </label>
+                    <span className="text-[10px] text-gray-400 mt-1">
+                      Distribute CTC into Basic, HRA, and Special Allowance components.
+                    </span>
+                  </div>
+
                   {/* PF Toggle */}
                   <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
                     <label className="flex items-center justify-between cursor-pointer select-none">
@@ -1030,7 +1159,7 @@ const EmployeeDetails = () => {
                       <label className="flex items-center gap-2.5 cursor-pointer select-none border border-gray-100 rounded-xl p-3 bg-gray-50/30">
                         <input
                           type="checkbox"
-                          checked={revisionDraft.includePfInCTC ?? true}
+                          checked={revisionDraft.includePfInCTC ?? false}
                           onChange={(e) => {
                             const val = e.target.checked;
                             setDraftField('includePfInCTC', val);
@@ -1040,7 +1169,7 @@ const EmployeeDetails = () => {
                         />
                         <div>
                           <span className="text-xs font-semibold text-gray-800 block">
-                            Include Employer PF in CTC {revisionDraft.includePfInCTC !== false && activePreview && `(${fmtMoney(activePreview.pfEmployer || 0)})`}
+                            Include Employer PF in CTC {revisionDraft.includePfInCTC === true && activePreview && `(${fmtMoney(activePreview.pfEmployer || 0)})`}
                           </span>
                           <span className="text-[10px] text-gray-400">Employer contribution reduces Gross take-home</span>
                         </div>
