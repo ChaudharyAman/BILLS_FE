@@ -317,30 +317,44 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
   if (hasDynamicComponents) {
     const basicComp = config.salaryComponents.find(c => c.id === 'basic');
     if (basicComp) {
-      let bVal = basicComp.linkValue;
-      if (source.basicPercent !== undefined && source.basicPercent !== null && Number(source.basicPercent) > 0) {
-        bVal = Number(source.basicPercent) > 1 ? Number(source.basicPercent) / 100 : Number(source.basicPercent);
-      }
-      if (basicComp.linkedTo === 'ctc_percent') {
-        basicMaster = roundAmount(monthlyCTC * bVal);
-      } else if (basicComp.linkedTo === 'fixed') {
-        const val = source['basic'] !== undefined ? source['basic'] : (source.salaryStructure?.['basic'] !== undefined ? source.salaryStructure['basic'] : 0);
-        basicMaster = roundAmount(val);
+      const sourceBasic = source.basic !== undefined ? source.basic : source.salaryStructure?.basic;
+      if (!useComponents) {
+        basicMaster = monthlyCTC;
+      } else if (useComponents && sourceBasic !== undefined && sourceBasic !== null && Number(sourceBasic) > 0) {
+        basicMaster = roundAmount(sourceBasic);
+      } else {
+        let bVal = basicComp.linkValue;
+        if (source.basicPercent !== undefined && source.basicPercent !== null && Number(source.basicPercent) > 0) {
+          bVal = Number(source.basicPercent) > 1 ? Number(source.basicPercent) / 100 : Number(source.basicPercent);
+        }
+        if (basicComp.linkedTo === 'ctc_percent') {
+          basicMaster = roundAmount(monthlyCTC * bVal);
+        } else if (basicComp.linkedTo === 'fixed') {
+          const val = source['basic'] !== undefined ? source['basic'] : (source.salaryStructure?.['basic'] !== undefined ? source.salaryStructure['basic'] : 0);
+          basicMaster = roundAmount(val);
+        }
       }
     }
     const hraComp = config.salaryComponents.find(c => c.id === 'hra');
     if (hraComp) {
-      let hVal = hraComp.linkValue;
-      if (source.hraPercent !== undefined && source.hraPercent !== null && Number(source.hraPercent) > 0) {
-        hVal = Number(source.hraPercent) > 1 ? Number(source.hraPercent) / 100 : Number(source.hraPercent);
-      }
-      if (hraComp.linkedTo === 'basic_percent') {
-        hraMaster = roundAmount(basicMaster * hVal);
-      } else if (hraComp.linkedTo === 'ctc_percent') {
-        hraMaster = roundAmount(monthlyCTC * hVal);
-      } else if (hraComp.linkedTo === 'fixed') {
-        const val = source['hra'] !== undefined ? source['hra'] : (source.salaryStructure?.['hra'] !== undefined ? source.salaryStructure['hra'] : 0);
-        hraMaster = roundAmount(val);
+      const sourceHra = source.hra !== undefined ? source.hra : source.salaryStructure?.hra;
+      if (!useComponents) {
+        hraMaster = 0;
+      } else if (useComponents && sourceHra !== undefined && sourceHra !== null && Number(sourceHra) > 0) {
+        hraMaster = roundAmount(sourceHra);
+      } else {
+        let hVal = hraComp.linkValue;
+        if (source.hraPercent !== undefined && source.hraPercent !== null && Number(source.hraPercent) > 0) {
+          hVal = Number(source.hraPercent) > 1 ? Number(source.hraPercent) / 100 : Number(source.hraPercent);
+        }
+        if (hraComp.linkedTo === 'basic_percent') {
+          hraMaster = roundAmount(basicMaster * hVal);
+        } else if (hraComp.linkedTo === 'ctc_percent') {
+          hraMaster = roundAmount(monthlyCTC * hVal);
+        } else if (hraComp.linkedTo === 'fixed') {
+          const val = source['hra'] !== undefined ? source['hra'] : (source.salaryStructure?.['hra'] !== undefined ? source.salaryStructure['hra'] : 0);
+          hraMaster = roundAmount(val);
+        }
       }
     }
   }
@@ -447,6 +461,8 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
     ));
   }
   if (!useComponents) {
+    basicMaster = monthlyCTC;
+    hraMaster = 0;
     flexi = 0; broadband = 0; petrol = 0; lta = 0; conveyance = 0; medicalAllowance = 0; specialAllowance = 0;
     if (hasDynamicComponents) {
       Object.keys(earningsMap).forEach(k => { earningsMap[k] = k === 'basic' ? monthlyCTC : 0; });
@@ -474,6 +490,8 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
     medicalAllowance = earningsMap['medical'] || 0;
     specialAllowance = earningsMap['special'] || 0;
     if (!useComponents) {
+      basicMaster = monthlyCTC;
+      hraMaster = 0;
       Object.keys(earningsMap).forEach(k => { earningsMap[k] = k === 'basic' ? monthlyCTC : 0; });
     }
   }
