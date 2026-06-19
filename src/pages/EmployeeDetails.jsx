@@ -339,7 +339,8 @@ const EmployeeDetails = () => {
   const openRevisionModal = (revision = null) => {
     if (!employee) return;
     let revisionDraftObj;
-    if (revision) {
+    const isEvent = revision && (revision.nativeEvent || revision.target);
+    if (revision && !isEvent) {
       setEditingRevision(revision);
       const effDateStr = revision.effectiveDate ? new Date(revision.effectiveDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
       const ctcVal = revision.newCTC !== undefined ? revision.newCTC : (revision.monthlyCTC || '');
@@ -751,7 +752,7 @@ const EmployeeDetails = () => {
           <button onClick={() => setShowDeleteModal(true)} className="bg-white border border-red-300 hover:bg-red-50 text-red-600 px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold">
             <FaTrash /> Delete
           </button>
-          <button onClick={openRevisionModal} className="bg-white border border-gray-300 hover:bg-gray-50 px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold">
+          <button onClick={() => openRevisionModal()} className="bg-white border border-gray-300 hover:bg-gray-50 px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold">
             <FaHistory /> Revise Salary
           </button>
           <Link to={`/employees/${employee._id}/edit`} className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold">
