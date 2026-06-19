@@ -12,6 +12,7 @@ import {
 } from 'react-icons/fa';
 import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
 import api from '../api/axios';
+import Papa from 'papaparse';
 
 /* ─── Formatting Helpers ─── */
 const fmt = (v, d = 2) =>
@@ -813,10 +814,23 @@ export default function BankStatementDashboard() {
 
   /* ─── CSV Export ─── */
   const exportCSV = () => {
-    const headers = ['Date', 'Description', 'Type', 'Category', 'Sub-Category', 'Remark', 'Debit', 'Credit', 'Balance', 'Transaction ID'];
-    const rows = filtered.map(t => [t.dateStr, `"${t.description}"`, t.type || 'Expense', t.category, `"${t.subCategory || ''}"`, `"${t.remark || ''}"`, t.debit || '', t.credit || '', t.balance, t.txnId]);
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const exportData = filtered.map(t => ({
+      'Statement Name': t.statementName || 'N/A',
+      'Statement ID': t.statementId || '',
+      'Date': t.dateStr,
+      'Description': t.description,
+      'Type': t.type || 'Expense',
+      'Category': t.category || 'Other',
+      'Sub-Category': t.subCategory || '',
+      'Remark': t.remark || '',
+      'Debit': t.debit || 0,
+      'Credit': t.credit || 0,
+      'Balance': t.balance || 0,
+      'Transaction ID': t.txnId || ''
+    }));
+
+    const csv = Papa.unparse(exportData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
