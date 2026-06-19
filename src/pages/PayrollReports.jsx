@@ -65,7 +65,7 @@ const MultiSelect = ({ label, options, selected, onChange, placeholder = "Select
                   }}
                 >
                   {opt ? opt.label : val}
-                  <button className="hover:text-indigo-905 font-bold focus:outline-none ml-1 text-xs">&times;</button>
+                  <button className="hover:text-indigo-900 font-bold focus:outline-none ml-1 text-xs">&times;</button>
                 </span>
               );
             })
@@ -80,7 +80,7 @@ const MultiSelect = ({ label, options, selected, onChange, placeholder = "Select
       {isOpen && (
         <div className="absolute z-50 w-full mt-2 bg-white border border-gray-300 rounded-2xl shadow-2xl overflow-hidden animate-rise-in max-h-[300px] flex flex-col">
           {/* Action Header Controls */}
-          <div className="p-2.5 border-b border-gray-200 flex items-center justify-between text-xs bg-slate-55 select-none">
+          <div className="p-2.5 border-b border-gray-200 flex items-center justify-between text-xs bg-slate-50 select-none">
             <div className="flex gap-2">
               <button
                 type="button"
