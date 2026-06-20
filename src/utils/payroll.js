@@ -707,7 +707,7 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
   const dailyOtherDeductions = [];
 
   const isHourly = employee.payType === 'hourly';
-  const hoursWorked = isHourly ? (Number(attendance?.hoursWorked) || Number(adjustments?.hoursWorked) || 0) : 0;
+  const hoursWorked = isHourly ? (Number(attendance?.hoursWorked) || Number(adjustments?.hoursWorked) || Number(employee.hoursWorked) || 0) : 0;
 
   for (let d = 1; d <= totalDaysInMonth; d++) {
     const currentStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -1214,7 +1214,7 @@ export const getSalarySplits = (employeeInput, configInput, monthNum, yearNum, p
   }
 
   const isHourly = employee.payType === 'hourly';
-  const hoursWorked = isHourly ? (Number(adjustments?.hoursWorked) || 0) : 0;
+  const hoursWorked = isHourly ? (Number(adjustments?.hoursWorked) || Number(employee.hoursWorked) || 0) : 0;
 
   const workingDays = isHourly ? totalDaysInMonth : Math.max(Number(workingDaysCount) || config.defaultWorkingDays, 1);
   const paidDays = isHourly ? workingDays : Math.max(Math.min(Number(paidDaysCount) ?? workingDays, workingDays), 0);
