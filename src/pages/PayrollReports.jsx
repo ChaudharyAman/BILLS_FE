@@ -253,6 +253,50 @@ const PayrollReports = () => {
     }
   };
 
+  const handleDownloadESIChallan = async () => {
+    if (selectedMonths.length === 0 || selectedYears.length === 0) {
+      toast.error('Select at least one month and one year');
+      return;
+    }
+    setDownloading('esi-challan');
+    try {
+      for (const y of selectedYears) {
+        for (const m of selectedMonths) {
+          const monthName = new Date(0, m - 1).toLocaleString('en-US', { month: 'short' });
+          await downloadReport(`/reports/payroll-summary/esi-challan?month=${m}&year=${y}&format=excel`, `esi-challan-${y}-${monthName}.xlsx`);
+        }
+      }
+      toast.success('ESI Challan summary downloaded');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to download ESI summary');
+    } finally {
+      setDownloading('');
+    }
+  };
+
+  const handleDownloadStatutorySummary = async () => {
+    if (selectedMonths.length === 0 || selectedYears.length === 0) {
+      toast.error('Select at least one month and one year');
+      return;
+    }
+    setDownloading('statutory-summary');
+    try {
+      for (const y of selectedYears) {
+        for (const m of selectedMonths) {
+          const monthName = new Date(0, m - 1).toLocaleString('en-US', { month: 'short' });
+          await downloadReport(`/reports/payroll-summary/statutory-summary?month=${m}&year=${y}&format=excel`, `statutory-summary-${y}-${monthName}.xlsx`);
+        }
+      }
+      toast.success('Statutory summary downloaded');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to download statutory summary');
+    } finally {
+      setDownloading('');
+    }
+  };
+
   const handleDownloadTDSRegister = async () => {
     if (selectedYears.length === 0) {
       toast.error('Select at least one year');
@@ -398,6 +442,18 @@ const PayrollReports = () => {
           description="Aggregated statutory Provident Fund summary report detailing processed employer and employee PF contributions."
           onClick={handleDownloadPFChallan}
           loading={downloading === 'pf-challan'}
+        />
+        <ReportCard
+          title="🛡️ ESI Challan Summary"
+          description="Consolidated statutory Employee State Insurance (ESI) summary report detailing employer and employee ESI contributions."
+          onClick={handleDownloadESIChallan}
+          loading={downloading === 'esi-challan'}
+        />
+        <ReportCard
+          title="📈 Consolidated Statutory Summary"
+          description="A single sheet detailing all monthly statutory contributions (PF Employee/Employer, ESI Employee/Employer, PT, LWF) per employee."
+          onClick={handleDownloadStatutorySummary}
+          loading={downloading === 'statutory-summary'}
         />
         <ReportCard
           title="📊 Monthly TDS Register"
