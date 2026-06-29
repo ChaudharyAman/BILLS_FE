@@ -104,6 +104,8 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
     id: 'system_settings',
     title: 'System & Settings',
     items: [
+      // Public Submission Inbox — shown with a badge in Layout.jsx
+      { id: 'submissions_inbox', label: 'Submissions Inbox', path: '/submissions', iconName: 'FaInbox' },
       { id: 'upgrade', label: 'Upgrade', path: '/subscription', iconName: 'FaStar', isSpecial: true },
       { id: 'settings', label: 'Settings', path: '/settings', iconName: 'FaCog' },
       { id: 'admin_panel', label: 'Admin Panel', path: '/admin', iconName: 'FaLock', isSuperAdmin: true }
