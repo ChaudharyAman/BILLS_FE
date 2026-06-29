@@ -895,6 +895,7 @@ function PortalSettingsPanel() {
   const [config, setConfig] = useState({
     enabled: false,
     portalLink: null,
+    token: null,
     companyDisplayName: '',
     allowedCategories: ['invoice', 'expense', 'income', 'purchaseorder'],
     instructionsText: '',
@@ -916,9 +917,13 @@ function PortalSettingsPanel() {
       .finally(() => setLoading(false));
   }, []);
 
+  const shareableLink = config.token
+    ? `${window.location.origin}/submit/${config.token}`
+    : config.portalLink;
+
   const handleCopy = () => {
-    if (!config.portalLink) return;
-    navigator.clipboard.writeText(config.portalLink);
+    if (!shareableLink) return;
+    navigator.clipboard.writeText(shareableLink);
     setCopied(true);
     toast.success('Portal link copied to clipboard');
     setTimeout(() => setCopied(false), 2000);
@@ -1018,12 +1023,12 @@ function PortalSettingsPanel() {
             {/* Shareable Link Input */}
             <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 space-y-3">
               <span className="text-sm font-bold text-teal-800 block">Your Shareable Submission Link</span>
-              {config.portalLink ? (
+              {shareableLink ? (
                 <div className="flex gap-2">
                   <input
                     type="text"
                     readOnly
-                    value={config.portalLink}
+                    value={shareableLink}
                     className="flex-1 bg-white border border-teal-200 rounded-lg px-3 py-2 text-sm text-teal-900 font-mono focus:outline-none"
                   />
                   <button
