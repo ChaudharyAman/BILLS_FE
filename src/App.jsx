@@ -4,6 +4,7 @@ import PageLoader from './components/PageLoader';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
 import api, { clearAuthSession, storeAuthSession } from './api/axios';
+import { Toaster } from 'react-hot-toast';
 
 // Lazy Load Pages
 const InvoiceList = lazy(() => import('./pages/InvoiceList'));
@@ -54,6 +55,10 @@ const Subscription = lazy(() => import('./pages/Subscription'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const BankStatementDashboard = lazy(() => import('./pages/BankStatementDashboard'));
 
+// ── New: Public Submission Portal ────────────────────────────────────────────
+const PublicSubmitPage = lazy(() => import('./pages/PublicSubmitPage'));
+const PublicSubmissionsInbox = lazy(() => import('./pages/PublicSubmissionsInbox'));
+
 // Reports
 const GstReport = lazy(() => import('./pages/reports/GstReport'));
 const TdsSummary = lazy(() => import('./pages/reports/TdsSummary'));
@@ -62,8 +67,6 @@ const RevenueReport = lazy(() => import('./pages/reports/RevenueReport'));
 // Accounts
 const PaymentCollection = lazy(() => import('./pages/accounts/PaymentCollection'));
 const AccountStatement = lazy(() => import('./pages/accounts/AccountStatement'));
-
-import { Toaster } from 'react-hot-toast';
 
 function App() {
 
@@ -172,6 +175,10 @@ function App() {
             {/* Auth Routes - No Layout */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+
+            {/* Public Submission Portal — no auth, no sidebar */}
+            <Route path="/submit/:token" element={<PublicSubmitPage />} />
+
             <Route
               path="/invoices/:id/print"
               element={
@@ -289,6 +296,9 @@ function App() {
                     {/* Accounts */}
                     <Route path="/accounts/payments" element={<PaymentCollection />} />
                     <Route path="/accounts/statements" element={<AccountStatement />} />
+
+                    {/* Public Submissions Inbox */}
+                    <Route path="/submissions" element={<PublicSubmissionsInbox />} />
 
                     <Route path="/subscription" element={<Subscription />} />
                     <Route path="/settings" element={<Settings />} />
