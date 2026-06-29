@@ -199,8 +199,10 @@ export default function PublicSubmissionsInbox() {
   };
 
   // ── File URL (serve from backend) ─────────────────────────────────────────
-  const fileUrl = (submissionId, fileIndex) =>
-    `${import.meta.env.VITE_API_URL || ''}/api/submissions/${submissionId}/files/${fileIndex}`;
+  const fileUrl = (submissionId, fileIndex) => {
+    const token = localStorage.getItem('authToken');
+    return `${import.meta.env.VITE_API_URL || ''}/api/submissions/${submissionId}/files/${fileIndex}?token=${token}`;
+  };
 
   // ─────────────────────────────────────────────────────────────────────────
   // Render
