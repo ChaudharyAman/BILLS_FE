@@ -222,10 +222,34 @@ const EmployeeRow = ({
             <span className="text-gray-400 text-xs">hrs</span>
           </div>
         ) : (
-          <div className="flex gap-1.5">
-            <input type="number" min="0" value={row?.paidDays ?? 0} disabled={Boolean(existingPayroll)} onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400" />
-            <span className="self-center text-gray-400 text-xs">/</span>
-            <input type="number" min="1" value={row?.workingDays ?? monthWorkingDays} disabled={Boolean(existingPayroll)} onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400" />
+          <div className="flex flex-col gap-1">
+            <div className="flex gap-1.5">
+              <input type="number" min="0" value={row?.paidDays ?? 0} disabled={Boolean(existingPayroll)} onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400" />
+              <span className="self-center text-gray-400 text-xs">/</span>
+              <input type="number" min="1" value={row?.workingDays ?? monthWorkingDays} disabled={Boolean(existingPayroll)} onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400" />
+            </div>
+            {(() => {
+              const source = existingPayroll?.attendanceSource || row?.attendanceSource || 'default';
+              if (source === 'hrms') {
+                return (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 self-start">
+                    HRMS Sync
+                  </span>
+                );
+              } else if (source === 'manual') {
+                return (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 self-start">
+                    Manual Override
+                  </span>
+                );
+              } else {
+                return (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-50 text-slate-500 border border-slate-200 self-start">
+                    Default Fallback
+                  </span>
+                );
+              }
+            })()}
           </div>
         )}
         {paidTooHigh ? <div className="mt-1 text-[10px] text-red-600">Paid days cannot exceed working days.</div> : null}
@@ -384,6 +408,40 @@ const PayrollProcessing = () => {
         setClaimsMap(claimsByEmp);
 
         setRows(Object.fromEntries(activeEmployees.map((emp) => {
+          const existingP = payrollMap.get(String(emp._id));
+          if (existingP) {
+            return [emp._id, {
+              workingDays: existingP.workingDays,
+              paidDays: existingP.paidDays,
+              paidLeaves: existingP.paidLeaves || 0,
+              unpaidLeaves: existingP.unpaidLeaves || 0,
+              hoursWorked: existingP.hoursWorked || 0,
+              overtime: existingP.variablePay?.overtime || 0,
+              joiningBonus: existingP.variablePay?.joiningBonus || 0,
+              loyaltyBonus: existingP.variablePay?.loyaltyBonus || 0,
+              incentive: existingP.variablePay?.incentive || 0,
+              specialBonus: existingP.variablePay?.specialBonus || 0,
+              otherAllowanceArrear: existingP.variablePay?.otherAllowanceArrear || 0,
+              loanDeduction: existingP.deductions?.loanDeduction || 0,
+              advanceDeduction: existingP.deductions?.advanceDeduction || 0,
+              tds: existingP.deductions?.tds,
+              otherEarnings: existingP.earnings?.otherEarnings,
+              otherDeductions: existingP.deductions?.otherDeductions,
+              pfEnabled: existingP.employeeSnapshot?.pfEnabled,
+              esiEnabled: existingP.employeeSnapshot?.esiEnabled,
+              ptEnabled: existingP.employeeSnapshot?.ptEnabled,
+              lwfEnabled: existingP.employeeSnapshot?.lwfEnabled,
+              gratuityEnabled: existingP.employeeSnapshot?.gratuityEnabled,
+              includePfInCTC: existingP.employeeSnapshot?.includePfInCTC,
+              includeGratuityInCTC: existingP.employeeSnapshot?.includeGratuityInCTC,
+              basicPercent: existingP.employeeSnapshot?.basicPercent,
+              hraPercent: existingP.employeeSnapshot?.hraPercent,
+              lopStrategy: existingP.lopStrategy || 'proportional',
+              excludedClaimIds: [],
+              attendanceSource: existingP.attendanceSource || 'default',
+            }];
+          }
+
           const joiningDate = emp.joiningDate ? new Date(emp.joiningDate) : null;
           const dateOfLeaving = emp.dateOfLeaving ? new Date(emp.dateOfLeaving) : null;
           const autoJoiningBonus = joiningDate && joiningDate.getMonth() + 1 === month && joiningDate.getFullYear() === year
@@ -435,6 +493,7 @@ const PayrollProcessing = () => {
             hraPercent: undefined,
             lopStrategy: 'proportional',
             excludedClaimIds: [],
+            attendanceSource: 'default',
           }];
         })));
       } catch (error) {
@@ -500,13 +559,17 @@ const PayrollProcessing = () => {
   }, 0), [selectedEmployees, rows, claimsMap, config, monthWorkingDays, month, year]);
 
   const updateRow = (employeeId, field, value) => {
-    setRows((prev) => ({
-      ...prev,
-      [employeeId]: {
-        ...(prev[employeeId] || {}),
-        [field]: value,
-      },
-    }));
+    setRows((prev) => {
+      const isAttendanceField = ['workingDays', 'paidDays', 'unpaidLeaves', 'paidLeaves', 'hoursWorked'].includes(field);
+      return {
+        ...prev,
+        [employeeId]: {
+          ...(prev[employeeId] || {}),
+          [field]: value,
+          ...(isAttendanceField ? { attendanceSource: 'manual' } : {}),
+        },
+      };
+    });
   };
 
   const handleSyncAttendance = async () => {
@@ -530,7 +593,8 @@ const PayrollProcessing = () => {
               paidDays: record.paidDays,
               unpaidLeaves: record.unpaidLeaves,
               paidLeaves: record.paidLeaves,
-              hoursWorked: record.hoursWorked || 0
+              hoursWorked: record.hoursWorked || 0,
+              attendanceSource: 'hrms',
             };
           }
         });
@@ -702,7 +766,7 @@ const PayrollProcessing = () => {
               disabled={syncingAttendance}
               className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors"
             >
-              {syncingAttendance ? 'Syncing...' : 'Sync Attendance'}
+              {syncingAttendance ? 'Syncing...' : 'Re-sync attendance from HRMS'}
             </button>
           )}
           <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white">

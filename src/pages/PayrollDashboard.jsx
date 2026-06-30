@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { FaDownload, FaFileInvoice, FaMoneyBillWave, FaPlus, FaTimes, FaCheck, FaHourglassHalf, FaReceipt, FaPaperclip } from 'react-icons/fa';
+import { FaDownload, FaFileInvoice, FaMoneyBillWave, FaPlus, FaTimes, FaCheck, FaHourglassHalf, FaReceipt, FaPaperclip, FaCalendarCheck } from 'react-icons/fa';
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import Skeleton from '../components/Skeleton';
@@ -29,8 +29,13 @@ const PayrollDashboard = () => {
   const [activeDashboardTab, setActiveDashboardTab] = useState('runs');
   const [loans, setLoans] = useState([]);
   const [claims, setClaims] = useState([]);
+  const [leaves, setLeaves] = useState([]);
+  const [leaveBalances, setLeaveBalances] = useState([]);
+  const [leaveTypes, setLeaveTypes] = useState([]);
+  const [selectedBalanceYear, setSelectedBalanceYear] = useState(new Date().getFullYear());
   const [loansLoading, setLoansLoading] = useState(false);
   const [claimsLoading, setClaimsLoading] = useState(false);
+  const [leavesLoading, setLeavesLoading] = useState(false);
 
   const fetchLoans = async () => {
     try {
@@ -58,13 +63,34 @@ const PayrollDashboard = () => {
     }
   };
 
+  const fetchLeaves = async () => {
+    try {
+      setLeavesLoading(true);
+      const [reqRes, balRes, typeRes] = await Promise.all([
+        api.get('/leaves/requests'),
+        api.get(`/leaves/balances?year=${selectedBalanceYear}`),
+        api.get('/leaves/types')
+      ]);
+      setLeaves(reqRes.data || []);
+      setLeaveBalances(balRes.data || []);
+      setLeaveTypes(typeRes.data || []);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to load leaves data');
+    } finally {
+      setLeavesLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeDashboardTab === 'loans') {
       fetchLoans();
     } else if (activeDashboardTab === 'reimbursements') {
       fetchClaims();
+    } else if (activeDashboardTab === 'leaves') {
+      fetchLeaves();
     }
-  }, [activeDashboardTab]);
+  }, [activeDashboardTab, selectedBalanceYear]);
 
   const handleUpdateLoanStatus = async (loanId, newStatus) => {
     try {
@@ -107,6 +133,42 @@ const PayrollDashboard = () => {
       toast.error(error.response?.data?.message || 'Failed to reject claim');
     }
   };
+
+  const [leaveToApprove, setLeaveToApprove] = useState(null);
+  const [leaveApproverRemarks, setLeaveApproverRemarks] = useState('');
+
+  const handleApproveLeave = async () => {
+    if (!leaveToApprove) return;
+    try {
+      await api.put(`/leaves/requests/${leaveToApprove._id}/status`, {
+        status: 'approved',
+        approverRemarks: leaveApproverRemarks
+      });
+      toast.success('Leave request approved successfully');
+      setLeaveToApprove(null);
+      setLeaveApproverRemarks('');
+      fetchLeaves();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to approve leave request');
+    }
+  };
+
+  const handleRejectLeave = async (leaveId) => {
+    try {
+      await api.put(`/leaves/requests/${leaveId}/status`, { status: 'rejected' });
+      toast.success('Leave request rejected');
+      fetchLeaves();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to reject leave request');
+    }
+  };
+
+  const leaveStats = useMemo(() => ({
+    pending: leaves.filter(l => l.status === 'pending').length,
+    approved: leaves.filter(l => l.status === 'approved').length
+  }), [leaves]);
 
   const loanStats = useMemo(() => ({
     pending: loans.filter(l => l.status === 'pending_approval').length,
@@ -322,6 +384,22 @@ const PayrollDashboard = () => {
           {claimStats.pending > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[9px] font-bold text-white">
               {claimStats.pending}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveDashboardTab('leaves')}
+          className={`pb-2.5 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 relative ${
+            activeDashboardTab === 'leaves'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-900'
+          }`}
+        >
+          <FaCalendarCheck className="w-3.5 h-3.5 text-rose-500" /> Leaves &amp; LOP
+          {leaveStats.pending > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-bold text-white">
+              {leaveStats.pending}
             </span>
           )}
         </button>
@@ -597,7 +675,7 @@ const PayrollDashboard = () => {
             </div>
           </div>
         </div>
-      ) : (
+      ) : activeDashboardTab === 'reimbursements' ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <StatCard label="Pending Claims" value={claimStats.pending} />
@@ -706,6 +784,197 @@ const PayrollDashboard = () => {
                               <span className="text-xs text-gray-400 font-medium">None</span>
                             )}
                           </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <StatCard label="Pending Leave Requests" value={leaveStats.pending} />
+            <StatCard label="Approved Leave Requests" value={leaveStats.approved} />
+          </div>
+
+          {/* Pending Leave Requests */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b bg-gray-50/60">
+              <h2 className="font-bold text-gray-800">Pending Leave Requests</h2>
+              <p className="text-xs text-gray-500 mt-1">Approve or reject employee leave requests.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Employee</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Leave Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Duration</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Days</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Reason</th>
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {leavesLoading ? (
+                    <tr><td colSpan="6" className="px-6 py-4"><Skeleton className="h-8 w-full" /></td></tr>
+                  ) : leaves.filter(l => l.status === 'pending').length === 0 ? (
+                    <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500">No pending leave requests.</td></tr>
+                  ) : leaves.filter(l => l.status === 'pending').map((req) => {
+                    const empName = `${req.employee?.firstName || ''} ${req.employee?.lastName || ''}`.trim() || 'Unknown';
+                    return (
+                      <tr key={req._id} className="hover:bg-blue-50/40">
+                        <td className="px-6 py-4">
+                          <div className="font-semibold text-gray-900">{empName}</div>
+                          <div className="text-xs text-gray-500">{req.employee?.employeeId}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-semibold uppercase text-indigo-700">
+                          {req.leaveType?.name || 'Leave'} ({req.leaveType?.code || 'LV'})
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {new Date(req.startDate).toLocaleDateString('en-IN')} to {new Date(req.endDate).toLocaleDateString('en-IN')}
+                        </td>
+                        <td className="px-6 py-4 text-right font-bold text-sm text-slate-800">{req.numberOfDays}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600 max-w-[200px] truncate" title={req.reason}>
+                          {req.reason || <span className="text-gray-400 italic">No reason</span>}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setLeaveToApprove(req)}
+                              className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border border-green-200"
+                              title="Approve Leave"
+                            >
+                              <FaCheck className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRejectLeave(req._id)}
+                              className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-200"
+                              title="Reject Leave"
+                            >
+                              <FaTimes className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Employee Leave Balances Section */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b bg-gray-50/60 flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-gray-800">Employee Leave Balances</h2>
+                <p className="text-xs text-gray-500 mt-1">Accrued, used, and closing leave balances for the year.</p>
+              </div>
+              <select
+                value={selectedBalanceYear}
+                onChange={(e) => setSelectedBalanceYear(Number(e.target.value))}
+                className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value={2025}>2025</option>
+                <option value={2026}>2026</option>
+                <option value={2027}>2027</option>
+              </select>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Employee</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Leave Type</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Opening</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Accrued</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Used</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Closing Balance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {leavesLoading ? (
+                    <tr><td colSpan="6" className="px-6 py-4"><Skeleton className="h-8 w-full" /></td></tr>
+                  ) : leaveBalances.length === 0 ? (
+                    <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500">No leave balances found.</td></tr>
+                  ) : leaveBalances.map((bal) => {
+                    const empName = `${bal.employee?.firstName || ''} ${bal.employee?.lastName || ''}`.trim() || 'Unknown';
+                    return (
+                      <tr key={bal._id} className="hover:bg-blue-50/40">
+                        <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                          {empName}
+                          <div className="text-[10px] text-gray-400 font-normal">{bal.employee?.employeeId}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-semibold text-gray-700 uppercase">
+                          {bal.leaveType?.name || 'Leave'} ({bal.leaveType?.code || 'LV'})
+                        </td>
+                        <td className="px-6 py-4 text-right text-sm text-gray-600">{bal.opening}</td>
+                        <td className="px-6 py-4 text-right text-sm text-gray-600">{bal.accrued}</td>
+                        <td className="px-6 py-4 text-right text-sm text-gray-600 font-medium text-amber-700">{bal.used}</td>
+                        <td className="px-6 py-4 text-right text-sm font-bold text-emerald-700">{bal.closing}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Historical Leave Requests Log */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b bg-gray-50/60">
+              <h2 className="font-bold text-gray-800">Leave Requests History</h2>
+              <p className="text-xs text-gray-500 mt-1">Audit log of all processed and cancelled leave requests.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Employee</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Leave Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Duration</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Days</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Remarks</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {leavesLoading ? (
+                    <tr><td colSpan="6" className="px-6 py-4"><Skeleton className="h-8 w-full" /></td></tr>
+                  ) : leaves.filter(l => l.status !== 'pending').length === 0 ? (
+                    <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500">No leaves history.</td></tr>
+                  ) : leaves.filter(l => l.status !== 'pending').map((req) => {
+                    const empName = `${req.employee?.firstName || ''} ${req.employee?.lastName || ''}`.trim() || 'Unknown';
+                    return (
+                      <tr key={req._id} className="hover:bg-blue-50/40">
+                        <td className="px-6 py-4">
+                          <div className="font-semibold text-gray-900">{empName}</div>
+                          <div className="text-xs text-gray-500">{req.employee?.employeeId}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-semibold uppercase text-gray-600">
+                          {req.leaveType?.name || 'Leave'}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {new Date(req.startDate).toLocaleDateString('en-IN')} to {new Date(req.endDate).toLocaleDateString('en-IN')}
+                        </td>
+                        <td className="px-6 py-4 text-right font-medium text-sm text-gray-700">{req.numberOfDays}</td>
+                        <td className="px-6 py-4 text-sm">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
+                            req.status === 'approved' ? 'bg-green-100 text-green-800 border border-green-200 shadow-sm' :
+                            req.status === 'rejected' ? 'bg-red-100 text-red-800 border border-red-200 shadow-sm' :
+                            'bg-gray-100 text-gray-800 border border-gray-200 shadow-sm'
+                          }`}>
+                            {req.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 font-medium max-w-[200px] truncate" title={req.approverRemarks}>
+                          {req.approverRemarks || <span className="text-gray-400 text-xs italic">No remarks</span>}
                         </td>
                       </tr>
                     );
@@ -927,6 +1196,29 @@ const PayrollDashboard = () => {
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setClaimToApprove(null)} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold">Cancel</button>
             <button type="button" onClick={handleApproveClaim} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold">Approve Claim</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Leave Request Approval Modal */}
+      <Modal isOpen={Boolean(leaveToApprove)} onClose={() => setLeaveToApprove(null)} title="Approve Leave Request">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Are you sure you want to approve the leave request of <span className="font-bold text-gray-900">{leaveToApprove ? `${leaveToApprove.employee?.firstName || ''} ${leaveToApprove.employee?.lastName || ''}`.trim() : ''}</span> for <span className="font-bold text-gray-900">{leaveToApprove ? `${leaveToApprove.numberOfDays} days` : ''}</span>?
+          </p>
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Approver Remarks (Optional)</label>
+            <input
+              type="text"
+              placeholder="e.g. Approved for family event"
+              value={leaveApproverRemarks}
+              onChange={(e) => setLeaveApproverRemarks(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setLeaveToApprove(null)} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold">Cancel</button>
+            <button type="button" onClick={handleApproveLeave} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold">Approve Leave</button>
           </div>
         </div>
       </Modal>

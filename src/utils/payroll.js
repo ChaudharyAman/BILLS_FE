@@ -1365,3 +1365,59 @@ export const getSalarySplits = (employeeInput, configInput, monthNum, yearNum, p
     };
   });
 };
+
+// =============================================================================
+// STATUTORY GRATUITY ENTITLEMENT — frontend mirror of payrollMath.js
+// Payment of Gratuity Act, 1972, Section 4
+// See MBB/utils/payrollMath.js for full legal citations and comments.
+// =============================================================================
+export const calculateGratuityEntitlement = (joiningDate, separationDate, basicPlusDa) => {
+  const GRATUITY_CAP = 2000000;
+  const MIN_SERVICE_YEARS = 5;
+
+  const joining    = new Date(joiningDate);
+  const separation = new Date(separationDate || Date.now());
+
+  if (isNaN(joining.getTime()) || isNaN(separation.getTime()) || separation <= joining) {
+    return { eligible: false, completedYears: 0, completedMonths: 0, roundedYears: 0, entitlement: 0, cappedEntitlement: 0, isCapped: false, note: 'Invalid dates.' };
+  }
+
+  let years  = separation.getFullYear() - joining.getFullYear();
+  let months = separation.getMonth()   - joining.getMonth();
+  let days   = separation.getDate()    - joining.getDate();
+
+  if (days < 0) {
+    months -= 1;
+    days += new Date(separation.getFullYear(), separation.getMonth(), 0).getDate();
+  }
+  if (months < 0) { years -= 1; months += 12; }
+
+  const totalMonths  = years * 12 + months;
+  const roundedYears = years + (months >= 6 ? 1 : 0);
+
+  if (years < MIN_SERVICE_YEARS) {
+    const yearsRemaining  = MIN_SERVICE_YEARS - years;
+    const monthsRemaining = months > 0 ? (12 - months) : 0;
+    const note = monthsRemaining > 0
+      ? `Ineligible. Requires ${yearsRemaining} yr(s) and ${monthsRemaining} more month(s).`
+      : `Ineligible. Requires ${yearsRemaining} more year(s) of continuous service.`;
+    return { eligible: false, completedYears: years, completedMonths: totalMonths, roundedYears: 0, entitlement: 0, cappedEntitlement: 0, isCapped: false, note };
+  }
+
+  const gross       = Number(basicPlusDa) || 0;
+  const entitlement = Math.round(gross * 15 / 26 * roundedYears * 100) / 100;
+  const capped      = Math.min(entitlement, GRATUITY_CAP);
+  const isCapped    = entitlement > GRATUITY_CAP;
+
+  const roundingNote = months >= 6
+    ? `${months} months in final year ≥ 6 → counted as full year.`
+    : months > 0 ? `${months} months in final year < 6 → discarded.` : '';
+
+  const note = [
+    `Eligible. ${years} yr(s), ${months} month(s) of service.`,
+    roundingNote,
+    isCapped ? `Capped at ₹20,00,000 (statutory maximum).` : '',
+  ].filter(Boolean).join(' ');
+
+  return { eligible: true, completedYears: years, completedMonths: totalMonths, roundedYears, entitlement, cappedEntitlement: capped, isCapped, note };
+};
