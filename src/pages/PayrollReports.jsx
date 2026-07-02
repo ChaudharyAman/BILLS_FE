@@ -178,7 +178,12 @@ const PayrollReports = () => {
 
   const downloadReport = async (url, filename) => {
     const response = await api.get(url, { responseType: 'blob' });
-    const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const mimeType = filename.endsWith('.txt') 
+      ? 'text/plain' 
+      : filename.endsWith('.csv') 
+      ? 'text/csv' 
+      : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    const blob = new Blob([response.data], { type: mimeType });
     const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = downloadUrl;
@@ -231,6 +236,28 @@ const PayrollReports = () => {
     }
   };
 
+  const handleDownloadBankPaymentBatch = async (bank) => {
+    if (selectedMonths.length === 0 || selectedYears.length === 0) {
+      toast.error('Select at least one month and one year');
+      return;
+    }
+    setDownloading(`bank-payment-${bank}`);
+    try {
+      for (const y of selectedYears) {
+        for (const m of selectedMonths) {
+          const monthName = new Date(0, m - 1).toLocaleString('en-US', { month: 'short' });
+          await downloadReport(`/reports/payroll-summary/bank-payment-batch?month=${m}&year=${y}&bank=${bank}`, `bank-payment-${bank}-${y}-${monthName}.csv`);
+        }
+      }
+      toast.success(`${bank.toUpperCase()} payment batch file(s) downloaded`);
+    } catch (error) {
+      console.error(error);
+      toast.error(`Failed to download ${bank.toUpperCase()} payment batch`);
+    } finally {
+      setDownloading('');
+    }
+  };
+
   const handleDownloadPFChallan = async () => {
     if (selectedMonths.length === 0 || selectedYears.length === 0) {
       toast.error('Select at least one month and one year');
@@ -253,6 +280,28 @@ const PayrollReports = () => {
     }
   };
 
+  const handleDownloadPFECR = async () => {
+    if (selectedMonths.length === 0 || selectedYears.length === 0) {
+      toast.error('Select at least one month and one year');
+      return;
+    }
+    setDownloading('pf-ecr');
+    try {
+      for (const y of selectedYears) {
+        for (const m of selectedMonths) {
+          const monthName = new Date(0, m - 1).toLocaleString('en-US', { month: 'short' });
+          await downloadReport(`/reports/payroll-summary/pf-ecr?month=${m}&year=${y}`, `PF_ECR_${y}_${monthName}.txt`);
+        }
+      }
+      toast.success('PF ECR text file(s) downloaded');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to download PF ECR');
+    } finally {
+      setDownloading('');
+    }
+  };
+
   const handleDownloadESIChallan = async () => {
     if (selectedMonths.length === 0 || selectedYears.length === 0) {
       toast.error('Select at least one month and one year');
@@ -270,6 +319,28 @@ const PayrollReports = () => {
     } catch (error) {
       console.error(error);
       toast.error('Failed to download ESI summary');
+    } finally {
+      setDownloading('');
+    }
+  };
+
+  const handleDownloadESIMonthlyUpload = async () => {
+    if (selectedMonths.length === 0 || selectedYears.length === 0) {
+      toast.error('Select at least one month and one year');
+      return;
+    }
+    setDownloading('esi-upload');
+    try {
+      for (const y of selectedYears) {
+        for (const m of selectedMonths) {
+          const monthName = new Date(0, m - 1).toLocaleString('en-US', { month: 'short' });
+          await downloadReport(`/reports/payroll-summary/esi-monthly-upload?month=${m}&year=${y}`, `esi-monthly-upload-${y}-${monthName}.xlsx`);
+        }
+      }
+      toast.success('ESI upload XLS file(s) downloaded');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to download ESI upload template');
     } finally {
       setDownloading('');
     }
@@ -433,21 +504,29 @@ const PayrollReports = () => {
         />
         <ReportCard
           title="🏦 Bank Transfer Sheet"
-          description="Ready-to-upload Excel sheet containing employee account numbers, bank details, IFSC codes, and net salary payouts."
-          onClick={handleDownloadBankTransfer}
-          loading={downloading === 'bank-transfer'}
+          description="Download bank payout files in Excel or CSV formats configured for bulk internet banking uploads (HDFC ENet, ICICI, etc.)."
+          actions={[
+            { label: 'Export Excel Sheet', onClick: handleDownloadBankTransfer, loading: downloading === 'bank-transfer' },
+            { label: 'HDFC ENet CSV Batch', onClick: () => handleDownloadBankPaymentBatch('hdfc'), loading: downloading === 'bank-payment-hdfc', variant: 'accent' },
+            { label: 'ICICI Bank CSV Batch', onClick: () => handleDownloadBankPaymentBatch('icici'), loading: downloading === 'bank-payment-icici', variant: 'secondary' },
+            { label: 'Generic CSV Batch', onClick: () => handleDownloadBankPaymentBatch('generic'), loading: downloading === 'bank-payment-generic', variant: 'primary' },
+          ]}
         />
         <ReportCard
           title="🛡️ PF Challan Summary"
-          description="Aggregated statutory Provident Fund summary report detailing processed employer and employee PF contributions."
-          onClick={handleDownloadPFChallan}
-          loading={downloading === 'pf-challan'}
+          description="Provident Fund summary report detailing employer/employee contributions, or EPFO ECR text file for unified portal uploads."
+          actions={[
+            { label: 'Export Excel Summary', onClick: handleDownloadPFChallan, loading: downloading === 'pf-challan' },
+            { label: 'Download PF ECR Txt File', onClick: handleDownloadPFECR, loading: downloading === 'pf-ecr', variant: 'secondary' },
+          ]}
         />
         <ReportCard
           title="🛡️ ESI Challan Summary"
-          description="Consolidated statutory Employee State Insurance (ESI) summary report detailing employer and employee ESI contributions."
-          onClick={handleDownloadESIChallan}
-          loading={downloading === 'esi-challan'}
+          description="Consolidated Employee State Insurance (ESI) contributions, or ESIC portal Excel upload template file."
+          actions={[
+            { label: 'Export Excel Summary', onClick: handleDownloadESIChallan, loading: downloading === 'esi-challan' },
+            { label: 'Download ESI Monthly Upload XLS', onClick: handleDownloadESIMonthlyUpload, loading: downloading === 'esi-upload', variant: 'secondary' },
+          ]}
         />
         <ReportCard
           title="📈 Consolidated Statutory Summary"
@@ -472,15 +551,36 @@ const PayrollReports = () => {
   );
 };
 
-const ReportCard = ({ title, description, onClick, loading }) => (
+const ReportCard = ({ title, description, onClick, loading, actions }) => (
   <div className="glass-water-card p-6 flex flex-col justify-between hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group">
     <div>
       <h2 className="text-lg font-extrabold text-gray-800 group-hover:text-indigo-600 transition-colors duration-300">{title}</h2>
-      <p className="mt-2 text-xs text-gray-400 font-semibold leading-relaxed">{description}</p>
+      <p className="mt-2 text-xs text-gray-400 font-semibold leading-relaxed min-h-[40px]">{description}</p>
     </div>
-    <button onClick={onClick} disabled={loading} className="mt-5 w-full bg-indigo-500 hover:bg-indigo-600 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-indigo-100 disabled:opacity-60 transition-all duration-200">
-      <FaDownload className="text-[10px]" /> {loading ? 'Generating Excel...' : 'Export Excel Sheet'}
-    </button>
+    <div className="mt-5 space-y-2">
+      {actions ? (
+        actions.map((act, idx) => (
+          <button
+            key={idx}
+            onClick={act.onClick}
+            disabled={act.loading}
+            className={`w-full active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all duration-250 disabled:opacity-60 ${
+              act.variant === 'secondary'
+                ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'
+                : act.variant === 'accent'
+                ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
+                : 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-100'
+            }`}
+          >
+            <FaDownload className="text-[10px]" /> {act.loading ? 'Generating...' : act.label}
+          </button>
+        ))
+      ) : (
+        <button onClick={onClick} disabled={loading} className="w-full bg-indigo-500 hover:bg-indigo-600 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-indigo-100 disabled:opacity-60 transition-all duration-200">
+          <FaDownload className="text-[10px]" /> {loading ? 'Generating Excel...' : 'Export Excel Sheet'}
+        </button>
+      )}
+    </div>
   </div>
 );
 

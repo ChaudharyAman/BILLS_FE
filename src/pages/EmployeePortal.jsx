@@ -5,7 +5,7 @@ import {
   FaWallet, FaFileInvoiceDollar, FaHandHoldingUsd, FaReceipt,
   FaFilePdf, FaLock, FaUnlock, FaPrint, FaCloudUploadAlt,
   FaCheckCircle, FaTimesCircle, FaHourglassHalf, FaCalculator,
-  FaUserCircle, FaInfoCircle, FaDownload
+  FaUserCircle, FaInfoCircle, FaDownload, FaCalendarCheck
 } from 'react-icons/fa';
 import * as XLSX from 'xlsx';
 import api from '../api/axios';
@@ -34,6 +34,17 @@ const EmployeePortal = () => {
   const [payrolls, setPayrolls] = useState([]);
   const [claims, setClaims] = useState([]);
   const [loans, setLoans] = useState([]);
+  const [leaves, setLeaves] = useState([]);
+  const [leaveBalances, setLeaveBalances] = useState([]);
+  const [leaveTypes, setLeaveTypes] = useState([]);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [leaveDraft, setLeaveDraft] = useState({
+    leaveType: '',
+    startDate: '',
+    endDate: '',
+    numberOfDays: '',
+    reason: ''
+  });
   
   const [decForm, setDecForm] = useState({
     taxRegime: 'new',
@@ -128,17 +139,23 @@ const EmployeePortal = () => {
     const fetchEmployeeData = async () => {
       try {
         setLoadingEmployee(true);
-        const [empRes, payrollsRes, claimsRes, loansRes] = await Promise.all([
+        const [empRes, payrollsRes, claimsRes, loansRes, leavesRes, balancesRes, typesRes] = await Promise.all([
           api.get(`/employees/${selectedEmployeeId}`, { signal }),
           api.get(`/payroll?employeeId=${selectedEmployeeId}&limit=12`, { signal }),
           api.get(`/reimbursements?employee=${selectedEmployeeId}`, { signal }),
-          api.get(`/loans?employee=${selectedEmployeeId}`, { signal })
+          api.get(`/loans?employee=${selectedEmployeeId}`, { signal }),
+          api.get(`/leaves/requests?employee=${selectedEmployeeId}`, { signal }),
+          api.get(`/leaves/balances?employee=${selectedEmployeeId}`, { signal }),
+          api.get('/leaves/types', { signal })
         ]);
 
         setEmployee(empRes.data);
         setPayrolls(payrollsRes.data.data || []);
         setClaims(claimsRes.data || []);
         setLoans(loansRes.data || []);
+        setLeaves(leavesRes.data || []);
+        setLeaveBalances(balancesRes.data || []);
+        setLeaveTypes(typesRes.data || []);
       } catch (err) {
         if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return; // aborted — ignore
         console.error(err);
@@ -487,6 +504,39 @@ const EmployeePortal = () => {
     }
   };
 
+  // Submit Leave
+  const handleLeaveSubmit = async (e) => {
+    e.preventDefault();
+    if (!employee) return;
+    try {
+      const numDays = Number(leaveDraft.numberOfDays);
+      if (!numDays || numDays <= 0) {
+        toast.error('Please enter a valid number of days');
+        return;
+      }
+
+      const res = await api.post('/leaves/requests', {
+        employee: employee._id,
+        leaveType: leaveDraft.leaveType || leaveTypes[0]?._id,
+        startDate: leaveDraft.startDate,
+        endDate: leaveDraft.endDate,
+        numberOfDays: numDays,
+        reason: leaveDraft.reason
+      });
+
+      setLeaves([res.data, ...leaves]);
+      setShowLeaveModal(false);
+      setLeaveDraft({ leaveType: leaveTypes[0]?._id || '', startDate: '', endDate: '', numberOfDays: '', reason: '' });
+      toast.success('Leave request submitted successfully');
+
+      // Refresh balances
+      const balRes = await api.get(`/leaves/balances?employee=${employee._id}`);
+      setLeaveBalances(balRes.data || []);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit leave request');
+    }
+  };
+
   // Payslip password protection validator
   const handleUnlockPayslip = (e) => {
     e.preventDefault();
@@ -653,7 +703,7 @@ const EmployeePortal = () => {
   };
 
   // Dynamic accurate quarterly and monthly split calculations for Form 16
-  const totalTaxAnnual = employee.taxRegime === 'new' 
+  const totalTaxAnnual = employee?.taxRegime === 'new' 
     ? (salaryStructure?.taxDetails?.newRegime?.annualTax || 0)
     : (salaryStructure?.taxDetails?.oldRegime?.annualTax || 0);
 
@@ -797,6 +847,7 @@ const EmployeePortal = () => {
               <TabButton active={activeTab === 'declarations'} onClick={() => setActiveTab('declarations')} icon={<FaCalculator />} label="Tax & Declarations" />
               <TabButton active={activeTab === 'claims'} onClick={() => setActiveTab('claims')} icon={<FaReceipt />} label="Reimbursements" />
               <TabButton active={activeTab === 'loans'} onClick={() => setActiveTab('loans')} icon={<FaHandHoldingUsd />} label="Loans & Salary Advances" />
+              <TabButton active={activeTab === 'leaves'} onClick={() => setActiveTab('leaves')} icon={<FaCalendarCheck />} label="Leaves & LOP" />
               <TabButton active={activeTab === 'payslips'} onClick={() => setActiveTab('payslips')} icon={<FaFileInvoiceDollar />} label="Payslip Ledger" />
               <TabButton active={activeTab === 'form16'} onClick={() => setActiveTab('form16')} icon={<FaFilePdf />} label="Form 16 Preview" />
             </div>
@@ -1420,6 +1471,90 @@ const EmployeePortal = () => {
                 </div>
               )}
 
+              {/* Tab: Leaves */}
+              {activeTab === 'leaves' && (
+                <div className="space-y-6">
+                  {/* Leave Balances Grid */}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
+                      <div>
+                        <h2 className="text-lg font-bold text-slate-800">Your Leave Balances</h2>
+                        <p className="text-xs text-slate-500">Opening, Accrued, Used and remaining balances for the current year.</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setLeaveDraft({
+                            leaveType: leaveTypes[0]?._id || '',
+                            startDate: '',
+                            endDate: '',
+                            numberOfDays: '',
+                            reason: ''
+                          });
+                          setShowLeaveModal(true);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-2"
+                      >
+                        <FaCalendarCheck /> Apply for Leave
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {leaveBalances.map((bal) => (
+                        <div key={bal._id} className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 shadow-sm">
+                          <div className="text-xs font-bold text-slate-400 uppercase">{bal.leaveType?.name}</div>
+                          <div className="text-3xl font-black text-slate-800 mt-2">{bal.closing}</div>
+                          <div className="text-[10px] text-slate-500 mt-1">
+                            Accrued: {bal.accrued} · Used: {bal.used}
+                          </div>
+                        </div>
+                      ))}
+                      {leaveBalances.length === 0 && (
+                        <div className="col-span-3 text-center py-6 text-sm text-slate-400 italic">No leave balances allocated yet.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Submitted Leave Requests */}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                    <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-4 mb-6">Leave Requests History</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-slate-700">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200">
+                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Leave Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Duration</th>
+                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Days</th>
+                            <th className="px-6 py-3 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Approver Remarks</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {leaves.length === 0 ? (
+                            <tr><td colSpan="5" className="px-6 py-10 text-center text-slate-400">No leave requests submitted yet.</td></tr>
+                          ) : leaves.map((req) => (
+                            <tr key={req._id}>
+                              <td className="px-6 py-4 font-semibold uppercase text-slate-800">{req.leaveType?.name}</td>
+                              <td className="px-6 py-4">{formatIndianDate(req.startDate)} to {formatIndianDate(req.endDate)}</td>
+                              <td className="px-6 py-4 text-right font-semibold">{req.numberOfDays}</td>
+                              <td className="px-6 py-4 text-center">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase inline-flex items-center gap-1.5
+                                  ${req.status === 'approved' ? 'bg-green-100 text-green-800' : req.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
+                                  {req.status === 'approved' && <FaCheckCircle size={10} />}
+                                  {req.status === 'rejected' && <FaTimesCircle size={10} />}
+                                  {req.status === 'pending' && <FaHourglassHalf size={10} />}
+                                  {req.status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-xs text-slate-500 italic">{req.approverRemarks || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Tab 5: Payslips */}
               {activeTab === 'payslips' && (
                 <div className="space-y-6">
@@ -2026,6 +2161,91 @@ const EmployeePortal = () => {
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowLoanModal(false)} className="px-4 py-2 border rounded-lg text-sm font-semibold">Cancel</button>
             <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold">Submit Request</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── Leave Submission Modal ── */}
+      <Modal isOpen={showLeaveModal} onClose={() => setShowLeaveModal(false)} title="Apply for Leave">
+        <form onSubmit={handleLeaveSubmit} className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Leave Type</label>
+            <select
+              value={leaveDraft.leaveType}
+              onChange={(e) => setLeaveDraft({ ...leaveDraft, leaveType: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+              required
+            >
+              {leaveTypes.map((lt) => (
+                <option key={lt._id} value={lt._id}>
+                  {lt.name} ({lt.code}) {lt.isPaid ? '· Paid' : '· Unpaid'}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Start Date</label>
+              <input
+                type="date"
+                value={leaveDraft.startDate}
+                onChange={(e) => {
+                  const start = e.target.value;
+                  let days = leaveDraft.numberOfDays;
+                  if (start && leaveDraft.endDate) {
+                    const diffTime = Math.abs(new Date(leaveDraft.endDate) - new Date(start));
+                    days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                  }
+                  setLeaveDraft({ ...leaveDraft, startDate: start, numberOfDays: days });
+                }}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">End Date</label>
+              <input
+                type="date"
+                value={leaveDraft.endDate}
+                onChange={(e) => {
+                  const end = e.target.value;
+                  let days = leaveDraft.numberOfDays;
+                  if (leaveDraft.startDate && end) {
+                    const diffTime = Math.abs(new Date(end) - new Date(leaveDraft.startDate));
+                    days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                  }
+                  setLeaveDraft({ ...leaveDraft, endDate: end, numberOfDays: days });
+                }}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Number of Days</label>
+            <input
+              type="number"
+              step="0.5"
+              min="0.5"
+              value={leaveDraft.numberOfDays}
+              onChange={(e) => setLeaveDraft({ ...leaveDraft, numberOfDays: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="e.g. 1 or 0.5"
+              required
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Reason / Remarks</label>
+            <textarea
+              value={leaveDraft.reason}
+              onChange={(e) => setLeaveDraft({ ...leaveDraft, reason: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm min-h-24"
+              placeholder="Reason for leave"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setShowLeaveModal(false)} className="px-4 py-2 border rounded-lg text-sm font-semibold">Cancel</button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold">Submit Application</button>
           </div>
         </form>
       </Modal>

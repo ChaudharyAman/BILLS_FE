@@ -5,6 +5,7 @@ import { FaCheck, FaPlus } from 'react-icons/fa';
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import { buildMasterSalaryStructure, DEFAULT_PAYROLL_CONFIG, fmtMoney } from '../utils/payroll';
+import { PT_STATE_LIST } from '../constants/ptStates';
 
 const defaultForm = {
   employeeId: '',
@@ -39,6 +40,7 @@ const defaultForm = {
   pfEnabled: true,
   esiEnabled: true,
   ptEnabled: true,
+  ptState: '',
   lwfEnabled: true,
   gratuityEnabled: true,
   includePfInCTC: false,
@@ -55,6 +57,7 @@ const defaultForm = {
   bankDetails: { accountName: '', accountNumber: '', ifscCode: '', bankName: '', branch: '' },
   panNumber: '',
   uanNumber: '',
+  esiNumber: '',
   aadharNumber: '',
   taxRegime: 'new',
   declarations: {
@@ -122,10 +125,12 @@ const EmployeeForm = () => {
           deductions: { ...defaultForm.deductions, ...(data.deductions || {}) },
           bankDetails: { ...defaultForm.bankDetails, ...(data.bankDetails || {}) },
           taxRegime: data.taxRegime || 'new',
+          esiNumber: data.esiNumber || '',
           declarations: { ...defaultForm.declarations, ...(data.declarations || {}) },
           pfEnabled: data.pfEnabled !== false,
           esiEnabled: data.esiEnabled !== false,
           ptEnabled: data.ptEnabled !== false,
+          ptState: data.ptState || '',
           lwfEnabled: data.lwfEnabled !== false,
           gratuityEnabled: data.gratuityEnabled !== false,
           includePfInCTC: data.includePfInCTC === true,
@@ -359,6 +364,7 @@ const EmployeeForm = () => {
         pfEnabled: formData.pfEnabled !== false,
         esiEnabled: formData.esiEnabled !== false,
         ptEnabled: formData.ptEnabled !== false,
+        ptState: formData.ptState || '',
         lwfEnabled: formData.lwfEnabled !== false,
         gratuityEnabled: formData.gratuityEnabled !== false,
         includePfInCTC: formData.includePfInCTC === true,
@@ -807,6 +813,44 @@ const EmployeeForm = () => {
                       State Professional Tax deduction {formData.ptEnabled !== false && localPreview && localPreview.professionalTax > 0 && `(${fmtMoney(localPreview.professionalTax)})`}
                     </span>
                   </div>
+
+                  {/* PT State dropdown — only shown when PT is enabled */}
+                  {formData.ptEnabled !== false && (
+                    <div className="mt-2 px-1">
+                      <label className="block text-[10px] font-semibold text-gray-600 mb-1" htmlFor="ptState">
+                        PT State
+                        <span className="ml-1 text-gray-400 font-normal">(auto-computes slab amount)</span>
+                      </label>
+                      <select
+                        id="ptState"
+                        value={formData.ptState || ''}
+                        onChange={(e) => {
+                          setField('ptState', e.target.value);
+                          refreshSalaryFromCTC({ ptState: e.target.value });
+                        }}
+                        className="w-full text-xs rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+                      >
+                        <optgroup label="── No PT / Manual">
+                          <option value="">None — use manual amount below</option>
+                        </optgroup>
+                        <optgroup label="── States that levy PT">
+                          {PT_STATE_LIST.filter(s => s.leviesPT).map(s => (
+                            <option key={s.code} value={s.code}>{s.name}</option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="── States with no PT">
+                          {PT_STATE_LIST.filter(s => s.code && !s.leviesPT).map(s => (
+                            <option key={s.code} value={s.code}>{s.name}</option>
+                          ))}
+                        </optgroup>
+                      </select>
+                      {formData.ptState && (
+                        <p className="text-[9px] text-blue-500 mt-0.5">
+                          Slab PT will auto-fill. Set a manual amount below only to override.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* LWF Toggle */}
                   <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
@@ -1325,6 +1369,7 @@ const EmployeeForm = () => {
                   {[
                     ['panNumber', 'PAN Number'],
                     ['uanNumber', 'UAN Number'],
+                    ['esiNumber', 'ESI Number'],
                     ['aadharNumber', 'Aadhar Number'],
                     ['deductions.professionalTax', 'Professional Tax (Monthly)'],
                   ].map(([name, label]) => (

@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import Skeleton from '../components/Skeleton';
-import { buildMasterSalaryStructure, DEFAULT_PAYROLL_CONFIG, fmtMoney, payrollStatusClass } from '../utils/payroll';
+import { buildMasterSalaryStructure, DEFAULT_PAYROLL_CONFIG, fmtMoney, payrollStatusClass, calculateGratuityEntitlement } from '../utils/payroll';
 
 const fmtDate = (value) => {
   if (!value) return '-';
@@ -102,6 +102,17 @@ const EmployeeDetails = () => {
   }, [id]);
 
   const salaryPreview = useMemo(() => buildMasterSalaryStructure(employee || {}, config), [employee, config]);
+
+  // Statutory gratuity eligibility — computed client-side, no extra API call.
+  // Uses dateOfLeaving if set (terminated/inactive employee), otherwise today
+  // (active employee, shows current entitlement estimate).
+  const gratuityInfo = useMemo(() => {
+    if (!employee || employee.payType === 'hourly' || !employee.gratuityEnabled) return null;
+    if (!employee.joiningDate) return null;
+    const separationDate = employee.dateOfLeaving ? new Date(employee.dateOfLeaving) : new Date();
+    const basicPlusDa = salaryPreview.basicMaster || 0;
+    return calculateGratuityEntitlement(employee.joiningDate, separationDate, basicPlusDa);
+  }, [employee, salaryPreview]);
 
   const draftSalaryPreview = useMemo(() => {
     if (!revisionDraft.newCTC || isNaN(Number(revisionDraft.newCTC)) || Number(revisionDraft.newCTC) <= 0) return null;
@@ -779,6 +790,7 @@ const EmployeeDetails = () => {
             <Info label="Status" value={employee.status} />
             <Info label="PAN" value={employee.panNumber || '-'} />
             <Info label="UAN" value={employee.uanNumber || '-'} />
+            <Info label="ESI Number" value={employee.esiNumber || '-'} />
           </div>
         </div>
 
@@ -833,6 +845,76 @@ const EmployeeDetails = () => {
           )}
         </div>
       </div>
+
+      {/* ── Statutory Gratuity Eligibility Card ─────────────────────────────── */}
+      {gratuityInfo && (
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm mt-6 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-semibold text-sm text-gray-700">Statutory Gratuity Eligibility</h2>
+              <p className="text-[10px] text-gray-400 mt-0.5">
+                Payment of Gratuity Act, 1972 — formula: (Basic + DA) × 15/26 × years of service
+              </p>
+            </div>
+            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+              gratuityInfo.eligible
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-amber-50 text-amber-700 border border-amber-200'
+            }`}>
+              {gratuityInfo.eligible ? '✓ Eligible' : '⏳ Not Yet Eligible'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-gray-400 text-[10px] font-medium uppercase tracking-wide mb-0.5">Service (yrs)</p>
+              <p className="text-gray-800 font-bold text-base">
+                {gratuityInfo.completedYears}
+                <span className="text-xs font-normal text-gray-500 ml-1">
+                  yr{gratuityInfo.completedYears !== 1 ? 's' : ''}
+                  {gratuityInfo.completedYears > 0 || gratuityInfo.completedMonths % 12 > 0
+                    ? ` ${gratuityInfo.completedMonths % 12} mo`
+                    : ''}
+                </span>
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-gray-400 text-[10px] font-medium uppercase tracking-wide mb-0.5">Years Used</p>
+              <p className="text-gray-800 font-bold text-base">
+                {gratuityInfo.eligible ? gratuityInfo.roundedYears : '—'}
+                {gratuityInfo.eligible && gratuityInfo.roundedYears > gratuityInfo.completedYears && (
+                  <span className="ml-1 text-[9px] text-blue-500 font-semibold">↑ rounded up</span>
+                )}
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-gray-400 text-[10px] font-medium uppercase tracking-wide mb-0.5">Est. Entitlement</p>
+              <p className={`font-bold text-base ${
+                gratuityInfo.eligible ? 'text-gray-800' : 'text-gray-400'
+              }`}>
+                {gratuityInfo.eligible ? fmtMoney(gratuityInfo.cappedEntitlement) : '—'}
+              </p>
+              {gratuityInfo.isCapped && (
+                <p className="text-[9px] text-amber-600 font-semibold mt-0.5">Capped at ₹20L (statutory max)</p>
+              )}
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-gray-400 text-[10px] font-medium uppercase tracking-wide mb-0.5">Basic (current)</p>
+              <p className="text-gray-800 font-bold text-base">{fmtMoney(salaryPreview.basicMaster || 0)}/mo</p>
+              <p className="text-[9px] text-gray-400 mt-0.5">DA treated as ₹0</p>
+            </div>
+          </div>
+
+          <p className="mt-3 text-[9px] text-gray-400 leading-relaxed">
+            ℹ️ {gratuityInfo.note}
+            &nbsp;Estimate only — actual amount is confirmed at Full &amp; Final Settlement.
+            6-month partial-year rounding per Section 2A &amp; Mettur Beardsell (1998 ILLJ 180 Mad).
+          </p>
+        </div>
+      )}
 
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm mt-6 overflow-hidden">
         <div className="p-4 border-b bg-gray-50 font-bold">Salary Revision History</div>
