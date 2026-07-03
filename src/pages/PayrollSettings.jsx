@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import api from '../api/axios';
 import Skeleton from '../components/Skeleton';
+import Modal from '../components/Modal';
 import { DEFAULT_PAYROLL_CONFIG } from '../utils/payroll';
 
 const CONFIG_FIELD_TO_COMPONENT_ID = {
@@ -103,6 +104,8 @@ const PayrollSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [integration, setIntegration] = useState({
     enabled: false,
     externalTenantId: '',
@@ -244,6 +247,8 @@ const PayrollSettings = () => {
       // Auto-save integration settings first to ensure DB state matches UI before sync runs
       await api.put('/settings', { integration });
       const res = await api.post('/payroll/integration/sync-employees');
+      setSyncResult(res.data);
+      setIsModalOpen(true);
       toast.success(`Sync Complete! Created: ${res.data.created}, Updated: ${res.data.updated}`);
     } catch (error) {
       console.error(error);
@@ -1454,6 +1459,110 @@ const PayrollSettings = () => {
           )}
         </div>
       )}
+
+      {/* Sync Summary Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="HRMS Directory Sync Summary"
+      >
+        <div className="space-y-6">
+          {/* Summary Stats Cards */}
+          <div className="grid grid-cols-4 gap-4">
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-center">
+              <div className="text-sm font-medium text-slate-500">Total Synced</div>
+              <div className="text-2xl font-bold text-slate-900">
+                {(syncResult?.details?.length || 0) + (syncResult?.errors?.length || 0)}
+              </div>
+            </div>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+              <div className="text-sm font-medium text-green-700">Created</div>
+              <div className="text-2xl font-bold text-green-900">{syncResult?.created || 0}</div>
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+              <div className="text-sm font-medium text-blue-700">Updated</div>
+              <div className="text-2xl font-bold text-blue-900">{syncResult?.updated || 0}</div>
+            </div>
+            <div className={`p-4 rounded-lg text-center border ${syncResult?.errors?.length > 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`text-sm font-medium ${syncResult?.errors?.length > 0 ? 'text-red-700' : 'text-slate-500'}`}>Failed / Skipped</div>
+              <div className={`text-2xl font-bold ${syncResult?.errors?.length > 0 ? 'text-red-900' : 'text-slate-900'}`}>{syncResult?.errors?.length || 0}</div>
+            </div>
+          </div>
+
+          {/* Sync Success Table */}
+          {syncResult?.details?.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-800 mb-3">Successfully Synced Employees</h4>
+              <div className="overflow-x-auto border border-slate-200 rounded-lg max-h-96">
+                <table className="min-w-full divide-y divide-slate-200 text-xs">
+                  <thead className="bg-slate-50 text-slate-700 uppercase font-medium">
+                    <tr>
+                      <th className="py-3 px-4 text-left">Employee Name & ID</th>
+                      <th className="py-3 px-4 text-left">Email</th>
+                      <th className="py-3 px-4 text-left">Job Role Template</th>
+                      <th className="py-3 px-4 text-right">Monthly CTC</th>
+                      <th className="py-3 px-4 text-center">Statutory (PF/ESI)</th>
+                      <th className="py-3 px-4 text-left">Extracted Allowances</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white text-slate-600">
+                    {syncResult.details.map((emp) => (
+                      <tr key={emp.employeeId} className="hover:bg-slate-50">
+                        <td className="py-3 px-4">
+                          <div className="font-semibold text-slate-900">{emp.name}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">{emp.employeeId}</div>
+                        </td>
+                        <td className="py-3 px-4 font-mono text-[10px]">{emp.email}</td>
+                        <td className="py-3 px-4">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                            {emp.roleTemplateName}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right font-semibold text-slate-900">
+                          ₹{Number(emp.monthlyCTC).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        </td>
+                        <td className="py-3 px-4 text-center space-x-1">
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold ${emp.pfEnabled ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'}`}>
+                            PF: {emp.pfEnabled ? 'ON' : 'OFF'}
+                          </span>
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold ${emp.esiEnabled ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'}`}>
+                            ESI: {emp.esiEnabled ? 'ON' : 'OFF'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="space-y-0.5">
+                            {emp.flexiAmount > 0 && (
+                              <div className="text-[10px]"><span className="text-slate-400 font-medium">Flexi:</span> ₹{emp.flexiAmount.toLocaleString('en-IN')}</div>
+                            )}
+                            <div className="text-[10px]"><span className="text-slate-400 font-medium">Others:</span> {emp.customAllowances}</div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Sync Errors List */}
+          {syncResult?.errors?.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-red-800 mb-2 flex items-center">
+                ⚠️ Sync Failures / Skipped Records
+              </h4>
+              <div className="overflow-y-auto max-h-40 space-y-2 text-xs">
+                {syncResult.errors.map((err, index) => (
+                  <div key={index} className="flex justify-between border-b border-red-100 pb-1 last:border-0 last:pb-0">
+                    <span className="font-mono text-red-900 font-semibold">{err.id}</span>
+                    <span className="text-red-700">{err.error}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };
