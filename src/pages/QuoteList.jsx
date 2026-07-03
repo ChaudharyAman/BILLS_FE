@@ -279,6 +279,29 @@ const QuoteList = () => {
     tcs: q.tcs || 0,
   });
 
+  const buildQuoteExportRows = (rows) =>
+    (rows || []).map((quote) => {
+      const mapped = mapQuoteForExport(quote);
+      
+      const itemsSummary = (quote.items || [])
+        .map(item => {
+          const qtyStr = `Qty: ${item.qty || 0}`;
+          const unitStr = item.unit ? ` ${item.unit}` : '';
+          return `${item.name || ''} (${qtyStr}${unitStr})`;
+        })
+        .filter(Boolean)
+        .join(', ');
+
+      return {
+        ...mapped,
+        exportItemsSummary: itemsSummary
+      };
+    });
+
+  const exportRows = buildQuoteExportRows(
+    selectedIds.length > 0 ? displayed.filter(q => selectedIds.includes(q._id)) : displayed
+  );
+
   const fetchQuotesForExport = async () => {
     const queryParams = new URLSearchParams({
       all: 'true',
@@ -298,7 +321,7 @@ const QuoteList = () => {
       rawData = rawData.filter((quote) => selectedIds.includes(quote._id));
     }
 
-    return rawData.map(mapQuoteForExport);
+    return buildQuoteExportRows(rawData);
   };
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -332,32 +355,62 @@ const QuoteList = () => {
           <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
             <ExportDropdown 
                 disabled={!isPro}
-                data={displayed}
+                data={exportRows}
                 getExportData={fetchQuotesForExport}
                 filename="Flance_Quotes"
                 columns={[
+                   { header: 'Quote Number', key: 'quoteNo' },
+                   { header: 'Date', key: 'date' },
+                   { header: 'Valid Until', key: 'validUntil' },
+                   { header: 'Status', key: 'status' },
+                   { header: 'Invoice Type', key: 'invoiceType' },
+                   { header: 'Payment Mode', key: 'paymentMode' },
+                   { header: 'Payment Terms', key: 'paymentTerms' },
+                   { header: 'Place of Supply', key: 'placeOfSupply' },
+                   { header: 'Reverse Charge', key: 'reverseCharge' },
                    { header: 'Client Name', key: 'client.name' },
                    { header: 'Client GSTIN', key: 'client.gstin' },
-                   { header: 'Quote Number', key: 'quoteNo' },
-                   { header: 'Creator Name', key: 'creatorName' },
                    { header: 'Client Phone Number', key: 'client.phone' },
                    { header: 'Client Email', key: 'client.email' },
+                   { header: 'Client Address Line 1', key: 'client.address.line1' },
+                   { header: 'Client Address Line 2', key: 'client.address.line2' },
                    { header: 'Client City', key: 'client.address.city' },
                    { header: 'Client State', key: 'client.address.state' },
+                   { header: 'Client ZIP', key: 'client.address.zip' },
+                   { header: 'Client Country', key: 'client.address.country' },
+                   { header: 'Shipping Address Line 1', key: 'shippingAddress.line1' },
+                   { header: 'Shipping Address Line 2', key: 'shippingAddress.line2' },
+                   { header: 'Shipping City', key: 'shippingAddress.city' },
+                   { header: 'Shipping State', key: 'shippingAddress.state' },
+                   { header: 'Shipping ZIP', key: 'shippingAddress.zip' },
+                   { header: 'Shipping Country', key: 'shippingAddress.country' },
+                   { header: 'Transport Mode', key: 'transport.mode' },
+                   { header: 'Vehicle Number', key: 'transport.vehicleNumber' },
                    { header: 'P.O. Number', key: 'transport.poNumber' },
-                   { header: 'Issue Date', key: 'date' },
-                   { header: 'Valid Until', key: 'validUntil' },
+                   { header: 'P.O. Date', key: 'transport.poDate' },
+                   { header: 'E-Way Bill No', key: 'transport.eWayBillNo' },
+                   { header: 'Sub Total', key: 'subTotal' },
+                   { header: 'Tax Total', key: 'taxTotal' },
+                   { header: 'Total CGST', key: 'totalCGST' },
+                   { header: 'Total SGST', key: 'totalSGST' },
+                   { header: 'Total IGST', key: 'totalIGST' },
+                   { header: 'Shipping Charges', key: 'shippingCharges' },
+                   { header: 'Packaging Charges', key: 'packagingCharges' },
+                   { header: 'Custom Charge Label', key: 'customChargeLabel' },
+                   { header: 'Discount Total', key: 'discountTotal' },
+                   { header: 'Grand Total', key: 'grandTotal' },
+                   { header: 'Creator Name', key: 'creatorName' },
                    { header: 'Financial Year', key: 'financialYear' },
-                   { header: 'Currency', key: 'currency' },
-                   { header: 'Amount', key: 'subTotal' },
-                   { header: 'Total', key: 'grandTotal' },
-                   { header: 'Status', key: 'status' },
                    { header: 'Type', key: 'type' },
                    { header: 'Converted', key: 'converted' },
                    { header: 'Private notes', key: 'notes' },
-                   { header: 'Discount', key: 'discount' },
-                   { header: 'TDS', key: 'tds' },
-                   { header: 'TCS', key: 'tcs' }
+                   { header: 'Terms', key: 'terms' },
+                   { header: 'Bank Account Name', key: 'bankDetails.accountName' },
+                   { header: 'Bank Name', key: 'bankDetails.bankName' },
+                   { header: 'Bank Account Number', key: 'bankDetails.accountNumber' },
+                   { header: 'Bank Branch', key: 'bankDetails.branch' },
+                   { header: 'Bank IFSC Code', key: 'bankDetails.ifscCode' },
+                   { header: 'Items', key: 'exportItemsSummary' }
                 ]}
             />
           </div>
