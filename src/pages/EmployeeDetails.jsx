@@ -499,6 +499,10 @@ const EmployeeDetails = () => {
       const master = res.data.master;
       setRevisionDraft((prev) => ({
         ...prev,
+        flexiAmount: master.flexi,
+        broadband: master.broadband,
+        petrol: master.petrol,
+        lta: master.lta,
         salaryStructure: {
           ...prev.salaryStructure,
           basic: master.basicMaster,

@@ -287,6 +287,10 @@ const EmployeeForm = () => {
       const master = res.data.master;
       setFormData((prev) => ({
         ...prev,
+        flexiAmount: master.flexi,
+        broadband: master.broadband,
+        petrol: master.petrol,
+        lta: master.lta,
         salaryStructure: {
           ...prev.salaryStructure,
           basic: master.basicMaster,
