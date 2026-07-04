@@ -884,7 +884,6 @@ const ExpenseForm = () => {
                     className={inputBaseCls} 
                     value={item.rate}
                     onChange={(e) => handleItemChange(idx, 'rate', e.target.value)}
-                    min="0"
                     step="0.01"
                   />
                   {/* Inline Tax Select */}
