@@ -225,12 +225,60 @@ const PayrollDashboard = () => {
   }, [payrolls, search, statusFilter]);
 
   const selectedPayrolls = useMemo(() => filteredPayrolls.filter((payroll) => selectedIds[payroll._id]), [filteredPayrolls, selectedIds]);
-  const stats = useMemo(() => ({
-    total: filteredPayrolls.reduce((sum, payroll) => sum + (Number(payroll.netSalary) || 0), 0),
-    processed: filteredPayrolls.filter((payroll) => payroll.status === 'processed').length,
-    approved: filteredPayrolls.filter((payroll) => payroll.status === 'approved').length,
-    paid: filteredPayrolls.filter((payroll) => payroll.status === 'paid').length,
-  }), [filteredPayrolls]);
+  const stats = useMemo(() => {
+    let netSalary = 0;
+    let pfEmployee = 0;
+    let pfEmployer = 0;
+    let esiEmployee = 0;
+    let esiEmployer = 0;
+    let gratuity = 0;
+    let professionalTax = 0;
+    let tds = 0;
+    let grossSalary = 0;
+    let ctc = 0;
+    let processed = 0;
+    let approved = 0;
+    let paid = 0;
+
+    filteredPayrolls.forEach(p => {
+      netSalary += Number(p.netSalary) || 0;
+      
+      // Extract from deductions
+      pfEmployee += Number(p.deductions?.pfEmployee || p.deductions?.pf || 0);
+      esiEmployee += Number(p.deductions?.esiEmployee || p.deductions?.esi || 0);
+      professionalTax += Number(p.deductions?.professionalTax || 0);
+      tds += Number(p.deductions?.tds || 0);
+      
+      // Extract from employerContributions
+      pfEmployer += Number(p.employerContributions?.pfEmployer || 0);
+      esiEmployer += Number(p.employerContributions?.esiEmployer || 0);
+      gratuity += Number(p.employerContributions?.gratuity || 0);
+      
+      // Gross & CTC
+      grossSalary += Number(p.earnings?.totalEarnings || p.grossSalary || 0);
+      ctc += Number(p.employerContributions?.grossTotalSalary || p.ctc || p.employerContributions?.ctc || 0);
+
+      if (p.status === 'processed') processed++;
+      else if (p.status === 'approved') approved++;
+      else if (p.status === 'paid') paid++;
+    });
+
+    return {
+      total: netSalary,
+      pfEmployee,
+      pfEmployer,
+      esiEmployee,
+      esiEmployer,
+      gratuity,
+      professionalTax,
+      tds,
+      grossSalary,
+      ctc,
+      processed,
+      approved,
+      paid,
+    };
+  }, [filteredPayrolls]);
 
   const openPayslipDrawer = async (payrollId) => {
     try {
@@ -412,6 +460,55 @@ const PayrollDashboard = () => {
             <StatCard label="Processed Count" value={stats.processed} />
             <StatCard label="Approved Count" value={stats.approved} />
             <StatCard label="Paid Count" value={stats.paid} />
+          </div>
+
+          {/* Financial Breakdown Grid */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 mb-6">
+            <h2 className="font-bold text-lg mb-4 text-gray-800">Financial Breakdown ({monthName(month)} {year})</h2>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="bg-slate-50 border border-gray-100 rounded-lg p-4">
+                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Gross Salaries</div>
+                <div className="text-xl font-bold mt-1 text-gray-900">{fmtMoney(stats.grossSalary)}</div>
+              </div>
+              <div className="bg-slate-50 border border-gray-100 rounded-lg p-4">
+                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total PF Contribution</div>
+                <div className="text-xl font-bold mt-1 text-emerald-700">{fmtMoney(stats.pfEmployee + stats.pfEmployer)}</div>
+                <div className="text-[10px] text-gray-400 mt-1 flex flex-col">
+                  <span>Emp: {fmtMoney(stats.pfEmployee)}</span>
+                  <span>Employer: {fmtMoney(stats.pfEmployer)}</span>
+                </div>
+              </div>
+              <div className="bg-slate-50 border border-gray-100 rounded-lg p-4">
+                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total ESIC Contribution</div>
+                <div className="text-xl font-bold mt-1 text-blue-700">{fmtMoney(stats.esiEmployee + stats.esiEmployer)}</div>
+                <div className="text-[10px] text-gray-400 mt-1 flex flex-col">
+                  <span>Emp: {fmtMoney(stats.esiEmployee)}</span>
+                  <span>Employer: {fmtMoney(stats.esiEmployer)}</span>
+                </div>
+              </div>
+              <div className="bg-slate-50 border border-gray-100 rounded-lg p-4">
+                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total Gratuity Accrual</div>
+                <div className="text-xl font-bold mt-1 text-indigo-700">{fmtMoney(stats.gratuity)}</div>
+              </div>
+              <div className="bg-slate-50 border border-gray-100 rounded-lg p-4">
+                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">TDS & Professional Tax</div>
+                <div className="text-xl font-bold mt-1 text-rose-700">{fmtMoney(stats.tds + stats.professionalTax)}</div>
+                <div className="text-[10px] text-gray-400 mt-1 flex flex-col">
+                  <span>TDS: {fmtMoney(stats.tds)}</span>
+                  <span>PT: {fmtMoney(stats.professionalTax)}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-2">
+              <span className="text-sm text-gray-500">
+                Sum of all processed, approved, and paid runs for this filtered period.
+              </span>
+              <div className="flex gap-4">
+                <span className="text-sm font-semibold text-gray-700">Total Net Take Home: <strong className="text-gray-900 font-extrabold">{fmtMoney(stats.total)}</strong></span>
+                <span className="text-sm font-semibold text-gray-700">Total Cost to Company (CTC): <strong className="text-indigo-900 font-extrabold">{fmtMoney(stats.ctc)}</strong></span>
+              </div>
+            </div>
           </div>
 
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 mb-6">
