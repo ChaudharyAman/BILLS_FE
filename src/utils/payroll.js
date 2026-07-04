@@ -797,8 +797,14 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
   }));
 
   const workingDays = Math.max(Number(attendance?.workingDays) || config.defaultWorkingDays, 1);
-  const rawPaidDays = isHourly ? workingDays : Number(attendance?.paidDays ?? attendance?.presentDays ?? workingDays);
-  const paidDays = isHourly ? workingDays : Math.max(Math.min(rawPaidDays || workingDays, workingDays), 0);
+  const rawPaidDays = isHourly
+    ? workingDays
+    : (attendance?.paidDays !== undefined && attendance?.paidDays !== null
+        ? Number(attendance.paidDays)
+        : (attendance?.presentDays !== undefined && attendance?.presentDays !== null
+            ? Number(attendance.presentDays)
+            : workingDays));
+  const paidDays = isHourly ? workingDays : Math.max(Math.min(rawPaidDays, workingDays), 0);
   const prorate = isHourly ? 1.0 : Math.min(paidDays / workingDays, 1);
 
   const segments = [];
