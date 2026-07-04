@@ -30,6 +30,11 @@ const EmployeeList = () => {
   const [importResult, setImportResult] = useState(null);
   const [payrollConfig, setPayrollConfig] = useState(null);
 
+  // States for bulk selection and bulk delete
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
   const downloadImportTemplate = async () => {
     try {
       const response = await api.get('/employees/import-template', { responseType: 'blob' });
@@ -69,6 +74,10 @@ const EmployeeList = () => {
   }, []);
 
   useEffect(() => {
+    setSelectedIds([]);
+  }, [search, status, department, page]);
+
+  useEffect(() => {
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       try {
@@ -96,6 +105,47 @@ const EmployeeList = () => {
       window.clearTimeout(timer);
     };
   }, [search, status, department, page]);
+
+  const handleToggleSelect = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    if (employees.length === 0) return;
+    const allVisibleSelected = employees.every((emp) => selectedIds.includes(emp._id));
+    if (allVisibleSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !employees.some((emp) => emp._id === id)));
+    } else {
+      setSelectedIds((prev) => {
+        const newSelection = [...prev];
+        employees.forEach((emp) => {
+          if (!newSelection.includes(emp._id)) {
+            newSelection.push(emp._id);
+          }
+        });
+        return newSelection;
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      setBulkDeleting(true);
+      const res = await api.post('/employees/bulk-delete', { ids: selectedIds });
+      toast.success(res.data.message || 'Selected employees deleted successfully');
+      setEmployees((current) => current.filter((emp) => !selectedIds.includes(emp._id)));
+      setTotal((prev) => Math.max(prev - selectedIds.length, 0));
+      setSelectedIds([]);
+      setShowBulkDeleteModal(false);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to bulk delete employees');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
 
   const importSummary = useMemo(() => {
     if (!importResult) return '';
@@ -190,6 +240,15 @@ const EmployeeList = () => {
           <p className="text-gray-500 mt-1">Manage employee records, salary structures, and payroll-ready onboarding data</p>
         </div>
         <div className="flex flex-wrap gap-3">
+          {selectedIds.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowBulkDeleteModal(true)}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors"
+            >
+              <FaTrash size={14} /> Delete Selected ({selectedIds.length})
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -259,6 +318,15 @@ const EmployeeList = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-4 py-3 text-left w-10">
+                  <input
+                    type="checkbox"
+                    checked={employees.length > 0 && employees.every((emp) => selectedIds.includes(emp._id))}
+                    onChange={handleToggleSelectAll}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                    aria-label="Select all employees"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Employee</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Department</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Location</th>
@@ -272,15 +340,24 @@ const EmployeeList = () => {
               {loading ? (
                 Array.from({ length: 6 }).map((_, index) => (
                   <tr key={`employee-skeleton-${index}`}>
-                    <td className="px-6 py-4" colSpan="7">
+                    <td className="px-6 py-4" colSpan="8">
                       <Skeleton className="h-10 w-full" />
                     </td>
                   </tr>
                 ))
               ) : employees.length === 0 ? (
-                <tr><td colSpan="7" className="px-6 py-10 text-center text-gray-500">No employees found.</td></tr>
+                <tr><td colSpan="8" className="px-6 py-10 text-center text-gray-500">No employees found.</td></tr>
               ) : employees.map((employee) => (
-                <tr key={employee._id} className="hover:bg-blue-50/40">
+                <tr key={employee._id} className={`hover:bg-blue-50/40 ${selectedIds.includes(employee._id) ? 'bg-blue-50/20' : ''}`}>
+                  <td className="px-4 py-4 align-middle">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(employee._id)}
+                      onChange={() => handleToggleSelect(employee._id)}
+                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                      aria-label={`Select ${employee.firstName} ${employee.lastName}`}
+                    />
+                  </td>
                   <td className="px-6 py-4">
                     <div className="font-semibold text-gray-900">{employee.firstName} {employee.lastName}</div>
                     <div className="text-xs text-gray-500">{employee.employeeId} · {employee.email}</div>
@@ -583,6 +660,23 @@ const EmployeeList = () => {
           <div className="flex justify-end gap-3">
             <button type="button" onClick={() => setDeleteEmployee(null)} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold">Cancel</button>
             <button type="button" onClick={handleDelete} className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold">Delete Permanently</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={showBulkDeleteModal} onClose={() => setShowBulkDeleteModal(false)} title="Delete Selected Employees">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Are you sure you want to permanently delete the <span className="font-semibold text-gray-900">{selectedIds.length} selected employees</span>?
+          </p>
+          <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
+            This will also remove all associated payroll records, expenses, loans, reimbursement claims, and project team references for **all** selected employees. This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={() => setShowBulkDeleteModal(false)} disabled={bulkDeleting} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold">Cancel</button>
+            <button type="button" onClick={handleBulkDelete} disabled={bulkDeleting} className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold">
+              {bulkDeleting ? 'Deleting...' : 'Delete Selected Permanently'}
+            </button>
           </div>
         </div>
       </Modal>
