@@ -464,49 +464,207 @@ const PayrollDashboard = () => {
 
           {/* Financial Breakdown Grid */}
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 mb-6">
-            <h2 className="font-bold text-lg mb-4 text-gray-800">Financial Breakdown ({monthName(month)} {year})</h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="bg-slate-50 border border-gray-100 rounded-lg p-4">
-                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Gross Salaries</div>
-                <div className="text-xl font-bold mt-1 text-gray-900">{fmtMoney(stats.grossSalary)}</div>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 pb-2 border-b border-gray-100 gap-3">
+              <div>
+                <h2 className="font-bold text-lg text-gray-800">Financial Breakdown ({monthName(month)} {year})</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Sum of all processed, approved, and paid runs for this period</p>
               </div>
-              <div className="bg-slate-50 border border-gray-100 rounded-lg p-4">
-                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total PF Contribution</div>
-                <div className="text-xl font-bold mt-1 text-emerald-700">{fmtMoney(stats.pfEmployee + stats.pfEmployer)}</div>
-                <div className="text-[10px] text-gray-400 mt-1 flex flex-col">
-                  <span>Emp: {fmtMoney(stats.pfEmployee)}</span>
-                  <span>Employer: {fmtMoney(stats.pfEmployer)}</span>
+              <div className="flex gap-6 self-end md:self-auto">
+                <div className="text-right">
+                  <div className="text-xs text-gray-400 font-semibold uppercase">Total Net Take Home</div>
+                  <div className="text-2xl font-extrabold text-blue-600">{fmtMoney(stats.total)}</div>
                 </div>
-              </div>
-              <div className="bg-slate-50 border border-gray-100 rounded-lg p-4">
-                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total ESIC Contribution</div>
-                <div className="text-xl font-bold mt-1 text-blue-700">{fmtMoney(stats.esiEmployee + stats.esiEmployer)}</div>
-                <div className="text-[10px] text-gray-400 mt-1 flex flex-col">
-                  <span>Emp: {fmtMoney(stats.esiEmployee)}</span>
-                  <span>Employer: {fmtMoney(stats.esiEmployer)}</span>
-                </div>
-              </div>
-              <div className="bg-slate-50 border border-gray-100 rounded-lg p-4">
-                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total Gratuity Accrual</div>
-                <div className="text-xl font-bold mt-1 text-indigo-700">{fmtMoney(stats.gratuity)}</div>
-              </div>
-              <div className="bg-slate-50 border border-gray-100 rounded-lg p-4">
-                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">TDS & Professional Tax</div>
-                <div className="text-xl font-bold mt-1 text-rose-700">{fmtMoney(stats.tds + stats.professionalTax)}</div>
-                <div className="text-[10px] text-gray-400 mt-1 flex flex-col">
-                  <span>TDS: {fmtMoney(stats.tds)}</span>
-                  <span>PT: {fmtMoney(stats.professionalTax)}</span>
+                <div className="text-right border-l pl-6">
+                  <div className="text-xs text-gray-400 font-semibold uppercase">Total Cost to Company (CTC)</div>
+                  <div className="text-2xl font-extrabold text-indigo-900">{fmtMoney(stats.ctc)}</div>
                 </div>
               </div>
             </div>
-            
-            <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-2">
-              <span className="text-sm text-gray-500">
-                Sum of all processed, approved, and paid runs for this filtered period.
-              </span>
-              <div className="flex gap-4">
-                <span className="text-sm font-semibold text-gray-700">Total Net Take Home: <strong className="text-gray-900 font-extrabold">{fmtMoney(stats.total)}</strong></span>
-                <span className="text-sm font-semibold text-gray-700">Total Cost to Company (CTC): <strong className="text-indigo-900 font-extrabold">{fmtMoney(stats.ctc)}</strong></span>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Earnings & Allowances Card */}
+              <div className="bg-slate-50 border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3 border-b pb-2 border-gray-200">
+                  <span className="font-bold text-sm text-gray-700">Earnings & Allowances</span>
+                  <span className="font-extrabold text-sm text-gray-900 bg-white px-2 py-0.5 rounded border">{fmtMoney(stats.grossSalary)}</span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Basic Salary</span>
+                    <span className="font-semibold text-gray-800">{fmtMoney(stats.basic)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">House Rent Allowance (HRA)</span>
+                    <span className="font-semibold text-gray-800">{fmtMoney(stats.hra)}</span>
+                  </div>
+                  {stats.flexiAmount > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Flexi Allowance</span>
+                      <span className="font-semibold text-gray-800">{fmtMoney(stats.flexiAmount)}</span>
+                    </div>
+                  )}
+                  {stats.specialAllowance > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Special Allowance</span>
+                      <span className="font-semibold text-gray-800">{fmtMoney(stats.specialAllowance)}</span>
+                    </div>
+                  )}
+                  {stats.overtime > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Overtime</span>
+                      <span className="font-semibold text-gray-800">{fmtMoney(stats.overtime)}</span>
+                    </div>
+                  )}
+                  {stats.broadband > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Broadband Reimbursement</span>
+                      <span className="font-semibold text-gray-800">{fmtMoney(stats.broadband)}</span>
+                    </div>
+                  )}
+                  {stats.petrol > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Petrol Allowance</span>
+                      <span className="font-semibold text-gray-800">{fmtMoney(stats.petrol)}</span>
+                    </div>
+                  )}
+                  {stats.lta > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Leave Travel Allowance (LTA)</span>
+                      <span className="font-semibold text-gray-800">{fmtMoney(stats.lta)}</span>
+                    </div>
+                  )}
+                  {stats.conveyance > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Conveyance Allowance</span>
+                      <span className="font-semibold text-gray-800">{fmtMoney(stats.conveyance)}</span>
+                    </div>
+                  )}
+                  {stats.medicalAllowance > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Medical Allowance</span>
+                      <span className="font-semibold text-gray-800">{fmtMoney(stats.medicalAllowance)}</span>
+                    </div>
+                  )}
+                  {stats.otherEarnings > 0 && (
+                    <div className="flex justify-between border-t pt-1.5 border-dashed border-gray-200">
+                      <span className="text-gray-500 font-medium">Other Allowances</span>
+                      <span className="font-semibold text-gray-800">{fmtMoney(stats.otherEarnings)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Variable Pay & Reimbursements Card */}
+              <div className="bg-slate-50 border border-gray-200 rounded-xl p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-3 border-b pb-2 border-gray-200">
+                    <span className="font-bold text-sm text-gray-700">Variable Pay & Bonuses</span>
+                    <span className="font-extrabold text-sm text-gray-900 bg-white px-2 py-0.5 rounded border">{fmtMoney(stats.totalVariablePay)}</span>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Joining Bonus</span>
+                      <span className="font-semibold text-gray-800">{fmtMoney(stats.joiningBonus)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Loyalty Bonus</span>
+                      <span className="font-semibold text-gray-800">{fmtMoney(stats.loyaltyBonus)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Performance Incentives</span>
+                      <span className="font-semibold text-gray-800">{fmtMoney(stats.incentive)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Special Bonuses</span>
+                      <span className="font-semibold text-gray-800">{fmtMoney(stats.specialBonus)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Arrears / Other Variable</span>
+                      <span className="font-semibold text-gray-800">{fmtMoney(stats.otherAllowanceArrear)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 border-t pt-3 border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-gray-700">Reimbursement Claims</span>
+                    <span className="font-extrabold text-sm text-blue-700 bg-white px-2 py-0.5 rounded border">{fmtMoney(stats.totalReimbursementApproved)}</span>
+                  </div>
+                  <div className="text-[10px] text-gray-400 mt-1">Reimbursements paid alongside payroll salary structures.</div>
+                </div>
+              </div>
+
+              {/* Statutory & Deductions Card */}
+              <div className="bg-slate-50 border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3 border-b pb-2 border-gray-200">
+                  <span className="font-bold text-sm text-gray-700">Statutory & Deductions</span>
+                  <span className="font-extrabold text-xs text-red-600 bg-white px-2 py-0.5 rounded border">Deductions: {fmtMoney(stats.tds + stats.professionalTax + stats.pfEmployee + stats.esiEmployee + stats.lwfEmployee + stats.insuranceEmployee + stats.loanDeduction + stats.advanceDeduction + stats.otherDeductions)}</span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  {/* Provident Fund */}
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">Provident Fund (EPF)</span>
+                    <span className="font-semibold text-gray-800">{fmtMoney(stats.pfEmployee + stats.pfEmployer)}</span>
+                  </div>
+                  <div className="flex justify-between pl-3 text-[10px] text-gray-400 -mt-1">
+                    <span>Employee Share: {fmtMoney(stats.pfEmployee)}</span>
+                    <span>Employer Share: {fmtMoney(stats.pfEmployer)}</span>
+                  </div>
+
+                  {/* ESIC */}
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 font-medium">ESIC Scheme</span>
+                    <span className="font-semibold text-gray-800">{fmtMoney(stats.esiEmployee + stats.esiEmployer)}</span>
+                  </div>
+                  <div className="flex justify-between pl-3 text-[10px] text-gray-400 -mt-1">
+                    <span>Employee Share: {fmtMoney(stats.esiEmployee)}</span>
+                    <span>Employer Share: {fmtMoney(stats.esiEmployer)}</span>
+                  </div>
+
+                  {/* Taxes */}
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">TDS (Income Tax)</span>
+                    <span className="font-semibold text-red-600">-{fmtMoney(stats.tds)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Professional Tax (PT)</span>
+                    <span className="font-semibold text-red-600">-{fmtMoney(stats.professionalTax)}</span>
+                  </div>
+
+                  {/* Gratuity */}
+                  <div className="flex justify-between border-t pt-1.5 border-dashed border-gray-200">
+                    <span className="text-gray-500">Gratuity Accrual</span>
+                    <span className="font-semibold text-gray-800">{fmtMoney(stats.gratuity)}</span>
+                  </div>
+
+                  {/* LWF */}
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Labour Welfare Fund (LWF)</span>
+                    <span className="font-semibold text-gray-800">{fmtMoney(stats.lwfEmployee + stats.lwfEmployer)}</span>
+                  </div>
+
+                  {/* Loans/Advances */}
+                  {(stats.loanDeduction > 0 || stats.advanceDeduction > 0) && (
+                    <div className="flex justify-between border-t pt-1.5 border-dashed border-gray-200">
+                      <span className="text-gray-500 font-medium">Loan/Advance Recovery</span>
+                      <span className="font-semibold text-red-600">-{fmtMoney(stats.loanDeduction + stats.advanceDeduction)}</span>
+                    </div>
+                  )}
+                  {(stats.loanDeduction > 0 || stats.advanceDeduction > 0) && (
+                    <div className="flex justify-between pl-3 text-[10px] text-gray-400 -mt-1">
+                      <span>Loan EMI: {fmtMoney(stats.loanDeduction)}</span>
+                      <span>Salary Advance: {fmtMoney(stats.advanceDeduction)}</span>
+                    </div>
+                  )}
+
+                  {/* Other Deductions */}
+                  {stats.otherDeductions > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Other Deductions</span>
+                      <span className="font-semibold text-red-600">-{fmtMoney(stats.otherDeductions)}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
