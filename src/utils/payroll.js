@@ -1098,6 +1098,7 @@ export const serializeRow = (row, monthWorkingDays) => ({
   paidLeaves: Number(row?.paidLeaves) || 0,
   unpaidLeaves: Number(row?.unpaidLeaves) || 0,
   hoursWorked: Number(row?.hoursWorked) || 0,
+  attendanceSource: row?.attendanceSource || 'default',
   adjustments: {
     overtime: Number(row?.overtime) || 0,
     joiningBonus: Number(row?.joiningBonus) || 0,
