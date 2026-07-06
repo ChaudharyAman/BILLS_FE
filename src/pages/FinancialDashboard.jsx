@@ -7,7 +7,7 @@ import {
 import {
   FaArrowTrendUp, FaCalendarDays, FaFileInvoiceDollar,
   FaReceipt, FaShieldHalved, FaWallet, FaChartLine, FaChartPie,
-  FaBriefcase, FaBook, FaSun, FaMoon,
+  FaBriefcase, FaBook, FaSun, FaMoon, FaEye,
 } from 'react-icons/fa6';
 import api from '../api/axios';
 import { Link } from 'react-router-dom';
@@ -149,6 +149,59 @@ export default function FinancialDashboard() {
 
   const [payrollSummary, setPayrollSummary] = useState(null);
   const [payrollLoadingState, setPayrollLoadingState] = useState(false);
+  const [selectedSourceDetail, setSelectedSourceDetail] = useState(null);
+
+  const handleViewSource = (label) => {
+    if (label === 'Total Revenue') {
+      setSelectedSourceDetail({
+        title: 'Total Revenue',
+        formula: 'Active Invoices + Manual Income in selected period (excludes drafts)',
+        items: data?.revenueItems || [],
+        linkTo: '/invoices',
+        linkLabel: 'Go to Invoices'
+      });
+    } else if (label === 'Total Expenses') {
+      setSelectedSourceDetail({
+        title: 'Total Expenses',
+        formula: 'Expenses (excluding DRAFT and CANCELLED) within selected period',
+        items: data?.expenseItems || [],
+        linkTo: '/expenses',
+        linkLabel: 'Go to Expenses'
+      });
+    } else if (label === 'GST Liability') {
+      setSelectedSourceDetail({
+        title: 'GST Liability',
+        formula: 'Output GST on active Invoices within selected period',
+        items: data?.gstLiabilityItems || [],
+        linkTo: '/reports/gst',
+        linkLabel: 'Go to GST Reports'
+      });
+    } else if (label === 'TDS Deducted') {
+      setSelectedSourceDetail({
+        title: 'TDS Deducted',
+        formula: 'TDS withheld by clients from paid/unpaid Invoices within selected period',
+        items: data?.tdsDeductedItems || [],
+        linkTo: '/reports/tds',
+        linkLabel: 'Go to TDS Summary'
+      });
+    } else if (label === 'TDS Payable') {
+      setSelectedSourceDetail({
+        title: 'TDS Payable',
+        formula: 'TDS deducted by you from vendor Expenses or Payroll runs in selected period',
+        items: data?.tdsPayableItems || [],
+        linkTo: '/reports/tds',
+        linkLabel: 'Go to TDS Summary'
+      });
+    } else if (label === 'Pending POs') {
+      setSelectedSourceDetail({
+        title: 'Pending POs',
+        formula: 'Active Purchase Orders excluding DRAFT, RECEIVED, BILLED, and CANCELLED',
+        items: data?.pendingPOItems || [],
+        linkTo: '/purchase-orders',
+        linkLabel: 'Go to Purchase Orders'
+      });
+    }
+  };
 
   const dashboardBgStyle = {
     background: darkMode
@@ -502,18 +555,26 @@ export default function FinancialDashboard() {
                       <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: k.iconBg }}>
                         <k.icon size={14} style={{ color: k.iconColor }} />
                       </div>
-                      {k.delta && (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg ${
-                          good 
-                            ? (darkMode ? 'bg-emerald-950/50 text-emerald-400' : 'bg-emerald-50 text-emerald-600') 
-                            : (darkMode ? 'bg-rose-950/50 text-rose-400' : 'bg-rose-50 text-rose-500')
-                        }`}>
-                          {k.delta.up ? '↑' : '↓'}{k.delta.pct}%
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {k.delta && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg shrink-0 ${
+                            good 
+                              ? (darkMode ? 'bg-emerald-950/50 text-emerald-400' : 'bg-emerald-50 text-emerald-600') 
+                              : (darkMode ? 'bg-rose-950/50 text-rose-400' : 'bg-rose-50 text-rose-500')
+                          }`}>
+                            {k.delta.up ? '↑' : '↓'}{k.delta.pct}%
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className={`text-base font-extrabold animate-count-up ${darkMode ? 'text-slate-100' : 'text-gray-800'}`}>{k.value}</div>
-                    <div className={`text-[10px] font-bold uppercase tracking-wide mt-0.5 ${darkMode ? 'text-slate-400' : 'text-gray-400'}`}>{k.label}</div>
+                    <div 
+                      onClick={() => handleViewSource(k.label)}
+                      className={`text-[10px] font-bold uppercase tracking-wide mt-0.5 cursor-pointer hover:underline hover:text-indigo-500 transition-colors ${darkMode ? 'text-slate-400' : 'text-gray-400'}`}
+                      title={`Click to view ${k.label} source details`}
+                    >
+                      {k.label}
+                    </div>
                     {k.sub && <div className={`text-[10px] mt-1 ${darkMode ? 'text-slate-500' : 'text-gray-400'}`}>{k.sub}</div>}
                   </div>
                 );
@@ -529,7 +590,26 @@ export default function FinancialDashboard() {
             background: Number(s.netProfit) >= 0 ? 'rgba(16,185,129,0.04)' : 'rgba(244,63,94,0.04)'
           }}>
             <div>
-              <div className="text-[10px] font-bold uppercase text-indigo-400 tracking-widest mb-1">Net Profit After Tax</div>
+              <div className="flex items-center gap-2 mb-1">
+                <span 
+                  onClick={() => {
+                    setSelectedSourceDetail({
+                      title: 'Net Profit After Tax',
+                      formula: 'Total Revenue (Invoices + Manual Income) - Total Expenses',
+                      items: [
+                        ...(data?.revenueItems || []).map(r => ({ ...r, source: `${r.source} (Revenue)` })),
+                        ...(data?.expenseItems || []).map(e => ({ ...e, amount: -e.amount, source: 'Expense (Deduction)' }))
+                      ].sort((a, b) => new Date(b.date) - new Date(a.date)),
+                      linkTo: '/reports/profit-loss',
+                      linkLabel: 'Go to Profit & Loss'
+                    });
+                  }}
+                  className="text-[10px] font-bold uppercase text-indigo-455 tracking-widest cursor-pointer hover:underline hover:text-indigo-400 transition-colors"
+                  title="Click to view Net Profit source details"
+                >
+                  Net Profit After Tax
+                </span>
+              </div>
               <div className={`text-4xl font-black ${Number(s.netProfit) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
                 {fmt(s.netProfit, 2)}
               </div>
@@ -1004,9 +1084,25 @@ export default function FinancialDashboard() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-rise-in" style={{ animationDelay: '150ms' }}>
-              <div className="glass-water-highlight p-5 flex items-center justify-between" style={{ borderLeft: '4px solid #06b6d4', background: 'rgba(6,182,212,0.06)' }}>
+              <div className={`p-5 flex items-center justify-between ${darkMode ? 'border-slate-800/80 bg-slate-900/60' : 'glass-water-highlight'}`} style={{ borderLeft: '4px solid #06b6d4', background: darkMode ? 'rgba(6,182,212,0.03)' : 'rgba(6,182,212,0.06)' }}>
                 <div>
-                  <div className="text-xs font-bold uppercase text-cyan-600 tracking-wider mb-1">Outstanding Receivables</div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span 
+                      onClick={() => {
+                        setSelectedSourceDetail({
+                          title: 'Outstanding Receivables',
+                          formula: 'Cumulative (all-time) unpaid balances on active Invoices',
+                          items: data?.receivableItems || [],
+                          linkTo: '/invoices',
+                          linkLabel: 'Go to Invoices'
+                        });
+                      }}
+                      className="text-xs font-bold uppercase text-cyan-600 tracking-wider cursor-pointer hover:underline hover:text-cyan-500 transition-colors"
+                      title="Click to view Receivables source details"
+                    >
+                      Outstanding Receivables
+                    </span>
+                  </div>
                   <div className="text-3xl font-black text-cyan-700">{fmt(s.receivables, 2)}</div>
                   <div className="text-[11px] text-gray-500 mt-1">Unpaid invoices awaiting payment</div>
                 </div>
@@ -1015,9 +1111,25 @@ export default function FinancialDashboard() {
                 </div>
               </div>
               
-              <div className="glass-water-highlight p-5 flex items-center justify-between" style={{ borderLeft: '4px solid #f59e0b', background: 'rgba(245,158,11,0.06)' }}>
+              <div className={`p-5 flex items-center justify-between ${darkMode ? 'border-slate-800/80 bg-slate-900/60' : 'glass-water-highlight'}`} style={{ borderLeft: '4px solid #f59e0b', background: darkMode ? 'rgba(245,158,11,0.03)' : 'rgba(245,158,11,0.06)' }}>
                 <div>
-                  <div className="text-xs font-bold uppercase text-amber-600 tracking-wider mb-1">Outstanding Payables</div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span 
+                      onClick={() => {
+                        setSelectedSourceDetail({
+                          title: 'Outstanding Payables',
+                          formula: 'Cumulative (all-time) unpaid balances on active Expenses',
+                          items: data?.payableItems || [],
+                          linkTo: '/expenses',
+                          linkLabel: 'Go to Expenses'
+                        });
+                      }}
+                      className="text-xs font-bold uppercase text-amber-600 tracking-wider cursor-pointer hover:underline hover:text-amber-500 transition-colors"
+                      title="Click to view Payables source details"
+                    >
+                      Outstanding Payables
+                    </span>
+                  </div>
                   <div className="text-3xl font-black text-amber-700">{fmt(s.payables, 2)}</div>
                   <div className="text-[11px] text-gray-500 mt-1">Unpaid expenses & bills to be settled</div>
                 </div>
@@ -1027,6 +1139,128 @@ export default function FinancialDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Source Detail Modal */}
+          {selectedSourceDetail && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+              {/* Backdrop */}
+              <div 
+                className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity" 
+                onClick={() => setSelectedSourceDetail(null)}
+              />
+              
+              {/* Modal Content */}
+              <div className={`relative w-full max-w-4xl rounded-2xl border p-6 shadow-2xl transition-all duration-300 transform scale-100 animate-rise-in ${
+                darkMode 
+                  ? 'bg-slate-900/95 border-slate-800 text-slate-100 shadow-slate-950/50' 
+                  : 'bg-white/95 border-slate-200 text-slate-800 shadow-slate-300/40'
+              }`}>
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold tracking-tight">{selectedSourceDetail.title} Source Details</h3>
+                    <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
+                      <strong>Origin / Formula:</strong> {selectedSourceDetail.formula}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedSourceDetail(null)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                      darkMode ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'
+                    }`}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Content table */}
+                <div className={`overflow-hidden rounded-xl border max-h-96 overflow-y-auto ${darkMode ? 'border-slate-800/80 bg-slate-950/40' : 'border-slate-200/80 bg-slate-50/40'} pr-1`}>
+                  {!selectedSourceDetail.items || selectedSourceDetail.items.length === 0 ? (
+                    <div className={`py-12 text-center text-sm ${darkMode ? 'text-slate-400' : 'text-gray-400'}`}>
+                      No contributing transactions found for this period.
+                    </div>
+                  ) : (
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className={`${darkMode ? 'bg-slate-950/80 text-slate-400 border-slate-800' : 'bg-slate-100/80 text-slate-500 border-slate-205'} font-semibold border-b`}>
+                          <th className="p-3">Date</th>
+                          <th className="p-3">Doc #</th>
+                          <th className="p-3">Party</th>
+                          <th className="p-3">Source</th>
+                          <th className="p-3">Status</th>
+                          <th className="p-3 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y ${darkMode ? 'divide-slate-800/60' : 'divide-slate-200/60'}`}>
+                        {selectedSourceDetail.items.map((item, idx) => (
+                          <tr 
+                            key={item.id || idx} 
+                            className={`transition-colors ${
+                              darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-100/50'
+                            }`}
+                          >
+                            <td className="p-3">
+                              {item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '-'}
+                            </td>
+                            <td className="p-3 font-semibold">{item.number}</td>
+                            <td className="p-3 truncate max-w-[150px]">{item.party}</td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                item.source.includes('Invoice')
+                                  ? (darkMode ? 'bg-indigo-950 text-indigo-300' : 'bg-indigo-50 text-indigo-600')
+                                  : item.source.includes('Expense')
+                                    ? (darkMode ? 'bg-pink-950 text-pink-300' : 'bg-pink-50 text-pink-600')
+                                    : (darkMode ? 'bg-amber-950 text-amber-300' : 'bg-amber-50 text-amber-600')
+                              }`}>
+                                {item.source}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                                ['PAID', 'active', 'approved'].includes(item.status)
+                                  ? (darkMode ? 'bg-emerald-950/50 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
+                                  : ['PARTIAL', 'pending', 'pending_approval'].includes(item.status)
+                                    ? (darkMode ? 'bg-amber-950/50 text-amber-400' : 'bg-amber-50 text-amber-600')
+                                    : (darkMode ? 'bg-rose-950/50 text-rose-400' : 'bg-rose-50 text-rose-600')
+                              }`}>
+                                {item.status}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right font-bold">
+                              {fmt(item.amount, 2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="mt-5 flex items-center justify-end gap-3">
+                  {selectedSourceDetail.linkTo && (
+                    <Link 
+                      to={selectedSourceDetail.linkTo} 
+                      onClick={() => setSelectedSourceDetail(null)}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-500/25"
+                    >
+                      {selectedSourceDetail.linkLabel}
+                    </Link>
+                  )}
+                  <button 
+                    onClick={() => setSelectedSourceDetail(null)}
+                    className={`px-4 py-2 border rounded-xl text-xs font-bold transition-all ${
+                      darkMode 
+                        ? 'border-slate-800 text-slate-300 hover:bg-slate-800' 
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
       </div>

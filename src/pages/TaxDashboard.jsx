@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Bar, BarChart, CartesianGrid, Legend, Line, LineChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell
 } from 'recharts';
 import {
   FaArrowTrendUp, FaCalendarDays, FaCircleNotch, FaFileInvoiceDollar,
-  FaReceipt, FaShieldHalved, FaRotateLeft, FaSun, FaMoon
+  FaReceipt, FaShieldHalved, FaRotateLeft, FaSun, FaMoon, FaEye
 } from 'react-icons/fa6';
 import {
   FaCoins, FaPercent, FaInfoCircle, FaArrowRight, FaArrowLeft,
@@ -20,7 +20,7 @@ const fmt = (value, digits = 0) =>
 
 const pct = (value) => `${(Number(value) || 0).toFixed(1)}%`;
 
-const StatCard = ({ title, prefix = '', value, subtext, icon: Icon, tone = 'indigo', delta, darkMode }) => {
+const StatCard = ({ title, prefix = '', value, subtext, icon: Icon, tone = 'indigo', delta, darkMode, onViewSource }) => {
   const ACCENT_COLORS = {
     indigo: {
       border: 'border-t-indigo-500',
@@ -54,13 +54,25 @@ const StatCard = ({ title, prefix = '', value, subtext, icon: Icon, tone = 'indi
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`p-5 rounded-2xl shadow-sm border border-t-4 ${theme.border} hover:shadow-md transition-all duration-300 ${
+      className={`p-5 rounded-2xl shadow-sm border border-t-4 ${theme.border} hover:shadow-md transition-all duration-300 relative group ${
         darkMode ? 'border-slate-800/80 bg-slate-900/60 shadow-md shadow-slate-950/20' : 'border-slate-200/50 bg-white/70 backdrop-blur-md'
       }`}
     >
       <div className="flex justify-between items-start gap-2">
         <div>
-          <div className={`text-xs font-bold uppercase tracking-wider mb-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{title}</div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <div 
+              onClick={onViewSource}
+              className={`text-xs font-bold uppercase tracking-wider transition-colors ${
+                onViewSource 
+                  ? 'cursor-pointer hover:underline hover:text-[#5b61eb] dark:hover:text-[#818cf8]' 
+                  : ''
+              } ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}
+              title={onViewSource ? `Click to view ${title} source details` : undefined}
+            >
+              {title}
+            </div>
+          </div>
           <div className="flex items-baseline gap-0.5">
             {prefix && <span className={`text-lg font-bold ${darkMode ? 'text-slate-500' : 'text-slate-450'}`}>{prefix}</span>}
             <span className={`text-2xl font-black tracking-tight ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>{value}</span>
@@ -125,6 +137,73 @@ export default function TaxDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedSourceDetail, setSelectedSourceDetail] = useState(null);
+
+  const handleViewSource = (label) => {
+    if (label === 'Total invoices') {
+      setSelectedSourceDetail({
+        title: 'Total Invoices',
+        formula: 'Active Invoices issued in this period (excluding drafts and manual incomes)',
+        items: (data?.revenueItems || []).filter(item => item.source === 'Invoice'),
+        linkTo: '/invoices',
+        linkLabel: 'Go to Invoices'
+      });
+    } else if (label === 'Output liability') {
+      setSelectedSourceDetail({
+        title: 'Output Liability',
+        formula: 'Output GST on active Invoices within selected period',
+        items: data?.gstLiabilityItems || [],
+        linkTo: '/reports/gst',
+        linkLabel: 'Go to GST Reports'
+      });
+    } else if (label === 'Input credit') {
+      setSelectedSourceDetail({
+        title: 'Input Credit',
+        formula: 'Input GST paid on active Expenses in selected period (excluding reverse charge)',
+        items: data?.expenseItems || [],
+        linkTo: '/expenses',
+        linkLabel: 'Go to Expenses'
+      });
+    } else if (label === 'Net GST payable') {
+      setSelectedSourceDetail({
+        title: 'Net GST Payable',
+        formula: 'Output GST Liability (₹Output) - GST Input Credit (₹Input). Cannot be negative.',
+        items: [
+          ...(data?.gstLiabilityItems || []).map(g => ({ ...g, source: `${g.source} (Liability)` })),
+          ...(data?.expenseItems || []).map(e => ({ ...e, amount: -e.amount, source: 'Expense ITC (Deduction)' }))
+        ].sort((a,b) => new Date(b.date) - new Date(a.date)),
+        linkTo: '/reports/gst',
+        linkLabel: 'Go to GST Reports'
+      });
+    } else if (label === 'TDS Receivable') {
+      setSelectedSourceDetail({
+        title: 'TDS Receivable',
+        formula: 'TDS withheld by clients from paid/unpaid Invoices within selected period',
+        items: data?.tdsDeductedItems || [],
+        linkTo: '/reports/tds',
+        linkLabel: 'Go to TDS Summary'
+      });
+    } else if (label === 'TDS Payable') {
+      setSelectedSourceDetail({
+        title: 'TDS Payable',
+        formula: 'TDS deducted by you from vendor Expenses or Payroll runs in selected period',
+        items: data?.tdsPayableItems || [],
+        linkTo: '/reports/tds',
+        linkLabel: 'Go to TDS Summary'
+      });
+    } else if (label === 'Combined Tax Outflow') {
+      setSelectedSourceDetail({
+        title: 'Combined Tax Outflow',
+        formula: 'Net GST Payable + TDS Payable (sum of current obligations)',
+        items: [
+          ...(data?.gstLiabilityItems || []).map(g => ({ ...g, source: `${g.source} (GST Liability)` })),
+          ...(data?.tdsPayableItems || []).map(t => ({ ...t, source: `${t.source} (TDS Payable)` }))
+        ].sort((a,b) => new Date(b.date) - new Date(a.date)),
+        linkTo: '/reports/gst',
+        linkLabel: 'Go to GST Reports'
+      });
+    }
+  };
 
 
   useEffect(() => {
@@ -428,6 +507,7 @@ export default function TaxDashboard() {
                 tone="indigo"
                 subtext="Issued items"
                 darkMode={darkMode}
+                onViewSource={() => handleViewSource('Total invoices')}
               />
               <StatCard
                 title="Output liability"
@@ -437,6 +517,7 @@ export default function TaxDashboard() {
                 delta={summary.momOutput}
                 subtext={summary.momOutput !== undefined ? `${summary.momOutput >= 0 ? '↑' : '↓'} ${Math.abs(summary.momOutput).toFixed(1)}% MoM` : '—'}
                 darkMode={darkMode}
+                onViewSource={() => handleViewSource('Output liability')}
               />
               <StatCard
                 title="Input credit"
@@ -446,6 +527,7 @@ export default function TaxDashboard() {
                 delta={summary.momInput}
                 subtext={summary.momInput !== undefined ? `${summary.momInput >= 0 ? '↑' : '↓'} ${Math.abs(summary.momInput).toFixed(1)}% MoM` : '—'}
                 darkMode={darkMode}
+                onViewSource={() => handleViewSource('Input credit')}
               />
               <StatCard
                 title="Net GST payable"
@@ -454,6 +536,7 @@ export default function TaxDashboard() {
                 tone="amber"
                 subtext={gstDueDateString ? `Due ${gstDueDateString}` : 'No dues'}
                 darkMode={darkMode}
+                onViewSource={() => handleViewSource('Net GST payable')}
               />
             </div>
 
@@ -480,7 +563,13 @@ export default function TaxDashboard() {
                   darkMode ? 'bg-slate-950/40 border-slate-800/80 text-slate-200' : 'bg-slate-50 border-slate-200/60 text-slate-800'
                 }`}>
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TDS Receivable (Asset)</span>
+                    <span 
+                      onClick={() => handleViewSource('TDS Receivable')}
+                      className="text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:underline hover:text-emerald-500 transition-colors"
+                      title="Click to view TDS Receivable source details"
+                    >
+                      TDS Receivable (Asset)
+                    </span>
                     <span className={`p-1.5 rounded-lg ${darkMode ? 'bg-emerald-950/40 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
                       <FaArrowLeft size={10} />
                     </span>
@@ -494,7 +583,13 @@ export default function TaxDashboard() {
                   darkMode ? 'bg-slate-950/40 border-slate-800/80 text-slate-200' : 'bg-slate-50 border-slate-200/60 text-slate-800'
                 }`}>
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TDS Payable (Liability)</span>
+                    <span 
+                      onClick={() => handleViewSource('TDS Payable')}
+                      className="text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:underline hover:text-rose-500 transition-colors"
+                      title="Click to view TDS Payable source details"
+                    >
+                      TDS Payable (Liability)
+                    </span>
                     <span className={`p-1.5 rounded-lg ${darkMode ? 'bg-rose-950/40 text-rose-400' : 'bg-rose-50 text-rose-600'}`}>
                       <FaArrowRight size={10} />
                     </span>
@@ -508,7 +603,13 @@ export default function TaxDashboard() {
                   darkMode ? 'bg-slate-950/40 border-slate-800/80 text-slate-200' : 'bg-slate-50 border-slate-200/60 text-slate-800'
                 }`}>
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Combined Tax Outflow</span>
+                    <span 
+                      onClick={() => handleViewSource('Combined Tax Outflow')}
+                      className="text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:underline hover:text-amber-500 transition-colors"
+                      title="Click to view Combined Tax Outflow source details"
+                    >
+                      Combined Tax Outflow
+                    </span>
                     <span className={`p-1.5 rounded-lg ${darkMode ? 'bg-amber-950/40 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>
                       <FaCoins size={10} />
                     </span>
@@ -820,7 +921,127 @@ export default function TaxDashboard() {
               </motion.div>
             </div>
 
+            {/* Source Detail Modal */}
+            {selectedSourceDetail && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+                {/* Backdrop */}
+                <div 
+                  className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity" 
+                  onClick={() => setSelectedSourceDetail(null)}
+                />
+                
+                {/* Modal Content */}
+                <div className={`relative w-full max-w-4xl rounded-2xl border p-6 shadow-2xl transition-all duration-300 transform scale-100 animate-rise-in ${
+                  darkMode 
+                    ? 'bg-slate-900/95 border-slate-800 text-slate-100 shadow-slate-950/50' 
+                    : 'bg-white/95 border-slate-200 text-slate-800 shadow-slate-300/40'
+                }`}>
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-bold tracking-tight">{selectedSourceDetail.title} Source Details</h3>
+                      <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
+                        <strong>Origin / Formula:</strong> {selectedSourceDetail.formula}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => setSelectedSourceDetail(null)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                        darkMode ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'
+                      }`}
+                    >
+                      ✕
+                    </button>
+                  </div>
 
+                  {/* Content table */}
+                  <div className={`overflow-hidden rounded-xl border max-h-96 overflow-y-auto ${darkMode ? 'border-slate-800/80 bg-slate-950/40' : 'border-slate-200/80 bg-slate-50/40'} pr-1`}>
+                    {!selectedSourceDetail.items || selectedSourceDetail.items.length === 0 ? (
+                      <div className={`py-12 text-center text-sm ${darkMode ? 'text-slate-400' : 'text-gray-400'}`}>
+                        No contributing transactions found for this period.
+                      </div>
+                    ) : (
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className={`${darkMode ? 'bg-slate-950/80 text-slate-400 border-slate-800' : 'bg-slate-100/80 text-slate-500 border-slate-200'} font-semibold border-b`}>
+                            <th className="p-3">Date</th>
+                            <th className="p-3">Doc #</th>
+                            <th className="p-3">Party</th>
+                            <th className="p-3">Source</th>
+                            <th className="p-3">Status</th>
+                            <th className="p-3 text-right">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className={`divide-y ${darkMode ? 'divide-slate-800/60' : 'divide-slate-200/60'}`}>
+                          {selectedSourceDetail.items.map((item, idx) => (
+                            <tr 
+                              key={item.id || idx} 
+                              className={`transition-colors ${
+                                darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-100/50'
+                              }`}
+                            >
+                              <td className="p-3">
+                                {item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '-'}
+                              </td>
+                              <td className="p-3 font-semibold">{item.number}</td>
+                              <td className="p-3 truncate max-w-[150px]">{item.party}</td>
+                              <td className="p-3">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  item.source.includes('Invoice')
+                                    ? (darkMode ? 'bg-indigo-950 text-indigo-300' : 'bg-indigo-50 text-indigo-600')
+                                    : item.source.includes('Expense')
+                                      ? (darkMode ? 'bg-pink-950 text-pink-300' : 'bg-pink-50 text-pink-600')
+                                      : (darkMode ? 'bg-amber-950 text-amber-300' : 'bg-amber-50 text-amber-600')
+                                }`}>
+                                  {item.source}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                                  ['PAID', 'active', 'approved'].includes(item.status)
+                                    ? (darkMode ? 'bg-emerald-950/50 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
+                                    : ['PARTIAL', 'pending', 'pending_approval'].includes(item.status)
+                                      ? (darkMode ? 'bg-amber-950/50 text-amber-400' : 'bg-amber-50 text-amber-600')
+                                      : (darkMode ? 'bg-rose-950/50 text-rose-400' : 'bg-rose-50 text-rose-600')
+                                }`}>
+                                  {item.status}
+                                </span>
+                              </td>
+                              <td className="p-3 text-right font-bold">
+                                {fmt(item.amount, 2)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="mt-5 flex items-center justify-end gap-3">
+                    {selectedSourceDetail.linkTo && (
+                      <Link 
+                        to={selectedSourceDetail.linkTo} 
+                        onClick={() => setSelectedSourceDetail(null)}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-500/25"
+                      >
+                        {selectedSourceDetail.linkLabel}
+                      </Link>
+                    )}
+                    <button 
+                      onClick={() => setSelectedSourceDetail(null)}
+                      className={`px-4 py-2 border rounded-xl text-xs font-bold transition-all ${
+                        darkMode 
+                          ? 'border-slate-800 text-slate-300 hover:bg-slate-800' 
+                          : 'border-slate-200 text-slate-650 hover:bg-slate-50'
+                      }`}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
