@@ -121,6 +121,7 @@ const EmployeeRow = ({
 
   const isHourly = employee.payType === 'hourly';
   const paidTooHigh = !isHourly && Number(row?.paidDays) > Number(row?.workingDays || monthWorkingDays);
+  const isExistingDisabled = existingPayroll && existingPayroll.status !== 'draft';
 
   const otherAllowancesTotal = useMemo(() => {
     if (!snapshot?.earnings?.otherEarnings) return 0;
@@ -149,18 +150,18 @@ const EmployeeRow = ({
         : 50);
 
   return (
-    <tr key={employee._id} className={`${existingPayroll ? 'bg-gray-50 text-gray-500 opacity-80' : 'hover:bg-blue-50/40'} align-top`}>
+    <tr key={employee._id} className={`${isExistingDisabled ? 'bg-gray-50 text-gray-500 opacity-80' : 'hover:bg-blue-50/40'} align-top`}>
       <td className="px-4 py-2.5">
         <input
           type="checkbox"
-          checked={existingPayroll ? false : Boolean(selected)}
-          disabled={Boolean(existingPayroll)}
+          checked={isExistingDisabled ? false : Boolean(selected)}
+          disabled={Boolean(isExistingDisabled)}
           onChange={(e) => onToggleSelected(employee._id, e.target.checked)}
           className="w-3.5 h-3.5 disabled:opacity-50"
         />
       </td>
       <td className="px-4 py-2.5 min-w-[220px]">
-        <div className={`font-semibold text-xs ${existingPayroll ? 'text-gray-600' : 'text-gray-900'}`}>{employee.firstName} {employee.lastName}</div>
+        <div className={`font-semibold text-xs ${isExistingDisabled ? 'text-gray-600' : 'text-gray-900'}`}>{employee.firstName} {employee.lastName}</div>
         <div className="text-[10px] text-gray-400 mt-0.5">{employee.employeeId} · {employee.designation || '-'}</div>
         <div className="text-[10px] text-gray-400 mt-0.5 flex flex-col gap-0.5">
           <span>{isHourly ? `Rate: ${fmtMoney(employee.hourlyRate)}/hr` : `CTC ${fmtMoney(snapshot?.master?.monthlyCTC || employee.monthlyCTC)}`}</span>
@@ -176,13 +177,14 @@ const EmployeeRow = ({
                 Payroll {existingPayroll.status}
               </span>
             </div>
-          ) : (
+          ) : null}
+          {!isExistingDisabled && (
             <button
               type="button"
               onClick={() => setBreakdownEmployee(employee)}
               className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left flex items-center gap-1 self-start mt-0.5"
             >
-              <FaCalculator className="w-2 h-2" /> Breakdown & Adjust
+              <FaCalculator className="w-2.5 h-2.5" /> Breakdown & Adjust
             </button>
           )}
           
@@ -215,7 +217,7 @@ const EmployeeRow = ({
               type="number"
               min="0"
               value={row?.hoursWorked ?? 160}
-              disabled={Boolean(existingPayroll)}
+              disabled={isExistingDisabled}
               onChange={(e) => updateRow(employee._id, 'hoursWorked', Number(e.target.value) || 0)}
               className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
             />
@@ -224,9 +226,9 @@ const EmployeeRow = ({
         ) : (
           <div className="flex flex-col gap-1">
             <div className="flex gap-1.5">
-              <input type="number" min="0" value={row?.paidDays ?? 0} disabled={Boolean(existingPayroll)} onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400" />
+              <input type="number" min="0" value={row?.paidDays ?? 0} disabled={isExistingDisabled} onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400" />
               <span className="self-center text-gray-400 text-xs">/</span>
-              <input type="number" min="1" value={row?.workingDays ?? monthWorkingDays} disabled={Boolean(existingPayroll)} onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400" />
+              <input type="number" min="1" value={row?.workingDays ?? monthWorkingDays} disabled={isExistingDisabled} onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400" />
             </div>
             {(() => {
               const source = existingPayroll?.attendanceSource || row?.attendanceSource || 'default';
@@ -268,14 +270,14 @@ const EmployeeRow = ({
       </td>
       <EditableMoneyCell value={snapshot.employerContributions.gratuity} disabled />
       <EditableMoneyCell value={snapshot.employerContributions.lwfEmployer} disabled />
-      <EditableMoneyCell value={row?.joiningBonus} disabled={Boolean(existingPayroll)} onChange={(value) => updateRow(employee._id, 'joiningBonus', value)} />
-      <EditableMoneyCell value={row?.loyaltyBonus} disabled={Boolean(existingPayroll)} onChange={(value) => updateRow(employee._id, 'loyaltyBonus', value)} />
-      <EditableMoneyCell value={row?.incentive} disabled={Boolean(existingPayroll)} onChange={(value) => updateRow(employee._id, 'incentive', value)} />
-      <EditableMoneyCell value={row?.specialBonus} disabled={Boolean(existingPayroll)} onChange={(value) => updateRow(employee._id, 'specialBonus', value)} />
+      <EditableMoneyCell value={row?.joiningBonus} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'joiningBonus', value)} />
+      <EditableMoneyCell value={row?.loyaltyBonus} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'loyaltyBonus', value)} />
+      <EditableMoneyCell value={row?.incentive} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'incentive', value)} />
+      <EditableMoneyCell value={row?.specialBonus} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'specialBonus', value)} />
       <td className="px-4 py-2.5 text-xs font-semibold text-red-600 whitespace-nowrap">
         {fmtMoney(sumNamedAmounts(snapshot.deductions.otherDeductions))}
       </td>
-      <EditableMoneyCell value={row?.tds !== undefined ? row.tds : snapshot.deductions.tds} disabled={Boolean(existingPayroll)} onChange={(value) => updateRow(employee._id, 'tds', value)} />
+      <EditableMoneyCell value={row?.tds !== undefined ? row.tds : snapshot.deductions.tds} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'tds', value)} />
       <td className="px-4 py-2.5 text-xs font-bold whitespace-nowrap">{fmtMoney(snapshot.netSalary)}</td>
     </tr>
   );
@@ -295,6 +297,7 @@ const PayrollProcessing = () => {
   const [monthWorkingDays, setMonthWorkingDays] = useState(DEFAULT_PAYROLL_CONFIG.defaultWorkingDays);
   const [claimsMap, setClaimsMap] = useState(new Map());
   const [existingPayrollsMap, setExistingPayrollsMap] = useState(new Map());
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Integration States
   const [syncingAttendance, setSyncingAttendance] = useState(false);
@@ -394,7 +397,11 @@ const PayrollProcessing = () => {
         setConfig(nextConfig);
         setMonthWorkingDays(nextConfig.defaultWorkingDays || 26);
         setEmployees(activeEmployees);
-        setSelected(Object.fromEntries(activeEmployees.map((emp) => [emp._id, !payrollMap.has(String(emp._id))])));
+        setSelected(Object.fromEntries(activeEmployees.map((emp) => {
+          const payroll = payrollMap.get(String(emp._id));
+          const shouldSelect = !payroll || payroll.status === 'draft';
+          return [emp._id, shouldSelect];
+        })));
         setIsHrmsEnabled(!!settingsRes.data?.integration?.enabled);
 
         const claimsByEmp = new Map();
@@ -437,7 +444,11 @@ const PayrollProcessing = () => {
               basicPercent: existingP.employeeSnapshot?.basicPercent,
               hraPercent: existingP.employeeSnapshot?.hraPercent,
               lopStrategy: existingP.lopStrategy || 'proportional',
-              excludedClaimIds: [],
+              excludedClaimIds: (() => {
+                const allClaims = claimsByEmp.get(emp._id) || [];
+                const includedIds = new Set(existingP.reimbursements?.map(r => String(r._id)) || []);
+                return allClaims.filter(c => !includedIds.has(String(c._id))).map(c => c._id);
+              })(),
               attendanceSource: existingP.attendanceSource || 'default',
             }];
           }
@@ -507,7 +518,7 @@ const PayrollProcessing = () => {
 
     fetchData();
     return () => controller.abort();
-  }, [month, year]);
+  }, [month, year, refreshTrigger]);
 
   useEffect(() => {
     setRows((prev) => Object.fromEntries(
@@ -756,7 +767,11 @@ const PayrollProcessing = () => {
       } else {
         toast.success(saveAsDraft ? 'Payroll saved as draft' : 'Payroll processed successfully');
       }
-      navigate('/payroll');
+      if (!saveAsDraft) {
+        navigate('/payroll');
+      } else {
+        setRefreshTrigger(prev => prev + 1);
+      }
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Failed to process payroll');
