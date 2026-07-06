@@ -586,9 +586,23 @@ const PayrollProcessing = () => {
       setRows((prev) => {
         const next = { ...prev };
         syncedAttendanceList.forEach(record => {
+          let matchedKey = null;
           if (next[record.employeeId]) {
-            next[record.employeeId] = {
-              ...next[record.employeeId],
+            matchedKey = record.employeeId;
+          } else {
+            // Find key in next where the employee's employeeId (code) matches record.employeeNumber
+            const emp = employees.find(e => 
+              String(e.employeeId).trim() === String(record.employeeNumber).trim() ||
+              String(e._id) === String(record.employeeId)
+            );
+            if (emp && next[emp._id]) {
+              matchedKey = emp._id;
+            }
+          }
+
+          if (matchedKey) {
+            next[matchedKey] = {
+              ...next[matchedKey],
               workingDays: record.workingDays,
               paidDays: record.paidDays,
               unpaidLeaves: record.unpaidLeaves,
