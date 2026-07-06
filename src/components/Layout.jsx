@@ -178,6 +178,37 @@ const Layout = ({ children }) => {
     }
   };
 
+  // Collapsible Sidebar Sections
+  const [collapsedSections, setCollapsedSections] = useState({});
+
+  const isSectionActive = (section) => {
+    return section.items.some(item => {
+      if (item.hidden) return false;
+      if (item.isSuperAdmin && !isSuperAdmin) return false;
+      if (item.type === 'collapsible') {
+        return item.children.some(child => isActive(child.path));
+      }
+      return isActive(item.path);
+    });
+  };
+
+  const isSectionCollapsed = (section) => {
+    if (isCollapsed) return false;
+    const stateVal = collapsedSections[section.id];
+    if (stateVal !== undefined) {
+      return stateVal;
+    }
+    return !isSectionActive(section);
+  };
+
+  const toggleSection = (section) => {
+    const isCurrentlyCollapsed = isSectionCollapsed(section);
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section.id]: !isCurrentlyCollapsed
+    }));
+  };
+
   const linkCls = (path) =>
     `flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-[9px] px-[18px]'} py-[5px] text-[12px] font-medium transition-all duration-200 cursor-pointer w-full text-left relative group
     ${isActive(path)
@@ -389,16 +420,27 @@ const Layout = ({ children }) => {
 
             if (!hasVisibleItems) return null;
 
+            const isSectionCollapsedState = isSectionCollapsed(section);
+
             return (
               <div key={section.id} className="mb-2">
                 {!isCollapsed ? (
-                  <div className="px-[18px] pt-[10px] pb-[4px] text-[9px] font-bold text-slate-400/80 tracking-wider uppercase">
-                    {section.title}
-                  </div>
+                  <button
+                    onClick={() => toggleSection(section)}
+                    className="w-full flex items-center justify-between px-[18px] pt-[10px] pb-[6px] text-[9px] font-bold text-slate-400/80 hover:text-white tracking-wider uppercase transition-colors duration-150 focus:outline-none text-left"
+                  >
+                    <span>{section.title}</span>
+                    <FaChevronDown 
+                      size={8} 
+                      className={`transform transition-transform duration-250 ${
+                        isSectionCollapsedState ? '-rotate-90 text-slate-500' : 'text-slate-400'
+                      }`} 
+                    />
+                  </button>
                 ) : (
                   <hr className="border-t border-white/5 my-3 mx-4" />
                 )}
-                {section.items.map(item => renderSidebarItem(item))}
+                {!isSectionCollapsedState && section.items.map(item => renderSidebarItem(item))}
               </div>
             );
           })}
