@@ -7,6 +7,7 @@ import {
 import {
   FaArrowTrendUp, FaCalendarDays, FaFileInvoiceDollar,
   FaReceipt, FaShieldHalved, FaWallet, FaChartLine, FaChartPie,
+  FaBriefcase, FaBook,
 } from 'react-icons/fa6';
 import api from '../api/axios';
 import { Link } from 'react-router-dom';
@@ -242,8 +243,6 @@ export default function FinancialDashboard() {
   const KPIs = [
     { label: 'Total Revenue', value: fmt(s.totalRevenue), icon: FaArrowTrendUp, iconBg: 'rgba(16,185,129,0.12)', iconColor: '#10b981', sub: `Tax: ${fmt(s.gstLiability)}`, delta: revDelta, deltaInvert: false },
     { label: 'Total Expenses', value: fmt(s.totalExpenses), icon: FaReceipt, iconBg: 'rgba(236,72,153,0.12)', iconColor: '#ec4899', sub: `Credit: ${fmt(s.gstCredit)}`, delta: expDelta, deltaInvert: true },
-    { label: 'Receivable', value: fmt(s.receivables, 2), icon: FaWallet, iconBg: 'rgba(6,182,212,0.12)', iconColor: '#06b6d4', sub: 'Unpaid invoices', delta: null },
-    { label: 'Payable', value: fmt(s.payables, 2), icon: FaFileInvoiceDollar, iconBg: 'rgba(245,158,11,0.12)', iconColor: '#f59e0b', sub: 'Unpaid expenses', delta: null },
     { label: 'GST Liability', value: fmt(s.gstLiability), icon: FaShieldHalved, iconBg: 'rgba(139,92,246,0.12)', iconColor: '#8b5cf6', sub: `Net: ${fmt(s.netGstPayable)}`, delta: null },
     { label: 'TDS Deducted', value: fmt(s.tdsDeducted), icon: FaChartLine, iconBg: 'rgba(99,102,241,0.12)', iconColor: '#6366f1', sub: null, delta: null },
     { label: 'TDS Payable', value: fmt(s.tdsPayable), icon: FaChartPie, iconBg: 'rgba(236,72,153,0.12)', iconColor: '#ec4899', sub: null, delta: null },
@@ -297,8 +296,8 @@ export default function FinancialDashboard() {
             </div>
           )}
 
-          {/* ── 8 KPI Cards ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-5">
+          {/* ── 6 KPI Cards ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
             {KPIs.map((k, i) => {
               const good = k.delta ? (k.deltaInvert ? !k.delta.up : k.delta.up) : null;
               return (
@@ -320,6 +319,7 @@ export default function FinancialDashboard() {
               );
             })}
           </div>
+
 
           {/* Net Profit highlight bar */}
           <div className="glass-water-highlight p-5 mb-5 flex flex-col sm:flex-row items-center justify-between gap-4 animate-rise-in" style={{ animationDelay: '420ms' }}>
@@ -364,19 +364,31 @@ export default function FinancialDashboard() {
           )}
 
           {/* ── Tabs ── */}
-          <div className="flex gap-2 mb-5">
+          <div className="flex gap-2 mb-5 w-full">
             {[
-              { id: 'overview', label: '📊 Overview' },
-              { id: 'gst', label: '🧾 GST' },
-              { id: 'ledger', label: '📋 Ledger' },
-              { id: 'analytics', label: '📈 Analytics' },
-              { id: 'payroll', label: '💼 Payroll' }
-            ].map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${tab === t.id ? 'bg-indigo-500 text-white shadow-md shadow-indigo-200' : 'glass-water-pill text-gray-500 hover:text-gray-800'}`}>
-                {t.label}
-              </button>
-            ))}
+              { id: 'overview', label: 'Overview', icon: FaChartPie },
+              { id: 'gst', label: 'GST', icon: FaReceipt },
+              { id: 'ledger', label: 'Ledger', icon: FaBook },
+              { id: 'analytics', label: 'Analytics', icon: FaChartLine },
+              { id: 'payroll', label: 'Payroll', icon: FaBriefcase }
+            ].map(t => {
+              const Icon = t.icon;
+              const isActive = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`flex-1 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                    isActive
+                      ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 scale-[1.02]'
+                      : 'glass-water-pill text-gray-500 hover:text-gray-800 hover:bg-white/40'
+                  }`}
+                >
+                  <Icon size={12} className={isActive ? 'text-white' : 'text-gray-400'} />
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* ══ OVERVIEW ══ */}
@@ -778,6 +790,38 @@ export default function FinancialDashboard() {
               )}
             </div>
           )}
+
+          {/* ── Outstanding Receivables & Payables (Cumulative) at bottom of page ── */}
+          <div className="mt-8 border-t border-white/40 pt-6">
+            <div className="mb-3.5 flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs font-semibold text-amber-700 bg-amber-500/10 border border-amber-500/20 animate-rise-in font-sans" style={{ animationDelay: '100ms' }}>
+              <span>⚠️</span>
+              <span><strong>Note on Outstanding Balances:</strong> Receivables and Payables are cumulative, all-time outstanding figures and are not filtered by the selected date range.</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-rise-in" style={{ animationDelay: '150ms' }}>
+              <div className="glass-water-highlight p-5 flex items-center justify-between" style={{ borderLeft: '4px solid #06b6d4', background: 'rgba(6,182,212,0.06)' }}>
+                <div>
+                  <div className="text-xs font-bold uppercase text-cyan-600 tracking-wider mb-1">Outstanding Receivables</div>
+                  <div className="text-3xl font-black text-cyan-700">{fmt(s.receivables, 2)}</div>
+                  <div className="text-[11px] text-gray-500 mt-1">Unpaid invoices awaiting payment</div>
+                </div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-cyan-100 text-cyan-600 shadow-sm border border-cyan-200">
+                  <FaWallet size={20} />
+                </div>
+              </div>
+              
+              <div className="glass-water-highlight p-5 flex items-center justify-between" style={{ borderLeft: '4px solid #f59e0b', background: 'rgba(245,158,11,0.06)' }}>
+                <div>
+                  <div className="text-xs font-bold uppercase text-amber-600 tracking-wider mb-1">Outstanding Payables</div>
+                  <div className="text-3xl font-black text-amber-700">{fmt(s.payables, 2)}</div>
+                  <div className="text-[11px] text-gray-500 mt-1">Unpaid expenses & bills to be settled</div>
+                </div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-amber-100 text-amber-600 shadow-sm border border-amber-200">
+                  <FaFileInvoiceDollar size={20} />
+                </div>
+              </div>
+            </div>
+          </div>
         </>
       )}
     </div>
