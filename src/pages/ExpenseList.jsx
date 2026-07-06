@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { FaPlus, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaFilePdf } from 'react-icons/fa';
@@ -16,11 +16,18 @@ const ExpenseList = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter] = useState(initialCategory);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [isPdfScannerOpen, setIsPdfScannerOpen] = useState(false);
+
+  // Filters & Sorting State
+  const [statusFilter, setStatusFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [sortBy, setSortBy] = useState('date');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   const userStr = localStorage.getItem('user');
   let userObj = null;
@@ -108,17 +115,97 @@ const ExpenseList = () => {
     }
   };
 
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+    setPage(1);
+  };
+
+  const renderSortIcon = (field) => {
+    if (sortBy !== field) {
+      return <span className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity ml-1.5 text-xs">↕</span>;
+    }
+    return sortOrder === 'asc' 
+      ? <span className="text-blue-600 ml-1.5 text-xs font-bold">↑</span> 
+      : <span className="text-blue-600 ml-1.5 text-xs font-bold">↓</span>;
+  };
+
   const toggleSelect = (id) =>
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
 
-  const filteredItems = combinedItems.filter(item => {
-    if (filterType === 'all') return true;
-    return item.type === filterType;
-  });
+  const filteredItems = useMemo(() => {
+    return combinedItems.filter(item => {
+      // 1. Type tab filter
+      if (filterType !== 'all' && item.type !== filterType) return false;
 
-  const totalRecords = filteredItems.length;
+      // 2. Status filter
+      if (statusFilter) {
+        const itemStatusUpper = String(item.status || '').toUpperCase();
+        const filterUpper = statusFilter.toUpperCase();
+        if (itemStatusUpper !== filterUpper) {
+          // Allow loose match for unpaid/processed/approved or sent/unpaid
+          if (filterUpper === 'UNPAID' && (itemStatusUpper === 'PROCESSED' || itemStatusUpper === 'APPROVED' || itemStatusUpper === 'SENT')) {
+            // matches
+          } else {
+            return false;
+          }
+        }
+      }
+
+      // 3. Date range filter
+      if (startDate) {
+        const itemDate = new Date(item.date);
+        const start = new Date(startDate);
+        if (itemDate < start) return false;
+      }
+      if (endDate) {
+        const itemDate = new Date(item.date);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (itemDate > end) return false;
+      }
+
+      return true;
+    });
+  }, [combinedItems, filterType, statusFilter, startDate, endDate]);
+
+  const sortedItems = useMemo(() => {
+    return [...filteredItems].sort((a, b) => {
+      let valA, valB;
+      if (sortBy === 'date') {
+        valA = new Date(a.date).getTime();
+        valB = new Date(b.date).getTime();
+      } else if (sortBy === 'amount') {
+        valA = Number(a.amount) || 0;
+        valB = Number(b.amount) || 0;
+      } else if (sortBy === 'number') {
+        valA = String(a.number || '');
+        valB = String(b.number || '');
+      } else if (sortBy === 'partyName') {
+        valA = String(a.partyName || '');
+        valB = String(b.partyName || '');
+      } else if (sortBy === 'status') {
+        valA = String(a.status || '');
+        valB = String(b.status || '');
+      } else {
+        // Fallback: createdAt
+        valA = new Date(a.rawItem?.createdAt || a.date).getTime();
+        valB = new Date(b.rawItem?.createdAt || b.date).getTime();
+      }
+
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredItems, sortBy, sortOrder]);
+
+  const totalRecords = sortedItems.length;
   const totalPages = Math.ceil(totalRecords / rowsPerPage) || 1;
-  const displayedItems = filteredItems.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+  const displayedItems = sortedItems.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   const toggleAll = () => {
     const selectables = displayedItems.filter(x => x.type !== 'salary');
@@ -258,12 +345,93 @@ const ExpenseList = () => {
 
       {/* Table Container */}
       <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-          <input type="text" placeholder="Search expenses and payroll..."
-            className="w-full max-w-sm pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setPage(1); }} />
-          <div className="text-sm text-gray-500 ml-4">
-            Showing {displayedItems.length} of {totalRecords}
+        {/* Table Toolbar & Filters */}
+        <div className="p-5 border-b border-gray-200 bg-gray-50/50 flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="relative max-w-xs w-full">
+              <input 
+                type="text" 
+                placeholder="Search expenses and payroll..." 
+                className="w-full pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm font-sans"
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+              />
+            </div>
+            <div className="text-sm text-gray-500 font-medium">
+              Showing {displayedItems.length} of {totalRecords} results
+            </div>
+          </div>
+
+          {/* Filters Bar */}
+          <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-sm">
+            <div className="flex flex-col min-w-[140px]">
+              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Status</span>
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+              >
+                <option value="">All Statuses</option>
+                <option value="PAID">PAID / Paid</option>
+                <option value="UNPAID">UNPAID / Dues</option>
+                <option value="CANCELLED">CANCELLED</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col min-w-[130px]">
+              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">From Date</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+              />
+            </div>
+
+            <div className="flex flex-col min-w-[130px]">
+              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">To Date</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+              />
+            </div>
+
+            <div className="flex flex-col min-w-[160px]">
+              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Sort By</span>
+              <select
+                value={`${sortBy}-${sortOrder}`}
+                onChange={(e) => {
+                  const [field, order] = e.target.value.split('-');
+                  setSortBy(field);
+                  setSortOrder(order);
+                  setPage(1);
+                }}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+              >
+                <option value="date-desc">Date (Latest first)</option>
+                <option value="date-asc">Date (Oldest first)</option>
+                <option value="amount-desc">Amount (Highest first)</option>
+                <option value="amount-asc">Amount (Lowest first)</option>
+                <option value="number-desc">ID / Number (Z-A)</option>
+                <option value="number-asc">ID / Number (A-Z)</option>
+              </select>
+            </div>
+
+            <button
+              onClick={() => {
+                setStatusFilter('');
+                setStartDate('');
+                setEndDate('');
+                setSortBy('date');
+                setSortOrder('desc');
+                setPage(1);
+              }}
+              className="mt-5 border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-lg px-4 py-1.5 transition-colors font-medium self-end font-sans"
+            >
+              Reset
+            </button>
           </div>
         </div>
 
@@ -271,41 +439,85 @@ const ExpenseList = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 w-12 text-center">
+                <th className="px-4 py-2.5 w-12 text-center">
                   <button onClick={toggleAll} className="text-gray-400 hover:text-gray-600">
                     {selectedIds.length === displayedItems.filter(x => x.type !== 'salary').length && displayedItems.filter(x => x.type !== 'salary').length > 0 ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
                   </button>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Number / ID</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vendor / Employee</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ref Client / Method</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                <th 
+                  onClick={() => handleSort('date')}
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Date {renderSortIcon('date')}
+                  </div>
+                </th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">
+                  Type
+                </th>
+                <th 
+                  onClick={() => handleSort('number')}
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Number / ID {renderSortIcon('number')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('partyName')}
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Vendor / Employee {renderSortIcon('partyName')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('clientOrMethod')}
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Ref Client / Method {renderSortIcon('clientOrMethod')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('status')}
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Status {renderSortIcon('status')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('amount')}
+                  className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center justify-end">
+                    Amount {renderSortIcon('amount')}
+                  </div>
+                </th>
+                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="bg-white border-b border-gray-100">
-                    <td className="px-6 py-4 text-center"><Skeleton width="18px" height="18px" className="mx-auto" /></td>
-                    <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="60px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="85px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="140px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="100px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="80px" height="24px" className="rounded-full" /></td>
-                    <td className="px-6 py-4 text-right"><Skeleton width="80px" height="20px" className="ml-auto" /></td>
-                    <td className="px-6 py-4 text-center"><Skeleton width="100px" height="20px" className="mx-auto" /></td>
+                    <td className="px-4 py-2 text-center"><Skeleton width="18px" height="16px" className="mx-auto" /></td>
+                    <td className="px-4 py-2"><Skeleton width="80px" height="16px" /></td>
+                    <td className="px-4 py-2"><Skeleton width="60px" height="16px" /></td>
+                    <td className="px-4 py-2"><Skeleton width="85px" height="16px" /></td>
+                    <td className="px-4 py-2"><Skeleton width="140px" height="16px" /></td>
+                    <td className="px-4 py-2"><Skeleton width="100px" height="16px" /></td>
+                    <td className="px-4 py-2"><Skeleton width="80px" height="20px" className="rounded-full" /></td>
+                    <td className="px-4 py-2 text-right"><Skeleton width="80px" height="16px" className="ml-auto" /></td>
+                    <td className="px-4 py-2 text-center"><Skeleton width="100px" height="16px" className="mx-auto" /></td>
                   </tr>
                 ))
               ) : displayedItems.length === 0 ? (
-                <tr><td colSpan="9" className="px-6 py-12 text-center text-gray-500 text-sm">No expenses found.</td></tr>
+                <tr><td colSpan="9" className="px-4 py-8 text-center text-gray-500 text-xs">No expenses found.</td></tr>
               ) : displayedItems.map(item => (
                 <tr key={`${item.type}-${item.id}`} className="hover:bg-blue-50/50 transition-colors">
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 py-2 text-center">
                     {item.type !== 'salary' ? (
                       <button onClick={() => toggleSelect(item.id)} className={selectedIds.includes(item.id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}>
                         {selectedIds.includes(item.id) ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
@@ -314,11 +526,11 @@ const ExpenseList = () => {
                       <span className="text-gray-200">—</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
                     {item.type === 'salary' ? item.periodStr : fmtDate(item.date)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase border ${
                       item.type === 'vendor' ? 'bg-blue-50 text-blue-700 border-blue-100' :
                       item.type === 'category' ? 'bg-purple-50 text-purple-700 border-purple-100' :
                       'bg-emerald-50 text-emerald-700 border-emerald-100'
@@ -326,23 +538,23 @@ const ExpenseList = () => {
                       {item.type}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-2 whitespace-nowrap">
                     {item.type !== 'salary' ? (
-                      <Link to={`/expenses/edit/${item.id}`} className="text-blue-600 font-medium hover:text-blue-800 hover:underline">
+                      <Link to={`/expenses/edit/${item.id}`} className="text-blue-600 font-semibold text-xs hover:text-blue-800 hover:underline">
                         {item.number}
                       </Link>
                     ) : (
-                      <span className="text-gray-500 font-mono text-sm">{item.number}</span>
+                      <span className="text-gray-500 font-mono text-xs">{item.number}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{item.partyName}</div>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <div className="text-xs font-semibold text-gray-900">{item.partyName}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
                     {item.clientOrMethod}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize border ${
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
                       item.type === 'salary'
                         ? (PAYROLL_STATUS_STYLES[item.status.toLowerCase()] || PAYROLL_STATUS_STYLES.draft)
                         : (STATUS_STYLES[item.status] || STATUS_STYLES.DRAFT)
@@ -350,14 +562,14 @@ const ExpenseList = () => {
                       {item.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
+                  <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900">
                     ₹{fmt(item.amount)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                  <td className="px-4 py-2 whitespace-nowrap text-center text-xs">
                     <div className="flex justify-center gap-3 items-center">
                       {item.type !== 'salary' ? (
                         <>
-                          <Link to={`/expenses/edit/${item.id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={17} /></Link>
+                          <Link to={`/expenses/edit/${item.id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={16} /></Link>
                           <button 
                             onClick={() => {
                               if (!isPro) return setShowPremiumModal(true);
@@ -366,7 +578,7 @@ const ExpenseList = () => {
                             className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`} 
                             title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
                           >
-                            <FaTrash size={17} />
+                            <FaTrash size={16} />
                           </button>
                         </>
                       ) : (
@@ -374,10 +586,10 @@ const ExpenseList = () => {
                           to={`/payroll/${item.id}/payslip`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold hover:underline"
+                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-semibold hover:underline"
                           title="View Payslip"
                         >
-                          <FaEye size={16} /> View Payslip
+                          <FaEye size={15} /> View Payslip
                         </Link>
                       )}
                     </div>
