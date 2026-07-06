@@ -12,13 +12,21 @@ const IncomeList = () => {
   const [incomes, setIncomes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [isPdfScannerOpen, setIsPdfScannerOpen] = useState(false);
+
+  // Filters State
+  const [statusFilter, setStatusFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   const userStr = localStorage.getItem('user');
   let userObj = null;
@@ -30,12 +38,23 @@ const IncomeList = () => {
       fetchIncomes();
     }, 300);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, page, rowsPerPage]);
+  }, [searchTerm, page, rowsPerPage, statusFilter, typeFilter, startDate, endDate, sortBy, sortOrder]);
 
   const fetchIncomes = async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/incomes?page=${page}&limit=${rowsPerPage}&search=${encodeURIComponent(searchTerm)}`);
+      const queryParams = new URLSearchParams({
+        page,
+        limit: rowsPerPage,
+        search: searchTerm,
+        status: statusFilter,
+        sourceType: typeFilter,
+        startDate,
+        endDate,
+        sortBy,
+        sortOrder,
+      }).toString();
+      const res = await api.get(`/incomes?${queryParams}`);
       setIncomes(res.data.data || []);
       setTotalPages(res.data.totalPages || 1);
       setTotalRecords(res.data.total || 0);
@@ -44,6 +63,25 @@ const IncomeList = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+    setPage(1);
+  };
+
+  const renderSortIcon = (field) => {
+    if (sortBy !== field) {
+      return <span className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity ml-1.5 text-xs">↕</span>;
+    }
+    return sortOrder === 'asc' 
+      ? <span className="text-blue-600 ml-1.5 text-xs font-bold">↑</span> 
+      : <span className="text-blue-600 ml-1.5 text-xs font-bold">↓</span>;
   };
 
   const handleDelete = async (id) => {
@@ -96,6 +134,12 @@ const IncomeList = () => {
     const params = new URLSearchParams({
       all: 'true',
       search: searchTerm,
+      status: statusFilter,
+      sourceType: typeFilter,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder,
     });
     const res = await api.get(`/incomes?${params.toString()}`);
     const exportIncomes = res.data.data || [];
@@ -165,13 +209,108 @@ const IncomeList = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-          <input type="text" placeholder="Search incomes..."
-            className="w-full max-w-sm pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setPage(1); }} />
-          <div className="text-sm text-gray-500 ml-4">Showing {displayed.length} of {totalRecords}</div>
+        {/* Table Toolbar & Filters */}
+        <div className="p-5 border-b border-gray-200 bg-gray-50/50 flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="relative max-w-xs w-full">
+              <input 
+                type="text" 
+                placeholder="Search incomes..." 
+                className="w-full pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm font-sans"
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+              />
+            </div>
+            <div className="text-sm text-gray-500 font-medium">
+              Showing {displayed.length} of {totalRecords} results
+            </div>
+          </div>
+
+          {/* Filters Bar */}
+          <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-sm">
+            <div className="flex flex-col min-w-[140px]">
+              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Status</span>
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+              >
+                <option value="">All Statuses</option>
+                <option value="PAID">PAID</option>
+                <option value="PARTIAL">PARTIAL</option>
+                <option value="UNPAID">UNPAID</option>
+                <option value="CANCELLED">CANCELLED</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col min-w-[150px]">
+              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Source Type</span>
+              <select
+                value={typeFilter}
+                onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+              >
+                <option value="">All Sources</option>
+                <option value="manual">Manual Entry</option>
+                <option value="invoice">Invoice Linked</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col min-w-[130px]">
+              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">From Date</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+              />
+            </div>
+
+            <div className="flex flex-col min-w-[130px]">
+              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">To Date</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+              />
+            </div>
+
+            <div className="flex flex-col min-w-[160px]">
+              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Sort By</span>
+              <select
+                value={`${sortBy}-${sortOrder}`}
+                onChange={(e) => {
+                  const [field, order] = e.target.value.split('-');
+                  setSortBy(field);
+                  setSortOrder(order);
+                  setPage(1);
+                }}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+              >
+                <option value="createdAt-desc">Created Date (Latest first)</option>
+                <option value="createdAt-asc">Created Date (Oldest first)</option>
+                <option value="date-desc">Income Date (Latest first)</option>
+                <option value="date-asc">Income Date (Oldest first)</option>
+              </select>
+            </div>
+
+            <button
+              onClick={() => {
+                setStatusFilter('');
+                setTypeFilter('');
+                setStartDate('');
+                setEndDate('');
+                setSortBy('createdAt');
+                setSortOrder('desc');
+                setPage(1);
+              }}
+              className="mt-5 border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-lg px-4 py-1.5 transition-colors font-medium self-end font-sans"
+            >
+              Reset
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -183,14 +322,65 @@ const IncomeList = () => {
                     {selectedIds.length === incomes.length && incomes.length > 0 ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
                   </button>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Number</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Party</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Reference Client</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Source</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                <th 
+                  onClick={() => handleSort('date')}
+                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Date {renderSortIcon('date')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('incomeNumber')}
+                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Number {renderSortIcon('incomeNumber')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('vendor.name')}
+                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Party {renderSortIcon('vendor.name')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('client.name')}
+                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Reference Client {renderSortIcon('client.name')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('sourceType')}
+                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Source {renderSortIcon('sourceType')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('status')}
+                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center">
+                    Status {renderSortIcon('status')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('grandTotal')}
+                  className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                >
+                  <div className="flex items-center justify-end">
+                    Amount {renderSortIcon('grandTotal')}
+                  </div>
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider select-none">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">

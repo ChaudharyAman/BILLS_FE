@@ -285,6 +285,8 @@ function App() {
                     <Route path="/projects" element={<ProjectManager />} />
                     <Route path="/projects/dashboard" element={<ProjectDashboard />} />
 
+                    <Route path="/reports" element={<Navigate to="/dashboard" replace />} />
+
                     {/* Reports */}
                     <Route path="/reports/gst" element={<GstReport />} />
                     <Route path="/reports/tds" element={<TdsSummary />} />

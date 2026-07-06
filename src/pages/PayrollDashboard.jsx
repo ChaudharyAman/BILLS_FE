@@ -240,6 +240,35 @@ const PayrollDashboard = () => {
     let approved = 0;
     let paid = 0;
 
+    let basic = 0;
+    let hra = 0;
+    let flexiAmount = 0;
+    let specialAllowance = 0;
+    let overtime = 0;
+    let broadband = 0;
+    let petrol = 0;
+    let lta = 0;
+    let conveyance = 0;
+    let medicalAllowance = 0;
+    let otherEarnings = 0;
+
+    let totalVariablePay = 0;
+    let joiningBonus = 0;
+    let loyaltyBonus = 0;
+    let incentive = 0;
+    let specialBonus = 0;
+    let otherAllowanceArrear = 0;
+
+    let totalReimbursementApproved = 0;
+
+    let lwfEmployee = 0;
+    let lwfEmployer = 0;
+    let insuranceEmployee = 0;
+    let insuranceEmployer = 0;
+    let loanDeduction = 0;
+    let advanceDeduction = 0;
+    let otherDeductions = 0;
+
     filteredPayrolls.forEach(p => {
       netSalary += Number(p.netSalary) || 0;
       
@@ -248,12 +277,47 @@ const PayrollDashboard = () => {
       esiEmployee += Number(p.deductions?.esiEmployee || p.deductions?.esi || 0);
       professionalTax += Number(p.deductions?.professionalTax || 0);
       tds += Number(p.deductions?.tds || 0);
+      lwfEmployee += Number(p.deductions?.lwfEmployee || 0);
+      insuranceEmployee += Number(p.deductions?.insuranceEmployee || 0);
+      loanDeduction += Number(p.deductions?.loanDeduction || 0);
+      advanceDeduction += Number(p.deductions?.advanceDeduction || 0);
       
+      const otherDeductionsList = p.deductions?.otherDeductions || [];
+      otherDeductions += otherDeductionsList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
       // Extract from employerContributions
       pfEmployer += Number(p.employerContributions?.pfEmployer || 0);
       esiEmployer += Number(p.employerContributions?.esiEmployer || 0);
       gratuity += Number(p.employerContributions?.gratuity || 0);
-      
+      lwfEmployer += Number(p.employerContributions?.lwfEmployer || 0);
+      insuranceEmployer += Number(p.employerContributions?.insuranceEmployer || 0);
+
+      // Extract from earnings
+      basic += Number(p.earnings?.basic || 0);
+      hra += Number(p.earnings?.hra || 0);
+      flexiAmount += Number(p.earnings?.flexiAmount || p.earnings?.flexi || 0);
+      specialAllowance += Number(p.earnings?.specialAllowance || 0);
+      overtime += Number(p.earnings?.overtime || 0);
+      broadband += Number(p.earnings?.broadband || 0);
+      petrol += Number(p.earnings?.petrol || 0);
+      lta += Number(p.earnings?.lta || 0);
+      conveyance += Number(p.earnings?.conveyance || 0);
+      medicalAllowance += Number(p.earnings?.medicalAllowance || 0);
+
+      const otherEarningsList = p.earnings?.otherEarnings || [];
+      otherEarnings += otherEarningsList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+      // Extract from variablePay
+      joiningBonus += Number(p.variablePay?.joiningBonus || 0);
+      loyaltyBonus += Number(p.variablePay?.loyaltyBonus || 0);
+      incentive += Number(p.variablePay?.incentive || 0);
+      specialBonus += Number(p.variablePay?.specialBonus || 0);
+      otherAllowanceArrear += Number(p.variablePay?.otherAllowanceArrear || 0);
+      totalVariablePay += Number(p.variablePay?.totalVariablePay || 0);
+
+      // Reimbursements
+      totalReimbursementApproved += Number(p.totalReimbursementApproved || 0);
+
       // Gross & CTC
       grossSalary += Number(p.earnings?.totalEarnings || p.grossSalary || 0);
       ctc += Number(p.employerContributions?.grossTotalSalary || p.ctc || p.employerContributions?.ctc || 0);
@@ -277,6 +341,35 @@ const PayrollDashboard = () => {
       processed,
       approved,
       paid,
+
+      basic,
+      hra,
+      flexiAmount,
+      specialAllowance,
+      overtime,
+      broadband,
+      petrol,
+      lta,
+      conveyance,
+      medicalAllowance,
+      otherEarnings,
+
+      totalVariablePay,
+      joiningBonus,
+      loyaltyBonus,
+      incentive,
+      specialBonus,
+      otherAllowanceArrear,
+
+      totalReimbursementApproved,
+
+      lwfEmployee,
+      lwfEmployer,
+      insuranceEmployee,
+      insuranceEmployer,
+      loanDeduction,
+      advanceDeduction,
+      otherDeductions,
     };
   }, [filteredPayrolls]);
 

@@ -48,7 +48,7 @@ const InvoiceList = () => {
   }, []);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);

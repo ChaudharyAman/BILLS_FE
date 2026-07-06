@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell,
   ComposedChart, Legend, Line, Pie, PieChart,
@@ -7,12 +7,21 @@ import {
 import {
   FaArrowTrendUp, FaCalendarDays, FaFileInvoiceDollar,
   FaReceipt, FaShieldHalved, FaWallet, FaChartLine, FaChartPie,
+  FaBriefcase, FaBook, FaSun, FaMoon, FaEye,
 } from 'react-icons/fa6';
 import api from '../api/axios';
 import { Link } from 'react-router-dom';
 
 const fmt = (v, d = 0) =>
   `₹${(Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: d, maximumFractionDigits: d })}`;
+
+const formatYAxis = (v) => {
+  if (v === 0) return '0';
+  if (Math.abs(v) >= 10000000) return `${(v / 10000000).toFixed(1)}Cr`;
+  if (Math.abs(v) >= 100000) return `${(v / 100000).toFixed(1)}L`;
+  if (Math.abs(v) >= 1000) return `${(v / 1000).toFixed(1)}k`;
+  return String(v);
+};
 
 const localDate = (d) => {
   const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dy = String(d.getDate()).padStart(2, '0');
@@ -30,24 +39,41 @@ const QRANGES = [
   { label: 'Custom', fn: null },
 ];
 
-/* shared glass card wrapper */
-const GW = ({ children, className = '', highlight = false }) => (
-  <div className={`${highlight ? 'glass-water-highlight' : 'glass-water-card'} p-5 ${className}`}>{children}</div>
-);
+const ThemeContext = React.createContext(false);
 
-const SLabel = ({ children }) => (
-  <div className="text-[11px] font-bold uppercase tracking-widest text-indigo-400 mb-3">{children}</div>
-);
+/* shared glass card wrapper */
+const GW = ({ children, className = '', highlight = false }) => {
+  const darkMode = React.useContext(ThemeContext);
+  return (
+    <div className={`p-5 transition-all duration-300 rounded-2xl border ${
+      highlight 
+        ? (darkMode ? 'border-indigo-900/45 bg-indigo-950/40 shadow-lg shadow-indigo-950/20' : 'glass-water-highlight') 
+        : (darkMode ? 'border-slate-800/80 bg-slate-900/60 shadow-md shadow-slate-950/20' : 'glass-water-card')
+    } ${className}`}>{children}</div>
+  );
+};
+
+const SLabel = ({ children }) => {
+  const darkMode = React.useContext(ThemeContext);
+  return (
+    <div className={`text-[11px] font-bold uppercase tracking-widest mb-3 ${
+      darkMode ? 'text-indigo-400' : 'text-indigo-600'
+    }`}>{children}</div>
+  );
+};
 
 const TTip = ({ active, payload, label }) => {
+  const darkMode = React.useContext(ThemeContext);
   if (!active || !payload?.length) return null;
   return (
-    <div className="glass-water-card p-3 text-xs min-w-[140px] !rounded-xl">
+    <div className={`p-3 text-xs min-w-[140px] rounded-xl border ${
+      darkMode ? 'bg-slate-950 border-slate-800 text-slate-200 shadow-xl shadow-slate-950/50' : 'glass-water-card border-white/60'
+    }`}>
       <div className="font-bold text-gray-500 mb-1.5">{label}</div>
       {payload.map(p => (
         <div key={p.name} className="flex justify-between gap-4">
           <span style={{ color: p.color }}>{p.name}</span>
-          <span className="font-bold text-gray-800">{fmt(p.value)}</span>
+          <span className={`font-bold ${darkMode ? 'text-slate-200' : 'text-gray-800'}`}>{fmt(p.value)}</span>
         </div>
       ))}
     </div>
@@ -55,48 +81,67 @@ const TTip = ({ active, payload, label }) => {
 };
 
 const ProgBar = ({ label, value, total, color }) => {
+  const darkMode = React.useContext(ThemeContext);
   const w = total > 0 ? Math.min((value / total) * 100, 100) : 0;
   return (
     <div>
       <div className="flex justify-between text-xs mb-1.5">
-        <span className="text-gray-500 font-semibold">{label}</span>
-        <span className="text-gray-800 font-bold">{fmt(value)}</span>
+        <span className={`font-semibold ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>{label}</span>
+        <span className={`font-bold ${darkMode ? 'text-slate-200' : 'text-gray-800'}`}>{fmt(value)}</span>
       </div>
-      <div className="h-2 rounded-full bg-white/50 overflow-hidden border border-white/60">
+      <div className={`h-2 rounded-full overflow-hidden border ${
+        darkMode ? 'bg-slate-950 border-slate-800/80' : 'bg-white/50 border-white/60'
+      }`}>
         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${w}%`, background: color }} />
       </div>
     </div>
   );
 };
 
-const LedgerRow = ({ row, type }) => (
-  <div className="flex items-center justify-between py-2.5 border-b border-white/40 last:border-0">
-    <div className="flex items-center gap-3 min-w-0">
-      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${type === 'income' ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-      <div className="min-w-0">
-        <div className="text-sm font-semibold text-gray-700 truncate">{row.party}</div>
-        <div className="text-[11px] text-gray-400">{row.number}</div>
+const LedgerRow = ({ row, type }) => {
+  const darkMode = React.useContext(ThemeContext);
+  return (
+    <div className={`flex items-center justify-between py-2.5 border-b last:border-0 ${
+      darkMode ? 'border-slate-800/50' : 'border-white/40'
+    }`}>
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${type === 'income' ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+        <div className="min-w-0">
+          <div className={`text-sm font-semibold truncate ${darkMode ? 'text-slate-200' : 'text-gray-700'}`}>{row.party}</div>
+          <div className={`text-[11px] ${darkMode ? 'text-slate-500' : 'text-gray-400'}`}>{row.number}</div>
+        </div>
+      </div>
+      <div className="text-right flex-shrink-0">
+        <div className={`text-sm font-bold ${darkMode ? 'text-slate-100' : 'text-gray-800'}`}>{fmt(row.amount, 2)}</div>
+        <div className={`text-[10px] font-bold uppercase ${type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>{row.status}</div>
       </div>
     </div>
-    <div className="text-right flex-shrink-0">
-      <div className="text-sm font-bold text-gray-800">{fmt(row.amount, 2)}</div>
-      <div className={`text-[10px] font-bold uppercase ${type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>{row.status}</div>
-    </div>
-  </div>
-);
+  );
+};
 
-const Skeleton = () => (
-  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-    {Array.from({ length: 8 }).map((_, i) => (
-      <div key={i} className="h-28 rounded-2xl animate-pulse" style={{ background: 'rgba(99,102,241,0.07)' }} />
-    ))}
-  </div>
-);
+const Skeleton = () => {
+  const darkMode = React.useContext(ThemeContext);
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="h-28 rounded-2xl animate-pulse" style={{ background: darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(99,102,241,0.07)' }} />
+      ))}
+    </div>
+  );
+};
 
 export default function FinancialDashboard() {
-  const [qIdx, setQIdx] = useState(0);
-  const [range, setRange] = useState(monthRange);
-  const [customVisible, setCustomVisible] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('tax-dashboard-theme') === 'dark');
+  const [activeTab, setActiveTab] = useState('This Month');
+  const [customMonth, setCustomMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [customRange, setCustomRange] = useState({
+    startDate: '',
+    endDate: '',
+  });
+  const monthInputRef = useRef(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -104,6 +149,77 @@ export default function FinancialDashboard() {
 
   const [payrollSummary, setPayrollSummary] = useState(null);
   const [payrollLoadingState, setPayrollLoadingState] = useState(false);
+  const [selectedSourceDetail, setSelectedSourceDetail] = useState(null);
+
+  const handleViewSource = (label) => {
+    if (label === 'Total Revenue') {
+      setSelectedSourceDetail({
+        title: 'Total Revenue',
+        formula: 'Active Invoices + Manual Income in selected period (excludes drafts)',
+        items: data?.revenueItems || [],
+        linkTo: '/invoices',
+        linkLabel: 'Go to Invoices'
+      });
+    } else if (label === 'Total Expenses') {
+      setSelectedSourceDetail({
+        title: 'Total Expenses',
+        formula: 'Expenses (excluding DRAFT and CANCELLED) within selected period',
+        items: data?.expenseItems || [],
+        linkTo: '/expenses',
+        linkLabel: 'Go to Expenses'
+      });
+    } else if (label === 'GST Liability') {
+      setSelectedSourceDetail({
+        title: 'GST Liability',
+        formula: 'Output GST on active Invoices within selected period',
+        items: data?.gstLiabilityItems || [],
+        linkTo: '/reports/gst',
+        linkLabel: 'Go to GST Reports'
+      });
+    } else if (label === 'TDS Deducted') {
+      setSelectedSourceDetail({
+        title: 'TDS Deducted',
+        formula: 'TDS withheld by clients from paid/unpaid Invoices within selected period',
+        items: data?.tdsDeductedItems || [],
+        linkTo: '/reports/tds',
+        linkLabel: 'Go to TDS Summary'
+      });
+    } else if (label === 'TDS Payable') {
+      setSelectedSourceDetail({
+        title: 'TDS Payable',
+        formula: 'TDS deducted by you from vendor Expenses or Payroll runs in selected period',
+        items: data?.tdsPayableItems || [],
+        linkTo: '/reports/tds',
+        linkLabel: 'Go to TDS Summary'
+      });
+    } else if (label === 'Pending POs') {
+      setSelectedSourceDetail({
+        title: 'Pending POs',
+        formula: 'Active Purchase Orders excluding DRAFT, RECEIVED, BILLED, and CANCELLED',
+        items: data?.pendingPOItems || [],
+        linkTo: '/purchase-orders',
+        linkLabel: 'Go to Purchase Orders'
+      });
+    }
+  };
+
+  const dashboardBgStyle = {
+    background: darkMode
+      ? `
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(244, 63, 94, 0.08) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+        #090d16
+      `
+      : `
+        radial-gradient(at 0% 0%, rgba(224, 231, 255, 0.4) 0px, transparent 50%),
+        radial-gradient(at 50% 0%, rgba(254, 243, 199, 0.4) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(253, 224, 71, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(252, 165, 165, 0.2) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(244, 63, 94, 0.08) 0px, transparent 50%),
+        #f8fafc
+      `,
+  };
 
   useEffect(() => {
     if (tab !== 'payroll') return;
@@ -195,12 +311,46 @@ export default function FinancialDashboard() {
   useEffect(() => {
     const ctrl = new AbortController();
     setLoading(true); setError(null);
-    api.get(`/reports/tax-dashboard?${new URLSearchParams(range)}`, { signal: ctrl.signal })
+
+    let params = {};
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+
+    if (activeTab === 'This Month') {
+      params = { month: m + 1, year: y };
+    } else if (activeTab === 'Last 3M') {
+      const start = new Date(y, m - 2, 1);
+      const end = new Date(y, m + 1, 0, 23, 59, 59, 999);
+      params = {
+        startDate: start.toISOString().split('T')[0],
+        endDate: end.toISOString().split('T')[0]
+      };
+    } else if (activeTab === 'This Year') {
+      const start = new Date(y, 0, 1);
+      const end = new Date(y, 12, 0, 23, 59, 59, 999);
+      params = {
+        startDate: start.toISOString().split('T')[0],
+        endDate: end.toISOString().split('T')[0]
+      };
+    } else if (activeTab === 'Custom') {
+      if (customRange.startDate && customRange.endDate) {
+        params = {
+          startDate: customRange.startDate,
+          endDate: customRange.endDate
+        };
+      } else {
+        const [cy, cm] = customMonth.split('-').map(Number);
+        params = { month: cm, year: cy };
+      }
+    }
+
+    api.get(`/reports/tax-dashboard?${new URLSearchParams(params)}`, { signal: ctrl.signal })
       .then(r => setData(r.data))
       .catch(e => { if (e.name !== 'CanceledError' && e.name !== 'AbortError') setError(e.response?.data?.message || 'Failed to load'); })
       .finally(() => setLoading(false));
     return () => ctrl.abort();
-  }, [range]);
+  }, [activeTab, customMonth, customRange.startDate, customRange.endDate]);
 
   const s = data?.summary || {};
   const gst = data?.gst || {};
@@ -230,11 +380,6 @@ export default function FinancialDashboard() {
     { name: 'IGST', value: gst.igst || 0, fill: '#10b981' },
   ];
 
-  const handleRange = (i) => {
-    setQIdx(i);
-    if (QRANGES[i].fn) { setRange(QRANGES[i].fn()); setCustomVisible(false); }
-    else setCustomVisible(true);
-  };
 
   const revDelta = delta(s.totalRevenue, prev.revenue);
   const expDelta = delta(s.totalExpenses, prev.expenses);
@@ -242,8 +387,6 @@ export default function FinancialDashboard() {
   const KPIs = [
     { label: 'Total Revenue', value: fmt(s.totalRevenue), icon: FaArrowTrendUp, iconBg: 'rgba(16,185,129,0.12)', iconColor: '#10b981', sub: `Tax: ${fmt(s.gstLiability)}`, delta: revDelta, deltaInvert: false },
     { label: 'Total Expenses', value: fmt(s.totalExpenses), icon: FaReceipt, iconBg: 'rgba(236,72,153,0.12)', iconColor: '#ec4899', sub: `Credit: ${fmt(s.gstCredit)}`, delta: expDelta, deltaInvert: true },
-    { label: 'Receivable', value: fmt(s.receivables, 2), icon: FaWallet, iconBg: 'rgba(6,182,212,0.12)', iconColor: '#06b6d4', sub: 'Unpaid invoices', delta: null },
-    { label: 'Payable', value: fmt(s.payables, 2), icon: FaFileInvoiceDollar, iconBg: 'rgba(245,158,11,0.12)', iconColor: '#f59e0b', sub: 'Unpaid expenses', delta: null },
     { label: 'GST Liability', value: fmt(s.gstLiability), icon: FaShieldHalved, iconBg: 'rgba(139,92,246,0.12)', iconColor: '#8b5cf6', sub: `Net: ${fmt(s.netGstPayable)}`, delta: null },
     { label: 'TDS Deducted', value: fmt(s.tdsDeducted), icon: FaChartLine, iconBg: 'rgba(99,102,241,0.12)', iconColor: '#6366f1', sub: null, delta: null },
     { label: 'TDS Payable', value: fmt(s.tdsPayable), icon: FaChartPie, iconBg: 'rgba(236,72,153,0.12)', iconColor: '#ec4899', sub: null, delta: null },
@@ -251,91 +394,233 @@ export default function FinancialDashboard() {
   ];
 
   return (
-    <div className="glass-water-bg min-h-full p-4 sm:p-6 font-sans">
-      {/* ── Header ── */}
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between animate-rise-in">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-800">Financial Dashboard</h1>
-          <p className="text-gray-400 text-sm mt-1">Tax · Revenue · GST · Cash Flow</p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Range pills */}
-          <div className="glass-water-pill flex gap-1 p-1.5">
-            {QRANGES.map((r, i) => (
-              <button key={r.label} onClick={() => handleRange(i)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${qIdx === i ? 'bg-indigo-500 text-white shadow-md shadow-indigo-200' : 'text-gray-500 hover:text-gray-800'}`}>
-                {r.label}
-              </button>
-            ))}
+    <ThemeContext.Provider value={darkMode}>
+      <div className={`min-h-full font-sans transition-all duration-300 p-4 sm:p-6`} style={dashboardBgStyle}>
+        {/* ── Header ── */}
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between animate-rise-in">
+          <div>
+            <div className={`flex items-center gap-2 text-[10px] font-extrabold tracking-widest uppercase mb-1 ${darkMode ? 'text-[#818cf8]' : 'text-[#5b61eb]'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${darkMode ? 'bg-[#818cf8]' : 'bg-[#5b61eb]'}`}></span>
+              FINANCIAL REPORT CARD
+            </div>
+            <h1 className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${darkMode ? 'text-white' : 'text-slate-950'}`}>Financial Dashboard</h1>
+            <p className={`text-sm mt-1 ${darkMode ? 'text-slate-400' : 'text-gray-400'}`}>Tax · Revenue · GST · Cash Flow</p>
           </div>
-          {customVisible && (
-            <div className="glass-water-pill flex items-center gap-2 px-3 py-2">
-              <FaCalendarDays className="text-indigo-400" size={13} />
-              <input type="date" value={range.startDate} onChange={e => setRange(p => ({ ...p, startDate: e.target.value }))}
-                className="bg-transparent text-xs text-gray-700 outline-none" />
-              <span className="text-gray-300">–</span>
-              <input type="date" value={range.endDate} onChange={e => setRange(p => ({ ...p, endDate: e.target.value }))}
-                className="bg-transparent text-xs text-gray-700 outline-none" />
-            </div>
-          )}
-        </div>
-      </div>
 
-      {loading ? <Skeleton /> : error ? (
-        <GW className="text-center text-rose-500">{error}</GW>
-      ) : (
-        <>
-          {/* ── Draft Warning Banner ── */}
-          {drafts.total > 0 && (
-            <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-2xl animate-rise-in" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.30)' }}>
-              <span className="text-amber-500 text-lg">⚠️</span>
-              <span className="text-sm font-semibold text-amber-700">
-                You have <strong>{drafts.invoices}</strong> draft invoice{drafts.invoices !== 1 ? 's' : ''}
-                {drafts.expenses > 0 ? ` and <strong>${drafts.expenses}</strong> draft expense${drafts.expenses !== 1 ? 's' : ''}` : ''} that are excluded from reports.
-              </span>
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Dark Mode Switcher */}
+            <button
+              onClick={() => {
+                const nextTheme = !darkMode;
+                setDarkMode(nextTheme);
+                localStorage.setItem('tax-dashboard-theme', nextTheme ? 'dark' : 'light');
+              }}
+              className={`p-2.5 rounded-xl border transition-all duration-300 shrink-0 ${
+                darkMode
+                  ? 'bg-slate-900 border-slate-800 text-amber-400 hover:text-amber-300 hover:bg-slate-800/80 shadow-md shadow-amber-950/10'
+                  : 'bg-white border-slate-200 text-slate-500 hover:text-[#5b61eb] hover:bg-slate-50 shadow-sm'
+              }`}
+              title={darkMode ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+            >
+              {darkMode ? <FaSun size={14} /> : <FaMoon size={14} />}
+            </button>
 
-          {/* ── 8 KPI Cards ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-5">
-            {KPIs.map((k, i) => {
-              const good = k.delta ? (k.deltaInvert ? !k.delta.up : k.delta.up) : null;
-              return (
-                <div key={k.label} className="glass-water-card p-4 animate-rise-in" style={{ animationDelay: `${i * 55}ms` }}>
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: k.iconBg }}>
-                      <k.icon size={14} style={{ color: k.iconColor }} />
-                    </div>
-                    {k.delta && (
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg ${good ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
-                        {k.delta.up ? '↑' : '↓'}{k.delta.pct}%
+            {/* Presets and Filters Capsule */}
+            <div className={`flex flex-col sm:flex-row items-start sm:items-center gap-4 p-2 rounded-2xl shadow-sm border ${
+              darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white/80 backdrop-blur-md border-slate-200/50'
+            }`}>
+              <div className={`inline-flex items-center gap-1 p-1 rounded-xl ${darkMode ? 'bg-slate-800/50' : 'bg-slate-100/70'}`}>
+                {['This Month', 'Last 3M', 'This Year', 'Custom'].map((tab) => {
+                  const isActive = activeTab === tab;
+                  return (
+                    <button
+                      key={tab}
+                      onClick={() => {
+                        setActiveTab(tab);
+                        if (tab !== 'Custom') {
+                          setCustomRange({ startDate: '', endDate: '' });
+                        }
+                      }}
+                      className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all duration-350 ${
+                        isActive
+                          ? 'bg-[#5b61eb] text-white shadow-md shadow-indigo-500/25'
+                          : (darkMode ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/30')
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom Month/Date picker box */}
+              {activeTab === 'Custom' && (
+                <div className={`flex flex-col sm:flex-row items-start sm:items-center gap-3 border-t sm:border-t-0 sm:border-l pt-2.5 sm:pt-0 sm:pl-3 ${
+                  darkMode ? 'border-slate-800' : 'border-slate-200/80'
+                }`}>
+                  {/* Month Selection */}
+                  <div 
+                    onClick={() => {
+                      if (monthInputRef.current) {
+                        if (typeof monthInputRef.current.showPicker === 'function') {
+                          monthInputRef.current.showPicker();
+                        } else {
+                          monthInputRef.current.click();
+                        }
+                      }
+                    }}
+                    className={`relative flex items-center justify-between gap-3 border rounded-xl px-3.5 py-2 transition-colors w-40 cursor-pointer shadow-inner-sm ${
+                      darkMode ? 'bg-slate-900 border-slate-800 hover:border-[#818cf8]' : 'bg-white border-slate-200/85 hover:border-[#5b61eb]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <FaCalendarDays className={darkMode ? 'text-[#818cf8]' : 'text-[#5b61eb]'} size={12} />
+                      <span className={`text-xs font-extrabold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                        {customRange.startDate ? 'Custom Dates' : new Date(customMonth + '-02').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
                       </span>
+                    </div>
+                    <input
+                      ref={monthInputRef}
+                      type="month"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full pointer-events-none"
+                      value={customMonth}
+                      onChange={(e) => {
+                        setCustomMonth(e.target.value);
+                        setCustomRange({ startDate: '', endDate: '' });
+                      }}
+                    />
+                  </div>
+
+                  {/* Manual Calendar Picker Box */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={customRange.startDate}
+                      onChange={(e) => setCustomRange(prev => ({ ...prev, startDate: e.target.value }))}
+                      className={`border rounded-xl px-2.5 py-1.5 text-[11px] font-bold outline-none ${
+                        darkMode ? 'bg-slate-900 border-slate-800 text-slate-200 focus:border-[#818cf8]' : 'bg-white border-slate-200/80 text-slate-700 focus:border-[#5b61eb]'
+                      }`}
+                    />
+                    <span className="text-slate-400 font-bold text-xs">to</span>
+                    <input
+                      type="date"
+                      value={customRange.endDate}
+                      onChange={(e) => setCustomRange(prev => ({ ...prev, endDate: e.target.value }))}
+                      className={`border rounded-xl px-2.5 py-1.5 text-[11px] font-bold outline-none ${
+                        darkMode ? 'bg-slate-900 border-slate-800 text-slate-200 focus:border-[#818cf8]' : 'bg-white border-slate-200/80 text-slate-700 focus:border-[#5b61eb]'
+                      }`}
+                    />
+                    {(customRange.startDate || customRange.endDate) && (
+                      <button
+                        onClick={() => setCustomRange({ startDate: '', endDate: '' })}
+                        className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-slate-500 hover:text-red-400 hover:bg-red-950/20' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
+                        title="Clear date range"
+                      >
+                        ✕
+                      </button>
                     )}
                   </div>
-                  <div className="text-base font-extrabold text-gray-800 animate-count-up">{k.value}</div>
-                  <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mt-0.5">{k.label}</div>
-                  {k.sub && <div className="text-[10px] text-gray-400 mt-1">{k.sub}</div>}
                 </div>
-              );
-            })}
+              )}
+            </div>
           </div>
+        </div>
+
+        {loading ? <Skeleton /> : error ? (
+          <GW className="text-center text-rose-500">{error}</GW>
+        ) : (
+          <>
+            {/* ── Draft Warning Banner ── */}
+            {drafts.total > 0 && (
+              <div className="mb-4 flex items-center gap-3 px-4 py-2.5 rounded-xl border animate-rise-in font-sans" style={{ background: darkMode ? 'rgba(245,158,11,0.05)' : 'rgba(245,158,11,0.08)', borderColor: darkMode ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.20)' }}>
+                <span className="text-amber-500 text-lg">⚠️</span>
+                <span className={`text-xs font-semibold ${darkMode ? 'text-amber-400' : 'text-amber-700'}`}>
+                  You have <strong>{drafts.invoices}</strong> draft invoice{drafts.invoices !== 1 ? 's' : ''}
+                  {drafts.expenses > 0 ? ` and <strong>${drafts.expenses}</strong> draft expense${drafts.expenses !== 1 ? 's' : ''}` : ''} that are excluded from reports.
+                </span>
+              </div>
+            )}
+
+            {/* ── 6 KPI Cards ── */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
+              {KPIs.map((k, i) => {
+                const good = k.delta ? (k.deltaInvert ? !k.delta.up : k.delta.up) : null;
+                return (
+                  <div key={k.label} className={`p-4 rounded-xl border animate-rise-in transition-all duration-300 hover:translate-y-[-3px] ${
+                    darkMode 
+                      ? 'border-slate-800/80 bg-slate-900/60 shadow-md shadow-slate-950/20' 
+                      : 'glass-water-card'
+                  }`} style={{ animationDelay: `${i * 55}ms` }}>
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: k.iconBg }}>
+                        <k.icon size={14} style={{ color: k.iconColor }} />
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {k.delta && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg shrink-0 ${
+                            good 
+                              ? (darkMode ? 'bg-emerald-950/50 text-emerald-400' : 'bg-emerald-50 text-emerald-600') 
+                              : (darkMode ? 'bg-rose-950/50 text-rose-400' : 'bg-rose-50 text-rose-500')
+                          }`}>
+                            {k.delta.up ? '↑' : '↓'}{k.delta.pct}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className={`text-base font-extrabold animate-count-up ${darkMode ? 'text-slate-100' : 'text-gray-800'}`}>{k.value}</div>
+                    <div 
+                      onClick={() => handleViewSource(k.label)}
+                      className={`text-[10px] font-bold uppercase tracking-wide mt-0.5 cursor-pointer hover:underline hover:text-indigo-500 transition-colors ${darkMode ? 'text-slate-400' : 'text-gray-400'}`}
+                      title={`Click to view ${k.label} source details`}
+                    >
+                      {k.label}
+                    </div>
+                    {k.sub && <div className={`text-[10px] mt-1 ${darkMode ? 'text-slate-500' : 'text-gray-400'}`}>{k.sub}</div>}
+                  </div>
+                );
+              })}
+            </div>
+
+
 
           {/* Net Profit highlight bar */}
-          <div className="glass-water-highlight p-5 mb-5 flex flex-col sm:flex-row items-center justify-between gap-4 animate-rise-in" style={{ animationDelay: '420ms' }}>
+          <div className="glass-water-highlight p-5 mb-5 flex flex-col sm:flex-row items-center justify-between gap-4 animate-rise-in" style={{ 
+            animationDelay: '420ms',
+            borderLeft: Number(s.netProfit) >= 0 ? '4px solid #10b981' : '4px solid #f43f5e',
+            background: Number(s.netProfit) >= 0 ? 'rgba(16,185,129,0.04)' : 'rgba(244,63,94,0.04)'
+          }}>
             <div>
-              <div className="text-[10px] font-bold uppercase text-indigo-400 tracking-widest mb-1">Net Profit After Tax</div>
+              <div className="flex items-center gap-2 mb-1">
+                <span 
+                  onClick={() => {
+                    setSelectedSourceDetail({
+                      title: 'Net Profit After Tax',
+                      formula: 'Total Revenue (Invoices + Manual Income) - Total Expenses',
+                      items: [
+                        ...(data?.revenueItems || []).map(r => ({ ...r, source: `${r.source} (Revenue)` })),
+                        ...(data?.expenseItems || []).map(e => ({ ...e, amount: -e.amount, source: 'Expense (Deduction)' }))
+                      ].sort((a, b) => new Date(b.date) - new Date(a.date)),
+                      linkTo: '/reports/profit-loss',
+                      linkLabel: 'Go to Profit & Loss'
+                    });
+                  }}
+                  className="text-[10px] font-bold uppercase text-indigo-455 tracking-widest cursor-pointer hover:underline hover:text-indigo-400 transition-colors"
+                  title="Click to view Net Profit source details"
+                >
+                  Net Profit After Tax
+                </span>
+              </div>
               <div className={`text-4xl font-black ${Number(s.netProfit) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
                 {fmt(s.netProfit, 2)}
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
               {[
-                { l: 'Net GST Payable', v: s.netGstPayable, bg: 'rgba(139,92,246,0.10)', border: 'rgba(139,92,246,0.25)', c: '#8b5cf6' },
-                { l: 'Combined Tax Outflow', v: s.netTaxPayable, bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)', c: '#f59e0b' },
-                { l: 'TCS Collected', v: s.tcsCollected, bg: 'rgba(6,182,212,0.10)', border: 'rgba(6,182,212,0.25)', c: '#06b6d4' },
+                { l: 'Net GST Payable', v: s.netGstPayable, bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.20)', c: '#8b5cf6' },
+                { l: 'Combined Tax Outflow', v: s.netTaxPayable, bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.20)', c: '#f59e0b' },
+                { l: 'TCS Collected', v: s.tcsCollected, bg: 'rgba(6,182,212,0.08)', border: 'rgba(6,182,212,0.20)', c: '#06b6d4' },
               ].map(m => (
-                <div key={m.l} className="rounded-2xl px-4 py-3 text-center" style={{ background: m.bg, border: `1px solid ${m.border}` }}>
+                <div key={m.l} className="rounded-xl px-4 py-2.5 text-center border transition-all hover:scale-[1.03]" style={{ background: m.bg, borderColor: m.border }}>
                   <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: m.c }}>{m.l}</div>
                   <div className="text-xl font-extrabold mt-0.5" style={{ color: m.c }}>{fmt(m.v)}</div>
                 </div>
@@ -345,16 +630,16 @@ export default function FinancialDashboard() {
 
           {/* ── Overdue Invoices Aging ── */}
           {overdue.total > 0 && (
-            <div className="glass-water-card p-5 mb-5 animate-rise-in" style={{ animationDelay: '480ms', border: '1px solid rgba(236,72,153,0.25)' }}>
+            <div className="glass-water-card p-5 mb-5 animate-rise-in" style={{ animationDelay: '480ms', borderLeft: '4px solid #f43f5e', background: 'rgba(244,63,94,0.04)' }}>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-rose-400 mb-0.5">⚡ Overdue Invoices</div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-rose-500 mb-0.5">⚡ Overdue Invoices</div>
                   <div className="text-2xl font-black text-rose-600">{fmt(overdue.total, 2)} <span className="text-sm font-semibold text-rose-400">({overdue.count} invoice{overdue.count !== 1 ? 's' : ''})</span></div>
                 </div>
               </div>
               <div className="grid grid-cols-4 gap-3">
                 {[['0–30 days', overdue.aging?.d0_30, '#f59e0b'], ['31–60 days', overdue.aging?.d31_60, '#f97316'], ['61–90 days', overdue.aging?.d61_90, '#ef4444'], ['90+ days', overdue.aging?.d90plus, '#be123c']].map(([label, val, color]) => (
-                  <div key={label} className="glass-water-inner p-3 text-center">
+                  <div key={label} className="glass-water-inner p-3 text-center border border-white/60">
                     <div className="text-sm font-extrabold" style={{ color }}>{fmt(val || 0)}</div>
                     <div className="text-[10px] text-gray-400 font-semibold mt-0.5">{label}</div>
                   </div>
@@ -364,19 +649,31 @@ export default function FinancialDashboard() {
           )}
 
           {/* ── Tabs ── */}
-          <div className="flex gap-2 mb-5">
+          <div className="flex gap-2 mb-5 w-full">
             {[
-              { id: 'overview', label: '📊 Overview' },
-              { id: 'gst', label: '🧾 GST' },
-              { id: 'ledger', label: '📋 Ledger' },
-              { id: 'analytics', label: '📈 Analytics' },
-              { id: 'payroll', label: '💼 Payroll' }
-            ].map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${tab === t.id ? 'bg-indigo-500 text-white shadow-md shadow-indigo-200' : 'glass-water-pill text-gray-500 hover:text-gray-800'}`}>
-                {t.label}
-              </button>
-            ))}
+              { id: 'overview', label: 'Overview', icon: FaChartPie },
+              { id: 'gst', label: 'GST', icon: FaReceipt },
+              { id: 'ledger', label: 'Ledger', icon: FaBook },
+              { id: 'analytics', label: 'Analytics', icon: FaChartLine },
+              { id: 'payroll', label: 'Payroll', icon: FaBriefcase }
+            ].map(t => {
+              const Icon = t.icon;
+              const isActive = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`flex-1 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                    isActive
+                      ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 scale-[1.02]'
+                      : 'glass-water-pill text-gray-500 hover:text-gray-800 hover:bg-white/40'
+                  }`}
+                >
+                  <Icon size={12} className={isActive ? 'text-white' : 'text-gray-400'} />
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* ══ OVERVIEW ══ */}
@@ -397,7 +694,7 @@ export default function FinancialDashboard() {
                       </defs>
                       <CartesianGrid stroke="rgba(99,102,241,0.08)" vertical={false} />
                       <XAxis dataKey="month" stroke="#9ca3af" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
-                      <YAxis stroke="#9ca3af" tickLine={false} axisLine={false} tickFormatter={v => `${Math.round(v / 1000)}k`} tick={{ fontSize: 11 }} />
+                      <YAxis stroke="#9ca3af" tickLine={false} axisLine={false} tickFormatter={formatYAxis} tick={{ fontSize: 11 }} />
                       <Tooltip content={<TTip />} />
                       <Legend wrapperStyle={{ fontSize: 11, color: '#6b7280' }} />
                       <Bar dataKey="Income" fill="url(#lInc)" radius={[6, 6, 0, 0]} maxBarSize={28} />
@@ -424,7 +721,7 @@ export default function FinancialDashboard() {
                         </defs>
                         <CartesianGrid stroke="rgba(99,102,241,0.08)" vertical={false} />
                         <XAxis dataKey="month" stroke="#9ca3af" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
-                        <YAxis stroke="#9ca3af" tickLine={false} axisLine={false} tickFormatter={v => `${Math.round(v / 1000)}k`} tick={{ fontSize: 11 }} />
+                        <YAxis stroke="#9ca3af" tickLine={false} axisLine={false} tickFormatter={formatYAxis} tick={{ fontSize: 11 }} />
                         <Tooltip content={<TTip />} />
                         <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#10b981" strokeWidth={2.5} fill="url(#aInc)" />
                         <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#6366f1" strokeWidth={2} fill="url(#aExp)" />
@@ -517,7 +814,7 @@ export default function FinancialDashboard() {
                     <BarChart data={trend} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                       <CartesianGrid stroke="rgba(99,102,241,0.08)" vertical={false} />
                       <XAxis dataKey="month" stroke="#9ca3af" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
-                      <YAxis stroke="#9ca3af" tickLine={false} axisLine={false} tickFormatter={v => `${Math.round(v / 1000)}k`} tick={{ fontSize: 11 }} />
+                      <YAxis stroke="#9ca3af" tickLine={false} axisLine={false} tickFormatter={formatYAxis} tick={{ fontSize: 11 }} />
                       <Tooltip content={<TTip />} />
                       <Legend wrapperStyle={{ fontSize: 11, color: '#6b7280' }} />
                       <Bar dataKey="revenue" name="Revenue" fill="#10b981" opacity={0.8} radius={[4, 4, 0, 0]} maxBarSize={26} />
@@ -684,7 +981,7 @@ export default function FinancialDashboard() {
                             <BarChart data={payrollSummary.trendData}>
                               <CartesianGrid stroke="rgba(99,102,241,0.08)" vertical={false} />
                               <XAxis dataKey="month" stroke="#9ca3af" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
-                              <YAxis stroke="#9ca3af" tickLine={false} axisLine={false} tickFormatter={v => `${Math.round(v / 1000)}k`} tick={{ fontSize: 11 }} />
+                              <YAxis stroke="#9ca3af" tickLine={false} axisLine={false} tickFormatter={formatYAxis} tick={{ fontSize: 11 }} />
                               <Tooltip content={<TTip />} />
                               <Bar dataKey="netSalary" name="Net Salary Payout" fill="#6366f1" radius={[6, 6, 0, 0]} maxBarSize={30} />
                             </BarChart>
@@ -778,8 +1075,195 @@ export default function FinancialDashboard() {
               )}
             </div>
           )}
+
+          {/* ── Outstanding Receivables & Payables (Cumulative) at bottom of page ── */}
+          <div className="mt-8 border-t border-white/40 pt-6">
+            <div className="mb-3.5 flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs font-semibold text-amber-700 bg-amber-500/10 border border-amber-500/20 animate-rise-in font-sans" style={{ animationDelay: '100ms' }}>
+              <span>⚠️</span>
+              <span><strong>Note on Outstanding Balances:</strong> Receivables and Payables are cumulative, all-time outstanding figures and are not filtered by the selected date range.</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-rise-in" style={{ animationDelay: '150ms' }}>
+              <div className={`p-5 flex items-center justify-between ${darkMode ? 'border-slate-800/80 bg-slate-900/60' : 'glass-water-highlight'}`} style={{ borderLeft: '4px solid #06b6d4', background: darkMode ? 'rgba(6,182,212,0.03)' : 'rgba(6,182,212,0.06)' }}>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span 
+                      onClick={() => {
+                        setSelectedSourceDetail({
+                          title: 'Outstanding Receivables',
+                          formula: 'Cumulative (all-time) unpaid balances on active Invoices',
+                          items: data?.receivableItems || [],
+                          linkTo: '/invoices',
+                          linkLabel: 'Go to Invoices'
+                        });
+                      }}
+                      className="text-xs font-bold uppercase text-cyan-600 tracking-wider cursor-pointer hover:underline hover:text-cyan-500 transition-colors"
+                      title="Click to view Receivables source details"
+                    >
+                      Outstanding Receivables
+                    </span>
+                  </div>
+                  <div className="text-3xl font-black text-cyan-700">{fmt(s.receivables, 2)}</div>
+                  <div className="text-[11px] text-gray-500 mt-1">Unpaid invoices awaiting payment</div>
+                </div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-cyan-100 text-cyan-600 shadow-sm border border-cyan-200">
+                  <FaWallet size={20} />
+                </div>
+              </div>
+              
+              <div className={`p-5 flex items-center justify-between ${darkMode ? 'border-slate-800/80 bg-slate-900/60' : 'glass-water-highlight'}`} style={{ borderLeft: '4px solid #f59e0b', background: darkMode ? 'rgba(245,158,11,0.03)' : 'rgba(245,158,11,0.06)' }}>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span 
+                      onClick={() => {
+                        setSelectedSourceDetail({
+                          title: 'Outstanding Payables',
+                          formula: 'Cumulative (all-time) unpaid balances on active Expenses',
+                          items: data?.payableItems || [],
+                          linkTo: '/expenses',
+                          linkLabel: 'Go to Expenses'
+                        });
+                      }}
+                      className="text-xs font-bold uppercase text-amber-600 tracking-wider cursor-pointer hover:underline hover:text-amber-500 transition-colors"
+                      title="Click to view Payables source details"
+                    >
+                      Outstanding Payables
+                    </span>
+                  </div>
+                  <div className="text-3xl font-black text-amber-700">{fmt(s.payables, 2)}</div>
+                  <div className="text-[11px] text-gray-500 mt-1">Unpaid expenses & bills to be settled</div>
+                </div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-amber-100 text-amber-600 shadow-sm border border-amber-200">
+                  <FaFileInvoiceDollar size={20} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Source Detail Modal */}
+          {selectedSourceDetail && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+              {/* Backdrop */}
+              <div 
+                className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity" 
+                onClick={() => setSelectedSourceDetail(null)}
+              />
+              
+              {/* Modal Content */}
+              <div className={`relative w-full max-w-4xl rounded-2xl border p-6 shadow-2xl transition-all duration-300 transform scale-100 animate-rise-in ${
+                darkMode 
+                  ? 'bg-slate-900/95 border-slate-800 text-slate-100 shadow-slate-950/50' 
+                  : 'bg-white/95 border-slate-200 text-slate-800 shadow-slate-300/40'
+              }`}>
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold tracking-tight">{selectedSourceDetail.title} Source Details</h3>
+                    <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
+                      <strong>Origin / Formula:</strong> {selectedSourceDetail.formula}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedSourceDetail(null)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                      darkMode ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'
+                    }`}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Content table */}
+                <div className={`overflow-hidden rounded-xl border max-h-96 overflow-y-auto ${darkMode ? 'border-slate-800/80 bg-slate-950/40' : 'border-slate-200/80 bg-slate-50/40'} pr-1`}>
+                  {!selectedSourceDetail.items || selectedSourceDetail.items.length === 0 ? (
+                    <div className={`py-12 text-center text-sm ${darkMode ? 'text-slate-400' : 'text-gray-400'}`}>
+                      No contributing transactions found for this period.
+                    </div>
+                  ) : (
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className={`${darkMode ? 'bg-slate-950/80 text-slate-400 border-slate-800' : 'bg-slate-100/80 text-slate-500 border-slate-205'} font-semibold border-b`}>
+                          <th className="p-3">Date</th>
+                          <th className="p-3">Doc #</th>
+                          <th className="p-3">Party</th>
+                          <th className="p-3">Source</th>
+                          <th className="p-3">Status</th>
+                          <th className="p-3 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y ${darkMode ? 'divide-slate-800/60' : 'divide-slate-200/60'}`}>
+                        {selectedSourceDetail.items.map((item, idx) => (
+                          <tr 
+                            key={item.id || idx} 
+                            className={`transition-colors ${
+                              darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-100/50'
+                            }`}
+                          >
+                            <td className="p-3">
+                              {item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '-'}
+                            </td>
+                            <td className="p-3 font-semibold">{item.number}</td>
+                            <td className="p-3 truncate max-w-[150px]">{item.party}</td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                item.source.includes('Invoice')
+                                  ? (darkMode ? 'bg-indigo-950 text-indigo-300' : 'bg-indigo-50 text-indigo-600')
+                                  : item.source.includes('Expense')
+                                    ? (darkMode ? 'bg-pink-950 text-pink-300' : 'bg-pink-50 text-pink-600')
+                                    : (darkMode ? 'bg-amber-950 text-amber-300' : 'bg-amber-50 text-amber-600')
+                              }`}>
+                                {item.source}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                                ['PAID', 'active', 'approved'].includes(item.status)
+                                  ? (darkMode ? 'bg-emerald-950/50 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
+                                  : ['PARTIAL', 'pending', 'pending_approval'].includes(item.status)
+                                    ? (darkMode ? 'bg-amber-950/50 text-amber-400' : 'bg-amber-50 text-amber-600')
+                                    : (darkMode ? 'bg-rose-950/50 text-rose-400' : 'bg-rose-50 text-rose-600')
+                              }`}>
+                                {item.status}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right font-bold">
+                              {fmt(item.amount, 2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="mt-5 flex items-center justify-end gap-3">
+                  {selectedSourceDetail.linkTo && (
+                    <Link 
+                      to={selectedSourceDetail.linkTo} 
+                      onClick={() => setSelectedSourceDetail(null)}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-500/25"
+                    >
+                      {selectedSourceDetail.linkLabel}
+                    </Link>
+                  )}
+                  <button 
+                    onClick={() => setSelectedSourceDetail(null)}
+                    className={`px-4 py-2 border rounded-xl text-xs font-bold transition-all ${
+                      darkMode 
+                        ? 'border-slate-800 text-slate-300 hover:bg-slate-800' 
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
-    </div>
+      </div>
+    </ThemeContext.Provider>
   );
 }
