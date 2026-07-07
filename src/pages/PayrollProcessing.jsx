@@ -107,6 +107,7 @@ const EmployeeRow = ({
   year,
   earningComponents,
   existingPayroll,
+  onDeletePayroll,
 }) => {
   const filteredReimbursements = useMemo(() => {
     return (claimsMap.get(employee._id) || []).filter(c => !(row?.excludedClaimIds || []).includes(c._id));
@@ -167,7 +168,7 @@ const EmployeeRow = ({
           <span>{isHourly ? `Rate: ${fmtMoney(employee.hourlyRate)}/hr` : `CTC ${fmtMoney(snapshot?.master?.monthlyCTC || employee.monthlyCTC)}`}</span>
           
           {existingPayroll ? (
-            <div className="mt-1">
+            <div className="mt-1 flex flex-col gap-1">
               <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${
                 existingPayroll.status === 'paid' ? 'bg-green-100 text-green-800 border border-green-200' :
                 existingPayroll.status === 'approved' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
@@ -176,6 +177,15 @@ const EmployeeRow = ({
               }`}>
                 Payroll {existingPayroll.status}
               </span>
+              {existingPayroll.status !== 'paid' && (
+                <button
+                  type="button"
+                  onClick={() => onDeletePayroll(existingPayroll._id, `${employee.firstName} ${employee.lastName}`)}
+                  className="text-[10px] font-bold text-red-600 hover:text-red-800 hover:underline transition-colors text-left flex items-center gap-1 self-start mt-0.5"
+                >
+                  <FaTrash className="w-2.5 h-2.5" /> Delete Payroll
+                </button>
+              )}
             </div>
           ) : null}
           {!isExistingDisabled && (
@@ -780,6 +790,35 @@ const PayrollProcessing = () => {
     }
   };
 
+  const hasProcessedPayrolls = Array.from(existingPayrollsMap.values()).some(p => p.status !== 'paid');
+
+  const handleResetMonthPayroll = async () => {
+    if (!window.confirm(`Are you sure you want to delete all draft, processed, and approved payrolls for ${monthName(month)} ${year}? This will allow you to process payroll again.`)) return;
+    try {
+      setSaving(true);
+      await api.post('/payroll/bulk-delete', { month, year });
+      toast.success(`All payrolls for ${monthName(month)} ${year} have been deleted.`);
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to delete payrolls');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onDeletePayroll = async (payrollId, employeeName) => {
+    if (!window.confirm(`Are you sure you want to delete the payroll for ${employeeName}?`)) return;
+    try {
+      await api.delete(`/payroll/${payrollId}`);
+      toast.success(`Payroll for ${employeeName} deleted successfully`);
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to delete payroll');
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 font-sans text-gray-900">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
@@ -796,6 +835,16 @@ const PayrollProcessing = () => {
               className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors"
             >
               {syncingAttendance ? 'Syncing...' : 'Re-sync attendance from HRMS'}
+            </button>
+          )}
+          {hasProcessedPayrolls && (
+            <button
+              type="button"
+              onClick={handleResetMonthPayroll}
+              disabled={saving}
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors"
+            >
+              Reset Month's Payroll
             </button>
           )}
           <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white">
@@ -847,6 +896,7 @@ const PayrollProcessing = () => {
                   year={year}
                   earningComponents={earningComponents}
                   existingPayroll={existingPayrollsMap.get(String(employee._id))}
+                  onDeletePayroll={onDeletePayroll}
                 />
               ))}
             </tbody>

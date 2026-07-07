@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { FaDownload, FaFileInvoice, FaMoneyBillWave, FaPlus, FaTimes, FaCheck, FaHourglassHalf, FaReceipt, FaPaperclip, FaCalendarCheck } from 'react-icons/fa';
+import { FaDownload, FaFileInvoice, FaMoneyBillWave, FaPlus, FaTimes, FaCheck, FaHourglassHalf, FaReceipt, FaPaperclip, FaCalendarCheck, FaTrash } from 'react-icons/fa';
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import Skeleton from '../components/Skeleton';
@@ -450,6 +450,15 @@ const PayrollDashboard = () => {
         toast.success('Payroll marked as paid');
       }
 
+      if (confirmAction.type === 'deleteSingle') {
+        await api.delete(`/payroll/${confirmAction.payrollId}`);
+        toast.success('Payroll deleted successfully');
+      }
+      if (confirmAction.type === 'deleteBulk') {
+        await api.post('/payroll/bulk-delete', { ids: selectedPayrolls.map((payroll) => payroll._id), month, year });
+        toast.success('Selected payrolls deleted');
+      }
+
       setConfirmAction(null);
       await refreshCurrentMonth();
     } catch (error) {
@@ -822,6 +831,9 @@ const PayrollDashboard = () => {
                     paymentDate: new Date().toISOString().substring(0, 10),
                     paymentMethod: 'Bank Transfer'
                   })} className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">Mark Paid (Bulk)</button>
+                  {selectedPayrolls.some(p => p.status !== 'paid') && (
+                    <button onClick={() => setConfirmAction({ type: 'deleteBulk' })} className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">Delete Selected</button>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -913,12 +925,21 @@ const PayrollDashboard = () => {
                         <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-center gap-3">
                             <Link to={`/payroll/${payroll._id}/payslip`} className="text-gray-500 hover:text-blue-600" title="Payslip"><FaFileInvoice /></Link>
-                            {payroll.status !== 'paid' && <button onClick={() => setConfirmAction({
-                              type: 'markPaidSingle',
-                              payrollId: payroll._id,
-                              paymentDate: new Date().toISOString().substring(0, 10),
-                              paymentMethod: 'Bank Transfer'
-                            })} className="text-gray-500 hover:text-green-600" title="Mark paid"><FaMoneyBillWave /></button>}
+                            {payroll.status !== 'paid' && (
+                              <>
+                                <button onClick={() => setConfirmAction({
+                                  type: 'markPaidSingle',
+                                  payrollId: payroll._id,
+                                  paymentDate: new Date().toISOString().substring(0, 10),
+                                  paymentMethod: 'Bank Transfer'
+                                })} className="text-gray-500 hover:text-green-600" title="Mark paid"><FaMoneyBillWave /></button>
+                                <button onClick={() => setConfirmAction({
+                                  type: 'deleteSingle',
+                                  payrollId: payroll._id,
+                                  employeeName: `${payroll.employee?.firstName || ''} ${payroll.employee?.lastName || ''}`.trim()
+                                })} className="text-gray-500 hover:text-red-600" title="Delete Payroll"><FaTrash /></button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1488,7 +1509,9 @@ const PayrollDashboard = () => {
           <p className="text-sm text-gray-600">
             {confirmAction?.type === 'approve' ? 'Approve all selected payroll records?' :
               confirmAction?.type === 'markPaid' ? 'Mark all selected payroll records as paid?' :
-                'Mark this payroll record as paid?'}
+                confirmAction?.type === 'deleteSingle' ? `Are you sure you want to delete the payroll for ${confirmAction.employeeName || 'this employee'}?` :
+                  confirmAction?.type === 'deleteBulk' ? `Are you sure you want to delete all selected non-paid payroll records?` :
+                    'Mark this payroll record as paid?'}
           </p>
           {(confirmAction?.type === 'markPaid' || confirmAction?.type === 'markPaidSingle') && (
             <div className="space-y-3">
