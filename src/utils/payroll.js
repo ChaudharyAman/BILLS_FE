@@ -658,20 +658,27 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
   const esiEmployer = roundAmount(esiApplicable ? basicMaster * config.esiEmployerRate : 0);
   const esiEmployee = roundAmount(esiApplicable ? basicMaster * config.esiEmployeeRate : 0);
 
-  // Re-compute earnings with correct ESI cost for dynamic-component remainder
-  if (esiApplicable && hasDynamicComponents) {
-    earningsMap = computeEarnings(esiEmployer);
-    flexi = earningsMap['flexi'] || 0;
-    broadband = earningsMap['broadband'] || 0;
-    petrol = earningsMap['petrol'] || 0;
-    lta = earningsMap['lta'] || 0;
-    conveyance = earningsMap['conveyance'] || 0;
-    medicalAllowance = earningsMap['medical'] || 0;
-    specialAllowance = earningsMap['special'] || 0;
-    if (!useComponents) {
-      basicMaster = monthlyCTC;
-      hraMaster = 0;
-      Object.keys(earningsMap).forEach(k => { earningsMap[k] = k === 'basic' ? monthlyCTC : 0; });
+  // Re-compute earnings with correct ESI cost for dynamic-component remainder or special allowance
+  if (esiApplicable) {
+    if (hasDynamicComponents) {
+      earningsMap = computeEarnings(esiEmployer);
+      flexi = earningsMap['flexi'] || 0;
+      broadband = earningsMap['broadband'] || 0;
+      petrol = earningsMap['petrol'] || 0;
+      lta = earningsMap['lta'] || 0;
+      conveyance = earningsMap['conveyance'] || 0;
+      medicalAllowance = earningsMap['medical'] || 0;
+      specialAllowance = earningsMap['special'] || 0;
+      if (!useComponents) {
+        basicMaster = monthlyCTC;
+        hraMaster = 0;
+        Object.keys(earningsMap).forEach(k => { earningsMap[k] = k === 'basic' ? monthlyCTC : 0; });
+      }
+    } else {
+      specialAllowance = roundAmount(Math.max(
+        monthlyCTC - basicMaster - hraMaster - flexi - broadband - petrol - lta - pfEmployerInCTC - gratuityInCTC - lwfEmployer - insurance - esiEmployer - employerNPS - conveyance - medicalAllowance - otherAllowancesSum,
+        0
+      ));
     }
   }
 
