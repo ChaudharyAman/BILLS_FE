@@ -117,7 +117,28 @@ const EmployeeRow = ({
     return { ...row, reimbursements: filteredReimbursements, month, year };
   }, [row, filteredReimbursements, month, year]);
 
-  const snapshot = usePayrollSnapshot(employee, config, rowWithReimbursements, monthWorkingDays);
+  const calculatedSnapshot = usePayrollSnapshot(employee, config, rowWithReimbursements, monthWorkingDays);
+
+  const snapshot = useMemo(() => {
+    if (existingPayroll && existingPayroll.status !== 'draft') {
+      return {
+        ...existingPayroll,
+        master: {
+          ...existingPayroll.employeeSnapshot,
+          monthlyCTC: existingPayroll.employeeSnapshot?.monthlyCTC,
+          pfEnabled: existingPayroll.employeeSnapshot?.pfEnabled,
+          esiEnabled: existingPayroll.employeeSnapshot?.esiEnabled,
+          ptEnabled: existingPayroll.employeeSnapshot?.ptEnabled,
+          lwfEnabled: existingPayroll.employeeSnapshot?.lwfEnabled,
+          gratuityEnabled: existingPayroll.employeeSnapshot?.gratuityEnabled,
+          basicPercent: existingPayroll.employeeSnapshot?.basicPercent,
+          hraPercent: existingPayroll.employeeSnapshot?.hraPercent,
+        }
+      };
+    }
+    return calculatedSnapshot;
+  }, [existingPayroll, calculatedSnapshot]);
+
   if (!snapshot) return null;
 
   const isHourly = employee.payType === 'hourly';
