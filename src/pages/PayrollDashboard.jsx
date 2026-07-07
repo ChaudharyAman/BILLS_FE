@@ -6,7 +6,8 @@ import { FaDownload, FaFileInvoice, FaMoneyBillWave, FaPlus, FaTimes, FaCheck, F
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import Skeleton from '../components/Skeleton';
-import { fmtMoney, payrollStatusClass, buildPayrollSnapshot, DEFAULT_PAYROLL_CONFIG } from '../utils/payroll';
+import { fmtMoney, payrollStatusClass, getSalarySplits } from '../utils/payroll';
+import { usePayrollSnapshot } from '../hooks/usePayrollSnapshot';
 
 const monthName = (month) => new Date(0, month - 1).toLocaleString('en-US', { month: 'short' });
 const STATUS_TABS = ['all', 'draft', 'processed', 'approved', 'paid'];
@@ -95,6 +96,8 @@ const PayrollDashboard = () => {
   // Breakdown & Config states
   const [config, setConfig] = useState(null);
   const [breakdownPayroll, setBreakdownPayroll] = useState(null);
+  const [localEarnings, setLocalEarnings] = useState([]);
+  const [localDeductions, setLocalDeductions] = useState([]);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -107,6 +110,112 @@ const PayrollDashboard = () => {
     };
     fetchConfig();
   }, []);
+
+  // Sync localEarnings/Deductions when breakdown payroll changes
+  useEffect(() => {
+    if (breakdownPayroll) {
+      setLocalEarnings(breakdownPayroll.earnings?.otherEarnings || []);
+      setLocalDeductions(breakdownPayroll.deductions?.otherDeductions || []);
+    }
+  }, [breakdownPayroll]);
+
+  // Derived breakdown employee (component-level, required for hooks below)
+  const breakdownEmployee = useMemo(() =>
+    breakdownPayroll ? (breakdownPayroll.employee || null) : null
+  , [breakdownPayroll]);
+
+  // "rows"-equivalent built from the saved payroll record (mirrors how PayrollProcessing loads existingP)
+  const breakdownRow = useMemo(() => {
+    if (!breakdownPayroll || !breakdownEmployee) return {};
+    const empSnapshot = breakdownPayroll.employeeSnapshot || {};
+    return {
+      workingDays: breakdownPayroll.workingDays,
+      paidDays: breakdownPayroll.paidDays,
+      paidLeaves: breakdownPayroll.paidLeaves || 0,
+      unpaidLeaves: breakdownPayroll.unpaidLeaves || 0,
+      hoursWorked: breakdownPayroll.hoursWorked || 0,
+      tds: breakdownPayroll.deductions?.tds,
+      otherEarnings: breakdownPayroll.earnings?.otherEarnings,
+      otherDeductions: breakdownPayroll.deductions?.otherDeductions,
+      lopStrategy: breakdownPayroll.lopStrategy || 'proportional',
+      segmentLops: breakdownPayroll.segmentLops || [],
+      pfEnabled: breakdownPayroll.overrides?.pfEnabled !== undefined ? breakdownPayroll.overrides.pfEnabled : (empSnapshot?.pfEnabled !== undefined ? empSnapshot.pfEnabled : (breakdownEmployee.pfEnabled !== false)),
+      esiEnabled: breakdownPayroll.overrides?.esiEnabled !== undefined ? breakdownPayroll.overrides.esiEnabled : (empSnapshot?.esiEnabled !== undefined ? empSnapshot.esiEnabled : (breakdownEmployee.esiEnabled !== false)),
+      ptEnabled: breakdownPayroll.overrides?.ptEnabled !== undefined ? breakdownPayroll.overrides.ptEnabled : (empSnapshot?.ptEnabled !== undefined ? empSnapshot.ptEnabled : (breakdownEmployee.ptEnabled !== false)),
+      lwfEnabled: breakdownPayroll.overrides?.lwfEnabled !== undefined ? breakdownPayroll.overrides.lwfEnabled : (empSnapshot?.lwfEnabled !== undefined ? empSnapshot.lwfEnabled : (breakdownEmployee.lwfEnabled !== false)),
+      gratuityEnabled: breakdownPayroll.overrides?.gratuityEnabled !== undefined ? breakdownPayroll.overrides.gratuityEnabled : (empSnapshot?.gratuityEnabled !== undefined ? empSnapshot.gratuityEnabled : (breakdownEmployee.gratuityEnabled !== false)),
+      includePfInCTC: breakdownPayroll.overrides?.includePfInCTC !== undefined ? breakdownPayroll.overrides.includePfInCTC : (empSnapshot?.includePfInCTC === true),
+      includeGratuityInCTC: breakdownPayroll.overrides?.includeGratuityInCTC !== undefined ? breakdownPayroll.overrides.includeGratuityInCTC : (empSnapshot?.includeGratuityInCTC !== false),
+      basicPercent: breakdownPayroll.overrides?.basicPercent !== undefined ? breakdownPayroll.overrides.basicPercent : (empSnapshot?.basicPercent !== undefined ? (empSnapshot.basicPercent > 1 ? empSnapshot.basicPercent : empSnapshot.basicPercent * 100) : 50),
+      hraPercent: breakdownPayroll.overrides?.hraPercent !== undefined ? breakdownPayroll.overrides.hraPercent : (empSnapshot?.hraPercent !== undefined ? (empSnapshot.hraPercent > 1 ? empSnapshot.hraPercent : empSnapshot.hraPercent * 100) : 50),
+    };
+  }, [breakdownPayroll, breakdownEmployee]);
+
+  // Component-level breakdown modal hooks — same pattern as PayrollProcessing.jsx
+  const localSnapshotFilteredRow = useMemo(() => {
+    if (!breakdownEmployee || !breakdownPayroll) return null;
+    return {
+      ...breakdownRow,
+      reimbursements: (breakdownPayroll.reimbursements || []).map(r => ({
+        _id: r._id,
+        category: r.name,
+        amount: r.approved || r.claimed,
+        createdAt: r.createdAt || breakdownPayroll.createdAt,
+      })),
+      month: breakdownPayroll.month,
+      year: breakdownPayroll.year,
+    };
+  }, [breakdownEmployee, breakdownPayroll, breakdownRow]);
+
+  const localSnapshotComputed = usePayrollSnapshot(
+    breakdownEmployee,
+    config,
+    localSnapshotFilteredRow,
+    config?.defaultWorkingDays || 26,
+    localEarnings,
+    localDeductions
+  );
+
+  // Dashboard always shows saved (processed) payroll — override computed with saved backend data
+  const localSnapshot = useMemo(() => {
+    if (!breakdownEmployee || !breakdownPayroll) return localSnapshotComputed;
+    return {
+      ...localSnapshotComputed,
+      earnings: breakdownPayroll.earnings || localSnapshotComputed?.earnings || {},
+      deductions: breakdownPayroll.deductions || localSnapshotComputed?.deductions || {},
+      employerContributions: breakdownPayroll.employerContributions || localSnapshotComputed?.employerContributions || {},
+      netSalary: breakdownPayroll.netSalary ?? localSnapshotComputed?.netSalary ?? 0,
+      paidDays: breakdownPayroll.paidDays ?? localSnapshotComputed?.paidDays ?? 0,
+      workingDays: breakdownPayroll.workingDays ?? localSnapshotComputed?.workingDays ?? 1,
+      lop: breakdownPayroll.lop ?? Math.max(0, (breakdownPayroll.workingDays || 1) - (breakdownPayroll.paidDays || 0)),
+      master: localSnapshotComputed?.master || {},
+    };
+  }, [breakdownEmployee, breakdownPayroll, localSnapshotComputed]);
+
+  const localSplits = useMemo(() => {
+    if (!breakdownEmployee || !breakdownPayroll) return [];
+    return getSalarySplits(
+      breakdownEmployee,
+      config,
+      breakdownPayroll.month,
+      breakdownPayroll.year,
+      breakdownRow.paidDays,
+      breakdownRow.workingDays,
+      {
+        pfEnabled: breakdownRow.pfEnabled,
+        esiEnabled: breakdownRow.esiEnabled,
+        ptEnabled: breakdownRow.ptEnabled,
+        lwfEnabled: breakdownRow.lwfEnabled,
+        gratuityEnabled: breakdownRow.gratuityEnabled,
+        includePfInCTC: breakdownRow.includePfInCTC,
+        includeGratuityInCTC: breakdownRow.includeGratuityInCTC,
+        basicPercent: breakdownRow.basicPercent,
+        hraPercent: breakdownRow.hraPercent,
+        lopStrategy: breakdownRow.lopStrategy,
+        segmentLops: breakdownRow.segmentLops,
+      }
+    );
+  }, [breakdownEmployee, breakdownPayroll, breakdownRow, config]);
 
   // Approvals Hub & Dynamic Requests States
   const [activeDashboardTab, setActiveDashboardTab] = useState('runs');
@@ -1710,79 +1819,12 @@ const PayrollDashboard = () => {
       </Modal>
 
       {/* Detailed Salary Breakdown Modal */}
-      {breakdownPayroll && (() => {
-        const breakdownEmployee = breakdownPayroll.employee || {};
+      {breakdownPayroll && breakdownEmployee && (() => {
         const empSnapshot = breakdownPayroll.employeeSnapshot || {};
         const isHourly = breakdownPayroll.payType === 'hourly';
         const hasSalaryBreakup = breakdownEmployee.useSalaryComponents !== false && breakdownEmployee.employmentType !== 'intern' && !isHourly;
-        const monthWorkingDays = config?.defaultWorkingDays || 26;
-
-        // Compute the full-month master salary structure from empSnapshot so getComponentBreakdown
-        // can display the unprorated (master) values alongside the actual paid values.
-        const masterConfig = { ...DEFAULT_PAYROLL_CONFIG, ...(config || {}) };
-        const masterComputed = buildPayrollSnapshot(
-          { ...empSnapshot, ...breakdownEmployee, monthlyCTC: empSnapshot.monthlyCTC || breakdownEmployee.monthlyCTC },
-          masterConfig,
-          { workingDays: breakdownPayroll.workingDays || 1, paidDays: breakdownPayroll.workingDays || 1 },
-          {
-            basicPercent: empSnapshot.basicPercent,
-            hraPercent: empSnapshot.hraPercent,
-            pfEnabled: empSnapshot.pfEnabled,
-            esiEnabled: empSnapshot.esiEnabled,
-            gratuityEnabled: empSnapshot.gratuityEnabled,
-            includePfInCTC: empSnapshot.includePfInCTC,
-            includeGratuityInCTC: empSnapshot.includeGratuityInCTC,
-          },
-          breakdownPayroll.month,
-          breakdownPayroll.year
-        );
-
-        const localSnapshot = {
-          paidDays: breakdownPayroll.paidDays || 0,
-          workingDays: breakdownPayroll.workingDays || 1,
-          lop: breakdownPayroll.lop !== undefined ? breakdownPayroll.lop : Math.max(0, (breakdownPayroll.workingDays || 1) - (breakdownPayroll.paidDays || 0)),
-          earnings: breakdownPayroll.earnings || {},
-          deductions: breakdownPayroll.deductions || {},
-          employerContributions: breakdownPayroll.employerContributions || {},
-          netSalary: breakdownPayroll.netSalary || 0,
-          master: masterComputed?.master || empSnapshot,
-        };
-
-        const localSplits = breakdownPayroll.salarySplits || [];
         const isReadOnly = true;
-
-        const rows = {
-          [breakdownEmployee._id]: {
-            segmentLops: breakdownPayroll.segmentLops || [],
-            lopStrategy: breakdownPayroll.lopStrategy || 'proportional',
-            workingDays: breakdownPayroll.workingDays || 1,
-            paidDays: breakdownPayroll.paidDays || 0,
-            pfEnabled: breakdownPayroll.overrides?.pfEnabled !== undefined ? breakdownPayroll.overrides.pfEnabled : (empSnapshot?.pfEnabled !== undefined ? empSnapshot.pfEnabled : (breakdownEmployee.pfEnabled !== false)),
-            esiEnabled: breakdownPayroll.overrides?.esiEnabled !== undefined ? breakdownPayroll.overrides.esiEnabled : (empSnapshot?.esiEnabled !== undefined ? empSnapshot.esiEnabled : (breakdownEmployee.esiEnabled !== false)),
-            ptEnabled: breakdownPayroll.overrides?.ptEnabled !== undefined ? breakdownPayroll.overrides.ptEnabled : (empSnapshot?.ptEnabled !== undefined ? empSnapshot.ptEnabled : (breakdownEmployee.ptEnabled !== false)),
-            lwfEnabled: breakdownPayroll.overrides?.lwfEnabled !== undefined ? breakdownPayroll.overrides.lwfEnabled : (empSnapshot?.lwfEnabled !== undefined ? empSnapshot.lwfEnabled : (breakdownEmployee.lwfEnabled !== false)),
-            gratuityEnabled: breakdownPayroll.overrides?.gratuityEnabled !== undefined ? breakdownPayroll.overrides.gratuityEnabled : (empSnapshot?.gratuityEnabled !== undefined ? empSnapshot.gratuityEnabled : (breakdownEmployee.gratuityEnabled !== false)),
-            includePfInCTC: breakdownPayroll.overrides?.includePfInCTC !== undefined ? breakdownPayroll.overrides.includePfInCTC : (empSnapshot?.includePfInCTC === true),
-            includeGratuityInCTC: breakdownPayroll.overrides?.includeGratuityInCTC !== undefined ? breakdownPayroll.overrides.includeGratuityInCTC : (empSnapshot?.includeGratuityInCTC !== false),
-            basicPercent: breakdownPayroll.overrides?.basicPercent !== undefined ? breakdownPayroll.overrides.basicPercent : (empSnapshot?.basicPercent !== undefined ? (empSnapshot.basicPercent > 1 ? empSnapshot.basicPercent : empSnapshot.basicPercent * 100) : 50),
-            hraPercent: breakdownPayroll.overrides?.hraPercent !== undefined ? breakdownPayroll.overrides.hraPercent : (empSnapshot?.hraPercent !== undefined ? (empSnapshot.hraPercent > 1 ? empSnapshot.hraPercent : empSnapshot.hraPercent * 100) : 50),
-            tds: breakdownPayroll.deductions?.tds || 0,
-            hoursWorked: breakdownPayroll.hoursWorked || 0,
-          }
-        };
-
-        const localEarnings = breakdownPayroll.earnings?.otherEarnings || [];
-        const localDeductions = breakdownPayroll.deductions?.otherDeductions || [];
-        const localExcludedClaimIds = new Set(); 
-
-        const claimsMap = {
-          get: () => (breakdownPayroll.reimbursements || []).map(r => ({
-            _id: r._id,
-            category: r.name,
-            createdAt: breakdownPayroll.createdAt,
-            amount: r.approved || r.claimed,
-          }))
-        };
+        const localExcludedClaimIds = new Set();
 
         const showLopStrategy = localSplits && localSplits.length > 1 && breakdownEmployee.payType !== 'hourly';
 
@@ -1953,8 +1995,8 @@ const PayrollDashboard = () => {
                                 type="checkbox"
                                 disabled={isReadOnly}
                                 checked={
-                                  rows[breakdownEmployee._id]?.pfEnabled !== undefined
-                                    ? rows[breakdownEmployee._id].pfEnabled
+                                  breakdownRow?.pfEnabled !== undefined
+                                    ? breakdownRow.pfEnabled
                                     : localSnapshot?.master?.pfEnabled !== false
                                 }
                                 onChange={() => {}}
@@ -1972,8 +2014,8 @@ const PayrollDashboard = () => {
                                 type="checkbox"
                                 disabled={isReadOnly}
                                 checked={
-                                  rows[breakdownEmployee._id]?.esiEnabled !== undefined
-                                    ? rows[breakdownEmployee._id].esiEnabled
+                                  breakdownRow?.esiEnabled !== undefined
+                                    ? breakdownRow.esiEnabled
                                     : localSnapshot?.master?.esiEnabled !== false
                                 }
                                 onChange={() => {}}
@@ -1991,8 +2033,8 @@ const PayrollDashboard = () => {
                                 type="checkbox"
                                 disabled={isReadOnly}
                                 checked={
-                                  rows[breakdownEmployee._id]?.ptEnabled !== undefined
-                                    ? rows[breakdownEmployee._id].ptEnabled
+                                  breakdownRow?.ptEnabled !== undefined
+                                    ? breakdownRow.ptEnabled
                                     : localSnapshot?.master?.ptEnabled !== false
                                 }
                                 onChange={() => {}}
@@ -2010,8 +2052,8 @@ const PayrollDashboard = () => {
                                 type="checkbox"
                                 disabled={isReadOnly}
                                 checked={
-                                  rows[breakdownEmployee._id]?.lwfEnabled !== undefined
-                                    ? rows[breakdownEmployee._id].lwfEnabled
+                                  breakdownRow?.lwfEnabled !== undefined
+                                    ? breakdownRow.lwfEnabled
                                     : localSnapshot?.master?.lwfEnabled !== false
                                 }
                                 onChange={() => {}}
@@ -2029,8 +2071,8 @@ const PayrollDashboard = () => {
                                 type="checkbox"
                                 disabled={isReadOnly}
                                 checked={
-                                  rows[breakdownEmployee._id]?.gratuityEnabled !== undefined
-                                    ? rows[breakdownEmployee._id].gratuityEnabled
+                                  breakdownRow?.gratuityEnabled !== undefined
+                                    ? breakdownRow.gratuityEnabled
                                     : localSnapshot?.master?.gratuityEnabled !== false
                                 }
                                 onChange={() => {}}
@@ -2048,8 +2090,8 @@ const PayrollDashboard = () => {
                                 type="checkbox"
                                 disabled={isReadOnly}
                                 checked={
-                                  rows[breakdownEmployee._id]?.includePfInCTC !== undefined
-                                    ? rows[breakdownEmployee._id].includePfInCTC
+                                  breakdownRow?.includePfInCTC !== undefined
+                                    ? breakdownRow.includePfInCTC
                                     : localSnapshot?.master?.includePfInCTC === true
                                 }
                                 onChange={() => {}}
@@ -2067,8 +2109,8 @@ const PayrollDashboard = () => {
                                 type="checkbox"
                                 disabled={isReadOnly}
                                 checked={
-                                  rows[breakdownEmployee._id]?.includeGratuityInCTC !== undefined
-                                    ? rows[breakdownEmployee._id].includeGratuityInCTC
+                                  breakdownRow?.includeGratuityInCTC !== undefined
+                                    ? breakdownRow.includeGratuityInCTC
                                     : localSnapshot?.master?.includeGratuityInCTC !== false
                                 }
                                 onChange={() => {}}
@@ -2088,7 +2130,7 @@ const PayrollDashboard = () => {
                                   min="1"
                                   max="100"
                                   disabled={isReadOnly}
-                                  value={rows[breakdownEmployee._id]?.basicPercent}
+                                  value={breakdownRow?.basicPercent}
                                   onChange={() => {}}
                                   className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
                                 />
@@ -2108,7 +2150,7 @@ const PayrollDashboard = () => {
                                   min="0"
                                   max="100"
                                   disabled={isReadOnly}
-                                  value={rows[breakdownEmployee._id]?.hraPercent}
+                                  value={breakdownRow?.hraPercent}
                                   onChange={() => {}}
                                   className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
                                 />
@@ -2126,7 +2168,7 @@ const PayrollDashboard = () => {
                               <span className="text-[10px] text-slate-500">For mid-month revisions</span>
                             </div>
                             <select
-                              value={rows[breakdownEmployee._id]?.lopStrategy || 'proportional'}
+                              value={breakdownRow?.lopStrategy || 'proportional'}
                               disabled={isReadOnly}
                               onChange={() => {}}
                               className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white font-medium cursor-pointer"
@@ -2229,7 +2271,7 @@ const PayrollDashboard = () => {
                               {localSnapshot.deductions.lwfEmployee > 0 && <DeductionRow label="LWF (Employee Contribution)" amount={localSnapshot.deductions.lwfEmployee} />}
                               {localSnapshot.deductions.professionalTax > 0 && <DeductionRow label="Professional Tax (PT)" amount={localSnapshot.deductions.professionalTax} />}
                               {(breakdownEmployee.payType !== 'hourly' || localSnapshot.deductions.tds > 0) && (
-                                <DeductionRow label="Income Tax (TDS)" amount={localSnapshot.deductions.tds} isEditable={!isReadOnly} value={rows[breakdownEmployee._id]?.tds !== undefined ? rows[breakdownEmployee._id].tds : localSnapshot.deductions.tds} />
+                                <DeductionRow label="Income Tax (TDS)" amount={localSnapshot.deductions.tds} isEditable={!isReadOnly} value={breakdownRow?.tds !== undefined ? breakdownRow.tds : localSnapshot.deductions.tds} />
                               )}
                             </div>
                           </div>
@@ -2295,13 +2337,13 @@ const PayrollDashboard = () => {
                     </div>
 
                     {/* Pre-approved reimbursements section */}
-                    {claimsMap.get(breakdownEmployee._id)?.length > 0 && (
+                    {(localSnapshotFilteredRow?.reimbursements || []).length > 0 && (
                       <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm mt-6">
                         <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 font-bold text-slate-700 text-sm">
                           Pre-approved reimbursements
                         </div>
                         <div className="p-4 space-y-3">
-                          {claimsMap.get(breakdownEmployee._id).map((claim) => {
+                          {(localSnapshotFilteredRow?.reimbursements || []).map((claim) => {
                             const isExcluded = localExcludedClaimIds.has(claim._id);
                             return (
                               <div key={claim._id} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
