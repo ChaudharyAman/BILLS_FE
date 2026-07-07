@@ -1864,7 +1864,7 @@ const PayrollDashboard = () => {
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-900 text-sm">
                     {breakdownEmployee.payType === 'hourly' ? (
                       <div>
-                        <span className="font-semibold text-blue-900">Hours Worked:</span> {rows[breakdownEmployee._id]?.hoursWorked ?? 160} hrs
+                        <span className="font-semibold text-blue-900">Hours Worked:</span> {breakdownRow?.hoursWorked ?? 160} hrs
                         <span className="mx-2 text-blue-300">|</span>
                         <span className="font-semibold text-blue-900">Hourly Rate:</span> {fmtMoney(breakdownEmployee.hourlyRate)}/hr
                       </div>
@@ -1877,7 +1877,7 @@ const PayrollDashboard = () => {
                     )}
                     <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold self-start sm:self-auto">
                       {breakdownEmployee.payType === 'hourly' 
-                        ? `${rows[breakdownEmployee._id]?.hoursWorked ?? 160} hrs logged` 
+                        ? `${breakdownRow?.hoursWorked ?? 160} hrs logged` 
                         : (localSnapshot.lop > 0 ? `${localSnapshot.lop} LOP Days` : 'Full Attendance')
                       }
                     </div>
@@ -1894,7 +1894,7 @@ const PayrollDashboard = () => {
                         <thead>
                           <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                             <th className="p-2.5">Period</th>
-                            {rows[breakdownEmployee._id]?.lopStrategy === 'custom' && (
+                            {breakdownRow?.lopStrategy === 'custom' && (
                               <th className="p-2.5 text-right w-20">LOP Days</th>
                             )}
                             <th className="p-2.5 text-right">Monthly CTC</th>
@@ -1917,7 +1917,7 @@ const PayrollDashboard = () => {
                                 <div>{new Date(split.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} - {new Date(split.endDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
                                 <div className="text-[10px] text-slate-500 font-normal mt-0.5">{split.daysCount} days in period</div>
                               </td>
-                              {rows[breakdownEmployee._id]?.lopStrategy === 'custom' && (
+                              {breakdownRow?.lopStrategy === 'custom' && (
                                 <td className="p-2.5 text-right">
                                   <input
                                     type="number"
@@ -1925,7 +1925,7 @@ const PayrollDashboard = () => {
                                     min="0"
                                     max={split.daysCount}
                                     disabled={isReadOnly}
-                                    value={(rows[breakdownEmployee._id]?.segmentLops || [])[index] ?? 0}
+                                    value={(breakdownRow?.segmentLops || [])[index] ?? 0}
                                     onChange={() => {}}
                                     className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-semibold"
                                   />
@@ -1952,9 +1952,9 @@ const PayrollDashboard = () => {
                           ))}
                         </tbody>
                       </table>
-                      {rows[breakdownEmployee._id]?.lopStrategy === 'custom' && (() => {
-                        const totalLop = Math.max(0, (Number(rows[breakdownEmployee._id]?.workingDays) || monthWorkingDays) - (Number(rows[breakdownEmployee._id]?.paidDays) || 0));
-                        const currentSegmentLops = rows[breakdownEmployee._id]?.segmentLops || [];
+                      {breakdownRow?.lopStrategy === 'custom' && (() => {
+                        const totalLop = Math.max(0, (Number(breakdownRow?.workingDays) || breakdownPayroll.workingDays || 30) - (Number(breakdownRow?.paidDays) || 0));
+                        const currentSegmentLops = breakdownRow?.segmentLops || [];
                         const sum = currentSegmentLops.reduce((s, val) => s + (Number(val) || 0), 0);
                         const isMatching = Math.abs(sum - totalLop) < 0.01;
                         return (
