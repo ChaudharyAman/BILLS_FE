@@ -478,6 +478,7 @@ const PayrollProcessing = () => {
               basicPercent: existingP.overrides?.basicPercent !== undefined ? existingP.overrides.basicPercent : undefined,
               hraPercent: existingP.overrides?.hraPercent !== undefined ? existingP.overrides.hraPercent : undefined,
               lopStrategy: existingP.lopStrategy || 'proportional',
+              segmentLops: existingP.segmentLops || [],
               excludedClaimIds: (() => {
                 const allClaims = claimsByEmp.get(emp._id) || [];
                 const includedIds = new Set(existingP.reimbursements?.map(r => String(r._id)) || []);
@@ -726,7 +727,7 @@ const PayrollProcessing = () => {
     };
   }, [breakdownEmployee, rows, claimsMap, localExcludedClaimIds]);
 
-  const localSnapshot = usePayrollSnapshot(
+  const localSnapshotComputed = usePayrollSnapshot(
     breakdownEmployee,
     config,
     { ...localSnapshotFilteredRow, month, year },
@@ -734,6 +735,27 @@ const PayrollProcessing = () => {
     localEarnings,
     localDeductions
   );
+
+  // For processed payrolls (read-only), show the saved backend data, not a re-computation
+  const localSnapshot = useMemo(() => {
+    if (!breakdownEmployee) return localSnapshotComputed;
+    const existingP = existingPayrollsMap.get(String(breakdownEmployee._id));
+    if (existingP && existingP.status !== 'draft') {
+      // Build a snapshot-shaped object from the saved payroll record
+      return {
+        ...localSnapshotComputed,
+        earnings: existingP.earnings || localSnapshotComputed?.earnings || {},
+        deductions: existingP.deductions || localSnapshotComputed?.deductions || {},
+        employerContributions: existingP.employerContributions || localSnapshotComputed?.employerContributions || {},
+        netSalary: existingP.netSalary ?? localSnapshotComputed?.netSalary ?? 0,
+        paidDays: existingP.paidDays ?? localSnapshotComputed?.paidDays ?? 0,
+        workingDays: existingP.workingDays ?? localSnapshotComputed?.workingDays ?? 1,
+        lop: existingP.lop ?? Math.max(0, (existingP.workingDays || 1) - (existingP.paidDays || 0)),
+        master: localSnapshotComputed?.master || {},
+      };
+    }
+    return localSnapshotComputed;
+  }, [breakdownEmployee, existingPayrollsMap, localSnapshotComputed]);
 
   const localSplits = useMemo(() => {
     if (!breakdownEmployee) return [];

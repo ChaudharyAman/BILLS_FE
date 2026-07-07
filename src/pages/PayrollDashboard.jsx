@@ -6,7 +6,7 @@ import { FaDownload, FaFileInvoice, FaMoneyBillWave, FaPlus, FaTimes, FaCheck, F
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import Skeleton from '../components/Skeleton';
-import { fmtMoney, payrollStatusClass } from '../utils/payroll';
+import { fmtMoney, payrollStatusClass, buildPayrollSnapshot, DEFAULT_PAYROLL_CONFIG } from '../utils/payroll';
 
 const monthName = (month) => new Date(0, month - 1).toLocaleString('en-US', { month: 'short' });
 const STATUS_TABS = ['all', 'draft', 'processed', 'approved', 'paid'];
@@ -1717,6 +1717,26 @@ const PayrollDashboard = () => {
         const hasSalaryBreakup = breakdownEmployee.useSalaryComponents !== false && breakdownEmployee.employmentType !== 'intern' && !isHourly;
         const monthWorkingDays = config?.defaultWorkingDays || 26;
 
+        // Compute the full-month master salary structure from empSnapshot so getComponentBreakdown
+        // can display the unprorated (master) values alongside the actual paid values.
+        const masterConfig = { ...DEFAULT_PAYROLL_CONFIG, ...(config || {}) };
+        const masterComputed = buildPayrollSnapshot(
+          { ...empSnapshot, ...breakdownEmployee, monthlyCTC: empSnapshot.monthlyCTC || breakdownEmployee.monthlyCTC },
+          masterConfig,
+          { workingDays: breakdownPayroll.workingDays || 1, paidDays: breakdownPayroll.workingDays || 1 },
+          {
+            basicPercent: empSnapshot.basicPercent,
+            hraPercent: empSnapshot.hraPercent,
+            pfEnabled: empSnapshot.pfEnabled,
+            esiEnabled: empSnapshot.esiEnabled,
+            gratuityEnabled: empSnapshot.gratuityEnabled,
+            includePfInCTC: empSnapshot.includePfInCTC,
+            includeGratuityInCTC: empSnapshot.includeGratuityInCTC,
+          },
+          breakdownPayroll.month,
+          breakdownPayroll.year
+        );
+
         const localSnapshot = {
           paidDays: breakdownPayroll.paidDays || 0,
           workingDays: breakdownPayroll.workingDays || 1,
@@ -1725,7 +1745,7 @@ const PayrollDashboard = () => {
           deductions: breakdownPayroll.deductions || {},
           employerContributions: breakdownPayroll.employerContributions || {},
           netSalary: breakdownPayroll.netSalary || 0,
-          master: empSnapshot,
+          master: masterComputed?.master || empSnapshot,
         };
 
         const localSplits = breakdownPayroll.salarySplits || [];
