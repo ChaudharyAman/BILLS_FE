@@ -209,15 +209,13 @@ const EmployeeRow = ({
               )}
             </div>
           ) : null}
-          {!isExistingDisabled && (
-            <button
-              type="button"
-              onClick={() => setBreakdownEmployee(employee)}
-              className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left flex items-center gap-1 self-start mt-0.5"
-            >
-              <FaCalculator className="w-2.5 h-2.5" /> Breakdown & Adjust
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setBreakdownEmployee(employee)}
+            className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left flex items-center gap-1 self-start mt-0.5"
+          >
+            <FaCalculator className="w-2.5 h-2.5" /> {isExistingDisabled ? 'View Breakdown' : 'Breakdown & Adjust'}
+          </button>
           
           {/* Statutory Settings Badges */}
           {!isHourly && (
@@ -336,6 +334,11 @@ const PayrollProcessing = () => {
 
   // Modal Breakdown states
   const [breakdownEmployee, setBreakdownEmployee] = useState(null);
+  const isReadOnly = useMemo(() => {
+    if (!breakdownEmployee) return false;
+    const existingP = existingPayrollsMap.get(String(breakdownEmployee._id));
+    return existingP && existingP.status !== 'draft';
+  }, [breakdownEmployee, existingPayrollsMap]);
   const [localEarnings, setLocalEarnings] = useState([]);
   const [localDeductions, setLocalDeductions] = useState([]);
   const [localExcludedClaimIds, setLocalExcludedClaimIds] = useState(new Set());
@@ -936,653 +939,673 @@ const PayrollProcessing = () => {
       </div>
 
       {/* Slide-over / Modal for Detailed Salary Breakdown & Adjustments */}
-      {breakdownEmployee && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full border border-gray-100 overflow-hidden flex flex-col my-8 animate-in fade-in duration-200">
-            {/* Modal Header */}
-            <div className="bg-slate-900 text-white px-6 py-5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg">
-                  {breakdownEmployee.firstName[0]}{breakdownEmployee.lastName?.[0] || ''}
+      {breakdownEmployee && (() => {
+        const empId = breakdownEmployee._id;
+        const isHourly = breakdownEmployee.payType === 'hourly';
+        const hasSalaryBreakup = breakdownEmployee.useSalaryComponents !== false && breakdownEmployee.employmentType !== 'intern' && !isHourly;
+        const showStatutoryOverrides = hasSalaryBreakup;
+        const showLopStrategy = localSplits && localSplits.length > 1 && !isHourly;
+        const isFlatSalary = !hasSalaryBreakup;
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full border border-gray-100 overflow-hidden flex flex-col my-8 animate-in fade-in duration-200">
+              {/* Modal Header */}
+              <div className="bg-slate-900 text-white px-6 py-5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg">
+                    {breakdownEmployee.firstName[0]}{breakdownEmployee.lastName?.[0] || ''}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold">{breakdownEmployee.firstName} {breakdownEmployee.lastName}</h2>
+                    <p className="text-xs text-gray-400">
+                      {breakdownEmployee.employeeId || 'EMP-001'} · {breakdownEmployee.designation || 'SDE'} · {
+                        isHourly
+                          ? `Hourly Rate: ${fmtMoney(breakdownEmployee.hourlyRate)}/hr`
+                          : `CTC ${fmtMoney(breakdownEmployee.monthlyCTC)}`
+                      }
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-xl font-bold">{breakdownEmployee.firstName} {breakdownEmployee.lastName}</h2>
-                  <p className="text-xs text-gray-400">
-                    {breakdownEmployee.employeeId || 'EMP-001'} · {breakdownEmployee.designation || 'SDE'} · {
-                      breakdownEmployee.payType === 'hourly'
-                        ? `Hourly Rate: ${fmtMoney(breakdownEmployee.hourlyRate)}/hr`
-                        : `CTC ${fmtMoney(breakdownEmployee.monthlyCTC)}`
-                    }
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setBreakdownEmployee(null)}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <FaTimes className="w-5 h-5" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setBreakdownEmployee(null)}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <FaTimes className="w-5 h-5" />
-              </button>
-            </div>
 
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6">
-              {/* Proration Summary Banner */}
-              {localSnapshot && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-900 text-sm">
-                  {breakdownEmployee.payType === 'hourly' ? (
-                    <div>
-                      <span className="font-semibold text-blue-900">Hours Worked:</span> {rows[breakdownEmployee._id]?.hoursWorked ?? 160} hrs
-                      <span className="mx-2 text-blue-300">|</span>
-                      <span className="font-semibold text-blue-900">Hourly Rate:</span> {fmtMoney(breakdownEmployee.hourlyRate)}/hr
-                    </div>
-                  ) : (
-                    <div>
-                      <span className="font-semibold text-blue-900">Paid / Working Days:</span> {localSnapshot.paidDays} / {localSnapshot.workingDays} days
-                      <span className="mx-2 text-blue-300">|</span>
-                      <span className="font-semibold text-blue-900">Proration Ratio:</span> {Math.round((localSnapshot.paidDays / localSnapshot.workingDays) * 100)}%
-                    </div>
-                  )}
-                  <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold self-start sm:self-auto">
-                    {breakdownEmployee.payType === 'hourly' 
-                      ? `${rows[breakdownEmployee._id]?.hoursWorked ?? 160} hrs logged` 
-                      : (localSnapshot.lop > 0 ? `${localSnapshot.lop} LOP Days` : 'Full Attendance')
-                    }
-                  </div>
-                </div>
-              )}
-
-              {localSplits && localSplits.length > 1 && breakdownEmployee.payType !== 'hourly' && (
-                <div className="border border-blue-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                  <div className="bg-blue-50 px-4 py-3 border-b border-blue-100 font-bold text-blue-900 text-sm">
-                    Mid-Month Revision Calculation Split
-                  </div>
-                  <div className="p-4 overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                          <th className="p-2.5">Period</th>
-                          {rows[breakdownEmployee._id]?.lopStrategy === 'custom' && (
-                            <th className="p-2.5 text-right w-20">LOP Days</th>
-                          )}
-                          <th className="p-2.5 text-right">Monthly CTC</th>
-                          {breakdownEmployee.useSalaryComponents !== false && (
-                            <>
-                              <th className="p-2.5 text-right">Basic</th>
-                              <th className="p-2.5 text-right">HRA</th>
-                              <th className="p-2.5 text-right">PF (EE / ER)</th>
-                              <th className="p-2.5 text-right">ESI (EE / ER)</th>
-                              <th className="p-2.5 text-right">Gratuity</th>
-                            </>
-                          )}
-                          <th className="p-2.5 text-right">Period Earnings</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {localSplits.map((split, index) => (
-                          <tr key={index} className="hover:bg-slate-50/50">
-                            <td className="p-2.5 font-medium text-slate-900">
-                              <div>{new Date(split.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} - {new Date(split.endDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
-                              <div className="text-[10px] text-slate-500 font-normal mt-0.5">{split.daysCount} days in period</div>
-                            </td>
-                            {rows[breakdownEmployee._id]?.lopStrategy === 'custom' && (
-                              <td className="p-2.5 text-right">
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  max={split.daysCount}
-                                  value={(rows[breakdownEmployee._id]?.segmentLops || [])[index] ?? 0}
-                                  onChange={(e) => handleSegmentLopChange(index, e.target.value)}
-                                  className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-semibold"
-                                />
-                              </td>
-                            )}
-                            <td className="p-2.5 text-right font-medium text-slate-700">{fmtMoney(split.monthlyCTC)}</td>
-                            {breakdownEmployee.useSalaryComponents !== false && (
-                              <>
-                                <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.basic)}</td>
-                                <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.hra)}</td>
-                                <td className="p-2.5 text-right text-slate-700">
-                                  <div>{fmtMoney(split.pfEmployee)} <span className="text-[9px] text-slate-400">EE</span></div>
-                                  <div className="text-[10px] text-slate-500">{fmtMoney(split.pfEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
-                                </td>
-                                <td className="p-2.5 text-right text-slate-700">
-                                  <div>{fmtMoney(split.esiEmployee)} <span className="text-[9px] text-slate-400">EE</span></div>
-                                  <div className="text-[10px] text-slate-500">{fmtMoney(split.esiEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
-                                </td>
-                                <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.gratuity)}</td>
-                              </>
-                            )}
-                            <td className="p-2.5 text-right font-semibold text-slate-900">{fmtMoney(split.totalEarnings)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {rows[breakdownEmployee._id]?.lopStrategy === 'custom' && (() => {
-                      const totalLop = Math.max(0, (Number(rows[breakdownEmployee._id]?.workingDays) || monthWorkingDays) - (Number(rows[breakdownEmployee._id]?.paidDays) || 0));
-                      const currentSegmentLops = rows[breakdownEmployee._id]?.segmentLops || [];
-                      const sum = currentSegmentLops.reduce((s, val) => s + (Number(val) || 0), 0);
-                      const isMatching = Math.abs(sum - totalLop) < 0.01;
-                      return (
-                        <div className={`mt-3 text-[11px] font-semibold px-3 py-2 rounded-lg ${isMatching ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
-                          {isMatching ? (
-                            <span>✓ Total LOP Days allocated: {totalLop} days (matches overall LOP).</span>
-                          ) : (
-                            <span>⚠️ Allocated LOP Days sum ({Math.round(sum*100)/100}) must match the employee's total LOP days ({totalLop}).</span>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              )}
-
-              {localSnapshot && (() => {
-                const showStatutoryOverrides = breakdownEmployee.useSalaryComponents !== false && breakdownEmployee.payType !== 'hourly';
-                const showLopStrategy = localSplits && localSplits.length > 1 && breakdownEmployee.payType !== 'hourly';
-                
-                if (!showStatutoryOverrides && !showLopStrategy) return null;
-                
-                return (
-                  <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                    <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 font-bold text-slate-700 text-sm flex items-center justify-between">
-                      <span>Statutory Components & Ratio Overrides</span>
-                      <span className="text-[11px] text-slate-400 font-normal">Apply dynamically to this payroll run only</span>
-                    </div>
-                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-                      {showStatutoryOverrides && (
-                        <>
-                          {/* PF Toggle */}
-                          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                            <div className="flex flex-col pr-2">
-                              <span className="font-semibold text-slate-800">Provident Fund (PF)</span>
-                              <span className="text-[10px] text-slate-500 mt-0.5">Matching contributions</span>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={
-                                rows[breakdownEmployee._id]?.pfEnabled !== undefined
-                                  ? rows[breakdownEmployee._id].pfEnabled
-                                  : localSnapshot?.master?.pfEnabled !== false
-                              }
-                              onChange={(e) => updateRow(breakdownEmployee._id, 'pfEnabled', e.target.checked)}
-                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                            />
-                          </div>
-
-                          {/* ESI Toggle */}
-                          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                            <div className="flex flex-col pr-2">
-                              <span className="font-semibold text-slate-800">ESI Scheme</span>
-                              <span className="text-[10px] text-slate-500 mt-0.5">State insurance matches</span>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={
-                                rows[breakdownEmployee._id]?.esiEnabled !== undefined
-                                  ? rows[breakdownEmployee._id].esiEnabled
-                                  : localSnapshot?.master?.esiEnabled !== false
-                              }
-                              onChange={(e) => updateRow(breakdownEmployee._id, 'esiEnabled', e.target.checked)}
-                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                            />
-                          </div>
-
-                          {/* PT Toggle */}
-                          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                            <div className="flex flex-col pr-2">
-                              <span className="font-semibold text-slate-800">Professional Tax (PT)</span>
-                              <span className="text-[10px] text-slate-500 mt-0.5">State professional tax</span>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={
-                                rows[breakdownEmployee._id]?.ptEnabled !== undefined
-                                  ? rows[breakdownEmployee._id].ptEnabled
-                                  : localSnapshot?.master?.ptEnabled !== false
-                              }
-                              onChange={(e) => updateRow(breakdownEmployee._id, 'ptEnabled', e.target.checked)}
-                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                            />
-                          </div>
-
-                          {/* LWF Toggle */}
-                          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                            <div className="flex flex-col pr-2">
-                              <span className="font-semibold text-slate-800">Labour Welfare Fund</span>
-                              <span className="text-[10px] text-slate-500 mt-0.5">State welfare fund (LWF)</span>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={
-                                rows[breakdownEmployee._id]?.lwfEnabled !== undefined
-                                  ? rows[breakdownEmployee._id].lwfEnabled
-                                  : localSnapshot?.master?.lwfEnabled !== false
-                              }
-                              onChange={(e) => updateRow(breakdownEmployee._id, 'lwfEnabled', e.target.checked)}
-                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                            />
-                          </div>
-
-                          {/* Gratuity Toggle */}
-                          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                            <div className="flex flex-col pr-2">
-                              <span className="font-semibold text-slate-800">Gratuity Provision</span>
-                              <span className="text-[10px] text-slate-500 mt-0.5">4.81% basic salary match</span>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={
-                                rows[breakdownEmployee._id]?.gratuityEnabled !== undefined
-                                  ? rows[breakdownEmployee._id].gratuityEnabled
-                                  : localSnapshot?.master?.gratuityEnabled !== false
-                              }
-                              onChange={(e) => updateRow(breakdownEmployee._id, 'gratuityEnabled', e.target.checked)}
-                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                            />
-                          </div>
-
-                          {/* Include PF in CTC */}
-                          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                            <div className="flex flex-col pr-2">
-                              <span className="font-semibold text-slate-800">Include PF in CTC</span>
-                              <span className="text-[10px] text-slate-500 mt-0.5">Employer PF inside CTC limit</span>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={
-                                rows[breakdownEmployee._id]?.includePfInCTC !== undefined
-                                  ? rows[breakdownEmployee._id].includePfInCTC
-                                  : localSnapshot?.master?.includePfInCTC === true
-                              }
-                              onChange={(e) => updateRow(breakdownEmployee._id, 'includePfInCTC', e.target.checked)}
-                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                            />
-                          </div>
-
-                          {/* Include Gratuity in CTC */}
-                          <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                            <div className="flex flex-col pr-2">
-                              <span className="font-semibold text-slate-800">Include Gratuity in CTC</span>
-                              <span className="text-[10px] text-slate-500 mt-0.5">Gratuity inside CTC limit</span>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={
-                                rows[breakdownEmployee._id]?.includeGratuityInCTC !== undefined
-                                  ? rows[breakdownEmployee._id].includeGratuityInCTC
-                                  : localSnapshot?.master?.includeGratuityInCTC !== false
-                              }
-                              onChange={(e) => updateRow(breakdownEmployee._id, 'includeGratuityInCTC', e.target.checked)}
-                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                            />
-                          </div>
-
-                          {/* Basic Override */}
-                          <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
-                            <div className="flex justify-between items-center">
-                              <span className="font-semibold text-slate-800">Basic Salary Override</span>
-                              <span className="text-[10px] text-slate-500">Default: 50%</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <input
-                                type="number"
-                                min="1"
-                                max="100"
-                                value={
-                                  rows[breakdownEmployee._id]?.basicPercent !== undefined
-                                    ? rows[breakdownEmployee._id].basicPercent
-                                    : (localSnapshot?.master?.basicPercent !== undefined
-                                        ? (localSnapshot.master.basicPercent > 1
-                                            ? localSnapshot.master.basicPercent
-                                            : Math.round(localSnapshot.master.basicPercent * 100))
-                                        : 50)
-                                }
-                                onChange={(e) => updateRow(breakdownEmployee._id, 'basicPercent', Number(e.target.value) || 0)}
-                                className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
-                              />
-                              <span className="text-slate-500 font-medium">%</span>
-                            </div>
-                          </div>
-
-                          {/* HRA Override */}
-                          <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
-                            <div className="flex justify-between items-center">
-                              <span className="font-semibold text-slate-800">HRA Override (% of Basic)</span>
-                              <span className="text-[10px] text-slate-500">Default: 50%</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <input
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={
-                                  rows[breakdownEmployee._id]?.hraPercent !== undefined
-                                    ? rows[breakdownEmployee._id].hraPercent
-                                    : (localSnapshot?.master?.hraPercent !== undefined
-                                        ? (localSnapshot.master.hraPercent > 1
-                                            ? localSnapshot.master.hraPercent
-                                            : Math.round(localSnapshot.master.hraPercent * 100))
-                                        : 50)
-                                }
-                                onChange={(e) => updateRow(breakdownEmployee._id, 'hraPercent', Number(e.target.value) || 0)}
-                                className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
-                              />
-                              <span className="text-slate-500 font-medium">%</span>
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      {/* Leave Deduction Strategy Preference Dropdown */}
-                      {showLopStrategy && (
-                        <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
-                          <div className="flex justify-between items-center">
-                            <span className="font-semibold text-slate-800">Leave Deduction Preference</span>
-                            <span className="text-[10px] text-slate-500">For mid-month revisions</span>
-                          </div>
-                          <select
-                            value={rows[breakdownEmployee._id]?.lopStrategy || 'proportional'}
-                            onChange={(e) => {
-                              const strategy = e.target.value;
-                              updateRow(breakdownEmployee._id, 'lopStrategy', strategy);
-                              if (strategy === 'custom') {
-                                const totalLop = Math.max(0, (Number(rows[breakdownEmployee._id]?.workingDays) || monthWorkingDays) - (Number(rows[breakdownEmployee._id]?.paidDays) || 0));
-                                const totalDays = new Date(year, month, 0).getDate();
-                                const initialLops = localSplits.map(split => {
-                                  const segRatio = split.daysCount / totalDays;
-                                  return Math.round(segRatio * totalLop * 100) / 100;
-                                });
-                                updateRow(breakdownEmployee._id, 'segmentLops', initialLops);
-                              }
-                            }}
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white font-medium cursor-pointer"
-                          >
-                            <option value="proportional">Proportional (Default)</option>
-                            <option value="older_first">Older Period first</option>
-                            <option value="newer_first">Newer Period first</option>
-                            <option value="custom">Custom Strategy</option>
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {localSnapshot && (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Left Column: Earnings Breakdown */}
-                  <div className="space-y-4">
-                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
-                        <span>Earnings (Paid vs Master)</span>
-                        <span className="text-xs text-gray-500 font-normal">Attendance Prorated</span>
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6">
+                {/* Proration Summary Banner */}
+                {localSnapshot && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-900 text-sm">
+                    {isHourly ? (
+                      <div>
+                        <span className="font-semibold text-blue-900">Hours Worked:</span> {rows[empId]?.hoursWorked ?? 160} hrs
+                        <span className="mx-2 text-blue-300">|</span>
+                        <span className="font-semibold text-blue-900">Hourly Rate:</span> {fmtMoney(breakdownEmployee.hourlyRate)}/hr
                       </div>
-                      <div className="divide-y divide-gray-100 text-sm">
-                        {allEarningComponents.map((c) => {
-                          const { paid, master } = getComponentBreakdown(localSnapshot, c);
-                          const isFlatSalary = breakdownEmployee.useSalaryComponents === false;
-                          const isHourly = breakdownEmployee.payType === 'hourly';
-                          const shouldShow = isHourly
-                            ? (paid > 0 || master > 0)
-                            : (isFlatSalary 
-                              ? c.id === 'basic'
-                              : (['basic', 'hra', remainderId].includes(c.id) || paid > 0 || master > 0));
-                          if (!shouldShow) return null;
-                          return (
-                            <BreakdownRow
-                              key={c.id}
-                              label={(isHourly && c.id === 'basic') ? 'Contract Wages (Hourly)' : c.name}
-                              paid={paid}
-                              master={master}
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Custom Allowances Editor */}
-                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
-                        <span>Custom Run Allowances (Other Earnings)</span>
-                        <button
-                          type="button"
-                          onClick={() => setLocalEarnings([...localEarnings, { name: '', amount: 0 }])}
-                          className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
-                        >
-                          <FaPlus className="w-2.5 h-2.5" /> Add
-                        </button>
-                      </div>
-                      <div className="p-4 space-y-3">
-                        {localEarnings.length === 0 ? (
-                          <div className="text-xs text-gray-500 text-center py-2">No custom allowances defined for this run.</div>
-                        ) : (
-                          localEarnings.map((item, idx) => (
-                            <div key={`local-earn-${idx}`} className="flex gap-2 items-center">
-                              <input
-                                type="text"
-                                placeholder="Allowance Name"
-                                value={item.name}
-                                onChange={(e) => {
-                                  const updated = [...localEarnings];
-                                  updated[idx].name = e.target.value;
-                                  setLocalEarnings(updated);
-                                }}
-                                className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
-                              />
-                              <input
-                                type="number"
-                                placeholder="Amount"
-                                value={item.amount}
-                                onChange={(e) => {
-                                  const updated = [...localEarnings];
-                                  updated[idx].amount = Number(e.target.value) || 0;
-                                  setLocalEarnings(updated);
-                                }}
-                                className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right font-medium"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = localEarnings.filter((_, i) => i !== idx);
-                                  setLocalEarnings(updated);
-                                }}
-                                className="text-red-500 hover:text-red-700 p-1 transition-colors"
-                              >
-                                <FaTrash className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Total Earnings Summary */}
-                    <div className="bg-slate-50 border border-gray-200 rounded-xl p-4 flex justify-between items-center font-bold text-slate-800">
-                      <span>Total Earnings (Gross Salary)</span>
-                      <span className="text-lg">{fmtMoney(localSnapshot.earnings.totalEarnings)}</span>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Deductions, Contributions & Net Pay */}
-                  <div className="space-y-4">
-                    {/* Deductions Card */}
-                    {(breakdownEmployee.payType !== 'hourly' || (localSnapshot.deductions.pfEmployee || 0) + (localSnapshot.deductions.esiEmployee || 0) + (localSnapshot.deductions.lwfEmployee || 0) + (localSnapshot.deductions.professionalTax || 0) + (localSnapshot.deductions.tds || 0) > 0) && (
-                      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
-                          Statutory & Voluntary Deductions
-                        </div>
-                        <div className="divide-y divide-gray-100 text-sm">
-                          {breakdownEmployee.useSalaryComponents !== false && breakdownEmployee.payType !== 'hourly' && localSnapshot.deductions.pfEmployee > 0 && (
-                            <DeductionRow label="Provident Fund (Employee PF Contribution)" amount={localSnapshot.deductions.pfEmployee} />
-                          )}
-                          {localSnapshot.deductions.esiEmployee > 0 && <DeductionRow label="ESI (Employee Contribution)" amount={localSnapshot.deductions.esiEmployee} />}
-                          {localSnapshot.deductions.lwfEmployee > 0 && <DeductionRow label="LWF (Employee Contribution)" amount={localSnapshot.deductions.lwfEmployee} />}
-                          {localSnapshot.deductions.professionalTax > 0 && <DeductionRow label="Professional Tax (PT)" amount={localSnapshot.deductions.professionalTax} />}
-                          {(breakdownEmployee.payType !== 'hourly' || localSnapshot.deductions.tds > 0) && (
-                            <DeductionRow label="Income Tax (TDS)" amount={localSnapshot.deductions.tds} isEditable value={rows[breakdownEmployee._id]?.tds !== undefined ? rows[breakdownEmployee._id].tds : localSnapshot.deductions.tds} onChange={(val) => updateRow(breakdownEmployee._id, 'tds', Number(val) || 0)} />
-                          )}
-                        </div>
+                    ) : (
+                      <div>
+                        <span className="font-semibold text-blue-900">Paid / Working Days:</span> {localSnapshot.paidDays} / {localSnapshot.workingDays} days
+                        <span className="mx-2 text-blue-300">|</span>
+                        <span className="font-semibold text-blue-900">Proration Ratio:</span> {Math.round((localSnapshot.paidDays / localSnapshot.workingDays) * 100)}%
                       </div>
                     )}
-
-                    {/* Custom Deductions Editor */}
-                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
-                        <span>Custom Run Deductions (Other Deductions)</span>
-                        <button
-                          type="button"
-                          onClick={() => setLocalDeductions([...localDeductions, { name: '', amount: 0 }])}
-                          className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
-                        >
-                          <FaPlus className="w-2.5 h-2.5" /> Add
-                        </button>
-                      </div>
-                      <div className="p-4 space-y-3">
-                        {localDeductions.length === 0 ? (
-                          <div className="text-xs text-gray-500 text-center py-2">No custom deductions defined for this run.</div>
-                        ) : (
-                          localDeductions.map((item, idx) => (
-                            <div key={`local-ded-${idx}`} className="flex gap-2 items-center">
-                              <input
-                                type="text"
-                                placeholder="Deduction Name"
-                                value={item.name}
-                                onChange={(e) => {
-                                  const updated = [...localDeductions];
-                                  updated[idx].name = e.target.value;
-                                  setLocalDeductions(updated);
-                                }}
-                                className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
-                              />
-                              <input
-                                type="number"
-                                placeholder="Amount"
-                                value={item.amount}
-                                onChange={(e) => {
-                                  const updated = [...localDeductions];
-                                  updated[idx].amount = Number(e.target.value) || 0;
-                                  setLocalDeductions(updated);
-                                }}
-                                className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right font-medium"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = localDeductions.filter((_, i) => i !== idx);
-                                  setLocalDeductions(updated);
-                                }}
-                                className="text-red-500 hover:text-red-700 p-1 transition-colors"
-                              >
-                                <FaTrash className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Employer Contributions Card */}
-                    {breakdownEmployee.useSalaryComponents !== false && breakdownEmployee.payType !== 'hourly' && (
-                      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
-                          Employer Contributions (Non-Takehome CTC Components)
-                        </div>
-                        <div className="divide-y divide-gray-100 text-sm">
-                          <DeductionRow label="Provident Fund (Employer PF Contribution)" amount={localSnapshot.employerContributions.pfEmployer} isContrib />
-                          {localSnapshot.employerContributions.esiEmployer > 0 && <DeductionRow label="ESI (Employer Contribution)" amount={localSnapshot.employerContributions.esiEmployer} isContrib />}
-                          {localSnapshot.employerContributions.gratuity > 0 && <DeductionRow label="Gratuity Provision" amount={localSnapshot.employerContributions.gratuity} isContrib />}
-                          {localSnapshot.employerContributions.lwfEmployer > 0 && <DeductionRow label="LWF (Employer Contribution)" amount={localSnapshot.employerContributions.lwfEmployer} isContrib />}
-                          {localSnapshot.employerContributions.insuranceEmployer > 0 && <DeductionRow label="Insurance" amount={localSnapshot.employerContributions.insuranceEmployer} isContrib />}
-                          {localSnapshot.employerContributions.nps > 0 && <DeductionRow label="Employer NPS" amount={localSnapshot.employerContributions.nps} isContrib />}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Net Take-Home Salary Callout */}
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex justify-between items-center font-bold text-emerald-900 shadow-sm">
-                      <div className="flex flex-col">
-                        <span className="text-emerald-900">Net Take-Home Salary</span>
-                        <span className="text-[10px] text-emerald-600 font-normal">Gross - Total Deductions</span>
-                      </div>
-                      <span className="text-2xl text-emerald-800">{fmtMoney(localSnapshot.netSalary)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pre-approved reimbursements section */}
-                {claimsMap.get(breakdownEmployee._id)?.length > 0 && (
-                  <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm mt-6">
-                    <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 font-bold text-slate-700 text-sm">
-                      Pre-approved reimbursements
-                    </div>
-                    <div className="p-4 space-y-3">
-                      {claimsMap.get(breakdownEmployee._id).map((claim) => {
-                        const isExcluded = localExcludedClaimIds.has(claim._id);
-                        return (
-                          <div key={claim._id} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="checkbox"
-                                checked={!isExcluded}
-                                onChange={(e) => {
-                                  setLocalExcludedClaimIds((prev) => {
-                                    const next = new Set(prev);
-                                    if (e.target.checked) {
-                                      next.delete(claim._id);
-                                    } else {
-                                      next.add(claim._id);
-                                    }
-                                    return next;
-                                  });
-                                }}
-                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                              />
-                              <span className={`px-2 py-0.5 rounded text-xs font-semibold uppercase ${
-                                claim.category === 'petrol' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                                claim.category === 'broadband' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
-                                claim.category === 'lta' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
-                                claim.category === 'medical' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
-                                'bg-slate-100 text-slate-700 border border-slate-200'
-                              }`}>
-                                {claim.category}
-                              </span>
-                              <span className="text-xs text-gray-500 font-medium">Approved on {new Date(claim.createdAt).toLocaleDateString('en-IN')}</span>
-                            </div>
-                            <span className="font-bold text-sm text-slate-800">{fmtMoney(claim.amount)}</span>
-                          </div>
-                        );
-                      })}
+                    <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold self-start sm:self-auto">
+                      {isHourly 
+                        ? `${rows[empId]?.hoursWorked ?? 160} hrs logged` 
+                        : (localSnapshot.lop > 0 ? `${localSnapshot.lop} LOP Days` : 'Full Attendance')
+                      }
                     </div>
                   </div>
                 )}
-              </>
-            )}
-            </div>
 
-            {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setBreakdownEmployee(null)}
-                className="px-4 py-2 border rounded-lg bg-white text-sm font-semibold hover:bg-gray-50 transition-colors"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveAdjustments}
-                className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
-              >
-                Save Run Adjustments
-              </button>
+                {localSplits && localSplits.length > 1 && !isHourly && (
+                  <div className="border border-blue-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                    <div className="bg-blue-50 px-4 py-3 border-b border-blue-100 font-bold text-blue-900 text-sm">
+                      Mid-Month Revision Calculation Split
+                    </div>
+                    <div className="p-4 overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                            <th className="p-2.5">Period</th>
+                            {rows[empId]?.lopStrategy === 'custom' && (
+                              <th className="p-2.5 text-right w-20">LOP Days</th>
+                            )}
+                            <th className="p-2.5 text-right">Monthly CTC</th>
+                            {hasSalaryBreakup && (
+                              <>
+                                <th className="p-2.5 text-right">Basic</th>
+                                <th className="p-2.5 text-right">HRA</th>
+                                <th className="p-2.5 text-right">PF (EE / ER)</th>
+                                <th className="p-2.5 text-right">ESI (EE / ER)</th>
+                                <th className="p-2.5 text-right">Gratuity</th>
+                              </>
+                            )}
+                            <th className="p-2.5 text-right">Period Earnings</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {localSplits.map((split, index) => (
+                            <tr key={index} className="hover:bg-slate-50/50">
+                              <td className="p-2.5 font-medium text-slate-900">
+                                <div>{new Date(split.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} - {new Date(split.endDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
+                                <div className="text-[10px] text-slate-500 font-normal mt-0.5">{split.daysCount} days in period</div>
+                              </td>
+                              {rows[empId]?.lopStrategy === 'custom' && (
+                                <td className="p-2.5 text-right">
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    max={split.daysCount}
+                                    disabled={isReadOnly}
+                                    value={(rows[empId]?.segmentLops || [])[index] ?? 0}
+                                    onChange={(e) => handleSegmentLopChange(index, e.target.value)}
+                                    className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-semibold"
+                                  />
+                                </td>
+                              )}
+                              <td className="p-2.5 text-right font-medium text-slate-700">{fmtMoney(split.monthlyCTC)}</td>
+                              {hasSalaryBreakup && (
+                                <>
+                                  <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.basic)}</td>
+                                  <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.hra)}</td>
+                                  <td className="p-2.5 text-right text-slate-700">
+                                    <div>{fmtMoney(split.pfEmployee)} <span className="text-[9px] text-slate-400">EE</span></div>
+                                    <div className="text-[10px] text-slate-500">{fmtMoney(split.pfEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
+                                  </td>
+                                  <td className="p-2.5 text-right text-slate-700">
+                                    <div>{fmtMoney(split.esiEmployee)} <span className="text-[9px] text-slate-400">EE</span></div>
+                                    <div className="text-[10px] text-slate-500">{fmtMoney(split.esiEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
+                                  </td>
+                                  <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.gratuity)}</td>
+                                </>
+                              )}
+                              <td className="p-2.5 text-right font-semibold text-slate-900">{fmtMoney(split.totalEarnings)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {rows[empId]?.lopStrategy === 'custom' && (() => {
+                        const totalLop = Math.max(0, (Number(rows[empId]?.workingDays) || monthWorkingDays) - (Number(rows[empId]?.paidDays) || 0));
+                        const currentSegmentLops = rows[empId]?.segmentLops || [];
+                        const sum = currentSegmentLops.reduce((s, val) => s + (Number(val) || 0), 0);
+                        const isMatching = Math.abs(sum - totalLop) < 0.01;
+                        return (
+                          <div className={`mt-3 text-[11px] font-semibold px-3 py-2 rounded-lg ${isMatching ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
+                            {isMatching ? (
+                              <span>✓ Total LOP Days allocated: {totalLop} days (matches overall LOP).</span>
+                            ) : (
+                              <span>⚠️ Allocated LOP Days sum ({Math.round(sum*100)/100}) must match the employee's total LOP days ({totalLop}).</span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {localSnapshot && (() => {
+                  if (!showStatutoryOverrides && !showLopStrategy) return null;
+                  
+                  return (
+                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                      <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 font-bold text-slate-700 text-sm flex items-center justify-between">
+                        <span>Statutory Components & Ratio Overrides</span>
+                        <span className="text-[11px] text-slate-400 font-normal">Apply dynamically to this payroll run only</span>
+                      </div>
+                      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                        {showStatutoryOverrides && (
+                          <>
+                            {/* PF Toggle */}
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                              <div className="flex flex-col pr-2">
+                                <span className="font-semibold text-slate-800">Provident Fund (PF)</span>
+                                <span className="text-[10px] text-slate-500 mt-0.5">Matching contributions</span>
+                              </div>
+                              <input
+                                type="checkbox"
+                                disabled={isReadOnly}
+                                checked={
+                                  rows[empId]?.pfEnabled !== undefined
+                                    ? rows[empId].pfEnabled
+                                    : localSnapshot?.master?.pfEnabled !== false
+                                }
+                                onChange={(e) => updateRow(empId, 'pfEnabled', e.target.checked)}
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                              />
+                            </div>
+
+                            {/* ESI Toggle */}
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                              <div className="flex flex-col pr-2">
+                                <span className="font-semibold text-slate-800">ESI Scheme</span>
+                                <span className="text-[10px] text-slate-500 mt-0.5">State insurance matches</span>
+                              </div>
+                              <input
+                                type="checkbox"
+                                disabled={isReadOnly}
+                                checked={
+                                  rows[empId]?.esiEnabled !== undefined
+                                    ? rows[empId].esiEnabled
+                                    : localSnapshot?.master?.esiEnabled !== false
+                                }
+                                onChange={(e) => updateRow(empId, 'esiEnabled', e.target.checked)}
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                              />
+                            </div>
+
+                            {/* PT Toggle */}
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                              <div className="flex flex-col pr-2">
+                                <span className="font-semibold text-slate-800">Professional Tax (PT)</span>
+                                <span className="text-[10px] text-slate-500 mt-0.5">State professional tax</span>
+                              </div>
+                              <input
+                                type="checkbox"
+                                disabled={isReadOnly}
+                                checked={
+                                  rows[empId]?.ptEnabled !== undefined
+                                    ? rows[empId].ptEnabled
+                                    : localSnapshot?.master?.ptEnabled !== false
+                                }
+                                onChange={(e) => updateRow(empId, 'ptEnabled', e.target.checked)}
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                              />
+                            </div>
+
+                            {/* LWF Toggle */}
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                              <div className="flex flex-col pr-2">
+                                <span className="font-semibold text-slate-800">Labour Welfare Fund</span>
+                                <span className="text-[10px] text-slate-500 mt-0.5">State welfare fund (LWF)</span>
+                              </div>
+                              <input
+                                type="checkbox"
+                                disabled={isReadOnly}
+                                checked={
+                                  rows[empId]?.lwfEnabled !== undefined
+                                    ? rows[empId].lwfEnabled
+                                    : localSnapshot?.master?.lwfEnabled !== false
+                                }
+                                onChange={(e) => updateRow(empId, 'lwfEnabled', e.target.checked)}
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                              />
+                            </div>
+
+                            {/* Gratuity Toggle */}
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                              <div className="flex flex-col pr-2">
+                                <span className="font-semibold text-slate-800">Gratuity Provision</span>
+                                <span className="text-[10px] text-slate-500 mt-0.5">4.81% basic salary match</span>
+                              </div>
+                              <input
+                                type="checkbox"
+                                disabled={isReadOnly}
+                                checked={
+                                  rows[empId]?.gratuityEnabled !== undefined
+                                    ? rows[empId].gratuityEnabled
+                                    : localSnapshot?.master?.gratuityEnabled !== false
+                                }
+                                onChange={(e) => updateRow(empId, 'gratuityEnabled', e.target.checked)}
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                              />
+                            </div>
+
+                            {/* Include PF in CTC */}
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                              <div className="flex flex-col pr-2">
+                                <span className="font-semibold text-slate-800">Include PF in CTC</span>
+                                <span className="text-[10px] text-slate-500 mt-0.5">Employer PF inside CTC limit</span>
+                              </div>
+                              <input
+                                type="checkbox"
+                                disabled={isReadOnly}
+                                checked={
+                                  rows[empId]?.includePfInCTC !== undefined
+                                    ? rows[empId].includePfInCTC
+                                    : localSnapshot?.master?.includePfInCTC === true
+                                }
+                                onChange={(e) => updateRow(empId, 'includePfInCTC', e.target.checked)}
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                              />
+                            </div>
+
+                            {/* Include Gratuity in CTC */}
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                              <div className="flex flex-col pr-2">
+                                <span className="font-semibold text-slate-800">Include Gratuity in CTC</span>
+                                <span className="text-[10px] text-slate-500 mt-0.5">Gratuity inside CTC limit</span>
+                              </div>
+                              <input
+                                type="checkbox"
+                                disabled={isReadOnly}
+                                checked={
+                                  rows[empId]?.includeGratuityInCTC !== undefined
+                                    ? rows[empId].includeGratuityInCTC
+                                    : localSnapshot?.master?.includeGratuityInCTC !== false
+                                }
+                                onChange={(e) => updateRow(empId, 'includeGratuityInCTC', e.target.checked)}
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                              />
+                            </div>
+
+                            {/* Basic Override */}
+                            <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
+                              <div className="flex justify-between items-center">
+                                <span className="font-semibold text-slate-800">Basic Salary Override</span>
+                                <span className="text-[10px] text-slate-500">Default: 50%</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="100"
+                                  disabled={isReadOnly}
+                                  value={
+                                    rows[empId]?.basicPercent !== undefined
+                                      ? rows[empId].basicPercent
+                                      : (localSnapshot?.master?.basicPercent !== undefined
+                                          ? (localSnapshot.master.basicPercent > 1
+                                              ? localSnapshot.master.basicPercent
+                                              : Math.round(localSnapshot.master.basicPercent * 100))
+                                          : 50)
+                                  }
+                                  onChange={(e) => updateRow(empId, 'basicPercent', Number(e.target.value) || 0)}
+                                  className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
+                                />
+                                <span className="text-slate-500 font-medium">%</span>
+                              </div>
+                            </div>
+
+                            {/* HRA Override */}
+                            <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
+                              <div className="flex justify-between items-center">
+                                <span className="font-semibold text-slate-800">HRA Override (% of Basic)</span>
+                                <span className="text-[10px] text-slate-500">Default: 50%</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  disabled={isReadOnly}
+                                  value={
+                                    rows[empId]?.hraPercent !== undefined
+                                      ? rows[empId].hraPercent
+                                      : (localSnapshot?.master?.hraPercent !== undefined
+                                          ? (localSnapshot.master.hraPercent > 1
+                                              ? localSnapshot.master.hraPercent
+                                              : Math.round(localSnapshot.master.hraPercent * 100))
+                                          : 50)
+                                  }
+                                  onChange={(e) => updateRow(empId, 'hraPercent', Number(e.target.value) || 0)}
+                                  className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
+                                />
+                                <span className="text-slate-500 font-medium">%</span>
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        {/* Leave Deduction Strategy Preference Dropdown */}
+                        {showLopStrategy && (
+                          <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold text-slate-800">Leave Deduction Preference</span>
+                              <span className="text-[10px] text-slate-500">For mid-month revisions</span>
+                            </div>
+                            <select
+                              value={rows[empId]?.lopStrategy || 'proportional'}
+                              disabled={isReadOnly}
+                              onChange={(e) => {
+                                const strategy = e.target.value;
+                                updateRow(empId, 'lopStrategy', strategy);
+                                if (strategy === 'custom') {
+                                  const totalLop = Math.max(0, (Number(rows[empId]?.workingDays) || monthWorkingDays) - (Number(rows[empId]?.paidDays) || 0));
+                                  const totalDays = new Date(year, month, 0).getDate();
+                                  const initialLops = localSplits.map(split => {
+                                    const segRatio = split.daysCount / totalDays;
+                                    return Math.round(segRatio * totalLop * 100) / 100;
+                                  });
+                                  updateRow(empId, 'segmentLops', initialLops);
+                                }
+                              }}
+                              className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white font-medium cursor-pointer"
+                            >
+                              <option value="proportional">Proportional (Default)</option>
+                              <option value="older_first">Older Period first</option>
+                              <option value="newer_first">Newer Period first</option>
+                              <option value="custom">Custom Strategy</option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {localSnapshot && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Left Column: Earnings Breakdown */}
+                      <div className="space-y-4">
+                        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
+                            <span>Earnings (Paid vs Master)</span>
+                            <span className="text-xs text-gray-500 font-normal">Attendance Prorated</span>
+                          </div>
+                          <div className="divide-y divide-gray-100 text-sm">
+                            {allEarningComponents.map((c) => {
+                              const { paid, master } = getComponentBreakdown(localSnapshot, c);
+                              const shouldShow = isHourly
+                                ? (paid > 0 || master > 0)
+                                : (isFlatSalary 
+                                  ? c.id === 'basic'
+                                  : (['basic', 'hra', remainderId].includes(c.id) || paid > 0 || master > 0));
+                              if (!shouldShow) return null;
+                              return (
+                                <BreakdownRow
+                                  key={c.id}
+                                  label={(isHourly && c.id === 'basic') ? 'Contract Wages (Hourly)' : c.name}
+                                  paid={paid}
+                                  master={master}
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Custom Allowances Editor */}
+                        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
+                            <span>Custom Run Allowances (Other Earnings)</span>
+                            {!isReadOnly && (
+                              <button
+                                type="button"
+                                onClick={() => setLocalEarnings([...localEarnings, { name: '', amount: 0 }])}
+                                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
+                              >
+                                <FaPlus className="w-2.5 h-2.5" /> Add
+                              </button>
+                            )}
+                          </div>
+                          <div className="p-4 space-y-3">
+                            {localEarnings.length === 0 ? (
+                              <div className="text-xs text-gray-500 text-center py-2">No custom allowances defined for this run.</div>
+                            ) : (
+                              localEarnings.map((item, idx) => (
+                                <div key={`local-earn-${idx}`} className="flex gap-2 items-center">
+                                  <input
+                                    type="text"
+                                    placeholder="Allowance Name"
+                                    disabled={isReadOnly}
+                                    value={item.name}
+                                    onChange={(e) => {
+                                      const updated = [...localEarnings];
+                                      updated[idx].name = e.target.value;
+                                      setLocalEarnings(updated);
+                                    }}
+                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-500 font-medium"
+                                  />
+                                  <input
+                                    type="number"
+                                    placeholder="Amount"
+                                    disabled={isReadOnly}
+                                    value={item.amount}
+                                    onChange={(e) => {
+                                      const updated = [...localEarnings];
+                                      updated[idx].amount = Number(e.target.value) || 0;
+                                      setLocalEarnings(updated);
+                                    }}
+                                    className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right font-medium disabled:bg-slate-50 disabled:text-slate-500"
+                                  />
+                                  {!isReadOnly && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = localEarnings.filter((_, i) => i !== idx);
+                                        setLocalEarnings(updated);
+                                      }}
+                                      className="text-red-500 hover:text-red-700 p-1 transition-colors"
+                                    >
+                                      <FaTrash className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Total Earnings Summary */}
+                        <div className="bg-slate-50 border border-gray-200 rounded-xl p-4 flex justify-between items-center font-bold text-slate-800">
+                          <span>Total Earnings (Gross Salary)</span>
+                          <span className="text-lg">{fmtMoney(localSnapshot.earnings.totalEarnings)}</span>
+                        </div>
+                      </div>
+
+                      {/* Right Column: Deductions, Contributions & Net Pay */}
+                      <div className="space-y-4">
+                        {/* Deductions Card */}
+                        {(!isHourly || (localSnapshot.deductions.pfEmployee || 0) + (localSnapshot.deductions.esiEmployee || 0) + (localSnapshot.deductions.lwfEmployee || 0) + (localSnapshot.deductions.professionalTax || 0) + (localSnapshot.deductions.tds || 0) > 0) && (
+                          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
+                              Statutory & Voluntary Deductions
+                            </div>
+                            <div className="divide-y divide-gray-100 text-sm">
+                              {hasSalaryBreakup && localSnapshot.deductions.pfEmployee > 0 && (
+                                <DeductionRow label="Provident Fund (Employee PF Contribution)" amount={localSnapshot.deductions.pfEmployee} />
+                              )}
+                              {localSnapshot.deductions.esiEmployee > 0 && <DeductionRow label="ESI (Employee Contribution)" amount={localSnapshot.deductions.esiEmployee} />}
+                              {localSnapshot.deductions.lwfEmployee > 0 && <DeductionRow label="LWF (Employee Contribution)" amount={localSnapshot.deductions.lwfEmployee} />}
+                              {localSnapshot.deductions.professionalTax > 0 && <DeductionRow label="Professional Tax (PT)" amount={localSnapshot.deductions.professionalTax} />}
+                              {(!isHourly || localSnapshot.deductions.tds > 0) && (
+                                <DeductionRow label="Income Tax (TDS)" amount={localSnapshot.deductions.tds} isEditable={!isReadOnly} value={rows[empId]?.tds !== undefined ? rows[empId].tds : localSnapshot.deductions.tds} onChange={(val) => updateRow(empId, 'tds', Number(val) || 0)} />
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Custom Deductions Editor */}
+                        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
+                            <span>Custom Run Deductions (Other Deductions)</span>
+                            {!isReadOnly && (
+                              <button
+                                type="button"
+                                onClick={() => setLocalDeductions([...localDeductions, { name: '', amount: 0 }])}
+                                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
+                              >
+                                <FaPlus className="w-2.5 h-2.5" /> Add
+                              </button>
+                            )}
+                          </div>
+                          <div className="p-4 space-y-3">
+                            {localDeductions.length === 0 ? (
+                              <div className="text-xs text-gray-500 text-center py-2">No custom deductions defined for this run.</div>
+                            ) : (
+                              localDeductions.map((item, idx) => (
+                                <div key={`local-ded-${idx}`} className="flex gap-2 items-center">
+                                  <input
+                                    type="text"
+                                    placeholder="Deduction Name"
+                                    disabled={isReadOnly}
+                                    value={item.name}
+                                    onChange={(e) => {
+                                      const updated = [...localDeductions];
+                                      updated[idx].name = e.target.value;
+                                      setLocalDeductions(updated);
+                                    }}
+                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-500 font-medium"
+                                  />
+                                  <input
+                                    type="number"
+                                    placeholder="Amount"
+                                    disabled={isReadOnly}
+                                    value={item.amount}
+                                    onChange={(e) => {
+                                      const updated = [...localDeductions];
+                                      updated[idx].amount = Number(e.target.value) || 0;
+                                      setLocalDeductions(updated);
+                                    }}
+                                    className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right font-medium disabled:bg-slate-50 disabled:text-slate-500"
+                                  />
+                                  {!isReadOnly && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = localDeductions.filter((_, i) => i !== idx);
+                                        setLocalDeductions(updated);
+                                      }}
+                                      className="text-red-500 hover:text-red-700 p-1 transition-colors"
+                                    >
+                                      <FaTrash className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Employer Contributions Card */}
+                        {hasSalaryBreakup && (
+                          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
+                              Employer Contributions (Non-Takehome CTC Components)
+                            </div>
+                            <div className="divide-y divide-gray-100 text-sm">
+                              <DeductionRow label="Provident Fund (Employer PF Contribution)" amount={localSnapshot.employerContributions.pfEmployer} isContrib />
+                              {localSnapshot.employerContributions.esiEmployer > 0 && <DeductionRow label="ESI (Employer Contribution)" amount={localSnapshot.employerContributions.esiEmployer} isContrib />}
+                              {localSnapshot.employerContributions.gratuity > 0 && <DeductionRow label="Gratuity Provision" amount={localSnapshot.employerContributions.gratuity} isContrib />}
+                              {localSnapshot.employerContributions.lwfEmployer > 0 && <DeductionRow label="LWF (Employer Contribution)" amount={localSnapshot.employerContributions.lwfEmployer} isContrib />}
+                              {localSnapshot.employerContributions.insuranceEmployer > 0 && <DeductionRow label="Insurance" amount={localSnapshot.employerContributions.insuranceEmployer} isContrib />}
+                              {localSnapshot.employerContributions.nps > 0 && <DeductionRow label="Employer NPS" amount={localSnapshot.employerContributions.nps} isContrib />}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Net Take-Home Salary Callout */}
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex justify-between items-center font-bold text-emerald-900 shadow-sm">
+                          <div className="flex flex-col">
+                            <span className="text-emerald-900">Net Take-Home Salary</span>
+                            <span className="text-[10px] text-emerald-600 font-normal">Gross - Total Deductions</span>
+                          </div>
+                          <span className="text-2xl text-emerald-800">{fmtMoney(localSnapshot.netSalary)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pre-approved reimbursements section */}
+                    {claimsMap.get(empId)?.length > 0 && (
+                      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm mt-6">
+                        <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 font-bold text-slate-700 text-sm">
+                          Pre-approved reimbursements
+                        </div>
+                        <div className="p-4 space-y-3">
+                          {claimsMap.get(empId).map((claim) => {
+                            const isExcluded = localExcludedClaimIds.has(claim._id);
+                            return (
+                              <div key={claim._id} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={!isExcluded}
+                                    disabled={isReadOnly}
+                                    onChange={() => {}}
+                                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                  />
+                                  <span className={`px-2 py-0.5 rounded text-xs font-semibold uppercase ${
+                                    claim.category === 'petrol' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                                    claim.category === 'broadband' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                                    claim.category === 'lta' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
+                                    claim.category === 'medical' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
+                                    'bg-slate-100 text-slate-700 border border-slate-200'
+                                  }`}>
+                                    {claim.category}
+                                  </span>
+                                  <span className="text-xs text-gray-500 font-medium">Approved on {new Date(claim.createdAt).toLocaleDateString('en-IN')}</span>
+                                </div>
+                                <span className="font-bold text-sm text-slate-800">{fmtMoney(claim.amount)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setBreakdownEmployee(null)}
+                  className="px-4 py-2 border rounded-lg bg-white text-sm font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={handleSaveAdjustments}
+                    className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
+                  >
+                    Save Run Adjustments
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
