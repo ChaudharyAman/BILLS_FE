@@ -239,7 +239,11 @@ const EmployeeForm = () => {
     return ALL_EMPLOYMENT_TYPES.filter(et => seen.has(et.value));
   }, [roles]);
 
-  const localPreview = useMemo(() => buildMasterSalaryStructure(formData, config), [formData, config]);
+  const localPreview = useMemo(() => {
+    const preview = buildMasterSalaryStructure(formData, config);
+    console.log('[DEBUG] localPreview calculation:', { formData, config, preview });
+    return preview;
+  }, [formData, config]);
 
   const refreshSalaryFromCTC = async (overrideFields) => {
     const overrides = (overrideFields && typeof overrideFields === 'object' && !('nativeEvent' in overrideFields)) ? overrideFields : {};
@@ -249,7 +253,7 @@ const EmployeeForm = () => {
 
     try {
       setCalculating(true);
-      const res = await api.post('/payroll/calculate-salary', {
+      const payload = {
         monthlyCTC,
         employmentType: merged.employmentType,
         basicPercent: merged.basicPercent === null || merged.basicPercent === '' ? null : Number(merged.basicPercent),
@@ -283,7 +287,16 @@ const EmployeeForm = () => {
         gratuityEnabled: merged.gratuityEnabled !== false,
         includePfInCTC: merged.includePfInCTC === true,
         includeGratuityInCTC: merged.includeGratuityInCTC !== false,
+      };
+
+      // Copy any custom percentage overrides from merged to payload
+      Object.keys(merged).forEach(key => {
+        if (key.endsWith('Percent') && !['basicPercent', 'hraPercent'].includes(key)) {
+          payload[key] = merged[key] === null || merged[key] === '' ? null : Number(merged[key]);
+        }
       });
+
+      const res = await api.post('/payroll/calculate-salary', payload);
       const master = res.data.master;
       setFormData((prev) => ({
         ...prev,
@@ -354,7 +367,7 @@ const EmployeeForm = () => {
       if (config?.salaryComponents) {
         config.salaryComponents.forEach(c => {
           if (!['basic', 'hra', 'special', 'conveyance', 'medical', 'flexi', 'broadband', 'petrol', 'lta'].includes(c.id)) {
-            const val = localPreview.earningsMap?.[c.id] ?? 0;
+            const val = (localPreview.earningsMap?.[c.id] !== undefined ? localPreview.earningsMap[c.id] : localPreview.deductionsMap?.[c.id]) ?? 0;
             cleanSalaryStructure[c.id] = Number(val) || 0;
           }
         });
@@ -707,6 +720,29 @@ const EmployeeForm = () => {
                         </div>
                       </div>
                     </div>
+                    {config?.salaryComponents?.filter(c => 
+                      (c.linkedTo === 'ctc_percent' || c.linkedTo === 'basic_percent') && !['basic', 'hra'].includes(c.id)
+                    ).map(c => (
+                      <div key={c.id}>
+                        <label className={labelCls}>{c.name} % Override ({c.linkedTo === 'basic_percent' ? 'of Basic' : 'of CTC'})</label>
+                        <div className="relative rounded-lg shadow-sm">
+                          <input
+                            type="number"
+                            step="any"
+                            min="1"
+                            max="100"
+                            placeholder={`Company Default: ${Math.round((c.linkValue ?? 0) * 100)}%`}
+                            value={formData[c.id + 'Percent'] ?? ''}
+                            onChange={(e) => setField(c.id + 'Percent', e.target.value === '' ? null : Number(e.target.value))}
+                            onBlur={refreshSalaryFromCTC}
+                            className={inputCls}
+                          />
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span className="text-gray-400 text-sm">%</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -787,7 +823,12 @@ const EmployeeForm = () => {
                       />
                     </label>
                     <span className="text-[10px] text-gray-400 mt-1">
-                      Employee State Insurance (ESI) deductions {formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0 && `(EE: ${fmtMoney(localPreview.esiEmployee)}, ER: ${fmtMoney(localPreview.esiEmployer)})`}
+                      Employee State Insurance (ESI) deductions{' '}
+                      {formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0
+                        ? `(EE: ${fmtMoney(localPreview.esiEmployee)}, ER: ${fmtMoney(localPreview.esiEmployer)})`
+                        : formData.esiEnabled !== false && localPreview && localPreview.totalEarnings > (config?.esiBasicThreshold ?? 21000)
+                          ? <span className="text-amber-500 font-semibold">Not applicable — gross wages exceed ₹{(config?.esiBasicThreshold ?? 21000).toLocaleString('en-IN')} statutory ceiling</span>
+                          : null}
                     </span>
                   </div>
 
@@ -996,6 +1037,9 @@ const EmployeeForm = () => {
                     if (localPreview.earningsMap && localPreview.earningsMap[cId] !== undefined) {
                       return localPreview.earningsMap[cId];
                     }
+                    if (localPreview.deductionsMap && localPreview.deductionsMap[cId] !== undefined) {
+                      return localPreview.deductionsMap[cId];
+                    }
                     if (cId === 'basic') return localPreview.basicMaster;
                     if (cId === 'hra') return localPreview.hraMaster;
                     if (cId === 'special') return localPreview.specialAllowance;
@@ -1061,9 +1105,13 @@ const EmployeeForm = () => {
                       const pct = formData.hraPercent !== null && formData.hraPercent !== undefined ? formData.hraPercent : Math.round(c.linkValue * 100);
                       suffix = ` (${pct}% of Basic${freqSuffix})`;
                     } else if (c.linkedTo === 'ctc_percent') {
-                      suffix = ` (${Math.round(c.linkValue * 100)}% of CTC${freqSuffix})`;
+                      const override = formData[c.id + 'Percent'];
+                      const pct = override !== undefined && override !== null && override !== '' ? Number(override) : Math.round(c.linkValue * 100);
+                      suffix = ` (${pct}% of CTC${freqSuffix})`;
                     } else if (c.linkedTo === 'basic_percent') {
-                      suffix = ` (${Math.round(c.linkValue * 100)}% of Basic${freqSuffix})`;
+                      const override = formData[c.id + 'Percent'];
+                      const pct = override !== undefined && override !== null && override !== '' ? Number(override) : Math.round(c.linkValue * 100);
+                      suffix = ` (${pct}% of Basic${freqSuffix})`;
                     } else if (c.linkedTo === 'remainder') {
                       suffix = ` (Calculated Remainder${freqSuffix})`;
                     } else if (freqSuffix) {
