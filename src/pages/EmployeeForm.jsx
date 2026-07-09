@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { FaCheck, FaPlus } from 'react-icons/fa';
+import { FaCheck, FaPlus, FaTrash } from 'react-icons/fa';
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import { buildMasterSalaryStructure, DEFAULT_PAYROLL_CONFIG, fmtMoney } from '../utils/payroll';
@@ -22,6 +22,9 @@ const defaultForm = {
   dateOfLeaving: '',
   location: '',
   employmentType: 'full-time',
+  compensationModel: 'SALARIED',
+  paymentBasis: 'MONTHLY',
+  rateCard: [],
   useSalaryComponents: true,
   status: 'active',
   role: '',
@@ -116,7 +119,9 @@ const EmployeeForm = () => {
         setFormData({
           ...defaultForm,
           ...data,
-          department: data.department?._id || data.department || '',
+           department: data.department?._id || data.department || '',
+          compensationModel: data.compensationModel || 'SALARIED',
+          paymentBasis: data.paymentBasis || 'MONTHLY',
           dateOfBirth: data.dateOfBirth ? data.dateOfBirth.substring(0, 10) : '',
           joiningDate: data.joiningDate ? data.joiningDate.substring(0, 10) : '',
           dateOfLeaving: data.dateOfLeaving ? data.dateOfLeaving.substring(0, 10) : '',
@@ -171,6 +176,8 @@ const EmployeeForm = () => {
       ...prev,
       role: selectedRole._id,
       employmentType: selectedRole.employmentType || prev.employmentType,
+      compensationModel: selectedRole.compensationModel || 'SALARIED',
+      paymentBasis: selectedRole.paymentBasis || 'MONTHLY',
       payType: selectedRole.payType,
       useSalaryComponents: selectedRole.useSalaryComponents !== false,
       monthlyCTC: selectedRole.payType === 'salaried' ? selectedRole.monthlyCTC : 0,
@@ -373,19 +380,20 @@ const EmployeeForm = () => {
         });
       }
 
+      const isConsultant = formData.compensationModel && formData.compensationModel !== 'SALARIED';
       const payload = {
         ...formData,
         monthlyCTC: Number(formData.monthlyCTC) || 0,
-        basicPercent: formData.basicPercent === null || formData.basicPercent === '' ? null : Number(formData.basicPercent),
-        hraPercent: formData.hraPercent === null || formData.hraPercent === '' ? null : Number(formData.hraPercent),
-        pfEnabled: formData.pfEnabled !== false,
-        esiEnabled: formData.esiEnabled !== false,
-        ptEnabled: formData.ptEnabled !== false,
-        ptState: formData.ptState || '',
-        lwfEnabled: formData.lwfEnabled !== false,
-        gratuityEnabled: formData.gratuityEnabled !== false,
-        includePfInCTC: formData.includePfInCTC === true,
-        includeGratuityInCTC: formData.includeGratuityInCTC !== false,
+        basicPercent: isConsultant ? null : (formData.basicPercent === null || formData.basicPercent === '' ? null : Number(formData.basicPercent)),
+        hraPercent: isConsultant ? null : (formData.hraPercent === null || formData.hraPercent === '' ? null : Number(formData.hraPercent)),
+        pfEnabled: isConsultant ? false : (formData.pfEnabled !== false),
+        esiEnabled: isConsultant ? false : (formData.esiEnabled !== false),
+        ptEnabled: isConsultant ? false : (formData.ptEnabled !== false),
+        ptState: isConsultant ? '' : (formData.ptState || ''),
+        lwfEnabled: isConsultant ? false : (formData.lwfEnabled !== false),
+        gratuityEnabled: isConsultant ? false : (formData.gratuityEnabled !== false),
+        includePfInCTC: isConsultant ? false : (formData.includePfInCTC === true),
+        includeGratuityInCTC: isConsultant ? false : (formData.includeGratuityInCTC !== false),
         flexiAmount: Number(formData.flexiAmount) || 0,
         broadband: Number(formData.broadband) || 0,
         petrol: Number(formData.petrol) || 0,
@@ -498,6 +506,68 @@ const EmployeeForm = () => {
                 </select>
               </div>
               <div>
+                <label className={labelCls}>Compensation Model</label>
+                <select
+                  value={formData.compensationModel || 'SALARIED'}
+                  onChange={(e) => {
+                    const cm = e.target.value;
+                    const isConsultant = cm !== 'SALARIED';
+                    setFormData((prev) => ({
+                      ...prev,
+                      compensationModel: cm,
+                      ...(isConsultant ? {
+                        useSalaryComponents: false,
+                        pfEnabled: false,
+                        esiEnabled: false,
+                        ptEnabled: false,
+                        lwfEnabled: false,
+                        gratuityEnabled: false,
+                        includePfInCTC: false,
+                        includeGratuityInCTC: false,
+                      } : {
+                        useSalaryComponents: prev.employmentType === 'intern' ? false : true,
+                        pfEnabled: prev.employmentType === 'intern' ? false : true,
+                        esiEnabled: prev.employmentType === 'intern' ? false : true,
+                        ptEnabled: prev.employmentType === 'intern' ? false : true,
+                        lwfEnabled: prev.employmentType === 'intern' ? false : true,
+                        gratuityEnabled: prev.employmentType === 'intern' ? false : true,
+                        includePfInCTC: false,
+                        includeGratuityInCTC: prev.employmentType === 'intern' ? false : true,
+                      }),
+                    }));
+                    if (isConsultant) {
+                      toast('Consultant mode: 10% TDS (Section 194J) applies, statutory deductions disabled.', { icon: '💼' });
+                    }
+                  }}
+                  className={inputCls}
+                >
+                  <option value="SALARIED">Salaried Employee</option>
+                  <option value="CONSULTANT">Recruitment Consultant</option>
+                  <option value="PROJECT">Project-Based Contractor</option>
+                  <option value="POSITION">Position-Based Contractor</option>
+                  <option value="INTERVIEW">Interview-Based Contractor</option>
+                  <option value="HOURLY">Hourly Contractor</option>
+                  <option value="CUSTOM">Custom Contractor</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Payment Basis</label>
+                <select
+                  value={formData.paymentBasis || 'MONTHLY'}
+                  onChange={(e) => setField('paymentBasis', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="MONTHLY">Monthly Retainer</option>
+                  <option value="PROJECT">Per Closed Project</option>
+                  <option value="POSITION">Per Closed Position</option>
+                  <option value="INTERVIEW">Per Conducted Interview</option>
+                  <option value="HOUR">Per Hour</option>
+                  <option value="DAY">Per Day</option>
+                  <option value="MILESTONE">Per Milestone</option>
+                  <option value="CUSTOM">Custom Pay Event</option>
+                </select>
+              </div>
+              <div>
                 <label className={labelCls}>Pay Type</label>
                 <select
                   value={formData.payType || 'salaried'}
@@ -508,6 +578,107 @@ const EmployeeForm = () => {
                   <option value="hourly">Hourly Rate contract</option>
                 </select>
               </div>
+
+              {formData.compensationModel && formData.compensationModel !== 'SALARIED' && (
+                <div className="col-span-1 md:col-span-2 bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                      <span>Employee Rate Card</span>
+                      <span className="text-[10px] bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full font-semibold">Custom Rates</span>
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const current = formData.rateCard || [];
+                        setFormData({
+                          ...formData,
+                          rateCard: [...current, { paymentType: 'POSITION', rate: 0, unit: 'Per Closed Position' }]
+                        });
+                      }}
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
+                    >
+                      <FaPlus className="w-2.5 h-2.5 mr-1 inline" /> Add Rate Card Item
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Define specific payment rates for different deliverables. These will be used to pre-fill unit rates during payroll runs.
+                  </p>
+                  
+                  {(!formData.rateCard || formData.rateCard.length === 0) ? (
+                    <div className="text-xs text-gray-500 text-center py-4 border border-dashed border-gray-200 rounded-lg">
+                      No rates defined. Click "Add Rate Card Item" to configure.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {formData.rateCard.map((item, idx) => (
+                        <div key={`rc-${idx}`} className="flex gap-2 items-end">
+                          <div className="flex-1">
+                            <label className="block text-[10px] font-semibold text-gray-600 mb-1">Payment Type</label>
+                            <select
+                              value={item.paymentType}
+                              onChange={(e) => {
+                                const list = [...formData.rateCard];
+                                list[idx].paymentType = e.target.value;
+                                setFormData({ ...formData, rateCard: list });
+                              }}
+                              className={inputCls}
+                            >
+                              <option value="POSITION">Position</option>
+                              <option value="INTERVIEW">Interview</option>
+                              <option value="PROJECT">Project</option>
+                              <option value="MILESTONE">Milestone</option>
+                              <option value="HOUR">Hour</option>
+                              <option value="DAY">Day</option>
+                              <option value="CUSTOM">Custom</option>
+                            </select>
+                          </div>
+                          
+                          <div className="w-32">
+                            <label className="block text-[10px] font-semibold text-gray-600 mb-1">Rate (₹)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={item.rate}
+                              onChange={(e) => {
+                                const list = [...formData.rateCard];
+                                list[idx].rate = Number(e.target.value) || 0;
+                                setFormData({ ...formData, rateCard: list });
+                              }}
+                              className={inputCls}
+                            />
+                          </div>
+
+                          <div className="flex-1">
+                            <label className="block text-[10px] font-semibold text-gray-600 mb-1">Unit Description</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Per Closed Position"
+                              value={item.unit}
+                              onChange={(e) => {
+                                const list = [...formData.rateCard];
+                                list[idx].unit = e.target.value;
+                                setFormData({ ...formData, rateCard: list });
+                              }}
+                              className={inputCls}
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = formData.rateCard.filter((_, i) => i !== idx);
+                              setFormData({ ...formData, rateCard: list });
+                            }}
+                            className="text-red-500 hover:text-red-700 p-2.5 transition-colors"
+                          >
+                            <FaTrash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {formData.role && (
                 <div className="col-span-1 md:col-span-2 bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-800 flex flex-wrap items-center gap-2">
@@ -668,6 +839,11 @@ const EmployeeForm = () => {
               {formData.employmentType === 'intern' && (
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm font-semibold text-blue-800 animate-fade-in">
                   Interns/Trainees receive a consolidated stipend (100% Basic Salary) without HRA or statutory contributions.
+                </div>
+              )}
+              {formData.compensationModel && formData.compensationModel !== 'SALARIED' && (
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm font-semibold text-amber-800 animate-fade-in">
+                  💼 Non-Salaried Contract Employee ({formData.compensationModel}): Subject to 10% TDS (Section 194J) on total earnings, flat pay structure without statutory benefits (PF, ESI, PT, LWF, Gratuity).
                 </div>
               )}
 

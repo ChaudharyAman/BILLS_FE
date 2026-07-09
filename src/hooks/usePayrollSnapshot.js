@@ -14,7 +14,7 @@ export const usePayrollSnapshot = (employee, config, row, monthWorkingDays, over
       otherAllowanceArrear: Number(row?.otherAllowanceArrear) || 0,
       loanDeduction: Number(row?.loanDeduction) || 0,
       advanceDeduction: Number(row?.advanceDeduction) || 0,
-      tds: Number(row?.tds) || 0,
+      tds: (row?.tds !== undefined && row?.tds !== null && row?.tds !== '') ? Number(row.tds) : undefined,
       hoursWorked: Number(row?.hoursWorked) || 0,
       otherEarnings: overrideEarnings ?? (row?.otherEarnings || []),
       otherDeductions: overrideDeductions ?? (row?.otherDeductions || []),
@@ -30,6 +30,7 @@ export const usePayrollSnapshot = (employee, config, row, monthWorkingDays, over
       lopStrategy: row?.lopStrategy,
       segmentLops: row?.segmentLops,
       reimbursements: row?.reimbursements || [],
+      variableTransactions: row?.variableTransactions || [],
     };
 
     if (row) {

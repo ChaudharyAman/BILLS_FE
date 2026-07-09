@@ -342,6 +342,8 @@ const EmployeeDetails = () => {
         hraPercent: selectedRole.hraPercent !== null ? selectedRole.hraPercent : null,
         useSalaryComponents: selectedRole.useSalaryComponents !== false,
         employmentType: selectedRole.employmentType || 'full-time',
+        compensationModel: selectedRole.compensationModel || 'SALARIED',
+        paymentBasis: selectedRole.paymentBasis || 'MONTHLY',
       };
 
       // Trigger recalculation if salaried
@@ -388,6 +390,8 @@ const EmployeeDetails = () => {
         hraPercent: revision.hraPercent ?? null,
         useSalaryComponents: revision.useSalaryComponents !== false,
         employmentType: revision.employmentType || 'full-time',
+        compensationModel: revision.compensationModel || 'SALARIED',
+        paymentBasis: revision.paymentBasis || 'MONTHLY',
         flexiAmount: revision.flexiAmount || 0,
         broadband: revision.broadband || 0,
         petrol: revision.petrol || 0,
@@ -438,6 +442,8 @@ const EmployeeDetails = () => {
         hraPercent: employee.hraPercent ?? null,
         useSalaryComponents: employee.useSalaryComponents !== false,
         employmentType: employee.employmentType || 'full-time',
+        compensationModel: employee.compensationModel || 'SALARIED',
+        paymentBasis: employee.paymentBasis || 'MONTHLY',
         flexiAmount: employee.flexiAmount || 0,
         broadband: employee.broadband || 0,
         petrol: employee.petrol || 0,
@@ -572,6 +578,8 @@ const EmployeeDetails = () => {
       } else {
         payload.newCTC = Number(revisionDraft.newCTC);
         payload.employmentType = revisionDraft.employmentType || 'full-time';
+        payload.compensationModel = revisionDraft.compensationModel || 'SALARIED';
+        payload.paymentBasis = revisionDraft.paymentBasis || 'MONTHLY';
         payload.useSalaryComponents = revisionDraft.useSalaryComponents !== false;
         payload.pfEnabled = revisionDraft.pfEnabled !== false;
         payload.esiEnabled = revisionDraft.esiEnabled !== false;
@@ -635,6 +643,8 @@ const EmployeeDetails = () => {
         hraPercent: null,
         useSalaryComponents: true,
         employmentType: 'full-time',
+        compensationModel: 'SALARIED',
+        paymentBasis: 'MONTHLY',
         flexiAmount: 0,
         broadband: 0,
         petrol: 0,
@@ -843,6 +853,8 @@ const EmployeeDetails = () => {
             <Info label="Date of Leaving" value={fmtDate(employee.dateOfLeaving)} />
             <Info label="Location" value={employee.location || '-'} />
             <Info label="Employment Type" value={employee.employmentType} />
+            <Info label="Compensation Model" value={employee.compensationModel || 'SALARIED'} />
+            <Info label="Payment Basis" value={employee.paymentBasis || 'MONTHLY'} />
             <Info label="Status" value={employee.status} />
             <Info label="PAN" value={employee.panNumber || '-'} />
             <Info label="UAN" value={employee.uanNumber || '-'} />
@@ -1104,6 +1116,67 @@ const EmployeeDetails = () => {
                 <option value="part-time">Part Time</option>
                 <option value="contract">Contract</option>
                 <option value="intern">Intern / Trainee</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Compensation Model</label>
+              <select
+                value={revisionDraft.compensationModel || 'SALARIED'}
+                onChange={(e) => {
+                  const cm = e.target.value;
+                  const isConsultant = cm !== 'SALARIED';
+                  const updated = {
+                    ...revisionDraft,
+                    compensationModel: cm,
+                    ...(isConsultant ? {
+                      useSalaryComponents: false,
+                      pfEnabled: false,
+                      esiEnabled: false,
+                      ptEnabled: false,
+                      lwfEnabled: false,
+                      gratuityEnabled: false,
+                      includePfInCTC: false,
+                      includeGratuityInCTC: false,
+                    } : {
+                      useSalaryComponents: revisionDraft.employmentType === 'intern' ? false : true,
+                      pfEnabled: revisionDraft.employmentType === 'intern' ? false : true,
+                      esiEnabled: revisionDraft.employmentType === 'intern' ? false : true,
+                      ptEnabled: revisionDraft.employmentType === 'intern' ? false : true,
+                      lwfEnabled: revisionDraft.employmentType === 'intern' ? false : true,
+                      gratuityEnabled: revisionDraft.employmentType === 'intern' ? false : true,
+                      includePfInCTC: false,
+                      includeGratuityInCTC: revisionDraft.employmentType === 'intern' ? false : true,
+                    }),
+                  };
+                  setRevisionDraft(updated);
+                  refreshDraftSalaryFromCTC(updated);
+                }}
+                className={inputCls}
+              >
+                <option value="SALARIED">Salaried Employee</option>
+                <option value="CONSULTANT">Recruitment Consultant</option>
+                <option value="PROJECT">Project-Based Contractor</option>
+                <option value="POSITION">Position-Based Contractor</option>
+                <option value="INTERVIEW">Interview-Based Contractor</option>
+                <option value="HOURLY">Hourly Contractor</option>
+                <option value="CUSTOM">Custom Contractor</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Payment Basis</label>
+              <select
+                value={revisionDraft.paymentBasis || 'MONTHLY'}
+                onChange={(e) => setDraftField('paymentBasis', e.target.value)}
+                className={inputCls}
+              >
+                <option value="MONTHLY">Monthly Retainer</option>
+                <option value="PROJECT">Per Closed Project</option>
+                <option value="POSITION">Per Closed Position</option>
+                <option value="INTERVIEW">Per Conducted Interview</option>
+                <option value="HOUR">Per Hour</option>
+                <option value="DAY">Per Day</option>
+                <option value="MILESTONE">Per Milestone</option>
+                <option value="CUSTOM">Custom Pay Event</option>
               </select>
             </div>
           </div>

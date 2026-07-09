@@ -81,7 +81,8 @@ const DeductionRow = ({ label, amount, isContrib = false, isEditable = false, va
       <input
         type="number"
         min="0"
-        value={value ?? 0}
+        placeholder={amount !== undefined ? String(amount) : "0"}
+        value={value !== undefined && value !== null ? value : ''}
         onChange={(e) => onChange?.(e.target.value)}
         className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right font-semibold"
       />
@@ -186,7 +187,13 @@ const EmployeeRow = ({
         <div className={`font-semibold text-xs ${isExistingDisabled ? 'text-gray-600' : 'text-gray-900'}`}>{employee.firstName} {employee.lastName}</div>
         <div className="text-[10px] text-gray-400 mt-0.5">{employee.employeeId} · {employee.designation || '-'}</div>
         <div className="text-[10px] text-gray-400 mt-0.5 flex flex-col gap-0.5">
-          <span>{isHourly ? `Rate: ${fmtMoney(employee.hourlyRate)}/hr` : `CTC ${fmtMoney(snapshot?.master?.monthlyCTC || employee.monthlyCTC)}`}</span>
+          {employee.compensationModel && employee.compensationModel !== 'SALARIED' ? (
+            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 self-start">
+              💼 {employee.compensationModel} · {employee.paymentBasis}
+            </span>
+          ) : (
+            <span>{isHourly ? `Rate: ${fmtMoney(employee.hourlyRate)}/hr` : `CTC ${fmtMoney(snapshot?.master?.monthlyCTC || employee.monthlyCTC)}`}</span>
+          )}
           
           {existingPayroll ? (
             <div className="mt-1 flex flex-col gap-1">
@@ -218,7 +225,7 @@ const EmployeeRow = ({
           </button>
           
           {/* Statutory Settings Badges */}
-          {!isHourly && (
+          {!isHourly && (!employee.compensationModel || employee.compensationModel === 'SALARIED') && (
             <div className="flex flex-wrap gap-1 mt-1 font-mono">
               <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPfEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isPfEnabled ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
               <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isEsiEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isEsiEnabled ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
@@ -342,6 +349,7 @@ const PayrollProcessing = () => {
   const [localEarnings, setLocalEarnings] = useState([]);
   const [localDeductions, setLocalDeductions] = useState([]);
   const [localExcludedClaimIds, setLocalExcludedClaimIds] = useState(new Set());
+  const [localVariableTransactions, setLocalVariableTransactions] = useState([]);
 
   const remainderId = useMemo(() => {
     return config?.salaryComponents?.find(c => c.linkedTo === 'remainder')?.id || 'special';
@@ -405,8 +413,9 @@ const PayrollProcessing = () => {
       setLocalEarnings(row.otherEarnings || []);
       setLocalDeductions(row.otherDeductions || []);
       setLocalExcludedClaimIds(new Set(row.excludedClaimIds || []));
+      setLocalVariableTransactions(row.variableTransactions || []);
     }
-  }, [breakdownEmployee]);
+  }, [breakdownEmployee, rows]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -414,12 +423,13 @@ const PayrollProcessing = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [employeesRes, configRes, claimsRes, settingsRes, payrollsRes] = await Promise.all([
+        const [employeesRes, configRes, claimsRes, settingsRes, payrollsRes, transactionsRes] = await Promise.all([
           api.get(`/employees/active?month=${month}&year=${year}`, { signal: controller.signal }),
           api.get('/payroll/config', { signal: controller.signal }),
           api.get(`/reimbursements?status=approved&month=${month}&year=${year}`, { signal: controller.signal }),
           api.get('/settings', { signal: controller.signal }),
           api.get(`/payroll?month=${month}&year=${year}&limit=1000`, { signal: controller.signal }),
+          api.get(`/payroll-variable-transactions?month=${month}&year=${year}&status=approved`, { signal: controller.signal }),
         ]);
 
         const nextConfig = { ...DEFAULT_PAYROLL_CONFIG, ...(configRes.data || {}) };
@@ -455,6 +465,15 @@ const PayrollProcessing = () => {
           }
         });
         setClaimsMap(claimsByEmp);
+
+        const transactionsByEmp = new Map();
+        (transactionsRes.data || []).forEach(tx => {
+          const empId = tx.employee?._id || tx.employee;
+          if (empId) {
+            if (!transactionsByEmp.has(empId)) transactionsByEmp.set(empId, []);
+            transactionsByEmp.get(empId).push(tx);
+          }
+        });
 
         setRows(Object.fromEntries(activeEmployees.map((emp) => {
           const existingP = payrollMap.get(String(emp._id));
@@ -504,6 +523,7 @@ const PayrollProcessing = () => {
                 return allClaims.filter(c => !includedIds.has(String(c._id))).map(c => c._id);
               })(),
               attendanceSource: existingP.attendanceSource || 'default',
+              variableTransactions: existingP.earnings?.variableCompensation || [],
             }];
           }
 
@@ -559,6 +579,7 @@ const PayrollProcessing = () => {
             lopStrategy: 'proportional',
             excludedClaimIds: [],
             attendanceSource: 'default',
+            variableTransactions: transactionsByEmp.get(emp._id) || [],
           };
 
           Object.keys(emp).forEach(key => {
@@ -753,6 +774,7 @@ const PayrollProcessing = () => {
     updateRow(breakdownEmployee._id, 'otherEarnings', localEarnings.filter(e => e.name.trim() !== ''));
     updateRow(breakdownEmployee._id, 'otherDeductions', localDeductions.filter(d => d.name.trim() !== ''));
     updateRow(breakdownEmployee._id, 'excludedClaimIds', Array.from(localExcludedClaimIds));
+    updateRow(breakdownEmployee._id, 'variableTransactions', localVariableTransactions);
     toast.success(`Run adjustments saved for ${breakdownEmployee.firstName}`);
     setBreakdownEmployee(null);
   };
@@ -763,8 +785,9 @@ const PayrollProcessing = () => {
     return {
       ...row,
       reimbursements: (claimsMap.get(breakdownEmployee._id) || []).filter(c => !localExcludedClaimIds.has(c._id)),
+      variableTransactions: localVariableTransactions,
     };
-  }, [breakdownEmployee, rows, claimsMap, localExcludedClaimIds]);
+  }, [breakdownEmployee, rows, claimsMap, localExcludedClaimIds, localVariableTransactions]);
 
   const localSnapshotComputed = usePayrollSnapshot(
     breakdownEmployee,
@@ -1007,6 +1030,7 @@ const PayrollProcessing = () => {
         const showStatutoryOverrides = hasSalaryBreakup;
         const showLopStrategy = localSplits && localSplits.length > 1 && !isHourly;
         const isFlatSalary = !hasSalaryBreakup;
+        const isConsultantModel = breakdownEmployee.compensationModel && breakdownEmployee.compensationModel !== 'SALARIED';
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
@@ -1441,91 +1465,317 @@ const PayrollProcessing = () => {
                       <div className="space-y-4">
                         <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
                           <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
-                            <span>Earnings (Paid vs Master)</span>
-                            <span className="text-xs text-gray-500 font-normal">Attendance Prorated</span>
+                            <span>Earnings Breakdown</span>
+                            <span className="text-xs text-gray-500 font-normal">{isConsultantModel ? 'Retainer Fee' : 'Attendance Prorated'}</span>
                           </div>
                           <div className="divide-y divide-gray-100 text-sm">
-                            {allEarningComponents.map((c) => {
-                              const { paid, master } = getComponentBreakdown(localSnapshot, c);
-                              const shouldShow = isHourly
-                                ? (paid > 0 || master > 0)
-                                : (isFlatSalary 
-                                  ? c.id === 'basic'
-                                  : (['basic', 'hra', remainderId].includes(c.id) || paid > 0 || master > 0));
-                              if (!shouldShow) return null;
-                              return (
+                            {isConsultantModel ? (
+                              (localSnapshot.earnings?.basic > 0 || (breakdownEmployee.monthlyCTC || 0) > 0) && (
                                 <BreakdownRow
-                                  key={c.id}
-                                  label={(isHourly && c.id === 'basic') ? 'Contract Wages (Hourly)' : c.name}
-                                  paid={paid}
-                                  master={master}
+                                  label="Consultancy Fee (Retainer)"
+                                  paid={localSnapshot.earnings?.basic || 0}
+                                  master={breakdownEmployee.monthlyCTC || 0}
                                 />
-                              );
-                            })}
+                              )
+                            ) : (
+                              allEarningComponents.map((c) => {
+                                const { paid, master } = getComponentBreakdown(localSnapshot, c);
+                                const shouldShow = isHourly
+                                  ? (paid > 0 || master > 0)
+                                  : (isFlatSalary 
+                                    ? c.id === 'basic'
+                                    : (['basic', 'hra', remainderId].includes(c.id) || paid > 0 || master > 0));
+                                if (!shouldShow) return null;
+                                return (
+                                  <BreakdownRow
+                                    key={c.id}
+                                    label={(isHourly && c.id === 'basic') ? 'Contract Wages (Hourly)' : c.name}
+                                    paid={paid}
+                                    master={master}
+                                  />
+                                );
+                              })
+                            )}
                           </div>
                         </div>
 
-                        {/* Custom Allowances Editor */}
-                        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
-                            <span>Custom Run Allowances (Other Earnings)</span>
-                            {!isReadOnly && (
-                              <button
-                                type="button"
-                                onClick={() => setLocalEarnings([...localEarnings, { name: '', amount: 0 }])}
-                                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
-                              >
-                                <FaPlus className="w-2.5 h-2.5" /> Add
-                              </button>
-                            )}
+                        {/* Custom Allowances or Variable Compensation Editor */}
+                        {isConsultantModel ? (
+                          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                            <div className="bg-amber-50/60 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
+                              <span>Variable Compensation Items</span>
+                              {!isReadOnly && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const rateCard = breakdownEmployee.rateCard || [];
+                                    const defaultRateItem = rateCard.find(rc => rc.paymentType === 'POSITION') || rateCard[0];
+                                    const defaultRate = defaultRateItem ? defaultRateItem.rate : 0;
+                                    setLocalVariableTransactions([
+                                      ...localVariableTransactions,
+                                      { paymentType: 'POSITION', reference: '', client: '', quantity: 1, rate: defaultRate, amount: defaultRate, remarks: '' }
+                                    ]);
+                                  }}
+                                  className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded transition-colors"
+                                >
+                                  <FaPlus className="w-2.5 h-2.5" /> Add Variable Item
+                                </button>
+                              )}
+                            </div>
+                            <div className="p-4 space-y-3">
+                              {localVariableTransactions.length === 0 ? (
+                                <div className="text-xs text-gray-500 text-center py-4 border border-dashed border-slate-200 rounded-lg">No variable compensation items defined for this run.</div>
+                              ) : (
+                                <div className="space-y-4">
+                                  {localVariableTransactions.map((item, idx) => (
+                                    <div key={`local-tx-${idx}`} className="border border-slate-100 p-3 rounded-xl bg-slate-50/30 space-y-2.5 relative">
+                                      {!isReadOnly && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updated = localVariableTransactions.filter((_, i) => i !== idx);
+                                            setLocalVariableTransactions(updated);
+                                          }}
+                                          className="absolute top-2.5 right-2.5 text-red-500 hover:text-red-700 p-1 bg-white hover:bg-red-50 border border-slate-100 rounded shadow-sm transition-colors"
+                                          title="Remove item"
+                                        >
+                                          <FaTrash className="w-2.5 h-2.5" />
+                                        </button>
+                                      )}
+                                      
+                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        <div>
+                                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Type</label>
+                                          <select
+                                            disabled={isReadOnly}
+                                            value={item.paymentType}
+                                            onChange={(e) => {
+                                              const updated = [...localVariableTransactions];
+                                              const type = e.target.value;
+                                              updated[idx].paymentType = type;
+                                              const matchingRate = breakdownEmployee.rateCard?.find(rc => rc.paymentType === type);
+                                              if (matchingRate) {
+                                                updated[idx].rate = matchingRate.rate;
+                                                updated[idx].amount = (updated[idx].quantity || 1) * matchingRate.rate;
+                                              }
+                                              setLocalVariableTransactions(updated);
+                                            }}
+                                            className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-medium bg-white"
+                                          >
+                                            <option value="POSITION">Position</option>
+                                            <option value="PROJECT">Project</option>
+                                            <option value="INTERVIEW">Interview</option>
+                                            <option value="MILESTONE">Milestone</option>
+                                            <option value="COMMISSION">Commission</option>
+                                            <option value="OTHER">Other</option>
+                                          </select>
+                                        </div>
+                                        <div>
+                                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Reference</label>
+                                          <input
+                                            type="text"
+                                            placeholder="e.g. React Dev"
+                                            disabled={isReadOnly}
+                                            value={item.reference || ''}
+                                            onChange={(e) => {
+                                              const updated = [...localVariableTransactions];
+                                              updated[idx].reference = e.target.value;
+                                              setLocalVariableTransactions(updated);
+                                            }}
+                                            className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-medium"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Client</label>
+                                          <input
+                                            type="text"
+                                            placeholder="Client Name"
+                                            disabled={isReadOnly}
+                                            value={item.client || ''}
+                                            onChange={(e) => {
+                                              const updated = [...localVariableTransactions];
+                                              updated[idx].client = e.target.value;
+                                              setLocalVariableTransactions(updated);
+                                            }}
+                                            className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-medium"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Qty</label>
+                                          <input
+                                            type="number"
+                                            min="1"
+                                            disabled={isReadOnly}
+                                            value={item.quantity || 1}
+                                            onChange={(e) => {
+                                              const updated = [...localVariableTransactions];
+                                              const q = Number(e.target.value) || 1;
+                                              updated[idx].quantity = q;
+                                              updated[idx].amount = q * (updated[idx].rate || 0);
+                                              setLocalVariableTransactions(updated);
+                                            }}
+                                            className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-semibold text-right"
+                                          />
+                                        </div>
+                                      </div>
+
+                                      <div className="grid grid-cols-3 gap-2">
+                                        <div>
+                                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Rate (₹)</label>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            disabled={isReadOnly}
+                                            value={item.rate || 0}
+                                            onChange={(e) => {
+                                              const updated = [...localVariableTransactions];
+                                              const r = Number(e.target.value) || 0;
+                                              updated[idx].rate = r;
+                                              updated[idx].amount = (updated[idx].quantity || 1) * r;
+                                              setLocalVariableTransactions(updated);
+                                            }}
+                                            className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-semibold text-right"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Amount (₹)</label>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            disabled={isReadOnly}
+                                            value={item.amount || 0}
+                                            onChange={(e) => {
+                                              const updated = [...localVariableTransactions];
+                                              updated[idx].amount = Number(e.target.value) || 0;
+                                              setLocalVariableTransactions(updated);
+                                            }}
+                                            className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-semibold text-right"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Remarks</label>
+                                          <input
+                                            type="text"
+                                            placeholder="Notes..."
+                                            disabled={isReadOnly}
+                                            value={item.remarks || ''}
+                                            onChange={(e) => {
+                                              const updated = [...localVariableTransactions];
+                                              updated[idx].remarks = e.target.value;
+                                              setLocalVariableTransactions(updated);
+                                            }}
+                                            className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-medium"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+
+                                  {/* TDS Estimation Summary Panel */}
+                                  <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-3.5 space-y-2 text-amber-900 text-xs font-medium">
+                                    <div className="flex justify-between">
+                                      <span>Total Variable Earnings:</span>
+                                      <span className="font-bold">{fmtMoney(localVariableTransactions.reduce((sum, item) => sum + (Number(item.amount) || 0), 0))}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Estimated TDS (10% Sec 194J):</span>
+                                      <span className="font-semibold text-red-600">-{fmtMoney(localVariableTransactions.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) * 0.1)}</span>
+                                    </div>
+                                    <div className="flex justify-between border-t border-amber-200 pt-1.5 font-bold">
+                                      <span>Net Take-Home (Est. Variable):</span>
+                                      <span className="text-emerald-700">{fmtMoney(localVariableTransactions.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) * 0.9)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="p-4 space-y-3">
-                            {localEarnings.length === 0 ? (
-                              <div className="text-xs text-gray-500 text-center py-2">No custom allowances defined for this run.</div>
-                            ) : (
-                              localEarnings.map((item, idx) => (
-                                <div key={`local-earn-${idx}`} className="flex gap-2 items-center">
-                                  <input
-                                    type="text"
-                                    placeholder="Allowance Name"
-                                    disabled={isReadOnly}
-                                    value={item.name}
-                                    onChange={(e) => {
-                                      const updated = [...localEarnings];
-                                      updated[idx].name = e.target.value;
-                                      setLocalEarnings(updated);
-                                    }}
-                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-500 font-medium"
-                                  />
-                                  <input
-                                    type="number"
-                                    placeholder="Amount"
-                                    disabled={isReadOnly}
-                                    value={item.amount}
-                                    onChange={(e) => {
-                                      const updated = [...localEarnings];
-                                      updated[idx].amount = Number(e.target.value) || 0;
-                                      setLocalEarnings(updated);
-                                    }}
-                                    className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right font-medium disabled:bg-slate-50 disabled:text-slate-500"
-                                  />
-                                  {!isReadOnly && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const updated = localEarnings.filter((_, i) => i !== idx);
+                        ) : (
+                          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
+                              <span>Custom Run Allowances (Other Earnings)</span>
+                              {!isReadOnly && (
+                                <button
+                                  type="button"
+                                  onClick={() => setLocalEarnings([...localEarnings, { name: '', amount: 0 }])}
+                                  className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
+                                >
+                                  <FaPlus className="w-2.5 h-2.5" /> Add
+                                </button>
+                              )}
+                            </div>
+                            <div className="p-4 space-y-3">
+                              {localEarnings.length === 0 ? (
+                                <div className="text-xs text-gray-500 text-center py-2">No custom allowances defined for this run.</div>
+                              ) : (
+                                localEarnings.map((item, idx) => (
+                                  <div key={`local-earn-${idx}`} className="flex gap-2 items-center">
+                                    <input
+                                      type="text"
+                                      placeholder="Allowance Name"
+                                      disabled={isReadOnly}
+                                      value={item.name}
+                                      onChange={(e) => {
+                                        const updated = [...localEarnings];
+                                        updated[idx].name = e.target.value;
                                         setLocalEarnings(updated);
                                       }}
-                                      className="text-red-500 hover:text-red-700 p-1 transition-colors"
-                                    >
-                                      <FaTrash className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              ))
-                            )}
+                                      className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-500 font-medium"
+                                    />
+                                    <input
+                                      type="number"
+                                      placeholder="Amount"
+                                      disabled={isReadOnly}
+                                      value={item.amount}
+                                      onChange={(e) => {
+                                        const updated = [...localEarnings];
+                                        updated[idx].amount = Number(e.target.value) || 0;
+                                        setLocalEarnings(updated);
+                                      }}
+                                      className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right font-medium disabled:bg-slate-50 disabled:text-slate-500"
+                                    />
+                                    {!isReadOnly && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const updated = localEarnings.filter((_, i) => i !== idx);
+                                          setLocalEarnings(updated);
+                                        }}
+                                        className="text-red-500 hover:text-red-700 p-1 transition-colors"
+                                      >
+                                        <FaTrash className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                ))
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        )}
+
+                        {/* Variable Transactions List */}
+                        {localSnapshot.earnings.variableCompensation && localSnapshot.earnings.variableCompensation.length > 0 && (
+                          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                            <div className="bg-amber-50 px-4 py-3 border-b border-amber-200 font-bold text-amber-900 text-sm">
+                              💼 Variable Compensation (Transactions)
+                            </div>
+                            <div className="p-4 space-y-2">
+                              {localSnapshot.earnings.variableCompensation.map((tx, idx) => (
+                                <div key={`tx-${idx}`} className="flex justify-between items-center text-xs text-slate-700 bg-slate-50 p-2 rounded border border-slate-100">
+                                  <div>
+                                    <div className="font-semibold text-slate-800">{tx.paymentType}</div>
+                                    {tx.reference && <div className="text-[10px] text-slate-500 mt-0.5">Ref: {tx.reference} {tx.client && `· Client: ${tx.client}`}</div>}
+                                    {tx.remarks && <div className="text-[10px] text-slate-500 mt-0.5">Note: {tx.remarks}</div>}
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="font-bold text-slate-800">{fmtMoney(tx.amount)}</div>
+                                    {tx.quantity > 1 && <div className="text-[10px] text-slate-500 mt-0.5">{tx.quantity} x {fmtMoney(tx.rate)}</div>}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Total Earnings Summary */}
                         <div className="bg-slate-50 border border-gray-200 rounded-xl p-4 flex justify-between items-center font-bold text-slate-800">
@@ -1570,7 +1820,7 @@ const PayrollProcessing = () => {
                                   return <DeductionRow key={c.id} label={`${c.name}${suffix}`} amount={amount} />;
                                 })}
                                 {(!isHourly || localSnapshot.deductions.tds > 0) && (
-                                  <DeductionRow label="Income Tax (TDS)" amount={localSnapshot.deductions.tds} isEditable={!isReadOnly} value={rows[empId]?.tds !== undefined ? rows[empId].tds : localSnapshot.deductions.tds} onChange={(val) => updateRow(empId, 'tds', Number(val) || 0)} />
+                                  <DeductionRow label="Income Tax (TDS)" amount={localSnapshot.deductions.tds} isEditable={!isReadOnly} value={rows[empId]?.tds} onChange={(val) => updateRow(empId, 'tds', val === '' ? undefined : Number(val))} />
                                 )}
                               </div>
                             </div>

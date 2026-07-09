@@ -1088,6 +1088,73 @@ const PayrollSettings = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Compensation Model
+                    </label>
+                    <select
+                      value={editingRole.compensationModel || 'SALARIED'}
+                      onChange={(e) => {
+                        const cm = e.target.value;
+                        setEditingRole(prev => ({
+                          ...prev,
+                          compensationModel: cm,
+                          ...(cm !== 'SALARIED' ? {
+                            useSalaryComponents: false,
+                            pfEnabled: false,
+                            esiEnabled: false,
+                            ptEnabled: false,
+                            lwfEnabled: false,
+                            gratuityEnabled: false,
+                            includePfInCTC: false,
+                            includeGratuityInCTC: false,
+                          } : {
+                            useSalaryComponents: prev.employmentType === 'intern' ? false : true,
+                            pfEnabled: prev.employmentType === 'intern' ? false : true,
+                            esiEnabled: prev.employmentType === 'intern' ? false : true,
+                            ptEnabled: prev.employmentType === 'intern' ? false : true,
+                            lwfEnabled: prev.employmentType === 'intern' ? false : true,
+                            gratuityEnabled: prev.employmentType === 'intern' ? false : true,
+                            includePfInCTC: false,
+                            includeGratuityInCTC: prev.employmentType === 'intern' ? false : true,
+                          }),
+                        }));
+                      }}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option value="SALARIED">Salaried Employee</option>
+                      <option value="CONSULTANT">Recruitment Consultant</option>
+                      <option value="PROJECT">Project-Based Contractor</option>
+                      <option value="POSITION">Position-Based Contractor</option>
+                      <option value="INTERVIEW">Interview-Based Contractor</option>
+                      <option value="HOURLY">Hourly Contractor</option>
+                      <option value="CUSTOM">Custom Contractor</option>
+                    </select>
+                    {editingRole.compensationModel !== 'SALARIED' && (
+                      <p className="text-[10px] text-amber-600 font-semibold mt-1">💼 Auto-configured: Section 194J (10% TDS) applies, statutory deductions disabled.</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Payment Basis
+                    </label>
+                    <select
+                      value={editingRole.paymentBasis || 'MONTHLY'}
+                      onChange={(e) => setEditingRole({ ...editingRole, paymentBasis: e.target.value })}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option value="MONTHLY">Monthly Retainer</option>
+                      <option value="PROJECT">Per Closed Project</option>
+                      <option value="POSITION">Per Closed Position</option>
+                      <option value="INTERVIEW">Per Conducted Interview</option>
+                      <option value="HOUR">Per Hour</option>
+                      <option value="DAY">Per Day</option>
+                      <option value="MILESTONE">Per Milestone</option>
+                      <option value="CUSTOM">Custom Pay Event</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                       Description
                     </label>
                     <textarea

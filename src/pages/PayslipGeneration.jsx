@@ -145,6 +145,14 @@ const PayslipGeneration = () => {
       }
     ].filter(e => e.rate > 0 || e.monthly > 0);
 
+    const variableTxs = (slip.earnings?.variableCompensation || []).map(tx => ({
+      name: `${tx.paymentType}${tx.reference ? ` (${tx.reference})` : ''}`,
+      rate: tx.rate > 0 ? tx.rate : tx.amount,
+      monthly: tx.amount,
+      arrear: tx.quantity > 1 ? `${tx.quantity} units` : '-'
+    }));
+    earnings.push(...variableTxs);
+
     // Deductions list
     const deductions = [
       { name: 'PF - Employees', amount: slip.deductions?.pfEmployee || 0 },
