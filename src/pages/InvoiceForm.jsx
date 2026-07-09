@@ -971,8 +971,7 @@ const InvoiceForm = () => {
                     } else {
                       const selectedClient = clients.find(c => c._id === clientId);
                       if (selectedClient) {
-                        const hasGstin = selectedClient.gstin && /^[0-9A-Z]{15}$/.test(String(selectedClient.gstin).trim().toUpperCase());
-                        const tdsApp = isPro ? (selectedClient.tds_applicable || hasGstin) : false;
+                        const tdsApp = isPro ? !!selectedClient.tds_applicable : false;
                         setFormData(prev => ({
                           ...prev,
                           clientRef: clientId,
@@ -1877,8 +1876,7 @@ const InvoiceForm = () => {
         <ClientForm
           onSuccess={(newClient) => {
             setClients([newClient, ...clients]);
-            const hasGstin = newClient.gstin && /^[0-9A-Z]{15}$/.test(String(newClient.gstin).trim().toUpperCase());
-            const tdsApp = isPro ? (newClient.tds_applicable || hasGstin) : false;
+            const tdsApp = isPro ? !!newClient.tds_applicable : false;
             setFormData(prev => ({
               ...prev,
               clientRef: newClient._id,

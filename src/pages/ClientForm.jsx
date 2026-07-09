@@ -85,7 +85,6 @@ const ClientForm = ({ onSuccess, onCancel }) => {
     if (isGstinValid && currentGstin !== lastCheckedGstin) {
       setFormData(prev => ({
         ...prev,
-        tds_applicable: true,
         default_tds_section: prev.default_tds_section || '194J'
       }));
       setLastCheckedGstin(currentGstin);
