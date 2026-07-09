@@ -659,125 +659,128 @@ const InvoiceList = () => {
               ) : displayedInvoices.length === 0 ? (
                 <tr><td colSpan="10" className="px-4 py-8 text-center text-gray-500 text-xs">No invoices found.</td></tr>
               ) : (
-                displayedInvoices.map((inv) => (
-                  <tr key={inv._id} className="hover:bg-blue-50/50 transition-colors group">
-                    <td className="px-4 py-2 text-center">
-                      <button onClick={() => toggleSelect(inv._id)} className={`${selectedInvoices.includes(inv._id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}`}>
-                         {selectedInvoices.includes(inv._id) ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
-                      </button>
-                    </td>
-                    
-                    {/* Invoice No */}
-                    <td className="px-4 py-2 whitespace-nowrap">
-                        <Link to={`/invoices/${inv._id}/print`} className="text-blue-600 text-xs font-semibold hover:text-blue-800 hover:underline">
-                            {inv.invoiceNo}
-                        </Link>
-                    </td>
-                    {/* Type */}
-                    <td className="px-4 py-2 whitespace-nowrap">
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                            {inv.invoiceType || 'Tax Invoice'}
-                        </span>
-                    </td>
-                    
-                    {/* Client */}
-                    <td className="px-4 py-2 whitespace-nowrap">
-                        <div className="text-xs font-semibold text-gray-900">{inv.client?.name}</div>
-                        {inv.client?.gstin && <div className="text-[10px] text-gray-400 mt-0.5">{inv.client.gstin}</div>}
-                    </td>
-
-                    {/* Date */}
-                    <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
-                        {formatDate(inv.date)}
-                    </td>
-
-                    {/* Due Date */}
-                    <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
-                        {inv.dueDate ? (
-                          <span className={new Date(inv.dueDate) < new Date() && inv.balanceDue > 0 ? 'text-red-500 font-medium font-sans' : ''}>
-                            {formatDate(inv.dueDate)}
+                displayedInvoices.map((inv) => {
+                  const displayBalance = (inv.grandTotal || 0) - (inv.advancePaid || 0);
+                  return (
+                    <tr key={inv._id} className="hover:bg-blue-50/50 transition-colors group">
+                      <td className="px-4 py-2 text-center">
+                        <button onClick={() => toggleSelect(inv._id)} className={`${selectedInvoices.includes(inv._id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}`}>
+                           {selectedInvoices.includes(inv._id) ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
+                       </button>
+                      </td>
+                      
+                      {/* Invoice No */}
+                      <td className="px-4 py-2 whitespace-nowrap">
+                          <Link to={`/invoices/${inv._id}/print`} className="text-blue-600 text-xs font-semibold hover:text-blue-800 hover:underline">
+                              {inv.invoiceNo}
+                          </Link>
+                      </td>
+                      {/* Type */}
+                      <td className="px-4 py-2 whitespace-nowrap">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                              {inv.invoiceType || 'Tax Invoice'}
                           </span>
-                        ) : '—'}
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-4 py-2 whitespace-nowrap">
-                        <select
-                           value={inv.status || (Number(inv.balanceDue) === 0 ? 'PAID' : 'SENT')}
-                           onChange={async (e) => {
-                               const newStatus = e.target.value;
-                               try {
-                                   await api.put(`/invoices/${inv._id}/status`, { status: newStatus });
-                                   fetchInvoices();
-                               } catch (err) {
-                                   alert(err.response?.data?.message || 'Failed to update status');
-                               }
-                           }}
-                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent transition-colors text-center appearance-none ${
-                               (inv.status === 'PAID' || (!inv.status && Number(inv.balanceDue) === 0)) ? 'bg-green-100 text-green-700 border-green-200' :
-                               inv.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
-                               (inv.status === 'SENT' || (!inv.status && Number(inv.balanceDue) > 0)) ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                               inv.status === 'OVERDUE' ? 'bg-red-100 text-red-700 border-red-200' :
-                               inv.status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                               inv.status === 'UNPAID' ? 'bg-orange-100 text-orange-700 border-orange-200' :
-                               inv.status === 'CANCELLED' ? 'bg-red-100 text-red-700 border-red-200' :
-                               'bg-blue-100 text-blue-700 border-blue-200'
-                           }`}
-                        >
-                            <option value="DRAFT" className="bg-white text-gray-700">DRAFT</option>
-                            <option value="SENT" className="bg-white text-gray-700">SENT</option>
-                            <option value="UNPAID" className="bg-white text-gray-700">UNPAID</option>
-                            <option value="PARTIAL" className="bg-white text-gray-700">PARTIAL</option>
-                            <option value="PAID" className="bg-white text-gray-700">PAID</option>
-                            <option value="CANCELLED" className="bg-white text-gray-700">CANCELLED</option>
-                        </select>
-                    </td>
-
-                    {/* Amount */}
-                    <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900">
-                        ₹{inv.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </td>
-
-                    {/* Balance */}
-                    <td className="px-4 py-2 whitespace-nowrap text-right text-xs">
-                        <span className={inv.balanceDue > 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>
-                            ₹{inv.balanceDue?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-4 py-2 whitespace-nowrap text-center text-xs font-medium">
-                        <div className="flex justify-center gap-3">
-                            <Link to={`/invoices/${inv._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View">
-                                <FaEye size={16} />
-                            </Link>
-                            <Link to={`/invoices/edit/${inv._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit">
-                                <FaEdit size={16} />
-                            </Link>
-                            <button 
-                                onClick={async () => {
-                                    if (!isPro) {
-                                      setShowPremiumModal(true);
-                                      return;
-                                    }
-                                    if(window.confirm('Are you sure you want to delete this invoice?')) {
-                                        try {
-                                            await api.delete(`/invoices/${inv._id}`);
-                                            fetchInvoices();
-                                        } catch(err) {
-                                            alert('Failed to delete');
-                                        }
-                                    }
-                                }} 
-                                className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`}
-                                title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
-                            >
-                                <FaTrash size={16} />
-                            </button>
-                        </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      
+                      {/* Client */}
+                      <td className="px-4 py-2 whitespace-nowrap">
+                          <div className="text-xs font-semibold text-gray-900">{inv.client?.name}</div>
+                          {inv.client?.gstin && <div className="text-[10px] text-gray-400 mt-0.5">{inv.client.gstin}</div>}
+                      </td>
+  
+                      {/* Date */}
+                      <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
+                          {formatDate(inv.date)}
+                      </td>
+  
+                      {/* Due Date */}
+                      <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
+                          {inv.dueDate ? (
+                            <span className={new Date(inv.dueDate) < new Date() && displayBalance > 0 ? 'text-red-500 font-medium font-sans' : ''}>
+                              {formatDate(inv.dueDate)}
+                            </span>
+                          ) : '—'}
+                      </td>
+  
+                      {/* Status */}
+                      <td className="px-4 py-2 whitespace-nowrap">
+                          <select
+                             value={inv.status || (Number(displayBalance) === 0 ? 'PAID' : 'SENT')}
+                             onChange={async (e) => {
+                                 const newStatus = e.target.value;
+                                 try {
+                                     await api.put(`/invoices/${inv._id}/status`, { status: newStatus });
+                                     fetchInvoices();
+                                 } catch (err) {
+                                     alert(err.response?.data?.message || 'Failed to update status');
+                                 }
+                             }}
+                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent transition-colors text-center appearance-none ${
+                                 (inv.status === 'PAID' || (!inv.status && Number(displayBalance) === 0)) ? 'bg-green-100 text-green-700 border-green-200' :
+                                 inv.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
+                                 (inv.status === 'SENT' || (!inv.status && Number(displayBalance) > 0)) ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                 inv.status === 'OVERDUE' ? 'bg-red-100 text-red-700 border-red-200' :
+                                 inv.status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                                 inv.status === 'UNPAID' ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                                 inv.status === 'CANCELLED' ? 'bg-red-100 text-red-700 border-red-200' :
+                                 'bg-blue-100 text-blue-700 border-blue-200'
+                             }`}
+                          >
+                              <option value="DRAFT" className="bg-white text-gray-700">DRAFT</option>
+                              <option value="SENT" className="bg-white text-gray-700">SENT</option>
+                              <option value="UNPAID" className="bg-white text-gray-700">UNPAID</option>
+                              <option value="PARTIAL" className="bg-white text-gray-700">PARTIAL</option>
+                              <option value="PAID" className="bg-white text-gray-700">PAID</option>
+                              <option value="CANCELLED" className="bg-white text-gray-700">CANCELLED</option>
+                          </select>
+                      </td>
+  
+                      {/* Amount */}
+                      <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900">
+                          ₹{inv.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+  
+                      {/* Balance */}
+                      <td className="px-4 py-2 whitespace-nowrap text-right text-xs">
+                          <span className={displayBalance > 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>
+                              ₹{displayBalance?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                      </td>
+  
+                      {/* Actions */}
+                      <td className="px-4 py-2 whitespace-nowrap text-center text-xs font-medium">
+                          <div className="flex justify-center gap-3">
+                              <Link to={`/invoices/${inv._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View">
+                                  <FaEye size={16} />
+                              </Link>
+                              <Link to={`/invoices/edit/${inv._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit">
+                                  <FaEdit size={16} />
+                              </Link>
+                              <button 
+                                  onClick={async () => {
+                                      if (!isPro) {
+                                        setShowPremiumModal(true);
+                                        return;
+                                      }
+                                      if(window.confirm('Are you sure you want to delete this invoice?')) {
+                                          try {
+                                              await api.delete(`/invoices/${inv._id}`);
+                                              fetchInvoices();
+                                          } catch(err) {
+                                              alert('Failed to delete');
+                                          }
+                                      }
+                                  }} 
+                                  className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`}
+                                  title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
+                              >
+                                  <FaTrash size={16} />
+                              </button>
+                          </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
