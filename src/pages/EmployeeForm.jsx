@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { FaCheck, FaPlus } from 'react-icons/fa';
+import { FaCheck, FaPlus, FaTrash } from 'react-icons/fa';
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import { buildMasterSalaryStructure, DEFAULT_PAYROLL_CONFIG, fmtMoney } from '../utils/payroll';
@@ -22,6 +22,9 @@ const defaultForm = {
   dateOfLeaving: '',
   location: '',
   employmentType: 'full-time',
+  compensationModel: 'SALARIED',
+  paymentBasis: 'MONTHLY',
+  rateCard: [],
   useSalaryComponents: true,
   status: 'active',
   role: '',
@@ -116,7 +119,9 @@ const EmployeeForm = () => {
         setFormData({
           ...defaultForm,
           ...data,
-          department: data.department?._id || data.department || '',
+           department: data.department?._id || data.department || '',
+          compensationModel: data.compensationModel || 'SALARIED',
+          paymentBasis: data.paymentBasis || 'MONTHLY',
           dateOfBirth: data.dateOfBirth ? data.dateOfBirth.substring(0, 10) : '',
           joiningDate: data.joiningDate ? data.joiningDate.substring(0, 10) : '',
           dateOfLeaving: data.dateOfLeaving ? data.dateOfLeaving.substring(0, 10) : '',
@@ -171,6 +176,8 @@ const EmployeeForm = () => {
       ...prev,
       role: selectedRole._id,
       employmentType: selectedRole.employmentType || prev.employmentType,
+      compensationModel: selectedRole.compensationModel || 'SALARIED',
+      paymentBasis: selectedRole.paymentBasis || 'MONTHLY',
       payType: selectedRole.payType,
       useSalaryComponents: selectedRole.useSalaryComponents !== false,
       monthlyCTC: selectedRole.payType === 'salaried' ? selectedRole.monthlyCTC : 0,
@@ -239,7 +246,11 @@ const EmployeeForm = () => {
     return ALL_EMPLOYMENT_TYPES.filter(et => seen.has(et.value));
   }, [roles]);
 
-  const localPreview = useMemo(() => buildMasterSalaryStructure(formData, config), [formData, config]);
+  const localPreview = useMemo(() => {
+    const preview = buildMasterSalaryStructure(formData, config);
+    console.log('[DEBUG] localPreview calculation:', { formData, config, preview });
+    return preview;
+  }, [formData, config]);
 
   const refreshSalaryFromCTC = async (overrideFields) => {
     const overrides = (overrideFields && typeof overrideFields === 'object' && !('nativeEvent' in overrideFields)) ? overrideFields : {};
@@ -249,7 +260,7 @@ const EmployeeForm = () => {
 
     try {
       setCalculating(true);
-      const res = await api.post('/payroll/calculate-salary', {
+      const payload = {
         monthlyCTC,
         employmentType: merged.employmentType,
         basicPercent: merged.basicPercent === null || merged.basicPercent === '' ? null : Number(merged.basicPercent),
@@ -283,7 +294,16 @@ const EmployeeForm = () => {
         gratuityEnabled: merged.gratuityEnabled !== false,
         includePfInCTC: merged.includePfInCTC === true,
         includeGratuityInCTC: merged.includeGratuityInCTC !== false,
+      };
+
+      // Copy any custom percentage overrides from merged to payload
+      Object.keys(merged).forEach(key => {
+        if (key.endsWith('Percent') && !['basicPercent', 'hraPercent'].includes(key)) {
+          payload[key] = merged[key] === null || merged[key] === '' ? null : Number(merged[key]);
+        }
       });
+
+      const res = await api.post('/payroll/calculate-salary', payload);
       const master = res.data.master;
       setFormData((prev) => ({
         ...prev,
@@ -354,25 +374,26 @@ const EmployeeForm = () => {
       if (config?.salaryComponents) {
         config.salaryComponents.forEach(c => {
           if (!['basic', 'hra', 'special', 'conveyance', 'medical', 'flexi', 'broadband', 'petrol', 'lta'].includes(c.id)) {
-            const val = localPreview.earningsMap?.[c.id] ?? 0;
+            const val = (localPreview.earningsMap?.[c.id] !== undefined ? localPreview.earningsMap[c.id] : localPreview.deductionsMap?.[c.id]) ?? 0;
             cleanSalaryStructure[c.id] = Number(val) || 0;
           }
         });
       }
 
+      const isConsultant = formData.compensationModel && formData.compensationModel !== 'SALARIED';
       const payload = {
         ...formData,
         monthlyCTC: Number(formData.monthlyCTC) || 0,
-        basicPercent: formData.basicPercent === null || formData.basicPercent === '' ? null : Number(formData.basicPercent),
-        hraPercent: formData.hraPercent === null || formData.hraPercent === '' ? null : Number(formData.hraPercent),
-        pfEnabled: formData.pfEnabled !== false,
-        esiEnabled: formData.esiEnabled !== false,
-        ptEnabled: formData.ptEnabled !== false,
-        ptState: formData.ptState || '',
-        lwfEnabled: formData.lwfEnabled !== false,
-        gratuityEnabled: formData.gratuityEnabled !== false,
-        includePfInCTC: formData.includePfInCTC === true,
-        includeGratuityInCTC: formData.includeGratuityInCTC !== false,
+        basicPercent: isConsultant ? null : (formData.basicPercent === null || formData.basicPercent === '' ? null : Number(formData.basicPercent)),
+        hraPercent: isConsultant ? null : (formData.hraPercent === null || formData.hraPercent === '' ? null : Number(formData.hraPercent)),
+        pfEnabled: isConsultant ? false : (formData.pfEnabled !== false),
+        esiEnabled: isConsultant ? false : (formData.esiEnabled !== false),
+        ptEnabled: isConsultant ? false : (formData.ptEnabled !== false),
+        ptState: isConsultant ? '' : (formData.ptState || ''),
+        lwfEnabled: isConsultant ? false : (formData.lwfEnabled !== false),
+        gratuityEnabled: isConsultant ? false : (formData.gratuityEnabled !== false),
+        includePfInCTC: isConsultant ? false : (formData.includePfInCTC === true),
+        includeGratuityInCTC: isConsultant ? false : (formData.includeGratuityInCTC !== false),
         flexiAmount: Number(formData.flexiAmount) || 0,
         broadband: Number(formData.broadband) || 0,
         petrol: Number(formData.petrol) || 0,
@@ -485,6 +506,68 @@ const EmployeeForm = () => {
                 </select>
               </div>
               <div>
+                <label className={labelCls}>Compensation Model</label>
+                <select
+                  value={formData.compensationModel || 'SALARIED'}
+                  onChange={(e) => {
+                    const cm = e.target.value;
+                    const isConsultant = cm !== 'SALARIED';
+                    setFormData((prev) => ({
+                      ...prev,
+                      compensationModel: cm,
+                      ...(isConsultant ? {
+                        useSalaryComponents: false,
+                        pfEnabled: false,
+                        esiEnabled: false,
+                        ptEnabled: false,
+                        lwfEnabled: false,
+                        gratuityEnabled: false,
+                        includePfInCTC: false,
+                        includeGratuityInCTC: false,
+                      } : {
+                        useSalaryComponents: prev.employmentType === 'intern' ? false : true,
+                        pfEnabled: prev.employmentType === 'intern' ? false : true,
+                        esiEnabled: prev.employmentType === 'intern' ? false : true,
+                        ptEnabled: prev.employmentType === 'intern' ? false : true,
+                        lwfEnabled: prev.employmentType === 'intern' ? false : true,
+                        gratuityEnabled: prev.employmentType === 'intern' ? false : true,
+                        includePfInCTC: false,
+                        includeGratuityInCTC: prev.employmentType === 'intern' ? false : true,
+                      }),
+                    }));
+                    if (isConsultant) {
+                      toast('Consultant mode: 10% TDS (Section 194J) applies, statutory deductions disabled.', { icon: '💼' });
+                    }
+                  }}
+                  className={inputCls}
+                >
+                  <option value="SALARIED">Salaried Employee</option>
+                  <option value="CONSULTANT">Recruitment Consultant</option>
+                  <option value="PROJECT">Project-Based Contractor</option>
+                  <option value="POSITION">Position-Based Contractor</option>
+                  <option value="INTERVIEW">Interview-Based Contractor</option>
+                  <option value="HOURLY">Hourly Contractor</option>
+                  <option value="CUSTOM">Custom Contractor</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Payment Basis</label>
+                <select
+                  value={formData.paymentBasis || 'MONTHLY'}
+                  onChange={(e) => setField('paymentBasis', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="MONTHLY">Monthly Retainer</option>
+                  <option value="PROJECT">Per Closed Project</option>
+                  <option value="POSITION">Per Closed Position</option>
+                  <option value="INTERVIEW">Per Conducted Interview</option>
+                  <option value="HOUR">Per Hour</option>
+                  <option value="DAY">Per Day</option>
+                  <option value="MILESTONE">Per Milestone</option>
+                  <option value="CUSTOM">Custom Pay Event</option>
+                </select>
+              </div>
+              <div>
                 <label className={labelCls}>Pay Type</label>
                 <select
                   value={formData.payType || 'salaried'}
@@ -495,6 +578,107 @@ const EmployeeForm = () => {
                   <option value="hourly">Hourly Rate contract</option>
                 </select>
               </div>
+
+              {formData.compensationModel && formData.compensationModel !== 'SALARIED' && (
+                <div className="col-span-1 md:col-span-2 bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                      <span>Employee Rate Card</span>
+                      <span className="text-[10px] bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full font-semibold">Custom Rates</span>
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const current = formData.rateCard || [];
+                        setFormData({
+                          ...formData,
+                          rateCard: [...current, { paymentType: 'POSITION', rate: 0, unit: 'Per Closed Position' }]
+                        });
+                      }}
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
+                    >
+                      <FaPlus className="w-2.5 h-2.5 mr-1 inline" /> Add Rate Card Item
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Define specific payment rates for different deliverables. These will be used to pre-fill unit rates during payroll runs.
+                  </p>
+                  
+                  {(!formData.rateCard || formData.rateCard.length === 0) ? (
+                    <div className="text-xs text-gray-500 text-center py-4 border border-dashed border-gray-200 rounded-lg">
+                      No rates defined. Click "Add Rate Card Item" to configure.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {formData.rateCard.map((item, idx) => (
+                        <div key={`rc-${idx}`} className="flex gap-2 items-end">
+                          <div className="flex-1">
+                            <label className="block text-[10px] font-semibold text-gray-600 mb-1">Payment Type</label>
+                            <select
+                              value={item.paymentType}
+                              onChange={(e) => {
+                                const list = [...formData.rateCard];
+                                list[idx].paymentType = e.target.value;
+                                setFormData({ ...formData, rateCard: list });
+                              }}
+                              className={inputCls}
+                            >
+                              <option value="POSITION">Position</option>
+                              <option value="INTERVIEW">Interview</option>
+                              <option value="PROJECT">Project</option>
+                              <option value="MILESTONE">Milestone</option>
+                              <option value="HOUR">Hour</option>
+                              <option value="DAY">Day</option>
+                              <option value="CUSTOM">Custom</option>
+                            </select>
+                          </div>
+                          
+                          <div className="w-32">
+                            <label className="block text-[10px] font-semibold text-gray-600 mb-1">Rate (₹)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={item.rate}
+                              onChange={(e) => {
+                                const list = [...formData.rateCard];
+                                list[idx].rate = Number(e.target.value) || 0;
+                                setFormData({ ...formData, rateCard: list });
+                              }}
+                              className={inputCls}
+                            />
+                          </div>
+
+                          <div className="flex-1">
+                            <label className="block text-[10px] font-semibold text-gray-600 mb-1">Unit Description</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Per Closed Position"
+                              value={item.unit}
+                              onChange={(e) => {
+                                const list = [...formData.rateCard];
+                                list[idx].unit = e.target.value;
+                                setFormData({ ...formData, rateCard: list });
+                              }}
+                              className={inputCls}
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = formData.rateCard.filter((_, i) => i !== idx);
+                              setFormData({ ...formData, rateCard: list });
+                            }}
+                            className="text-red-500 hover:text-red-700 p-2.5 transition-colors"
+                          >
+                            <FaTrash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {formData.role && (
                 <div className="col-span-1 md:col-span-2 bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-800 flex flex-wrap items-center gap-2">
@@ -657,6 +841,11 @@ const EmployeeForm = () => {
                   Interns/Trainees receive a consolidated stipend (100% Basic Salary) without HRA or statutory contributions.
                 </div>
               )}
+              {formData.compensationModel && formData.compensationModel !== 'SALARIED' && (
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm font-semibold text-amber-800 animate-fade-in">
+                  💼 Non-Salaried Contract Employee ({formData.compensationModel}): Subject to 10% TDS (Section 194J) on total earnings, flat pay structure without statutory benefits (PF, ESI, PT, LWF, Gratuity).
+                </div>
+              )}
 
               {/* Custom Overrides Card — only for salaried with components, not intern */}
               {formData.employmentType !== 'intern' && formData.payType !== 'hourly' && formData.useSalaryComponents !== false && (
@@ -707,6 +896,29 @@ const EmployeeForm = () => {
                         </div>
                       </div>
                     </div>
+                    {config?.salaryComponents?.filter(c => 
+                      (c.linkedTo === 'ctc_percent' || c.linkedTo === 'basic_percent') && !['basic', 'hra'].includes(c.id)
+                    ).map(c => (
+                      <div key={c.id}>
+                        <label className={labelCls}>{c.name} % Override ({c.linkedTo === 'basic_percent' ? 'of Basic' : 'of CTC'})</label>
+                        <div className="relative rounded-lg shadow-sm">
+                          <input
+                            type="number"
+                            step="any"
+                            min="1"
+                            max="100"
+                            placeholder={`Company Default: ${Math.round((c.linkValue ?? 0) * 100)}%`}
+                            value={formData[c.id + 'Percent'] ?? ''}
+                            onChange={(e) => setField(c.id + 'Percent', e.target.value === '' ? null : Number(e.target.value))}
+                            onBlur={refreshSalaryFromCTC}
+                            className={inputCls}
+                          />
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span className="text-gray-400 text-sm">%</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -787,7 +999,12 @@ const EmployeeForm = () => {
                       />
                     </label>
                     <span className="text-[10px] text-gray-400 mt-1">
-                      Employee State Insurance (ESI) deductions {formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0 && `(EE: ${fmtMoney(localPreview.esiEmployee)}, ER: ${fmtMoney(localPreview.esiEmployer)})`}
+                      Employee State Insurance (ESI) deductions{' '}
+                      {formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0
+                        ? `(EE: ${fmtMoney(localPreview.esiEmployee)}, ER: ${fmtMoney(localPreview.esiEmployer)})`
+                        : formData.esiEnabled !== false && localPreview && localPreview.totalEarnings > (config?.esiBasicThreshold ?? 21000)
+                          ? <span className="text-amber-500 font-semibold">Not applicable — gross wages exceed ₹{(config?.esiBasicThreshold ?? 21000).toLocaleString('en-IN')} statutory ceiling</span>
+                          : null}
                     </span>
                   </div>
 
@@ -996,6 +1213,9 @@ const EmployeeForm = () => {
                     if (localPreview.earningsMap && localPreview.earningsMap[cId] !== undefined) {
                       return localPreview.earningsMap[cId];
                     }
+                    if (localPreview.deductionsMap && localPreview.deductionsMap[cId] !== undefined) {
+                      return localPreview.deductionsMap[cId];
+                    }
                     if (cId === 'basic') return localPreview.basicMaster;
                     if (cId === 'hra') return localPreview.hraMaster;
                     if (cId === 'special') return localPreview.specialAllowance;
@@ -1061,9 +1281,13 @@ const EmployeeForm = () => {
                       const pct = formData.hraPercent !== null && formData.hraPercent !== undefined ? formData.hraPercent : Math.round(c.linkValue * 100);
                       suffix = ` (${pct}% of Basic${freqSuffix})`;
                     } else if (c.linkedTo === 'ctc_percent') {
-                      suffix = ` (${Math.round(c.linkValue * 100)}% of CTC${freqSuffix})`;
+                      const override = formData[c.id + 'Percent'];
+                      const pct = override !== undefined && override !== null && override !== '' ? Number(override) : Math.round(c.linkValue * 100);
+                      suffix = ` (${pct}% of CTC${freqSuffix})`;
                     } else if (c.linkedTo === 'basic_percent') {
-                      suffix = ` (${Math.round(c.linkValue * 100)}% of Basic${freqSuffix})`;
+                      const override = formData[c.id + 'Percent'];
+                      const pct = override !== undefined && override !== null && override !== '' ? Number(override) : Math.round(c.linkValue * 100);
+                      suffix = ` (${pct}% of Basic${freqSuffix})`;
                     } else if (c.linkedTo === 'remainder') {
                       suffix = ` (Calculated Remainder${freqSuffix})`;
                     } else if (freqSuffix) {

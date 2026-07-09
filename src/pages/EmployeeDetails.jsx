@@ -132,6 +132,16 @@ const EmployeeDetails = () => {
       flexiAmount: Number(revisionDraft.flexiAmount) || 0,
       broadband: Number(revisionDraft.broadband) || 0,
       petrol: Number(revisionDraft.petrol) || 0,
+    };
+
+    // Copy custom percentage overrides from revisionDraft to dummyEmployee
+    Object.keys(revisionDraft).forEach(key => {
+      if (key.endsWith('Percent') && !['basicPercent', 'hraPercent'].includes(key)) {
+        dummyEmployee[key] = revisionDraft[key];
+      }
+    });
+
+    Object.assign(dummyEmployee, {
       lta: Number(revisionDraft.lta) || 0,
       insuranceAmount: Number(revisionDraft.insuranceAmount) || 0,
       employerNPS: Number(revisionDraft.employerNPS) || 0,
@@ -157,7 +167,7 @@ const EmployeeDetails = () => {
           amount: Number(d.amount) || 0
         })),
       }
-    };
+    });
     return buildMasterSalaryStructure(dummyEmployee, config);
   }, [employee, revisionDraft, config]);
 
@@ -276,6 +286,9 @@ const EmployeeDetails = () => {
     if (salaryPreview.earningsMap && salaryPreview.earningsMap[cId] !== undefined) {
       return salaryPreview.earningsMap[cId];
     }
+    if (salaryPreview.deductionsMap && salaryPreview.deductionsMap[cId] !== undefined) {
+      return salaryPreview.deductionsMap[cId];
+    }
     if (cId === 'basic') return salaryPreview.basicMaster;
     if (cId === 'hra') return salaryPreview.hraMaster;
     if (cId === 'special') return salaryPreview.specialAllowance;
@@ -329,6 +342,8 @@ const EmployeeDetails = () => {
         hraPercent: selectedRole.hraPercent !== null ? selectedRole.hraPercent : null,
         useSalaryComponents: selectedRole.useSalaryComponents !== false,
         employmentType: selectedRole.employmentType || 'full-time',
+        compensationModel: selectedRole.compensationModel || 'SALARIED',
+        paymentBasis: selectedRole.paymentBasis || 'MONTHLY',
       };
 
       // Trigger recalculation if salaried
@@ -375,6 +390,8 @@ const EmployeeDetails = () => {
         hraPercent: revision.hraPercent ?? null,
         useSalaryComponents: revision.useSalaryComponents !== false,
         employmentType: revision.employmentType || 'full-time',
+        compensationModel: revision.compensationModel || 'SALARIED',
+        paymentBasis: revision.paymentBasis || 'MONTHLY',
         flexiAmount: revision.flexiAmount || 0,
         broadband: revision.broadband || 0,
         petrol: revision.petrol || 0,
@@ -398,6 +415,13 @@ const EmployeeDetails = () => {
           otherDeductions: revision.deductions?.otherDeductions ? JSON.parse(JSON.stringify(revision.deductions.otherDeductions)) : [],
         }
       };
+
+      // Copy custom percentage overrides from revision to revisionDraftObj
+      Object.keys(revision).forEach(key => {
+        if (key.endsWith('Percent') && !['basicPercent', 'hraPercent'].includes(key)) {
+          revisionDraftObj[key] = revision[key];
+        }
+      });
     } else {
       setEditingRevision(null);
       revisionDraftObj = {
@@ -418,6 +442,8 @@ const EmployeeDetails = () => {
         hraPercent: employee.hraPercent ?? null,
         useSalaryComponents: employee.useSalaryComponents !== false,
         employmentType: employee.employmentType || 'full-time',
+        compensationModel: employee.compensationModel || 'SALARIED',
+        paymentBasis: employee.paymentBasis || 'MONTHLY',
         flexiAmount: employee.flexiAmount || 0,
         broadband: employee.broadband || 0,
         petrol: employee.petrol || 0,
@@ -441,6 +467,13 @@ const EmployeeDetails = () => {
           otherDeductions: employee.deductions?.otherDeductions ? JSON.parse(JSON.stringify(employee.deductions.otherDeductions)) : [],
         }
       };
+
+      // Copy custom percentage overrides from employee to revisionDraftObj
+      Object.keys(employee).forEach(key => {
+        if (key.endsWith('Percent') && !['basicPercent', 'hraPercent'].includes(key)) {
+          revisionDraftObj[key] = employee[key];
+        }
+      });
     }
 
     setRevisionDraft(revisionDraftObj);
@@ -461,7 +494,7 @@ const EmployeeDetails = () => {
 
     try {
       setCalculating(true);
-      const res = await api.post('/payroll/calculate-salary', {
+      const payload = {
         monthlyCTC,
         employmentType: merged.employmentType,
         basicPercent: merged.basicPercent === null || merged.basicPercent === '' ? null : Number(merged.basicPercent),
@@ -495,7 +528,16 @@ const EmployeeDetails = () => {
         gratuityEnabled: merged.gratuityEnabled !== false,
         includePfInCTC: merged.includePfInCTC !== false,
         includeGratuityInCTC: merged.includeGratuityInCTC !== false,
+      };
+
+      // Copy any custom percentage overrides from merged to payload
+      Object.keys(merged).forEach(key => {
+        if (key.endsWith('Percent') && !['basicPercent', 'hraPercent'].includes(key)) {
+          payload[key] = merged[key] === null || merged[key] === '' ? null : Number(merged[key]);
+        }
       });
+
+      const res = await api.post('/payroll/calculate-salary', payload);
       const master = res.data.master;
       setRevisionDraft((prev) => ({
         ...prev,
@@ -536,6 +578,8 @@ const EmployeeDetails = () => {
       } else {
         payload.newCTC = Number(revisionDraft.newCTC);
         payload.employmentType = revisionDraft.employmentType || 'full-time';
+        payload.compensationModel = revisionDraft.compensationModel || 'SALARIED';
+        payload.paymentBasis = revisionDraft.paymentBasis || 'MONTHLY';
         payload.useSalaryComponents = revisionDraft.useSalaryComponents !== false;
         payload.pfEnabled = revisionDraft.pfEnabled !== false;
         payload.esiEnabled = revisionDraft.esiEnabled !== false;
@@ -567,6 +611,13 @@ const EmployeeDetails = () => {
         }));
       }
 
+      // Copy any custom percentage overrides from revisionDraft to payload
+      Object.keys(revisionDraft).forEach(key => {
+        if (key.endsWith('Percent') && !['basicPercent', 'hraPercent'].includes(key)) {
+          payload[key] = revisionDraft[key] === null || revisionDraft[key] === '' ? null : Number(revisionDraft[key]);
+        }
+      });
+
       if (editingRevision) {
         await api.put(`/employees/${id}/salary-revision/${editingRevision._id}`, payload);
       } else {
@@ -592,6 +643,8 @@ const EmployeeDetails = () => {
         hraPercent: null,
         useSalaryComponents: true,
         employmentType: 'full-time',
+        compensationModel: 'SALARIED',
+        paymentBasis: 'MONTHLY',
         flexiAmount: 0,
         broadband: 0,
         petrol: 0,
@@ -726,6 +779,15 @@ const EmployeeDetails = () => {
     if (salaryPreview.lwfEmployee > 0) {
       data.push(['LWF Employee Deduction', salaryPreview.lwfEmployee, toAnnual(salaryPreview.lwfEmployee)]);
     }
+
+    if (salaryPreview.deductionsMap) {
+      Object.entries(salaryPreview.deductionsMap).forEach(([cId, val]) => {
+        if (val > 0) {
+          const comp = config.salaryComponents?.find(c => c.id === cId);
+          data.push([comp?.name || cId, val, toAnnual(val)]);
+        }
+      });
+    }
     
     data.push(['Total Deductions', salaryPreview.totalDeductions, toAnnual(salaryPreview.totalDeductions)]);
     data.push(['', '', '']);
@@ -791,6 +853,8 @@ const EmployeeDetails = () => {
             <Info label="Date of Leaving" value={fmtDate(employee.dateOfLeaving)} />
             <Info label="Location" value={employee.location || '-'} />
             <Info label="Employment Type" value={employee.employmentType} />
+            <Info label="Compensation Model" value={employee.compensationModel || 'SALARIED'} />
+            <Info label="Payment Basis" value={employee.paymentBasis || 'MONTHLY'} />
             <Info label="Status" value={employee.status} />
             <Info label="PAN" value={employee.panNumber || '-'} />
             <Info label="UAN" value={employee.uanNumber || '-'} />
@@ -1052,6 +1116,67 @@ const EmployeeDetails = () => {
                 <option value="part-time">Part Time</option>
                 <option value="contract">Contract</option>
                 <option value="intern">Intern / Trainee</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Compensation Model</label>
+              <select
+                value={revisionDraft.compensationModel || 'SALARIED'}
+                onChange={(e) => {
+                  const cm = e.target.value;
+                  const isConsultant = cm !== 'SALARIED';
+                  const updated = {
+                    ...revisionDraft,
+                    compensationModel: cm,
+                    ...(isConsultant ? {
+                      useSalaryComponents: false,
+                      pfEnabled: false,
+                      esiEnabled: false,
+                      ptEnabled: false,
+                      lwfEnabled: false,
+                      gratuityEnabled: false,
+                      includePfInCTC: false,
+                      includeGratuityInCTC: false,
+                    } : {
+                      useSalaryComponents: revisionDraft.employmentType === 'intern' ? false : true,
+                      pfEnabled: revisionDraft.employmentType === 'intern' ? false : true,
+                      esiEnabled: revisionDraft.employmentType === 'intern' ? false : true,
+                      ptEnabled: revisionDraft.employmentType === 'intern' ? false : true,
+                      lwfEnabled: revisionDraft.employmentType === 'intern' ? false : true,
+                      gratuityEnabled: revisionDraft.employmentType === 'intern' ? false : true,
+                      includePfInCTC: false,
+                      includeGratuityInCTC: revisionDraft.employmentType === 'intern' ? false : true,
+                    }),
+                  };
+                  setRevisionDraft(updated);
+                  refreshDraftSalaryFromCTC(updated);
+                }}
+                className={inputCls}
+              >
+                <option value="SALARIED">Salaried Employee</option>
+                <option value="CONSULTANT">Recruitment Consultant</option>
+                <option value="PROJECT">Project-Based Contractor</option>
+                <option value="POSITION">Position-Based Contractor</option>
+                <option value="INTERVIEW">Interview-Based Contractor</option>
+                <option value="HOURLY">Hourly Contractor</option>
+                <option value="CUSTOM">Custom Contractor</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Payment Basis</label>
+              <select
+                value={revisionDraft.paymentBasis || 'MONTHLY'}
+                onChange={(e) => setDraftField('paymentBasis', e.target.value)}
+                className={inputCls}
+              >
+                <option value="MONTHLY">Monthly Retainer</option>
+                <option value="PROJECT">Per Closed Project</option>
+                <option value="POSITION">Per Closed Position</option>
+                <option value="INTERVIEW">Per Conducted Interview</option>
+                <option value="HOUR">Per Hour</option>
+                <option value="DAY">Per Day</option>
+                <option value="MILESTONE">Per Milestone</option>
+                <option value="CUSTOM">Custom Pay Event</option>
               </select>
             </div>
           </div>
@@ -1441,6 +1566,29 @@ const EmployeeDetails = () => {
                   </div>
                 </div>
               </div>
+              {config?.salaryComponents?.filter(c => 
+                (c.linkedTo === 'ctc_percent' || c.linkedTo === 'basic_percent') && !['basic', 'hra'].includes(c.id)
+              ).map(c => (
+                <div key={c.id}>
+                  <label className={labelCls}>{c.name} % Override ({c.linkedTo === 'basic_percent' ? 'of Basic' : 'of CTC'})</label>
+                  <div className="relative rounded-lg shadow-sm">
+                    <input
+                      type="number"
+                      step="any"
+                      min="1"
+                      max="100"
+                      placeholder={`Company Default: ${Math.round((c.linkValue ?? 0) * 100)}%`}
+                      value={revisionDraft[c.id + 'Percent'] ?? ''}
+                      onChange={(e) => setDraftField(c.id + 'Percent', e.target.value === '' ? null : Number(e.target.value))}
+                      onBlur={refreshDraftSalaryFromCTC}
+                      className={inputCls}
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <span className="text-gray-400 text-sm">%</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -1471,6 +1619,9 @@ const EmployeeDetails = () => {
                   if (!activePreview) return 0;
                   if (activePreview.earningsMap && activePreview.earningsMap[cId] !== undefined) {
                     return activePreview.earningsMap[cId];
+                  }
+                  if (activePreview.deductionsMap && activePreview.deductionsMap[cId] !== undefined) {
+                    return activePreview.deductionsMap[cId];
                   }
                   if (cId === 'basic') return activePreview.basicMaster;
                   if (cId === 'hra') return activePreview.hraMaster;
@@ -1517,9 +1668,13 @@ const EmployeeDetails = () => {
                     const pct = revisionDraft.hraPercent !== null && revisionDraft.hraPercent !== undefined ? revisionDraft.hraPercent : Math.round(c.linkValue * 100);
                     suffix = ` (${pct}% of Basic${freqSuffix})`;
                   } else if (c.linkedTo === 'ctc_percent') {
-                    suffix = ` (${Math.round(c.linkValue * 100)}% of CTC${freqSuffix})`;
+                    const override = revisionDraft[c.id + 'Percent'];
+                    const pct = override !== undefined && override !== null && override !== '' ? Number(override) : Math.round(c.linkValue * 100);
+                    suffix = ` (${pct}% of CTC${freqSuffix})`;
                   } else if (c.linkedTo === 'basic_percent') {
-                    suffix = ` (${Math.round(c.linkValue * 100)}% of Basic${freqSuffix})`;
+                    const override = revisionDraft[c.id + 'Percent'];
+                    const pct = override !== undefined && override !== null && override !== '' ? Number(override) : Math.round(c.linkValue * 100);
+                    suffix = ` (${pct}% of Basic${freqSuffix})`;
                   } else if (c.linkedTo === 'remainder') {
                     suffix = ` (Calculated Remainder${freqSuffix})`;
                   } else if (freqSuffix) {

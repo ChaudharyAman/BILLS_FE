@@ -148,6 +148,17 @@ const PayrollDashboard = () => {
       includeGratuityInCTC: breakdownPayroll.overrides?.includeGratuityInCTC !== undefined ? breakdownPayroll.overrides.includeGratuityInCTC : (empSnapshot?.includeGratuityInCTC !== false),
       basicPercent: breakdownPayroll.overrides?.basicPercent !== undefined ? breakdownPayroll.overrides.basicPercent : (empSnapshot?.basicPercent !== undefined ? (empSnapshot.basicPercent > 1 ? empSnapshot.basicPercent : empSnapshot.basicPercent * 100) : 50),
       hraPercent: breakdownPayroll.overrides?.hraPercent !== undefined ? breakdownPayroll.overrides.hraPercent : (empSnapshot?.hraPercent !== undefined ? (empSnapshot.hraPercent > 1 ? empSnapshot.hraPercent : empSnapshot.hraPercent * 100) : 50),
+      ...(() => {
+        const ovr = {};
+        if (breakdownPayroll.overrides) {
+          Object.keys(breakdownPayroll.overrides).forEach(key => {
+            if (key.endsWith('Percent')) {
+              ovr[key] = breakdownPayroll.overrides[key];
+            }
+          });
+        }
+        return ovr;
+      })(),
     };
   }, [breakdownPayroll, breakdownEmployee]);
 
@@ -1826,11 +1837,29 @@ const PayrollDashboard = () => {
         const isReadOnly = true;
         const localExcludedClaimIds = new Set();
 
+        const allEarningComponents = config?.salaryComponents && config.salaryComponents.length > 0
+          ? config.salaryComponents.filter(c => c.type === 'earning')
+          : [
+              { id: 'basic', name: 'Basic Salary' },
+              { id: 'hra', name: 'House Rent Allowance (HRA)' },
+              { id: 'special', name: 'Special Allowance' },
+              { id: 'flexi', name: 'Flexi' },
+              { id: 'broadband', name: 'Broadband' },
+              { id: 'petrol', name: 'Petrol' },
+              { id: 'lta', name: 'LTA' },
+              { id: 'conveyance', name: 'Conveyance' },
+              { id: 'medical', name: 'Medical Allowance' },
+            ];
+        const deductionComponents = config?.salaryComponents && config.salaryComponents.length > 0
+          ? config.salaryComponents.filter(c => c.type === 'deduction')
+          : [];
+        const remainderId = config?.salaryComponents?.find(c => c.linkedTo === 'remainder')?.id || 'special';
+
         const showLopStrategy = localSplits && localSplits.length > 1 && breakdownEmployee.payType !== 'hourly';
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full border border-gray-100 overflow-hidden flex flex-col my-8 animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full border border-gray-100 overflow-hidden flex flex-col my-8 animate-in fade-in duration-200">
               {/* Modal Header */}
               <div className="bg-slate-900 text-white px-6 py-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -2008,7 +2037,15 @@ const PayrollDashboard = () => {
                             <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
                               <div className="flex flex-col pr-2">
                                 <span className="font-semibold text-slate-800">ESI Scheme</span>
-                                <span className="text-[10px] text-slate-500 mt-0.5">State insurance matches</span>
+                                {(() => {
+                                  const isEsiOn = breakdownRow?.esiEnabled !== undefined ? breakdownRow.esiEnabled : localSnapshot?.master?.esiEnabled !== false;
+                                  const gross = localSnapshot?.master?.totalEarnings || 0;
+                                  const threshold = config?.esiBasicThreshold ?? 21000;
+                                  if (isEsiOn && gross > threshold) {
+                                    return <span className="text-[10px] text-amber-500 font-semibold mt-0.5">Not applicable — gross &gt; ₹{threshold.toLocaleString('en-IN')}</span>;
+                                  }
+                                  return <span className="text-[10px] text-slate-500 mt-0.5">State insurance matches</span>;
+                                })()}
                               </div>
                               <input
                                 type="checkbox"
@@ -2267,9 +2304,25 @@ const PayrollDashboard = () => {
                               {hasSalaryBreakup && localSnapshot.deductions.pfEmployee > 0 && (
                                 <DeductionRow label="Provident Fund (Employee PF Contribution)" amount={localSnapshot.deductions.pfEmployee} />
                               )}
-                              {localSnapshot.deductions.esiEmployee > 0 && <DeductionRow label="ESI (Employee Contribution)" amount={localSnapshot.deductions.esiEmployee} />}
+                               {localSnapshot.deductions.esiEmployee > 0 && <DeductionRow label="ESI (Employee Contribution)" amount={localSnapshot.deductions.esiEmployee} />}
                               {localSnapshot.deductions.lwfEmployee > 0 && <DeductionRow label="LWF (Employee Contribution)" amount={localSnapshot.deductions.lwfEmployee} />}
                               {localSnapshot.deductions.professionalTax > 0 && <DeductionRow label="Professional Tax (PT)" amount={localSnapshot.deductions.professionalTax} />}
+                              {/* Dynamic salary component deductions (VPF, NPS, etc.) from payroll settings */}
+                              {deductionComponents.map(c => {
+                                const amount = localSnapshot?.deductions?.deductionsMap?.[c.id] || 0;
+                                if (!amount) return null;
+                                const pctVal = breakdownRow?.[`${c.id}Percent`] !== undefined
+                                  ? breakdownRow[`${c.id}Percent`]
+                                  : (localSnapshot?.master?.[`${c.id}Percent`] !== undefined
+                                      ? (localSnapshot.master[`${c.id}Percent`] > 1 ? localSnapshot.master[`${c.id}Percent`] : localSnapshot.master[`${c.id}Percent`] * 100)
+                                      : (c.linkValue ? c.linkValue * 100 : 0));
+                                const suffix = c.linkedTo === 'basic_percent'
+                                  ? ` (${pctVal}% of Basic)`
+                                  : c.linkedTo === 'ctc_percent'
+                                    ? ` (${pctVal}% of CTC)`
+                                    : c.linkedTo === 'fixed' ? ' (Fixed)' : '';
+                                return <DeductionRow key={c.id} label={`${c.name}${suffix}`} amount={amount} />;
+                              })}
                               {(breakdownEmployee.payType !== 'hourly' || localSnapshot.deductions.tds > 0) && (
                                 <DeductionRow label="Income Tax (TDS)" amount={localSnapshot.deductions.tds} isEditable={!isReadOnly} value={breakdownRow?.tds !== undefined ? breakdownRow.tds : localSnapshot.deductions.tds} />
                               )}
