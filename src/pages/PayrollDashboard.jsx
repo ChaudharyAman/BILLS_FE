@@ -140,6 +140,7 @@ const PayrollDashboard = () => {
       lopStrategy: breakdownPayroll.lopStrategy || 'proportional',
       segmentLops: breakdownPayroll.segmentLops || [],
       pfEnabled: breakdownPayroll.overrides?.pfEnabled !== undefined ? breakdownPayroll.overrides.pfEnabled : (empSnapshot?.pfEnabled !== undefined ? empSnapshot.pfEnabled : (breakdownEmployee.pfEnabled !== false)),
+      tdsEnabled: breakdownPayroll.overrides?.tdsEnabled !== undefined ? breakdownPayroll.overrides.tdsEnabled : (empSnapshot?.tdsEnabled !== undefined ? empSnapshot.tdsEnabled : (breakdownEmployee.tdsEnabled !== false)),
       esiEnabled: breakdownPayroll.overrides?.esiEnabled !== undefined ? breakdownPayroll.overrides.esiEnabled : (empSnapshot?.esiEnabled !== undefined ? empSnapshot.esiEnabled : (breakdownEmployee.esiEnabled !== false)),
       ptEnabled: breakdownPayroll.overrides?.ptEnabled !== undefined ? breakdownPayroll.overrides.ptEnabled : (empSnapshot?.ptEnabled !== undefined ? empSnapshot.ptEnabled : (breakdownEmployee.ptEnabled !== false)),
       lwfEnabled: breakdownPayroll.overrides?.lwfEnabled !== undefined ? breakdownPayroll.overrides.lwfEnabled : (empSnapshot?.lwfEnabled !== undefined ? empSnapshot.lwfEnabled : (breakdownEmployee.lwfEnabled !== false)),
@@ -214,6 +215,7 @@ const PayrollDashboard = () => {
       breakdownRow.workingDays,
       {
         pfEnabled: breakdownRow.pfEnabled,
+        tdsEnabled: breakdownRow.tdsEnabled,
         esiEnabled: breakdownRow.esiEnabled,
         ptEnabled: breakdownRow.ptEnabled,
         lwfEnabled: breakdownRow.lwfEnabled,
@@ -1096,6 +1098,7 @@ const PayrollDashboard = () => {
                   ) : filteredPayrolls.map((payroll) => {
                     const employerContribution = (Number(payroll.employerContributions?.grossTotalSalary) || 0) - (Number(payroll.earnings?.totalEarnings) || 0);
                     const pfEnabled = payroll.employeeSnapshot?.pfEnabled !== undefined ? payroll.employeeSnapshot.pfEnabled : (payroll.employee?.pfEnabled !== false);
+                    const tdsEnabled = payroll.employeeSnapshot?.tdsEnabled !== undefined ? payroll.employeeSnapshot.tdsEnabled : (payroll.employee?.tdsEnabled !== false);
                     const esiEnabled = payroll.employeeSnapshot?.esiEnabled !== undefined ? payroll.employeeSnapshot.esiEnabled : (payroll.employee?.esiEnabled !== false);
                     const ptEnabled = payroll.employeeSnapshot?.ptEnabled !== undefined ? payroll.employeeSnapshot.ptEnabled : (payroll.employee?.ptEnabled !== false);
                     const lwfEnabled = payroll.employeeSnapshot?.lwfEnabled !== undefined ? payroll.employeeSnapshot.lwfEnabled : (payroll.employee?.lwfEnabled !== false);
@@ -1115,6 +1118,7 @@ const PayrollDashboard = () => {
                           {/* Statutory Settings Badges */}
                           <div className="flex flex-wrap gap-1 mt-1.5 font-mono">
                             <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${pfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={pfEnabled !== false ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${tdsEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={tdsEnabled !== false ? 'Income Tax TDS Enabled' : 'Income Tax TDS Disabled'}>TDS</span>
                             <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${esiEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={esiEnabled !== false ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
                             <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${ptEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={ptEnabled !== false ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
                             <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${lwfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={lwfEnabled !== false ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
@@ -2003,8 +2007,6 @@ const PayrollDashboard = () => {
                 {localSnapshot && (() => {
                   const showStatutoryOverrides = hasSalaryBreakup;
                   
-                  if (!showStatutoryOverrides && !showLopStrategy) return null;
-                  
                   return (
                     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
                       <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 font-bold text-slate-700 text-sm flex items-center justify-between">
@@ -2032,7 +2034,30 @@ const PayrollDashboard = () => {
                                 className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                               />
                             </div>
+                          </>
+                        )}
 
+                        {/* TDS Toggle */}
+                        <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                          <div className="flex flex-col pr-2">
+                            <span className="font-semibold text-slate-800">Income Tax (TDS)</span>
+                            <span className="text-[10px] text-slate-500 mt-0.5">Monthly TDS withholding</span>
+                          </div>
+                          <input
+                            type="checkbox"
+                            disabled={isReadOnly}
+                            checked={
+                              breakdownRow?.tdsEnabled !== undefined
+                                ? breakdownRow.tdsEnabled
+                                : localSnapshot?.master?.tdsEnabled !== false
+                            }
+                            onChange={() => {}}
+                            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </div>
+
+                        {showStatutoryOverrides && (
+                          <>
                             {/* ESI Toggle */}
                             <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
                               <div className="flex flex-col pr-2">

@@ -41,6 +41,7 @@ const defaultForm = {
   basicPercent: null,
   hraPercent: null,
   pfEnabled: true,
+  tdsEnabled: true,
   esiEnabled: true,
   ptEnabled: true,
   ptState: '',
@@ -133,6 +134,7 @@ const EmployeeForm = () => {
           esiNumber: data.esiNumber || '',
           declarations: { ...defaultForm.declarations, ...(data.declarations || {}) },
           pfEnabled: data.pfEnabled !== false,
+          tdsEnabled: data.tdsEnabled !== false,
           esiEnabled: data.esiEnabled !== false,
           ptEnabled: data.ptEnabled !== false,
           ptState: data.ptState || '',
@@ -172,10 +174,9 @@ const EmployeeForm = () => {
       return;
     }
 
-    setFormData((prev) => ({
-      ...prev,
+    const nextFormValues = {
       role: selectedRole._id,
-      employmentType: selectedRole.employmentType || prev.employmentType,
+      employmentType: selectedRole.employmentType || formData.employmentType,
       compensationModel: selectedRole.compensationModel || 'SALARIED',
       paymentBasis: selectedRole.paymentBasis || 'MONTHLY',
       payType: selectedRole.payType,
@@ -183,6 +184,7 @@ const EmployeeForm = () => {
       monthlyCTC: selectedRole.payType === 'salaried' ? selectedRole.monthlyCTC : 0,
       hourlyRate: selectedRole.payType === 'hourly' ? selectedRole.hourlyRate : 0,
       pfEnabled: selectedRole.pfEnabled,
+      tdsEnabled: selectedRole.tdsEnabled !== false,
       esiEnabled: selectedRole.esiEnabled,
       ptEnabled: selectedRole.ptEnabled,
       lwfEnabled: selectedRole.lwfEnabled,
@@ -191,8 +193,14 @@ const EmployeeForm = () => {
       includeGratuityInCTC: selectedRole.includeGratuityInCTC,
       basicPercent: selectedRole.basicPercent !== null ? selectedRole.basicPercent : null,
       hraPercent: selectedRole.hraPercent !== null ? selectedRole.hraPercent : null,
+    };
+
+    setFormData((prev) => ({
+      ...prev,
+      ...nextFormValues
     }));
 
+    refreshSalaryFromCTC(nextFormValues);
     toast.success(`Applied template settings for Job Role: ${selectedRole.name}`);
   };
 
@@ -288,6 +296,7 @@ const EmployeeForm = () => {
           amount: Number(allowance.amount) || 0,
         })),
         pfEnabled: merged.pfEnabled !== false,
+        tdsEnabled: merged.tdsEnabled !== false,
         esiEnabled: merged.esiEnabled !== false,
         ptEnabled: merged.ptEnabled !== false,
         lwfEnabled: merged.lwfEnabled !== false,
@@ -387,6 +396,7 @@ const EmployeeForm = () => {
         basicPercent: isConsultant ? null : (formData.basicPercent === null || formData.basicPercent === '' ? null : Number(formData.basicPercent)),
         hraPercent: isConsultant ? null : (formData.hraPercent === null || formData.hraPercent === '' ? null : Number(formData.hraPercent)),
         pfEnabled: isConsultant ? false : (formData.pfEnabled !== false),
+        tdsEnabled: formData.tdsEnabled !== false,
         esiEnabled: isConsultant ? false : (formData.esiEnabled !== false),
         ptEnabled: isConsultant ? false : (formData.ptEnabled !== false),
         ptState: isConsultant ? '' : (formData.ptState || ''),
@@ -939,8 +949,7 @@ const EmployeeForm = () => {
               </div>
 
               {/* Statutory & Contribution Switches */}
-              {useComponents && (
-                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+              <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
                 <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                   <span>Statutory Components & Contribution Toggles</span>
                   <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-full font-semibold">Statutory Toggles</span>
@@ -949,187 +958,218 @@ const EmployeeForm = () => {
                   Enable or disable specific statutory contributions for this employee. Disabling a component will zero out its values in salary calculations immediately.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* PF Toggle */}
-                  <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
-                    <label className="flex items-center justify-between cursor-pointer select-none">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-semibold text-gray-800">Provident Fund (PF)</span>
-                        {formData.pfEnabled !== false && localPreview && (
-                          <span className="text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100 rounded-full px-1.5 py-0.5">
-                            {fmtMoney(localPreview.pfEmployee + localPreview.pfEmployer)}
-                          </span>
-                        )}
+                  {useComponents && (
+                    <>
+                      {/* PF Toggle */}
+                      <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                        <label className="flex items-center justify-between cursor-pointer select-none">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-800">Provident Fund (PF)</span>
+                            {formData.pfEnabled !== false && localPreview && (
+                              <span className="text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100 rounded-full px-1.5 py-0.5">
+                                {fmtMoney(localPreview.pfEmployee + localPreview.pfEmployer)}
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={formData.pfEnabled ?? true}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              setField('pfEnabled', val);
+                              refreshSalaryFromCTC({ pfEnabled: val });
+                            }}
+                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                        <span className="text-[10px] text-gray-400 mt-1">
+                          Both Employee & Employer PF contributions {formData.pfEnabled !== false && localPreview && `(EE: ${fmtMoney(localPreview.pfEmployee)}, ER: ${fmtMoney(localPreview.pfEmployer)})`}
+                        </span>
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={formData.pfEnabled ?? true}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setField('pfEnabled', val);
-                          refreshSalaryFromCTC({ pfEnabled: val });
-                        }}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
-                    </label>
-                    <span className="text-[10px] text-gray-400 mt-1">
-                      Both Employee & Employer PF contributions {formData.pfEnabled !== false && localPreview && `(EE: ${fmtMoney(localPreview.pfEmployee)}, ER: ${fmtMoney(localPreview.pfEmployer)})`}
-                    </span>
-                  </div>
 
-                  {/* ESI Toggle */}
-                  <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
-                    <label className="flex items-center justify-between cursor-pointer select-none">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-semibold text-gray-800">State Insurance (ESI)</span>
-                        {formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0 && (
-                          <span className="text-[9px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-full px-1.5 py-0.5">
-                            {fmtMoney(localPreview.esiEmployee + localPreview.esiEmployer)}
-                          </span>
-                        )}
+                      {/* ESI Toggle */}
+                      <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                        <label className="flex items-center justify-between cursor-pointer select-none">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-800">State Insurance (ESI)</span>
+                            {formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0 && (
+                              <span className="text-[9px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-full px-1.5 py-0.5">
+                                {fmtMoney(localPreview.esiEmployee + localPreview.esiEmployer)}
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={formData.esiEnabled ?? true}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              setField('esiEnabled', val);
+                              refreshSalaryFromCTC({ esiEnabled: val });
+                            }}
+                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                        <span className="text-[10px] text-gray-400 mt-1">
+                          Employee State Insurance (ESI) deductions{' '}
+                          {formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0
+                            ? `(EE: ${fmtMoney(localPreview.esiEmployee)}, ER: ${fmtMoney(localPreview.esiEmployer)})`
+                            : formData.esiEnabled !== false && localPreview && localPreview.totalEarnings > (config?.esiBasicThreshold ?? 21000)
+                              ? <span className="text-amber-500 font-semibold">Not applicable — gross wages exceed ₹{(config?.esiBasicThreshold ?? 21000).toLocaleString('en-IN')} statutory ceiling</span>
+                              : null}
+                        </span>
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={formData.esiEnabled ?? true}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setField('esiEnabled', val);
-                          refreshSalaryFromCTC({ esiEnabled: val });
-                        }}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
-                    </label>
-                    <span className="text-[10px] text-gray-400 mt-1">
-                      Employee State Insurance (ESI) deductions{' '}
-                      {formData.esiEnabled !== false && localPreview && (localPreview.esiEmployee + localPreview.esiEmployer) > 0
-                        ? `(EE: ${fmtMoney(localPreview.esiEmployee)}, ER: ${fmtMoney(localPreview.esiEmployer)})`
-                        : formData.esiEnabled !== false && localPreview && localPreview.totalEarnings > (config?.esiBasicThreshold ?? 21000)
-                          ? <span className="text-amber-500 font-semibold">Not applicable — gross wages exceed ₹{(config?.esiBasicThreshold ?? 21000).toLocaleString('en-IN')} statutory ceiling</span>
-                          : null}
-                    </span>
-                  </div>
 
-                  {/* Professional Tax Toggle */}
-                  <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
-                    <label className="flex items-center justify-between cursor-pointer select-none">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-semibold text-gray-800">Professional Tax (PT)</span>
-                        {formData.ptEnabled !== false && localPreview && localPreview.professionalTax > 0 && (
-                          <span className="text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full px-1.5 py-0.5">
-                            {fmtMoney(localPreview.professionalTax)}
-                          </span>
-                        )}
+                      {/* Professional Tax Toggle */}
+                      <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                        <label className="flex items-center justify-between cursor-pointer select-none">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-800">Professional Tax (PT)</span>
+                            {formData.ptEnabled !== false && localPreview && localPreview.professionalTax > 0 && (
+                              <span className="text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full px-1.5 py-0.5">
+                                {fmtMoney(localPreview.professionalTax)}
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={formData.ptEnabled ?? true}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              setField('ptEnabled', val);
+                              refreshSalaryFromCTC({ ptEnabled: val });
+                            }}
+                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                        <span className="text-[10px] text-gray-400 mt-1">
+                          State Professional Tax deduction {formData.ptEnabled !== false && localPreview && localPreview.professionalTax > 0 && `(${fmtMoney(localPreview.professionalTax)})`}
+                        </span>
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={formData.ptEnabled ?? true}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setField('ptEnabled', val);
-                          refreshSalaryFromCTC({ ptEnabled: val });
-                        }}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
-                    </label>
-                    <span className="text-[10px] text-gray-400 mt-1">
-                      State Professional Tax deduction {formData.ptEnabled !== false && localPreview && localPreview.professionalTax > 0 && `(${fmtMoney(localPreview.professionalTax)})`}
-                    </span>
-                  </div>
 
-                  {/* PT State dropdown — only shown when PT is enabled */}
-                  {formData.ptEnabled !== false && (
-                    <div className="mt-2 px-1">
-                      <label className="block text-[10px] font-semibold text-gray-600 mb-1" htmlFor="ptState">
-                        PT State
-                        <span className="ml-1 text-gray-400 font-normal">(auto-computes slab amount)</span>
-                      </label>
-                      <select
-                        id="ptState"
-                        value={formData.ptState || ''}
-                        onChange={(e) => {
-                          setField('ptState', e.target.value);
-                          refreshSalaryFromCTC({ ptState: e.target.value });
-                        }}
-                        className="w-full text-xs rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
-                      >
-                        <optgroup label="── No PT / Manual">
-                          <option value="">None — use manual amount below</option>
-                        </optgroup>
-                        <optgroup label="── States that levy PT">
-                          {PT_STATE_LIST.filter(s => s.leviesPT).map(s => (
-                            <option key={s.code} value={s.code}>{s.name}</option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="── States with no PT">
-                          {PT_STATE_LIST.filter(s => s.code && !s.leviesPT).map(s => (
-                            <option key={s.code} value={s.code}>{s.name}</option>
-                          ))}
-                        </optgroup>
-                      </select>
-                      {formData.ptState && (
-                        <p className="text-[9px] text-blue-500 mt-0.5">
-                          Slab PT will auto-fill. Set a manual amount below only to override.
-                        </p>
+                      {/* PT State dropdown — only shown when PT is enabled */}
+                      {formData.ptEnabled !== false && (
+                        <div className="mt-2 px-1">
+                          <label className="block text-[10px] font-semibold text-gray-600 mb-1" htmlFor="ptState">
+                            PT State
+                            <span className="ml-1 text-gray-400 font-normal">(auto-computes slab amount)</span>
+                          </label>
+                          <select
+                            id="ptState"
+                            value={formData.ptState || ''}
+                            onChange={(e) => {
+                              setField('ptState', e.target.value);
+                              refreshSalaryFromCTC({ ptState: e.target.value });
+                            }}
+                            className="w-full text-xs rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+                          >
+                            <optgroup label="── No PT / Manual">
+                              <option value="">None — use manual amount below</option>
+                            </optgroup>
+                            <optgroup label="── States that levy PT">
+                              {PT_STATE_LIST.filter(s => s.leviesPT).map(s => (
+                                <option key={s.code} value={s.code}>{s.name}</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="── States with no PT">
+                              {PT_STATE_LIST.filter(s => s.code && !s.leviesPT).map(s => (
+                                <option key={s.code} value={s.code}>{s.name}</option>
+                              ))}
+                            </optgroup>
+                          </select>
+                          {formData.ptState && (
+                            <p className="text-[9px] text-blue-500 mt-0.5">
+                              Slab PT will auto-fill. Set a manual amount below only to override.
+                            </p>
+                          )}
+                        </div>
                       )}
-                    </div>
+
+                      {/* LWF Toggle */}
+                      <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                        <label className="flex items-center justify-between cursor-pointer select-none">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-800">Welfare Fund (LWF)</span>
+                            {formData.lwfEnabled !== false && localPreview && (localPreview.lwfEmployee + localPreview.lwfEmployer) > 0 && (
+                              <span className="text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-100 rounded-full px-1.5 py-0.5">
+                                {fmtMoney(localPreview.lwfEmployee + localPreview.lwfEmployer)}
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={formData.lwfEnabled ?? true}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              setField('lwfEnabled', val);
+                              refreshSalaryFromCTC({ lwfEnabled: val });
+                            }}
+                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                        <span className="text-[10px] text-gray-400 mt-1">
+                          Labour Welfare Fund contributions {formData.lwfEnabled !== false && localPreview && (localPreview.lwfEmployee + localPreview.lwfEmployer) > 0 && `(EE: ${fmtMoney(localPreview.lwfEmployee)}, ER: ${fmtMoney(localPreview.lwfEmployer)})`}
+                        </span>
+                      </div>
+
+                      {/* Gratuity Toggle */}
+                      <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                        <label className="flex items-center justify-between cursor-pointer select-none">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-800">Gratuity Provision</span>
+                            {formData.gratuityEnabled !== false && localPreview && localPreview.gratuity > 0 && (
+                              <span className="text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100 rounded-full px-1.5 py-0.5">
+                                {fmtMoney(localPreview.gratuity)}
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={formData.gratuityEnabled ?? true}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              setField('gratuityEnabled', val);
+                              refreshSalaryFromCTC({ gratuityEnabled: val });
+                            }}
+                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                        <span className="text-[10px] text-gray-400 mt-1">
+                          Accrual of statutory gratuity amount {formData.gratuityEnabled !== false && localPreview && localPreview.gratuity > 0 && `(${fmtMoney(localPreview.gratuity)})`}
+                        </span>
+                      </div>
+                    </>
                   )}
 
-                  {/* LWF Toggle */}
+                  {/* TDS Toggle */}
                   <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
                     <label className="flex items-center justify-between cursor-pointer select-none">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-semibold text-gray-800">Welfare Fund (LWF)</span>
-                        {formData.lwfEnabled !== false && localPreview && (localPreview.lwfEmployee + localPreview.lwfEmployer) > 0 && (
-                          <span className="text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-100 rounded-full px-1.5 py-0.5">
-                            {fmtMoney(localPreview.lwfEmployee + localPreview.lwfEmployer)}
+                        <span className="text-sm font-semibold text-gray-800">Income Tax (TDS)</span>
+                        {formData.tdsEnabled !== false && localPreview && localPreview.tds > 0 && (
+                          <span className="text-[9px] font-bold bg-orange-50 text-orange-600 border border-orange-100 rounded-full px-1.5 py-0.5">
+                            {fmtMoney(localPreview.tds)}
                           </span>
                         )}
                       </div>
                       <input
                         type="checkbox"
-                        checked={formData.lwfEnabled ?? true}
+                        checked={formData.tdsEnabled ?? true}
                         onChange={(e) => {
                           const val = e.target.checked;
-                          setField('lwfEnabled', val);
-                          refreshSalaryFromCTC({ lwfEnabled: val });
+                          setField('tdsEnabled', val);
+                          refreshSalaryFromCTC({ tdsEnabled: val });
                         }}
                         className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                       />
                     </label>
                     <span className="text-[10px] text-gray-400 mt-1">
-                      Labour Welfare Fund contributions {formData.lwfEnabled !== false && localPreview && (localPreview.lwfEmployee + localPreview.lwfEmployer) > 0 && `(EE: ${fmtMoney(localPreview.lwfEmployee)}, ER: ${fmtMoney(localPreview.lwfEmployer)})`}
-                    </span>
-                  </div>
-
-                  {/* Gratuity Toggle */}
-                  <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
-                    <label className="flex items-center justify-between cursor-pointer select-none">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-semibold text-gray-800">Gratuity Provision</span>
-                        {formData.gratuityEnabled !== false && localPreview && localPreview.gratuity > 0 && (
-                          <span className="text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100 rounded-full px-1.5 py-0.5">
-                            {fmtMoney(localPreview.gratuity)}
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={formData.gratuityEnabled ?? true}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setField('gratuityEnabled', val);
-                          refreshSalaryFromCTC({ gratuityEnabled: val });
-                        }}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
-                    </label>
-                    <span className="text-[10px] text-gray-400 mt-1">
-                      Accrual of statutory gratuity amount {formData.gratuityEnabled !== false && localPreview && localPreview.gratuity > 0 && `(${fmtMoney(localPreview.gratuity)})`}
+                      Enable Income Tax TDS deductions {formData.tdsEnabled !== false && localPreview && localPreview.tds > 0 && `(${fmtMoney(localPreview.tds)})`}
                     </span>
                   </div>
                 </div>
 
                 {/* Additional CTC Settings if statutory components enabled */}
-                {((formData.pfEnabled !== false) || (formData.gratuityEnabled !== false)) && (
+                {useComponents && ((formData.pfEnabled !== false) || (formData.gratuityEnabled !== false)) && (
                   <div className="border-t border-gray-100 pt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(formData.pfEnabled !== false) && (
                       <label className="flex items-center gap-2.5 cursor-pointer select-none border border-gray-100 rounded-xl p-3 bg-gray-50/30">
@@ -1174,8 +1214,7 @@ const EmployeeForm = () => {
                     )}
                   </div>
                 )}
-                </div>
-              )}
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {(() => {
