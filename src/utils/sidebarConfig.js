@@ -106,6 +106,7 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
     items: [
       // Public Submission Inbox — shown with a badge in Layout.jsx
       { id: 'submissions_inbox', label: 'Submissions Inbox', path: '/submissions', iconName: 'FaInbox' },
+      { id: 'recycle_bin', label: 'Recycle Bin', path: '/recycle-bin', iconName: 'FaTrash' },
       { id: 'upgrade', label: 'Upgrade', path: '/subscription', iconName: 'FaStar', isSpecial: true },
       { id: 'settings', label: 'Settings', path: '/settings', iconName: 'FaCog' },
       { id: 'admin_panel', label: 'Admin Panel', path: '/admin', iconName: 'FaLock', isSuperAdmin: true }
@@ -113,7 +114,7 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
   }
 ];
 
-const LOCAL_STORAGE_KEY = 'mbf_sidebar_layout_v1';
+const LOCAL_STORAGE_KEY = 'mbf_sidebar_layout_v2';
 
 /**
  * Merges a parsed custom layout from localStorage with the absolute default layout,
