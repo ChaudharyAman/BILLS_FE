@@ -58,6 +58,7 @@ const BankStatementDashboard = lazy(() => import('./pages/BankStatementDashboard
 // ── New: Public Submission Portal ────────────────────────────────────────────
 const PublicSubmitPage = lazy(() => import('./pages/PublicSubmitPage'));
 const PublicSubmissionsInbox = lazy(() => import('./pages/PublicSubmissionsInbox'));
+const RecycleBin = lazy(() => import('./pages/RecycleBin'));
 
 // Reports
 const GstReport = lazy(() => import('./pages/reports/GstReport'));
@@ -305,6 +306,7 @@ function App() {
                     <Route path="/subscription" element={<Subscription />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/recycle-bin" element={<RecycleBin />} />
                   </Routes>
                 </Layout>
               </PrivateRoute>

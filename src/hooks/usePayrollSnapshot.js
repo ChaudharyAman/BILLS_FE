@@ -19,6 +19,7 @@ export const usePayrollSnapshot = (employee, config, row, monthWorkingDays, over
       otherEarnings: overrideEarnings ?? (row?.otherEarnings || []),
       otherDeductions: overrideDeductions ?? (row?.otherDeductions || []),
       pfEnabled: row?.pfEnabled,
+      tdsEnabled: row?.tdsEnabled,
       esiEnabled: row?.esiEnabled,
       ptEnabled: row?.ptEnabled,
       lwfEnabled: row?.lwfEnabled,

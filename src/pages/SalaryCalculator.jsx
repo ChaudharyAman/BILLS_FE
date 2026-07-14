@@ -17,6 +17,7 @@ const SALARY_TEMPLATES = {
     lta: 0,
     insuranceAmount: 0,
     pfEnabled: true,
+    tdsEnabled: true,
     esiEnabled: true,
     ptEnabled: true,
     lwfEnabled: true,
@@ -34,6 +35,7 @@ const SALARY_TEMPLATES = {
     lta: 5000,
     insuranceAmount: 0,
     pfEnabled: true,
+    tdsEnabled: true,
     esiEnabled: false, // Wages usually exceed limit
     ptEnabled: true,
     lwfEnabled: true,
@@ -51,6 +53,7 @@ const SALARY_TEMPLATES = {
     lta: 2000,
     insuranceAmount: 0,
     pfEnabled: true,
+    tdsEnabled: true,
     esiEnabled: true,
     ptEnabled: true,
     lwfEnabled: true,
@@ -68,6 +71,7 @@ const SALARY_TEMPLATES = {
     lta: 1500,
     insuranceAmount: 0,
     pfEnabled: true,
+    tdsEnabled: true,
     esiEnabled: true,
     ptEnabled: true,
     lwfEnabled: true,
@@ -99,6 +103,7 @@ const SalaryCalculator = () => {
     employerNPS: 0,
     // Compliance Controls
     pfEnabled: true,
+    tdsEnabled: true,
     esiEnabled: true,
     ptEnabled: true,
     lwfEnabled: true,
@@ -171,6 +176,7 @@ const SalaryCalculator = () => {
     employerNPS: Number(form.employerNPS) || 0,
     taxRegime: form.taxRegime,
     pfEnabled: form.pfEnabled,
+    tdsEnabled: form.tdsEnabled !== false,
     esiEnabled: form.esiEnabled,
     ptEnabled: form.ptEnabled,
     lwfEnabled: form.lwfEnabled,
@@ -192,7 +198,7 @@ const SalaryCalculator = () => {
   }), [
     monthlyCTC, form.payType, form.hourlyRate, form.hoursWorked, form.flexiAmount, form.broadband, form.petrol, form.lta,
     form.insuranceAmount, form.employerNPS, form.taxRegime,
-    form.pfEnabled, form.esiEnabled, form.ptEnabled, form.lwfEnabled, form.gratuityEnabled,
+    form.pfEnabled, form.tdsEnabled, form.esiEnabled, form.ptEnabled, form.lwfEnabled, form.gratuityEnabled,
     form.includePfInCTC, form.includeGratuityInCTC, form.professionalTax,
     form.section80C, form.section80D, form.section24b, form.section80CCD1B,
     form.rentPaidMonthly, form.isMetroCity, form.otherExemptions
@@ -360,6 +366,7 @@ const SalaryCalculator = () => {
         employerNPS: Number(form.employerNPS) || 0,
         // Compliance
         pfEnabled: form.pfEnabled,
+        tdsEnabled: form.tdsEnabled !== false,
         esiEnabled: form.esiEnabled,
         ptEnabled: form.ptEnabled,
         lwfEnabled: form.lwfEnabled,
@@ -601,6 +608,7 @@ const SalaryCalculator = () => {
                           // If switching to hourly, disable statutory components and clear allowances
                           ...(type === 'hourly' ? {
                             pfEnabled: false,
+                            tdsEnabled: true,
                             esiEnabled: false,
                             ptEnabled: false,
                             lwfEnabled: false,
@@ -617,6 +625,7 @@ const SalaryCalculator = () => {
                             annualCTC: (prev.hourlyRate || 0) * (prev.hoursWorked || 160) * 12
                           } : {
                             pfEnabled: true,
+                            tdsEnabled: true,
                             esiEnabled: true,
                             ptEnabled: true,
                             lwfEnabled: true,
@@ -772,6 +781,19 @@ const SalaryCalculator = () => {
                         />
                       </div>
                     )}
+                  </div>
+
+                  {/* TDS Toggle */}
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold uppercase tracking-wider text-gray-700">TDS Applicable</label>
+                      <input
+                        type="checkbox"
+                        checked={form.tdsEnabled !== false}
+                        onChange={(e) => setForm((prev) => ({ ...prev, tdsEnabled: e.target.checked }))}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                    </div>
                   </div>
 
                   {/* ESI Toggle */}

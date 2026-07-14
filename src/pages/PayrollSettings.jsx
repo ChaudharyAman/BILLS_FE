@@ -232,6 +232,7 @@ const PayrollSettings = () => {
       basicPercent: '',
       hraPercent: '',
       pfEnabled: true,
+      tdsEnabled: true,
       esiEnabled: true,
       ptEnabled: true,
       lwfEnabled: true,
@@ -1392,6 +1393,20 @@ const PayrollSettings = () => {
                           />
                         </div>
                       )}
+
+                      <div className="flex items-start justify-between border-t border-gray-150 pt-2">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 cursor-pointer" htmlFor="roleTdsEnabled">Enable Income Tax (TDS)</label>
+                          <p className="text-[10px] text-gray-500">Apply monthly Income Tax TDS deduction</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          id="roleTdsEnabled"
+                          checked={editingRole.tdsEnabled !== false}
+                          onChange={(e) => setEditingRole({ ...editingRole, tdsEnabled: e.target.checked })}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -1491,12 +1506,13 @@ const PayrollSettings = () => {
                             }
                           </td>
                           <td className="py-3 px-3 space-x-1">
-                            {role.pfEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">PF</span>}
+                             {role.pfEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">PF</span>}
+                            {role.tdsEnabled !== false && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">TDS</span>}
                             {role.esiEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">ESI</span>}
                             {role.ptEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">PT</span>}
                             {role.lwfEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">LWF</span>}
                             {role.gratuityEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">Gratuity</span>}
-                            {!role.pfEnabled && !role.esiEnabled && !role.ptEnabled && !role.lwfEnabled && !role.gratuityEnabled && (
+                            {!role.pfEnabled && role.tdsEnabled === false && !role.esiEnabled && !role.ptEnabled && !role.lwfEnabled && !role.gratuityEnabled && (
                               <span className="text-gray-400 italic text-[10px]">None</span>
                             )}
                           </td>
@@ -1591,6 +1607,9 @@ const PayrollSettings = () => {
                         <td className="py-3 px-4 text-center space-x-1">
                           <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold ${emp.pfEnabled ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'}`}>
                             PF: {emp.pfEnabled ? 'ON' : 'OFF'}
+                          </span>
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold ${emp.tdsEnabled !== false ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'}`}>
+                            TDS: {emp.tdsEnabled !== false ? 'ON' : 'OFF'}
                           </span>
                           <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold ${emp.esiEnabled ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'}`}>
                             ESI: {emp.esiEnabled ? 'ON' : 'OFF'}

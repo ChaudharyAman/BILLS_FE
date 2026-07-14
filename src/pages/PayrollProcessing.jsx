@@ -128,6 +128,7 @@ const EmployeeRow = ({
           ...existingPayroll.employeeSnapshot,
           monthlyCTC: existingPayroll.employeeSnapshot?.monthlyCTC,
           pfEnabled: existingPayroll.employeeSnapshot?.pfEnabled,
+          tdsEnabled: existingPayroll.employeeSnapshot?.tdsEnabled,
           esiEnabled: existingPayroll.employeeSnapshot?.esiEnabled,
           ptEnabled: existingPayroll.employeeSnapshot?.ptEnabled,
           lwfEnabled: existingPayroll.employeeSnapshot?.lwfEnabled,
@@ -155,6 +156,7 @@ const EmployeeRow = ({
   }, [snapshot?.earnings?.otherEarnings, earningComponents]);
 
   const isPfEnabled = row?.pfEnabled !== undefined ? row.pfEnabled : snapshot?.master?.pfEnabled !== false;
+  const isTdsEnabled = row?.tdsEnabled !== undefined ? row.tdsEnabled : snapshot?.master?.tdsEnabled !== false;
   const isEsiEnabled = row?.esiEnabled !== undefined ? row.esiEnabled : snapshot?.master?.esiEnabled !== false;
   const isPtEnabled = row?.ptEnabled !== undefined ? row.ptEnabled : snapshot?.master?.ptEnabled !== false;
   const isLwfEnabled = row?.lwfEnabled !== undefined ? row.lwfEnabled : snapshot?.master?.lwfEnabled !== false;
@@ -225,25 +227,28 @@ const EmployeeRow = ({
           </button>
           
           {/* Statutory Settings Badges */}
-          {!isHourly && (!employee.compensationModel || employee.compensationModel === 'SALARIED') && (
-            <div className="flex flex-wrap gap-1 mt-1 font-mono">
-              <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPfEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isPfEnabled ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
-              <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isEsiEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isEsiEnabled ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
-              <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPtEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isPtEnabled ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
-              <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isLwfEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isLwfEnabled ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
-              <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isGratuityEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isGratuityEnabled ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
-              {Number(basicPercentVal) !== 50 && (
-                <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" title="Basic Salary Overridden percentage">
-                  B:{Math.round(basicPercentVal)}%
-                </span>
-              )}
-              {Number(hraPercentVal) !== 50 && (
-                <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm" title="HRA Overridden percentage">
-                  H:{Math.round(hraPercentVal)}%
-                </span>
-              )}
-            </div>
-          )}
+          <div className="flex flex-wrap gap-1 mt-1 font-mono">
+            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isTdsEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isTdsEnabled ? 'Income Tax TDS Enabled' : 'Income Tax TDS Disabled'}>TDS</span>
+            {!isHourly && (!employee.compensationModel || employee.compensationModel === 'SALARIED') && (
+              <>
+                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPfEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isPfEnabled ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
+                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isEsiEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isEsiEnabled ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
+                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPtEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isPtEnabled ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
+                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isLwfEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isLwfEnabled ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
+                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isGratuityEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isGratuityEnabled ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
+                {Number(basicPercentVal) !== 50 && (
+                  <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" title="Basic Salary Overridden percentage">
+                    B:{Math.round(basicPercentVal)}%
+                  </span>
+                )}
+                {Number(hraPercentVal) !== 50 && (
+                  <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm" title="HRA Overridden percentage">
+                    H:{Math.round(hraPercentVal)}%
+                  </span>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </td>
       <td className="px-4 py-2.5 min-w-[180px]">
@@ -495,7 +500,8 @@ const PayrollProcessing = () => {
               tds: existingP.deductions?.tds,
               otherEarnings: existingP.earnings?.otherEarnings,
               otherDeductions: existingP.deductions?.otherDeductions,
-              pfEnabled: existingP.overrides?.pfEnabled !== undefined ? existingP.overrides.pfEnabled : undefined,
+               pfEnabled: existingP.overrides?.pfEnabled !== undefined ? existingP.overrides.pfEnabled : undefined,
+              tdsEnabled: existingP.overrides?.tdsEnabled !== undefined ? existingP.overrides.tdsEnabled : undefined,
               esiEnabled: existingP.overrides?.esiEnabled !== undefined ? existingP.overrides.esiEnabled : undefined,
               ptEnabled: existingP.overrides?.ptEnabled !== undefined ? existingP.overrides.ptEnabled : undefined,
               lwfEnabled: existingP.overrides?.lwfEnabled !== undefined ? existingP.overrides.lwfEnabled : undefined,
@@ -568,6 +574,7 @@ const PayrollProcessing = () => {
             otherEarnings: undefined,
             otherDeductions: undefined,
             pfEnabled: emp.pfEnabled !== undefined ? emp.pfEnabled : undefined,
+            tdsEnabled: emp.tdsEnabled !== undefined ? emp.tdsEnabled : undefined,
             esiEnabled: emp.esiEnabled !== undefined ? emp.esiEnabled : undefined,
             ptEnabled: emp.ptEnabled !== undefined ? emp.ptEnabled : undefined,
             lwfEnabled: emp.lwfEnabled !== undefined ? emp.lwfEnabled : undefined,
@@ -633,6 +640,7 @@ const PayrollProcessing = () => {
       otherEarnings: row.otherEarnings || [],
       otherDeductions: row.otherDeductions || [],
       pfEnabled: row.pfEnabled,
+      tdsEnabled: row.tdsEnabled,
       esiEnabled: row.esiEnabled,
       ptEnabled: row.ptEnabled,
       lwfEnabled: row.lwfEnabled,
@@ -824,6 +832,7 @@ const PayrollProcessing = () => {
     const row = rows[breakdownEmployee._id] || {};
     const adjustments = {
       pfEnabled: row.pfEnabled,
+      tdsEnabled: row.tdsEnabled,
       esiEnabled: row.esiEnabled,
       ptEnabled: row.ptEnabled,
       lwfEnabled: row.lwfEnabled,
@@ -1176,7 +1185,6 @@ const PayrollProcessing = () => {
                 )}
 
                 {localSnapshot && (() => {
-                  if (!showStatutoryOverrides && !showLopStrategy) return null;
                   
                   return (
                     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
@@ -1205,6 +1213,30 @@ const PayrollProcessing = () => {
                                 className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                               />
                             </div>
+                          </>
+                        )}
+
+                        {/* TDS Toggle */}
+                        <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                          <div className="flex flex-col pr-2">
+                            <span className="font-semibold text-slate-800">Income Tax (TDS)</span>
+                            <span className="text-[10px] text-slate-500 mt-0.5">Monthly TDS withholding</span>
+                          </div>
+                          <input
+                            type="checkbox"
+                            disabled={isReadOnly}
+                            checked={
+                              rows[empId]?.tdsEnabled !== undefined
+                                ? rows[empId].tdsEnabled
+                                : localSnapshot?.master?.tdsEnabled !== false
+                            }
+                            onChange={(e) => updateRow(empId, 'tdsEnabled', e.target.checked)}
+                            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </div>
+
+                        {showStatutoryOverrides && (
+                          <>
 
                             {/* ESI Toggle */}
                             <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
@@ -1672,20 +1704,34 @@ const PayrollProcessing = () => {
                                   ))}
 
                                   {/* TDS Estimation Summary Panel */}
-                                  <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-3.5 space-y-2 text-amber-900 text-xs font-medium">
-                                    <div className="flex justify-between">
-                                      <span>Total Variable Earnings:</span>
-                                      <span className="font-bold">{fmtMoney(localVariableTransactions.reduce((sum, item) => sum + (Number(item.amount) || 0), 0))}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Estimated TDS (10% Sec 194J):</span>
-                                      <span className="font-semibold text-red-600">-{fmtMoney(localVariableTransactions.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) * 0.1)}</span>
-                                    </div>
-                                    <div className="flex justify-between border-t border-amber-200 pt-1.5 font-bold">
-                                      <span>Net Take-Home (Est. Variable):</span>
-                                      <span className="text-emerald-700">{fmtMoney(localVariableTransactions.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) * 0.9)}</span>
-                                    </div>
-                                  </div>
+                                  {(() => {
+                                    const totalVar = localVariableTransactions.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+                                    const isDrawerTdsEnabled = rows[breakdownEmployee._id]?.tdsEnabled !== undefined 
+                                      ? rows[breakdownEmployee._id].tdsEnabled 
+                                      : localSnapshot?.master?.tdsEnabled !== false;
+                                    const estimatedTds = isDrawerTdsEnabled ? (totalVar * 0.1) : 0;
+                                    const netTakeHome = totalVar - estimatedTds;
+                                    return (
+                                      <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-3.5 space-y-2 text-amber-900 text-xs font-medium">
+                                        <div className="flex justify-between">
+                                          <span>Total Variable Earnings:</span>
+                                          <span className="font-bold">{fmtMoney(totalVar)}</span>
+                                        </div>
+                                        {isDrawerTdsEnabled && (
+                                          <>
+                                            <div className="flex justify-between">
+                                              <span>Estimated TDS (10% Sec 194J):</span>
+                                              <span className="font-semibold text-red-600">-{fmtMoney(estimatedTds)}</span>
+                                            </div>
+                                            <div className="flex justify-between border-t border-amber-200 pt-1.5 font-bold">
+                                              <span>Net Take-Home (Est. Variable):</span>
+                                              <span className="text-emerald-700">{fmtMoney(netTakeHome)}</span>
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               )}
                             </div>

@@ -469,11 +469,11 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
   const isHourly = src.payType === 'hourly';
   const useComponents = src.useSalaryComponents !== false && !isIntern && !isHourly;
 
-  // Toggles integration
   const pfEnabled = !isIntern && !isHourly && src.pfEnabled !== false;
   const esiEnabled = !isIntern && !isHourly && src.esiEnabled !== false;
   const ptEnabled = !isIntern && !isHourly && src.ptEnabled !== false;
   const lwfEnabled = !isIntern && !isHourly && src.lwfEnabled !== false;
+  const tdsEnabled = src.tdsEnabled !== false;
   const gratuityEnabled = !isIntern && !isHourly && src.gratuityEnabled !== false;
   const includePfInCTC = !isIntern && !isHourly && src.includePfInCTC === true;
   const includeGratuityInCTC = !isIntern && !isHourly && src.includeGratuityInCTC !== false;
@@ -731,7 +731,9 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
   }, monthlyCTC, config, basicMaster, hraMaster, totalEarnings);
 
   const calculatedTdsMonthly = taxDetails[taxRegime === 'old' ? 'oldRegime' : 'newRegime'].monthlyTax;
-  const tds = Number(src.deductions?.tds) > 0 ? Number(src.deductions?.tds) : roundAmount(calculatedTdsMonthly);
+  const tds = tdsEnabled
+    ? (Number(src.deductions?.tds) > 0 ? Number(src.deductions?.tds) : roundAmount(calculatedTdsMonthly))
+    : 0;
 
   const manualPT = Number(src.deductions?.professionalTax) || 0;
   const computedPT = (ptEnabled && src.ptState)
@@ -973,6 +975,7 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
       ...activeParams,
       hoursWorked: isHourly ? hoursWorked : undefined,
       pfEnabled: adjustments.pfEnabled !== undefined ? adjustments.pfEnabled : activeParams.pfEnabled,
+      tdsEnabled: adjustments.tdsEnabled !== undefined ? adjustments.tdsEnabled : activeParams.tdsEnabled,
       esiEnabled: adjustments.esiEnabled !== undefined ? adjustments.esiEnabled : activeParams.esiEnabled,
       ptEnabled: adjustments.ptEnabled !== undefined ? adjustments.ptEnabled : activeParams.ptEnabled,
       ptState: adjustments.ptState !== undefined ? adjustments.ptState : activeParams.ptState,
@@ -1078,7 +1081,7 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
   for (let d = 1; d <= totalDaysInMonth; d++) {
     const currentStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const activeParams = getEmployeeParamsForDate(currentStr);
-    const key = `${activeParams.monthlyCTC}-${activeParams.pfEnabled}-${activeParams.esiEnabled}-${activeParams.gratuityEnabled}`;
+    const key = `${activeParams.monthlyCTC}-${activeParams.pfEnabled}-${activeParams.esiEnabled}-${activeParams.tdsEnabled}-${activeParams.gratuityEnabled}`;
 
     if (!currentSegment || currentSegment.key !== key) {
       if (currentSegment) {
@@ -1365,11 +1368,15 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
     ? roundAmount(Object.values(dynamicDeductionsMap).reduce((sum, v) => sum + v, 0))
     : 0;
 
+  const isTdsEnabled = adjustments.tdsEnabled !== undefined 
+    ? adjustments.tdsEnabled 
+    : (employee.tdsEnabled !== false);
+
   const deductions = {
     pfEmployee,
     esiEmployee,
     professionalTax: master.ptEnabled ? roundAmount(master.professionalTax) : 0,
-    tds: roundAmount(
+    tds: !isTdsEnabled ? 0 : roundAmount(
       adjustments.tds !== undefined && adjustments.tds !== null
         ? adjustments.tds
         : (Number(employee.deductions?.tds) > 0
@@ -1585,7 +1592,7 @@ export const getSalarySplits = (employeeInput, configInput, monthNum, yearNum, p
   for (let d = 1; d <= totalDaysInMonth; d++) {
     const currentStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const activeParams = getEmployeeParamsForDate(currentStr);
-    const key = `${activeParams.monthlyCTC}-${activeParams.pfEnabled}-${activeParams.esiEnabled}-${activeParams.gratuityEnabled}`;
+    const key = `${activeParams.monthlyCTC}-${activeParams.pfEnabled}-${activeParams.esiEnabled}-${activeParams.tdsEnabled}-${activeParams.gratuityEnabled}`;
 
     if (!currentSegment || currentSegment.key !== key) {
       if (currentSegment) {
@@ -1625,6 +1632,7 @@ export const getSalarySplits = (employeeInput, configInput, monthNum, yearNum, p
       ...seg.activeParams,
       hoursWorked: isHourly ? hoursWorked : undefined,
       pfEnabled: adjustments.pfEnabled !== undefined ? adjustments.pfEnabled : seg.activeParams.pfEnabled,
+      tdsEnabled: adjustments.tdsEnabled !== undefined ? adjustments.tdsEnabled : seg.activeParams.tdsEnabled,
       esiEnabled: adjustments.esiEnabled !== undefined ? adjustments.esiEnabled : seg.activeParams.esiEnabled,
       ptEnabled: adjustments.ptEnabled !== undefined ? adjustments.ptEnabled : seg.activeParams.ptEnabled,
       lwfEnabled: adjustments.lwfEnabled !== undefined ? adjustments.lwfEnabled : seg.activeParams.lwfEnabled,
