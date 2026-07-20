@@ -401,7 +401,7 @@ export default function FinancialDashboard() {
           <div>
             <div className={`flex items-center gap-2 text-[10px] font-extrabold tracking-widest uppercase mb-1 ${darkMode ? 'text-[#818cf8]' : 'text-[#5b61eb]'}`}>
               <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${darkMode ? 'bg-[#818cf8]' : 'bg-[#5b61eb]'}`}></span>
-              FINANCIAL REPORT CARD
+               CARD
             </div>
             <h1 className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${darkMode ? 'text-white' : 'text-slate-950'}`}>Financial Dashboard</h1>
             <p className={`text-sm mt-1 ${darkMode ? 'text-slate-400' : 'text-gray-400'}`}>Tax · Revenue · GST · Cash Flow</p>
