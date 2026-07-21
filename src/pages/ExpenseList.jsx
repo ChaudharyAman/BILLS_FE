@@ -21,6 +21,7 @@ const ExpenseList = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [isPdfScannerOpen, setIsPdfScannerOpen] = useState(false);
+  const [updatingStatusId, setUpdatingStatusId] = useState(null);
 
   // Filters & Sorting State
   const [statusFilter, setStatusFilter] = useState('');
@@ -112,6 +113,31 @@ const ExpenseList = () => {
       fetchData();
     } catch (e) {
       alert('Failed to delete');
+    }
+  };
+
+  const handleStatusChange = async (item, newStatus) => {
+    if (item.status === newStatus || item.status?.toLowerCase() === newStatus.toLowerCase()) return;
+    try {
+      setUpdatingStatusId(item.id);
+      if (item.type === 'salary') {
+        if (newStatus.toLowerCase() === 'paid') {
+          await api.post(`/payroll/${item.id}/mark-paid`);
+        } else if (newStatus.toLowerCase() === 'draft') {
+          await api.post(`/payroll/${item.id}/reopen`);
+        } else {
+          await api.put(`/payroll/${item.id}`, { status: newStatus.toLowerCase() });
+        }
+      } else {
+        await api.put(`/expenses/${item.id}`, { status: newStatus });
+      }
+      setCombinedItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
+    } catch (e) {
+      console.error('Error updating status:', e);
+      alert(e.response?.data?.message || 'Failed to update status');
+      fetchData();
+    } finally {
+      setUpdatingStatusId(null);
     }
   };
 
@@ -276,8 +302,8 @@ const ExpenseList = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Expenses</h1>
-          <p className="text-gray-500 mt-1">Record and manage your company purchases, outgoings, and payroll</p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Expenses</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Record and manage your company purchases, outgoings, and payroll</p>
         </div>
         <div className="flex gap-3 flex-wrap">
           {selectedIds.length > 0 && (
@@ -554,13 +580,38 @@ const ExpenseList = () => {
                     {item.clientOrMethod}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
-                      item.type === 'salary'
-                        ? (PAYROLL_STATUS_STYLES[item.status.toLowerCase()] || PAYROLL_STATUS_STYLES.draft)
-                        : (STATUS_STYLES[item.status] || STATUS_STYLES.DRAFT)
-                    }`}>
-                      {item.status}
-                    </span>
+                    {item.type === 'salary' ? (
+                      <select
+                        value={item.status.toUpperCase()}
+                        disabled={updatingStatusId === item.id}
+                        onChange={(e) => handleStatusChange(item, e.target.value)}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                          PAYROLL_STATUS_STYLES[item.status.toLowerCase()] || PAYROLL_STATUS_STYLES.draft
+                        }`}
+                        title="Click to change status"
+                      >
+                        <option value="DRAFT" className="bg-white text-gray-700">DRAFT</option>
+                        <option value="PROCESSED" className="bg-white text-blue-700">PROCESSED</option>
+                        <option value="APPROVED" className="bg-white text-purple-700">APPROVED</option>
+                        <option value="PAID" className="bg-white text-green-700">PAID</option>
+                      </select>
+                    ) : (
+                      <select
+                        value={item.status}
+                        disabled={updatingStatusId === item.id}
+                        onChange={(e) => handleStatusChange(item, e.target.value)}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                          STATUS_STYLES[item.status] || STATUS_STYLES.DRAFT
+                        }`}
+                        title="Click to change status"
+                      >
+                        <option value="PAID" className="bg-white text-green-700">PAID</option>
+                        <option value="UNPAID" className="bg-white text-red-700">UNPAID</option>
+                        <option value="PARTIAL" className="bg-white text-amber-700">PARTIAL</option>
+                        <option value="DRAFT" className="bg-white text-gray-700">DRAFT</option>
+                        <option value="CANCELLED" className="bg-white text-gray-500">CANCELLED</option>
+                      </select>
+                    )}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900">
                     ₹{fmt(item.amount)}
