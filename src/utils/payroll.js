@@ -16,9 +16,12 @@ export const DEFAULT_PAYROLL_CONFIG = {
   defaultWorkingDays: 30,
   defaultInsurance: 0,
   ltaMaxPercent: 0.0833,
+  standardMonthlyHours: 160,
+  compensationTypeDefaults: {},
 };
 
-export const fmtMoney = (value) => `₹${(Number(value) || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+const moneyFormatter = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+export const fmtMoney = (value) => moneyFormatter.format(Number(value) || 0);
 
 export const payrollStatusClass = {
   draft: 'bg-gray-100 text-gray-700',
@@ -270,31 +273,14 @@ const getDayProrateArray = (totalDays, workingDays, paidDays, strategy = 'propor
 };
 
 export const normalizePayrollConfig = (config = {}) => {
-  const getNum = (val, def) => {
-    const n = Number(val);
-    return Number.isFinite(n) ? n : def;
-  };
-  const cfg = config || {};
-  return {
-    basicPercent: getNum(cfg.basicPercent, DEFAULT_PAYROLL_CONFIG.basicPercent),
-    hraPercent: getNum(cfg.hraPercent, DEFAULT_PAYROLL_CONFIG.hraPercent),
-    pfRate: getNum(cfg.pfRate, DEFAULT_PAYROLL_CONFIG.pfRate),
-    pfCap: getNum(cfg.pfCap, DEFAULT_PAYROLL_CONFIG.pfCap),
-    pfEmployerRate: getNum(cfg.pfEmployerRate, DEFAULT_PAYROLL_CONFIG.pfEmployerRate),
-    pfCalculationType: cfg.pfCalculationType || DEFAULT_PAYROLL_CONFIG.pfCalculationType,
-    pfAmountEmployee: getNum(cfg.pfAmountEmployee, DEFAULT_PAYROLL_CONFIG.pfAmountEmployee),
-    pfAmountEmployer: getNum(cfg.pfAmountEmployer, DEFAULT_PAYROLL_CONFIG.pfAmountEmployer),
-    esiEmployeeRate: getNum(cfg.esiEmployeeRate, DEFAULT_PAYROLL_CONFIG.esiEmployeeRate),
-    esiEmployerRate: getNum(cfg.esiEmployerRate, DEFAULT_PAYROLL_CONFIG.esiEmployerRate),
-    esiBasicThreshold: getNum(cfg.esiBasicThreshold, DEFAULT_PAYROLL_CONFIG.esiBasicThreshold),
-    lwfEmployer: getNum(cfg.lwfEmployer, DEFAULT_PAYROLL_CONFIG.lwfEmployer),
-    lwfEmployee: getNum(cfg.lwfEmployee, DEFAULT_PAYROLL_CONFIG.lwfEmployee),
-    gratuityRate: getNum(cfg.gratuityRate, DEFAULT_PAYROLL_CONFIG.gratuityRate),
-    defaultWorkingDays: getNum(cfg.defaultWorkingDays, DEFAULT_PAYROLL_CONFIG.defaultWorkingDays),
-    defaultInsurance: getNum(cfg.defaultInsurance, DEFAULT_PAYROLL_CONFIG.defaultInsurance),
-    ltaMaxPercent: getNum(cfg.ltaMaxPercent, DEFAULT_PAYROLL_CONFIG.ltaMaxPercent),
-    salaryComponents: cfg.salaryComponents || null,
-  };
+  const res = { ...DEFAULT_PAYROLL_CONFIG, ...config };
+  Object.keys(DEFAULT_PAYROLL_CONFIG).forEach(k => {
+    if (typeof DEFAULT_PAYROLL_CONFIG[k] === 'number') {
+      const n = Number(config?.[k]);
+      res[k] = Number.isFinite(n) ? n : DEFAULT_PAYROLL_CONFIG[k];
+    }
+  });
+  return res;
 };
 
 export const getMonthlyCTCValue = (source = {}) => {

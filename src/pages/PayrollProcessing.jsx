@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { FaCheck, FaSave, FaPlus, FaTrash, FaCalculator, FaTimes } from 'react-icons/fa';
 import api from '../api/axios';
 import Skeleton from '../components/Skeleton';
-import { buildPayrollSnapshot, DEFAULT_PAYROLL_CONFIG, fmtMoney, serializeRow, getSalarySplits } from '../utils/payroll';
+import { DEFAULT_PAYROLL_CONFIG, fmtMoney, serializeRow, getSalarySplits } from '../utils/payroll';
 import { usePayrollSnapshot } from '../hooks/usePayrollSnapshot';
 
 const monthName = (month) => new Date(0, month - 1).toLocaleString('en-US', { month: 'long' });
@@ -109,6 +109,7 @@ const EmployeeRow = ({
   earningComponents,
   existingPayroll,
   onDeletePayroll,
+  onSnapshotReady,
 }) => {
   const filteredReimbursements = useMemo(() => {
     return (claimsMap.get(employee._id) || []).filter(c => !(row?.excludedClaimIds || []).includes(c._id));
@@ -119,6 +120,13 @@ const EmployeeRow = ({
   }, [row, filteredReimbursements, month, year]);
 
   const calculatedSnapshot = usePayrollSnapshot(employee, config, rowWithReimbursements, monthWorkingDays);
+
+  // Bubble the resolved netSalary up to the parent for the Estimated Net Payroll total
+  useEffect(() => {
+    if (calculatedSnapshot?.netSalary !== undefined && onSnapshotReady) {
+      onSnapshotReady(employee._id, Number(calculatedSnapshot.netSalary) || 0);
+    }
+  }, [calculatedSnapshot?.netSalary, employee._id]);
 
   const snapshot = useMemo(() => {
     if (existingPayroll && existingPayroll.status !== 'draft') {
@@ -143,7 +151,7 @@ const EmployeeRow = ({
 
   if (!snapshot) return null;
 
-  const isHourly = employee.payType === 'hourly';
+  const isHourly = employee.payType === 'hourly' || employee.compensationType === 'hourly';
   const paidTooHigh = !isHourly && Number(row?.paidDays) > Number(row?.workingDays || monthWorkingDays);
   const isExistingDisabled = existingPayroll && existingPayroll.status !== 'draft';
 
@@ -339,6 +347,8 @@ const PayrollProcessing = () => {
   const [claimsMap, setClaimsMap] = useState(new Map());
   const [existingPayrollsMap, setExistingPayrollsMap] = useState(new Map());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  // Stores the most-recent server-resolved netSalary per employee, for the total preview card
+  const [snapshotsNetMap, setSnapshotsNetMap] = useState({});
 
   // Integration States
   const [syncingAttendance, setSyncingAttendance] = useState(false);
@@ -587,6 +597,9 @@ const PayrollProcessing = () => {
             excludedClaimIds: [],
             attendanceSource: 'default',
             variableTransactions: transactionsByEmp.get(emp._id) || [],
+            // periodInput: strategy-specific inputs for new compensation types
+            // (e.g. { unitsProduced: 0 } for piece_rate, { hoursLogged: 0 } for timesheet_based)
+            periodInput: {},
           };
 
           Object.keys(emp).forEach(key => {
@@ -620,57 +633,11 @@ const PayrollProcessing = () => {
 
   const selectedEmployees = useMemo(() => employees.filter((emp) => selected[emp._id]), [employees, selected]);
 
-  const getSnapshot = (employee) => {
-    return usePayrollSnapshot(employee, config, { ...rows[employee._id], month, year }, monthWorkingDays);
-  };
-
-  const totalPreview = useMemo(() => selectedEmployees.reduce((sum, employee) => {
-    const row = rows[employee._id] || {};
-    const adjustments = {
-      overtime: Number(row.overtime) || 0,
-      joiningBonus: Number(row.joiningBonus) || 0,
-      loyaltyBonus: Number(row.loyaltyBonus) || 0,
-      incentive: Number(row.incentive) || 0,
-      specialBonus: Number(row.specialBonus) || 0,
-      otherAllowanceArrear: Number(row.otherAllowanceArrear) || 0,
-      loanDeduction: Number(row.loanDeduction) || 0,
-      advanceDeduction: Number(row.advanceDeduction) || 0,
-      tds: Number(row.tds) || 0,
-      hoursWorked: Number(row.hoursWorked) || 0,
-      otherEarnings: row.otherEarnings || [],
-      otherDeductions: row.otherDeductions || [],
-      pfEnabled: row.pfEnabled,
-      tdsEnabled: row.tdsEnabled,
-      esiEnabled: row.esiEnabled,
-      ptEnabled: row.ptEnabled,
-      lwfEnabled: row.lwfEnabled,
-      gratuityEnabled: row.gratuityEnabled,
-      includePfInCTC: row.includePfInCTC,
-      includeGratuityInCTC: row.includeGratuityInCTC,
-      basicPercent: row.basicPercent,
-      hraPercent: row.hraPercent,
-      lopStrategy: row.lopStrategy,
-      segmentLops: row.segmentLops,
-      reimbursements: (claimsMap.get(employee._id) || []).filter(c => !(row.excludedClaimIds || []).includes(c._id)),
-    };
-
-    Object.keys(row).forEach(key => {
-      if (key.endsWith('Percent') || (config?.salaryComponents && config.salaryComponents.some(c => c.id === key || `${c.id}Percent` === key))) {
-        if (row[key] !== undefined && row[key] !== null) {
-          adjustments[key] = row[key];
-        }
-      }
-    });
-
-    const snapshot = buildPayrollSnapshot(employee, config, {
-      workingDays: Number(row.workingDays) || Number(monthWorkingDays) || 26,
-      paidDays: Number(row.paidDays) || 0,
-      paidLeaves: Number(row.paidLeaves) || 0,
-      unpaidLeaves: Number(row.unpaidLeaves) || 0,
-      hoursWorked: Number(row.hoursWorked) || 0,
-    }, adjustments, month, year);
-    return sum + (Number(snapshot.netSalary) || 0);
-  }, 0), [selectedEmployees, rows, claimsMap, config, monthWorkingDays, month, year]);
+  // Sum netSalary from server-resolved previews (only for selected employees)
+  const totalPreview = useMemo(
+    () => selectedEmployees.reduce((sum, emp) => sum + (snapshotsNetMap[emp._id] || 0), 0),
+    [selectedEmployees, snapshotsNetMap]
+  );
 
   const updateRow = (employeeId, field, value) => {
     setRows((prev) => {
@@ -858,7 +825,7 @@ const PayrollProcessing = () => {
   const submit = async (saveAsDraft) => {
     const invalid = selectedEmployees.find((employee) => {
       const row = rows[employee._id] || {};
-      return employee.payType !== 'hourly' && Number(row.paidDays) > Number(row.workingDays || monthWorkingDays);
+      return (employee.payType !== 'hourly' && employee.compensationType !== 'hourly') && Number(row.paidDays) > Number(row.workingDays || monthWorkingDays);
     });
 
     if (invalid) {
@@ -1014,6 +981,9 @@ const PayrollProcessing = () => {
                   earningComponents={earningComponents}
                   existingPayroll={existingPayrollsMap.get(String(employee._id))}
                   onDeletePayroll={onDeletePayroll}
+                  onSnapshotReady={(empId, net) =>
+                    setSnapshotsNetMap((prev) => prev[empId] === net ? prev : { ...prev, [empId]: net })
+                  }
                 />
               ))}
             </tbody>
@@ -1034,7 +1004,7 @@ const PayrollProcessing = () => {
       {/* Slide-over / Modal for Detailed Salary Breakdown & Adjustments */}
       {breakdownEmployee && (() => {
         const empId = breakdownEmployee._id;
-        const isHourly = breakdownEmployee.payType === 'hourly';
+        const isHourly = breakdownEmployee.payType === 'hourly' || breakdownEmployee.compensationType === 'hourly';
         const hasSalaryBreakup = breakdownEmployee.useSalaryComponents !== false && breakdownEmployee.employmentType !== 'intern' && !isHourly;
         const showStatutoryOverrides = hasSalaryBreakup;
         const showLopStrategy = localSplits && localSplits.length > 1 && !isHourly;

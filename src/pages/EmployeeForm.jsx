@@ -29,6 +29,9 @@ const defaultForm = {
   status: 'active',
   role: '',
   payType: 'salaried',
+  compensationType: null,
+  payFrequency: 'monthly',
+  attendanceMode: 'attendance',
   hourlyRate: 0,
   monthlyCTC: 0,
   flexiAmount: 0,
@@ -90,7 +93,7 @@ const EmployeeForm = () => {
   const [ctcPeriod, setCtcPeriod] = useState('monthly');
 
   const isIntern = formData.employmentType === 'intern';
-  const isHourly = formData.payType === 'hourly';
+  const isHourly = formData.payType === 'hourly' || formData.compensationType === 'hourly';
   const useComponents = formData.useSalaryComponents !== false && !isIntern && !isHourly;
 
   useEffect(() => {
@@ -586,6 +589,60 @@ const EmployeeForm = () => {
                 >
                   <option value="salaried">Salaried (Monthly Base)</option>
                   <option value="hourly">Hourly Rate contract</option>
+                </select>
+              </div>
+
+              {/* Compensation Type — the strategy dimension */}
+              <div>
+                <label className={labelCls}>Compensation Type</label>
+                <select
+                  value={formData.compensationType || ''}
+                  onChange={(e) => setField('compensationType', e.target.value || null)}
+                  className={inputCls}
+                >
+                  <option value="">Auto-detect from Pay Type</option>
+                  <option value="monthly_salary">Monthly Salary</option>
+                  <option value="hourly">Hourly</option>
+                  <option value="daily_wage">Daily Wage</option>
+                  <option value="weekly_salary">Weekly Salary</option>
+                  <option value="piece_rate">Piece Rate</option>
+                  <option value="project_based">Project Based</option>
+                  <option value="milestone_based">Milestone Based</option>
+                  <option value="attendance_based">Attendance Based</option>
+                  <option value="timesheet_based">Timesheet Based</option>
+                  <option value="commission_only">Commission Only</option>
+                  <option value="salary_plus_commission">Salary + Commission</option>
+                  <option value="retainer">Retainer</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={labelCls}>Pay Frequency</label>
+                <select
+                  value={formData.payFrequency || 'monthly'}
+                  onChange={(e) => setField('payFrequency', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="monthly">Monthly</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-Weekly</option>
+                  <option value="daily">Daily</option>
+                  <option value="per_delivery">Per Delivery / On Completion</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={labelCls}>Attendance Mode</label>
+                <select
+                  value={formData.attendanceMode || 'attendance'}
+                  onChange={(e) => setField('attendanceMode', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="attendance">Attendance Based (paidDays / workingDays)</option>
+                  <option value="timesheet">Timesheet (hours logged)</option>
+                  <option value="fixed">Fixed (always full month)</option>
+                  <option value="unit_count">Unit Count (piece rate)</option>
+                  <option value="none">None (milestone / event driven)</option>
                 </select>
               </div>
 
@@ -1271,7 +1328,7 @@ const EmployeeForm = () => {
                   };
 
                   const isIntern = formData.employmentType === 'intern';
-                  const isHourly = formData.payType === 'hourly';
+                  const isHourly = formData.payType === 'hourly' || formData.compensationType === 'hourly';
                   const useComponents = formData.useSalaryComponents !== false && !isIntern && !isHourly;
                   const comps = config?.salaryComponents || [];
                   
@@ -1295,7 +1352,7 @@ const EmployeeForm = () => {
                   }
 
                   const list = filtered.map(c => {
-                    const isHourly = formData.payType === 'hourly';
+                    const isHourly = formData.payType === 'hourly' || formData.compensationType === 'hourly';
                     const isCalculated = isIntern || isHourly ? true : (c.linkedTo !== 'fixed');
                     let suffix = '';
                     let freqSuffix = '';
