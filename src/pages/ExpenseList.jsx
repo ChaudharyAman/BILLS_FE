@@ -112,7 +112,11 @@ const ExpenseList = () => {
       await api.delete(`/expenses/${id}`);
       fetchData();
     } catch (e) {
-      alert('Failed to delete');
+      if (e.response?.status === 403 || e.response?.data?.message?.toLowerCase().includes('pro')) {
+        setShowPremiumModal(true);
+      } else {
+        alert(e.response?.data?.message || 'Failed to delete');
+      }
     }
   };
 
@@ -128,13 +132,24 @@ const ExpenseList = () => {
         } else {
           await api.put(`/payroll/${item.id}`, { status: newStatus.toLowerCase() });
         }
+        setCombinedItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
       } else {
-        await api.put(`/expenses/${item.id}`, { status: newStatus });
+        const res = await api.put(`/expenses/${item.id}`, { status: newStatus });
+        const updatedDoc = res.data;
+        setCombinedItems(prev => prev.map(i => i.id === item.id ? {
+          ...i,
+          status: updatedDoc?.status || newStatus,
+          amountPaid: updatedDoc?.amountPaid !== undefined ? updatedDoc.amountPaid : i.amountPaid,
+          balanceDue: updatedDoc?.balanceDue !== undefined ? updatedDoc.balanceDue : i.balanceDue,
+        } : i));
       }
-      setCombinedItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
     } catch (e) {
       console.error('Error updating status:', e);
-      alert(e.response?.data?.message || 'Failed to update status');
+      if (e.response?.status === 403 || e.response?.data?.message?.toLowerCase().includes('pro')) {
+        setShowPremiumModal(true);
+      } else {
+        alert(e.response?.data?.message || 'Failed to update status');
+      }
       fetchData();
     } finally {
       setUpdatingStatusId(null);
