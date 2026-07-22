@@ -100,58 +100,116 @@ const PayslipGeneration = () => {
     const structure = emp.salaryStructure || {};
     
     // Earnings list with: name, rate (base monthly CTC rate), monthly (actual prorated paid)
-    const earnings = [
-      {
-        name: 'Basic',
-        rate: structure.basic || 0,
-        monthly: slip.earnings?.basic || 0,
-        arrear: '-'
-      },
-      {
-        name: 'HRA',
-        rate: structure.hra || 0,
-        monthly: slip.earnings?.hra || 0,
-        arrear: '-'
-      },
-      {
-        name: 'Special All',
-        rate: structure.specialAllowance || 0,
-        monthly: slip.earnings?.specialAllowance || slip.earnings?.special || 0,
-        arrear: '-'
-      },
-      {
-        name: 'Meal',
-        rate: emp.mealAllowance || emp.meal || 0,
-        monthly: slip.earnings?.mealAllowance || slip.earnings?.meal || 0,
-        arrear: '-'
-      },
-      {
-        name: 'Broadband',
-        rate: emp.broadband || 0,
-        monthly: slip.earnings?.broadband || 0,
-        arrear: '-'
-      },
-      {
-        name: 'Insurance',
-        rate: emp.insuranceAmount || 0,
-        monthly: slip.earnings?.insuranceAmount || 0,
-        arrear: '-'
-      },
-      {
-        name: 'Employer PF',
-        rate: slip.employerContributions?.pfEmployer || 0,
-        monthly: slip.employerContributions?.pfEmployer || 0,
-        arrear: '-'
-      }
-    ].filter(e => e.rate > 0 || e.monthly > 0);
+    let earnings = [];
+    if (Array.isArray(slip.earningsLineItems) && slip.earningsLineItems.length > 0) {
+      earnings = slip.earningsLineItems.map(item => ({
+        name: item.name,
+        rate: item.amount,
+        monthly: item.amount,
+        arrear: item.details || '-'
+      }));
+    } else {
+      const compType = slip.employeeSnapshot?.compensationType || emp.compensationType || (slip.payType === 'hourly' ? 'hourly' : 'monthly_salary');
+      const periodInput = slip.periodInput || {};
 
-    const variableTxs = (slip.earnings?.variableCompensation || []).map(tx => ({
-      name: `${tx.paymentType}${tx.reference ? ` (${tx.reference})` : ''}`,
-      rate: tx.rate > 0 ? tx.rate : tx.amount,
-      monthly: tx.amount,
-      arrear: tx.quantity > 1 ? `${tx.quantity} units` : '-'
-    }));
-    earnings.push(...variableTxs);
+      if (['monthly_salary', 'attendance_based', 'salary_plus_commission'].includes(compType)) {
+        if (slip.earnings?.basic > 0) earnings.push({ name: 'Basic Salary', rate: structure.basic || slip.earnings.basic, monthly: slip.earnings.basic, arrear: '-' });
+        if (slip.earnings?.hra > 0) earnings.push({ name: 'House Rent Allowance (HRA)', rate: structure.hra || slip.earnings.hra, monthly: slip.earnings.hra, arrear: '-' });
+        if (slip.earnings?.specialAllowance > 0) earnings.push({ name: 'Special Allowance', rate: structure.specialAllowance || slip.earnings.specialAllowance, monthly: slip.earnings.specialAllowance, arrear: '-' });
+        if (slip.earnings?.flexiAmount > 0) earnings.push({ name: 'Flexi Allowance', rate: slip.earnings.flexiAmount, monthly: slip.earnings.flexiAmount, arrear: '-' });
+        if (slip.earnings?.broadband > 0) earnings.push({ name: 'Broadband Allowance', rate: slip.earnings.broadband, monthly: slip.earnings.broadband, arrear: '-' });
+        if (slip.earnings?.petrol > 0) earnings.push({ name: 'Fuel/Petrol Allowance', rate: slip.earnings.petrol, monthly: slip.earnings.petrol, arrear: '-' });
+        if (slip.earnings?.lta > 0) earnings.push({ name: 'Leave Travel Allowance (LTA)', rate: slip.earnings.lta, monthly: slip.earnings.lta, arrear: '-' });
+        if (slip.earnings?.conveyance > 0) earnings.push({ name: 'Conveyance Allowance', rate: slip.earnings.conveyance, monthly: slip.earnings.conveyance, arrear: '-' });
+        if (slip.earnings?.medicalAllowance > 0) earnings.push({ name: 'Medical Allowance', rate: slip.earnings.medicalAllowance, monthly: slip.earnings.medicalAllowance, arrear: '-' });
+        (slip.earnings?.otherEarnings || []).forEach(item => {
+          if (Number(item.amount) > 0) earnings.push({ name: item.name || 'Other Allowance', rate: item.amount, monthly: item.amount, arrear: '-' });
+        });
+      } else if (compType === 'hourly' || compType === 'timesheet_based') {
+        const hours = Number(slip.hoursWorked) || Number(periodInput.hoursWorked) || Number(periodInput.hoursLogged) || 0;
+        const rate = Number(slip.hourlyRate) || Number(slip.employeeSnapshot?.hourlyRate) || Number(emp.hourlyRate) || 0;
+        const total = slip.earnings?.totalEarnings || slip.earnings?.basic || (hours * rate);
+        earnings.push({
+          name: compType === 'timesheet_based' ? 'Timesheet Logged Hours Pay' : 'Hourly Wages',
+          rate: total,
+          monthly: total,
+          arrear: `${hours} hrs × ₹${rate}/hr`
+        });
+      } else if (compType === 'daily_wage') {
+        const days = Number(slip.paidDays) || Number(periodInput.daysWorked) || 0;
+        const rate = Number(slip.employeeSnapshot?.dailyRate) || Number(emp.dailyRate) || (days > 0 ? (slip.earnings?.totalEarnings / days) : 0);
+        const total = slip.earnings?.totalEarnings || slip.earnings?.basic || (days * rate);
+        earnings.push({
+          name: 'Daily Wage Earnings',
+          rate: total,
+          monthly: total,
+          arrear: `${days} days × ₹${rate}/day`
+        });
+      } else if (compType === 'piece_rate') {
+        const units = Number(periodInput.unitsProduced) || 0;
+        const rate = Number(periodInput.ratePerUnit) || Number(slip.employeeSnapshot?.rateCard?.[0]?.rate) || Number(emp.rateCard?.[0]?.rate) || 0;
+        const unitType = periodInput.unitType || slip.employeeSnapshot?.rateCard?.[0]?.paymentType || 'Units';
+        const total = slip.earnings?.totalEarnings || slip.earnings?.basic || (units * rate);
+        earnings.push({
+          name: `${unitType} Output Pay`,
+          rate: total,
+          monthly: total,
+          arrear: `${units} units × ₹${rate}/unit`
+        });
+      } else if (compType === 'project_based') {
+        const fee = Number(periodInput.projectFee) || slip.earnings?.totalEarnings || slip.earnings?.basic || 0;
+        const ref = periodInput.projectRef || periodInput.description || '';
+        earnings.push({
+          name: `Project Fee${ref ? ` — ${ref}` : ''}`,
+          rate: fee,
+          monthly: fee,
+          arrear: 'Project Deliverable'
+        });
+      } else if (compType === 'milestone_based') {
+        const amt = Number(periodInput.milestoneAmount) || slip.earnings?.totalEarnings || slip.earnings?.basic || 0;
+        const ref = periodInput.milestoneRef || '';
+        earnings.push({
+          name: `Milestone Deliverable${ref ? `: ${ref}` : ''}`,
+          rate: amt,
+          monthly: amt,
+          arrear: 'Milestone Payment'
+        });
+      } else if (compType === 'retainer') {
+        const amt = slip.earnings?.totalEarnings || slip.earnings?.basic || 0;
+        earnings.push({
+          name: 'Monthly Retainer Fee',
+          rate: amt,
+          monthly: amt,
+          arrear: 'Retainer Contract'
+        });
+      }
+
+      const variableTxs = (slip.earnings?.variableCompensation || []).map(tx => ({
+        name: `${tx.paymentType}${tx.reference ? ` (${tx.reference})` : ''}`,
+        rate: tx.rate > 0 ? tx.rate : tx.amount,
+        monthly: tx.amount,
+        arrear: tx.quantity > 1 ? `${tx.quantity} units` : '-'
+      }));
+      earnings.push(...variableTxs);
+
+      if (earnings.length === 0 && (slip.earnings?.totalEarnings > 0 || slip.earnings?.basic > 0)) {
+        earnings.push({
+          name: 'Base Earnings',
+          rate: slip.earnings?.totalEarnings || slip.earnings?.basic || 0,
+          monthly: slip.earnings?.totalEarnings || slip.earnings?.basic || 0,
+          arrear: '-'
+        });
+      }
+
+      if (slip.earnings?.overtime > 0) {
+        earnings.push({
+          name: 'Overtime Pay',
+          rate: slip.earnings.overtime,
+          monthly: slip.earnings.overtime,
+          arrear: '-'
+        });
+      }
+    }
 
     // Deductions list
     const deductions = [
