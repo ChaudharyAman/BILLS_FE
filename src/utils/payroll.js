@@ -1546,7 +1546,13 @@ export const serializeRow = (row, monthWorkingDays) => {
     attendanceSource: row?.attendanceSource || 'default',
     skip: Boolean(row?._skipPeriod),
     skipPeriod: Boolean(row?._skipPeriod),
-    adjustments
+    _skipPeriod: Boolean(row?._skipPeriod),
+    adjustments: {
+      ...adjustments,
+      skip: Boolean(row?._skipPeriod),
+      skipPeriod: Boolean(row?._skipPeriod),
+      _skipPeriod: Boolean(row?._skipPeriod),
+    }
   };
 };
 

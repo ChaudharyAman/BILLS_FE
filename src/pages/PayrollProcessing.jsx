@@ -1085,9 +1085,17 @@ const PayrollProcessing = () => {
         year,
         saveAsDraft,
         employees: selectedEmployees.map((employee) => {
-          const rowData = serializeRow(rows[employee._id], monthWorkingDays);
+          const row = rows[employee._id] || {};
+          const isSkip = Boolean(row._skipPeriod);
+          const rowData = serializeRow(row, monthWorkingDays);
+          rowData.skip = isSkip;
+          rowData.skipPeriod = isSkip;
+          rowData._skipPeriod = isSkip;
+          rowData.adjustments.skip = isSkip;
+          rowData.adjustments.skipPeriod = isSkip;
+          rowData.adjustments._skipPeriod = isSkip;
           rowData.adjustments.reimbursements = (claimsMap.get(employee._id) || [])
-            .filter((r) => !(rows[employee._id]?.excludedClaimIds || []).includes(r._id))
+            .filter((r) => !(row.excludedClaimIds || []).includes(r._id))
             .map((r) => ({
               _id: r._id,
               amount: r.amount,
