@@ -329,6 +329,12 @@ const EmployeeRow = ({
     return sumNamedAmounts(filtered);
   }, [snapshot?.earnings?.otherEarnings, earningComponents]);
 
+  const isExitingInPeriod = useMemo(() => {
+    if (!employee.dateOfLeaving) return false;
+    const dol = new Date(employee.dateOfLeaving);
+    return dol.getUTCFullYear() === Number(year) && (dol.getUTCMonth() + 1) === Number(month);
+  }, [employee.dateOfLeaving, month, year]);
+
   if (!snapshot) return null;
 
   const isHourly = employee.payType === 'hourly' || employee.compensationType === 'hourly';
@@ -353,12 +359,6 @@ const EmployeeRow = ({
     : (snapshot?.master?.hraPercent !== undefined
         ? (snapshot.master.hraPercent > 1 ? snapshot.master.hraPercent : snapshot.master.hraPercent * 100)
         : 50);
-
-  const isExitingInPeriod = useMemo(() => {
-    if (!employee.dateOfLeaving) return false;
-    const dol = new Date(employee.dateOfLeaving);
-    return dol.getUTCFullYear() === Number(year) && (dol.getUTCMonth() + 1) === Number(month);
-  }, [employee.dateOfLeaving, month, year]);
 
   return (
     <tr key={employee._id} className={`${isExistingDisabled ? 'bg-gray-50 text-gray-500 opacity-80' : (isExitingInPeriod ? 'bg-amber-50/60 border-l-4 border-l-amber-500' : 'hover:bg-blue-50/40')} align-top`}>

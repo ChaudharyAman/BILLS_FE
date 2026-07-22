@@ -447,6 +447,8 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
   const compType = src.compensationType || (src.payType === 'hourly' ? 'hourly' : 'monthly_salary');
   const NON_COMPONENT_STRATEGIES = ['hourly', 'daily_wage', 'piece_rate', 'project_based', 'milestone_based', 'timesheet_based', 'commission_only', 'retainer'];
 
+  let monthlyCTC = roundAmount(Number(src.monthlyCTC) || 0);
+
   if (compType === 'hourly' || compType === 'timesheet_based') {
     const hours = src.hoursWorked !== undefined ? Number(src.hoursWorked) : (src.periodInput?.hoursWorked ?? 160);
     monthlyCTC = roundAmount((Number(src.hourlyRate) || 0) * hours);
