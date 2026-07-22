@@ -22,6 +22,7 @@ export const DEFAULT_ONBOARDING_FIELD_MAP = {
 
 export const DEFAULT_PERIOD_INPUT_FIELD_MAP = {
   monthly_salary:        ['paidDays', 'workingDays'],
+  weekly_salary:         ['paidDays', 'workingDays'],
   attendance_based:      ['paidDays', 'workingDays'],
   salary_plus_commission:['paidDays', 'workingDays'],
   hourly:                ['hoursWorked'],

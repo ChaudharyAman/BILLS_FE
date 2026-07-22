@@ -525,6 +525,7 @@ const PayrollProcessing = () => {
   const [localExcludedClaimIds, setLocalExcludedClaimIds] = useState(new Set());
   const [localVariableTransactions, setLocalVariableTransactions] = useState([]);
   const [compensationTypesMap, setCompensationTypesMap] = useState({});
+  const [skippedSummaryList, setSkippedSummaryList] = useState([]);
 
   const remainderId = useMemo(() => {
     return config?.salaryComponents?.find(c => c.linkedTo === 'remainder')?.id || 'special';
@@ -1023,12 +1024,27 @@ const PayrollProcessing = () => {
       };
 
       const res = await api.post('/payroll/process', payload);
-      if (res.data.errors?.length) {
-        toast.error(`${res.data.success.length} processed, ${res.data.errors.length} skipped`);
+      const successCount = res.data.success?.length || 0;
+      const errorCount = res.data.errors?.length || 0;
+      const skippedList = res.data.skippedNoActivity || [];
+      const skippedCount = skippedList.length;
+
+      let msgParts = [];
+      if (successCount > 0) msgParts.push(`${successCount} processed`);
+      if (skippedCount > 0) msgParts.push(`${skippedCount} skipped (no activity / marked skip)`);
+      if (errorCount > 0) msgParts.push(`${errorCount} failed`);
+
+      if (errorCount > 0) {
+        toast.error(msgParts.join(', '));
+      } else if (skippedCount > 0) {
+        toast(msgParts.join(', '), { icon: 'ℹ️' });
       } else {
         toast.success(saveAsDraft ? 'Payroll saved as draft' : 'Payroll processed successfully');
       }
-      if (!saveAsDraft) {
+
+      setSkippedSummaryList(skippedList);
+
+      if (!saveAsDraft && errorCount === 0) {
         navigate('/payroll');
       } else {
         setRefreshTrigger(prev => prev + 1);
@@ -1111,6 +1127,34 @@ const PayrollProcessing = () => {
         <SummaryCard label="Estimated Net Payroll" value={fmtMoney(totalPreview)} />
         <SummaryCard label="Default Working Days" value={monthWorkingDays} />
       </div>
+
+      {skippedSummaryList.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex flex-col gap-2 text-xs text-amber-900 shadow-sm">
+          <div className="flex justify-between items-center border-b border-amber-200/60 pb-2">
+            <span className="font-bold text-amber-900 text-sm flex items-center gap-1.5">
+              ℹ️ {skippedSummaryList.length} Employee(s) Skipped (No Activity / Marked Skip)
+            </span>
+            <button
+              type="button"
+              onClick={() => setSkippedSummaryList([])}
+              className="text-xs text-amber-700 hover:text-amber-900 font-bold underline"
+            >
+              Dismiss
+            </button>
+          </div>
+          <p className="text-amber-800">
+            The following employees were excluded from payslip creation for this cycle:
+          </p>
+          <div className="space-y-1 mt-1 bg-white/80 p-3 rounded-lg border border-amber-200 max-h-40 overflow-y-auto">
+            {skippedSummaryList.map((item, idx) => (
+              <div key={idx} className="flex justify-between text-xs py-0.5 border-b border-amber-100 last:border-0">
+                <span className="font-semibold text-amber-950">{item.employeeName || item.employeeId}</span>
+                <span className="text-amber-700 font-medium">[{item.compensationType || 'strategy'}]: {item.message || 'No activity'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">

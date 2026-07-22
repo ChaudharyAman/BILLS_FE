@@ -1486,6 +1486,8 @@ export const serializeRow = (row, monthWorkingDays) => {
     unpaidLeaves: Number(row?.unpaidLeaves) || 0,
     hoursWorked: Number(row?.hoursWorked) || 0,
     attendanceSource: row?.attendanceSource || 'default',
+    skip: Boolean(row?._skipPeriod),
+    skipPeriod: Boolean(row?._skipPeriod),
     adjustments
   };
 };
