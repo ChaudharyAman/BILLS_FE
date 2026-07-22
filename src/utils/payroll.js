@@ -183,7 +183,7 @@ const PT_STATE_CONFIGS = {
   },
 };
 
-const getMonthlyPT = (stateCode, monthlyGross, month = 0) => {
+const getMonthlyPT = (stateCode, monthlyGross, month = 0, year = 0, targetDate = null) => {
   if (!stateCode) return 0;
   const cfg = PT_STATE_CONFIGS[stateCode.toUpperCase()];
   if (!cfg) return 0;
@@ -191,16 +191,35 @@ const getMonthlyPT = (stateCode, monthlyGross, month = 0) => {
   const gross = Number(monthlyGross) || 0;
   if (gross <= 0) return 0;
 
-  const matchedSlab = cfg.slabs.find(s => gross <= s.upTo);
-  const slabAmount = matchedSlab ? matchedSlab.monthly : cfg.slabs[cfg.slabs.length - 1].monthly;
+  let effectiveDateObj = targetDate ? new Date(targetDate) : null;
+  if (!effectiveDateObj && year > 0 && month > 0) {
+    effectiveDateObj = new Date(year, month - 1, 1);
+  }
+
+  let activeConfig = cfg;
+  if (Array.isArray(cfg.versions) && cfg.versions.length > 0) {
+    const searchDate = effectiveDateObj || new Date();
+    const matchedVersion = cfg.versions
+      .filter(v => new Date(v.effectiveFrom) <= searchDate)
+      .sort((a, b) => new Date(b.effectiveFrom) - new Date(a.effectiveFrom))[0];
+    if (matchedVersion) {
+      activeConfig = matchedVersion;
+    }
+  }
+
+  const slabs = activeConfig.slabs || cfg.slabs || [];
+  if (slabs.length === 0) return 0;
+
+  const matchedSlab = slabs.find(s => gross <= s.upTo);
+  const slabAmount = matchedSlab ? matchedSlab.monthly : slabs[slabs.length - 1].monthly;
 
   if (
     stateCode.toUpperCase() === 'MH' &&
     Number(month) === 2 &&
-    cfg.februaryTopBracketThreshold !== undefined &&
-    gross > cfg.februaryTopBracketThreshold
+    activeConfig.februaryTopBracketThreshold !== undefined &&
+    gross > activeConfig.februaryTopBracketThreshold
   ) {
-    return cfg.februaryTopBracketAmount;
+    return activeConfig.februaryTopBracketAmount;
   }
 
   return slabAmount;
