@@ -149,12 +149,6 @@ const EmployeeRow = ({
     return calculatedSnapshot;
   }, [existingPayroll, calculatedSnapshot]);
 
-  if (!snapshot) return null;
-
-  const isHourly = employee.payType === 'hourly' || employee.compensationType === 'hourly';
-  const paidTooHigh = !isHourly && Number(row?.paidDays) > Number(row?.workingDays || monthWorkingDays);
-  const isExistingDisabled = existingPayroll && existingPayroll.status !== 'draft';
-
   const otherAllowancesTotal = useMemo(() => {
     if (!snapshot?.earnings?.otherEarnings) return 0;
     const filtered = snapshot.earnings.otherEarnings.filter(
@@ -162,6 +156,12 @@ const EmployeeRow = ({
     );
     return sumNamedAmounts(filtered);
   }, [snapshot?.earnings?.otherEarnings, earningComponents]);
+
+  if (!snapshot) return null;
+
+  const isHourly = employee.payType === 'hourly' || employee.compensationType === 'hourly';
+  const paidTooHigh = !isHourly && Number(row?.paidDays) > Number(row?.workingDays || monthWorkingDays);
+  const isExistingDisabled = existingPayroll && existingPayroll.status !== 'draft';
 
   const isPfEnabled = row?.pfEnabled !== undefined ? row.pfEnabled : snapshot?.master?.pfEnabled !== false;
   const isTdsEnabled = row?.tdsEnabled !== undefined ? row.tdsEnabled : snapshot?.master?.tdsEnabled !== false;
@@ -260,49 +260,140 @@ const EmployeeRow = ({
         </div>
       </td>
       <td className="px-4 py-2.5 min-w-[180px]">
-        {isHourly ? (
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              min="0"
-              value={row?.hoursWorked ?? 160}
-              disabled={isExistingDisabled}
-              onChange={(e) => updateRow(employee._id, 'hoursWorked', Number(e.target.value) || 0)}
-              className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
-            />
-            <span className="text-gray-400 text-xs">hrs</span>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-1">
-            <div className="flex gap-1.5">
-              <input type="number" min="0" value={row?.paidDays ?? 0} disabled={isExistingDisabled} onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400" />
-              <span className="self-center text-gray-400 text-xs">/</span>
-              <input type="number" min="1" value={row?.workingDays ?? monthWorkingDays} disabled={isExistingDisabled} onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400" />
-            </div>
-            {(() => {
-              const source = existingPayroll?.attendanceSource || row?.attendanceSource || 'default';
-              if (source === 'hrms') {
-                return (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 self-start">
-                    HRMS Sync
-                  </span>
-                );
-              } else if (source === 'manual') {
-                return (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 self-start">
-                    Manual Override
-                  </span>
-                );
-              } else {
-                return (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-50 text-slate-500 border border-slate-200 self-start">
-                    Default Fallback
-                  </span>
-                );
-              }
-            })()}
-          </div>
-        )}
+        {(() => {
+          const compType = employee.compensationType || (employee.payType === 'hourly' ? 'hourly' : 'monthly_salary');
+          const updatePeriodInput = (field, val) => {
+            const existingPeriodInput = row?.periodInput || {};
+            updateRow(employee._id, 'periodInput', { ...existingPeriodInput, [field]: val });
+          };
+
+          if (['monthly_salary', 'attendance_based', 'salary_plus_commission'].includes(compType)) {
+            return (
+              <div className="flex flex-col gap-1">
+                <div className="flex gap-1.5">
+                  <input type="number" min="0" value={row?.paidDays ?? 0} disabled={isExistingDisabled} onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400" />
+                  <span className="self-center text-gray-400 text-xs">/</span>
+                  <input type="number" min="1" value={row?.workingDays ?? monthWorkingDays} disabled={isExistingDisabled} onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400" />
+                </div>
+                {compType === 'salary_plus_commission' && (
+                  <div className="text-[10px] text-amber-700 font-medium">
+                    + Comm: {fmtMoney((row?.variableTransactions || []).reduce((sum, t) => sum + (t.amount || 0), 0))}
+                  </div>
+                )}
+              </div>
+            );
+          } else if (['hourly', 'timesheet_based'].includes(compType)) {
+            return (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number" min="0"
+                  value={row?.hoursWorked ?? row?.periodInput?.hoursWorked ?? 160}
+                  disabled={isExistingDisabled}
+                  onChange={(e) => {
+                    const hrs = Number(e.target.value) || 0;
+                    updateRow(employee._id, 'hoursWorked', hrs);
+                    updatePeriodInput('hoursWorked', hrs);
+                  }}
+                  className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+                />
+                <span className="text-gray-400 text-xs">hrs</span>
+              </div>
+            );
+          } else if (compType === 'daily_wage') {
+            return (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number" min="0"
+                  value={row?.periodInput?.daysWorked ?? row?.paidDays ?? 26}
+                  disabled={isExistingDisabled}
+                  onChange={(e) => {
+                    const days = Number(e.target.value) || 0;
+                    updateRow(employee._id, 'paidDays', days);
+                    updatePeriodInput('daysWorked', days);
+                  }}
+                  className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+                />
+                <span className="text-gray-400 text-xs">days</span>
+              </div>
+            );
+          } else if (compType === 'piece_rate') {
+            return (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number" min="0"
+                  placeholder="Units"
+                  value={row?.periodInput?.unitsProduced ?? 0}
+                  disabled={isExistingDisabled}
+                  onChange={(e) => updatePeriodInput('unitsProduced', Number(e.target.value) || 0)}
+                  className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+                />
+                <span className="text-gray-400 text-xs">units</span>
+              </div>
+            );
+          } else if (compType === 'project_based') {
+            return (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number" min="0"
+                  placeholder="Project Fee"
+                  value={row?.periodInput?.projectFee ?? 0}
+                  disabled={isExistingDisabled}
+                  onChange={(e) => updatePeriodInput('projectFee', Number(e.target.value) || 0)}
+                  className="w-24 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+                />
+              </div>
+            );
+          } else if (compType === 'milestone_based') {
+            return (
+              <div className="flex flex-col gap-1">
+                <input
+                  type="number" min="0"
+                  placeholder="Amount ₹"
+                  value={row?.periodInput?.milestoneAmount ?? 0}
+                  disabled={isExistingDisabled}
+                  onChange={(e) => updatePeriodInput('milestoneAmount', Number(e.target.value) || 0)}
+                  className="w-24 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Milestone ref"
+                  value={row?.periodInput?.milestoneRef ?? ''}
+                  disabled={isExistingDisabled}
+                  onChange={(e) => updatePeriodInput('milestoneRef', e.target.value)}
+                  className="w-24 border border-gray-300 rounded px-1.5 py-0.5 text-[10px] disabled:bg-gray-100 disabled:text-gray-400"
+                />
+              </div>
+            );
+          } else if (compType === 'commission_only') {
+            const commSum = (row?.variableTransactions || []).reduce((sum, t) => sum + (t.amount || 0), 0);
+            return (
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-semibold text-gray-800">{fmtMoney(commSum)}</span>
+                <span className="text-[9px] text-blue-600 font-bold">Commission Only</span>
+              </div>
+            );
+          } else if (compType === 'retainer') {
+            const isSkipped = Boolean(row?._skipPeriod);
+            return (
+              <div className="flex flex-col gap-1">
+                <span className={`text-xs font-semibold ${isSkipped ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+                  {fmtMoney(employee.monthlyCTC || 0)}
+                </span>
+                <label className="inline-flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isSkipped}
+                    disabled={isExistingDisabled}
+                    onChange={(e) => updateRow(employee._id, '_skipPeriod', e.target.checked)}
+                    className="w-3 h-3 rounded"
+                  />
+                  <span className="text-[9px] text-gray-500 font-medium">Skip period</span>
+                </label>
+              </div>
+            );
+          }
+          return null;
+        })()}
         {paidTooHigh ? <div className="mt-1 text-[10px] text-red-600">Paid days cannot exceed working days.</div> : null}
       </td>
       <td className="px-4 py-2.5 text-xs whitespace-nowrap">
@@ -365,6 +456,7 @@ const PayrollProcessing = () => {
   const [localDeductions, setLocalDeductions] = useState([]);
   const [localExcludedClaimIds, setLocalExcludedClaimIds] = useState(new Set());
   const [localVariableTransactions, setLocalVariableTransactions] = useState([]);
+  const [compensationTypesMap, setCompensationTypesMap] = useState({});
 
   const remainderId = useMemo(() => {
     return config?.salaryComponents?.find(c => c.linkedTo === 'remainder')?.id || 'special';
@@ -438,14 +530,21 @@ const PayrollProcessing = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [employeesRes, configRes, claimsRes, settingsRes, payrollsRes, transactionsRes] = await Promise.all([
+        const [employeesRes, configRes, claimsRes, settingsRes, payrollsRes, transactionsRes, compTypesRes] = await Promise.all([
           api.get(`/employees/active?month=${month}&year=${year}`, { signal: controller.signal }),
           api.get('/payroll/config', { signal: controller.signal }),
           api.get(`/reimbursements?status=approved&month=${month}&year=${year}`, { signal: controller.signal }),
           api.get('/settings', { signal: controller.signal }),
           api.get(`/payroll?month=${month}&year=${year}&limit=1000`, { signal: controller.signal }),
           api.get(`/payroll-variable-transactions?month=${month}&year=${year}&status=approved`, { signal: controller.signal }),
+          api.get('/payroll/compensation-types', { signal: controller.signal }).catch(() => ({ data: [] })),
         ]);
+
+        if (compTypesRes.data && Array.isArray(compTypesRes.data)) {
+          const map = {};
+          compTypesRes.data.forEach(ct => { map[ct.key] = ct; });
+          setCompensationTypesMap(map);
+        }
 
         const nextConfig = { ...DEFAULT_PAYROLL_CONFIG, ...(configRes.data || {}) };
         const activeEmployees = employeesRes.data || [];

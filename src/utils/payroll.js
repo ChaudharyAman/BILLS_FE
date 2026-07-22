@@ -953,12 +953,24 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
   const isHourly = employee.payType === 'hourly';
   const hoursWorked = isHourly ? (Number(attendance?.hoursWorked) || Number(adjustments?.hoursWorked) || Number(employee.hoursWorked) || 0) : 0;
 
+  const periodInput = {
+    daysWorked:      Number(adjustments.daysWorked ?? attendance?.paidDays ?? 0),
+    unitsProduced:   Number(adjustments.unitsProduced ?? 0),
+    hoursLogged:     Number(adjustments.hoursLogged ?? adjustments.timesheetHours ?? 0),
+    hoursWorked:     Number(attendance?.hoursWorked ?? adjustments.hoursWorked ?? employee.hoursWorked ?? 0),
+    projectFee:      adjustments.projectFee !== undefined ? Number(adjustments.projectFee) : undefined,
+    milestoneAmount: adjustments.milestoneAmount !== undefined ? Number(adjustments.milestoneAmount) : undefined,
+    ratePerUnit:     adjustments.ratePerUnit !== undefined ? Number(adjustments.ratePerUnit) : undefined,
+    variableTransactions: Array.isArray(adjustments.variableTransactions) ? adjustments.variableTransactions : [],
+  };
+
   for (let d = 1; d <= totalDaysInMonth; d++) {
     const currentStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const activeParams = getEmployeeParamsForDate(currentStr);
     
     const daySource = {
       ...activeParams,
+      _periodInput: periodInput,
       hoursWorked: isHourly ? hoursWorked : undefined,
       pfEnabled: adjustments.pfEnabled !== undefined ? adjustments.pfEnabled : activeParams.pfEnabled,
       tdsEnabled: adjustments.tdsEnabled !== undefined ? adjustments.tdsEnabled : activeParams.tdsEnabled,
@@ -1424,6 +1436,12 @@ export const serializeRow = (row, monthWorkingDays) => {
     advanceDeduction: Number(row?.advanceDeduction) || 0,
     tds: row?.tds !== undefined && row?.tds !== null ? Number(row.tds) : undefined,
     hoursWorked: Number(row?.hoursWorked) || 0,
+    daysWorked: row?.daysWorked !== undefined ? Number(row.daysWorked) : (row?.adjustments?.daysWorked !== undefined ? Number(row.adjustments.daysWorked) : undefined),
+    unitsProduced: row?.unitsProduced !== undefined ? Number(row.unitsProduced) : (row?.adjustments?.unitsProduced !== undefined ? Number(row.adjustments.unitsProduced) : undefined),
+    hoursLogged: row?.hoursLogged !== undefined ? Number(row.hoursLogged) : (row?.adjustments?.hoursLogged !== undefined ? Number(row.adjustments.hoursLogged) : undefined),
+    projectFee: row?.projectFee !== undefined ? Number(row.projectFee) : (row?.adjustments?.projectFee !== undefined ? Number(row.adjustments.projectFee) : undefined),
+    milestoneAmount: row?.milestoneAmount !== undefined ? Number(row.milestoneAmount) : (row?.adjustments?.milestoneAmount !== undefined ? Number(row.adjustments.milestoneAmount) : undefined),
+    ratePerUnit: row?.ratePerUnit !== undefined ? Number(row.ratePerUnit) : (row?.adjustments?.ratePerUnit !== undefined ? Number(row.adjustments.ratePerUnit) : undefined),
     otherEarnings: row?.otherEarnings || [],
     otherDeductions: row?.otherDeductions || [],
     pfEnabled: row?.pfEnabled,
