@@ -212,15 +212,35 @@ const PayslipGeneration = () => {
     }
 
     // Deductions list
-    const deductions = [
-      { name: 'PF - Employees', amount: slip.deductions?.pfEmployee || 0 },
-      { name: 'ESIC Deduction', amount: slip.deductions?.esiEmployee || 0 },
-      { name: 'Prof Tax Deduction', amount: slip.deductions?.professionalTax || 0 },
-      { name: 'Income Tax', amount: slip.deductions?.tds || 0 },
-      { name: 'Advance Deduction', amount: slip.deductions?.advanceDeduction || 0 },
-      { name: 'Insurance Deduction', amount: slip.deductions?.insuranceEmployee || 0 },
-      { name: 'Employer PF', amount: slip.employerContributions?.pfEmployer || 0 }
-    ].filter(d => d.amount > 0);
+    let deductions = [];
+    if (Array.isArray(slip.deductionsLineItems) && slip.deductionsLineItems.length > 0) {
+      deductions = slip.deductionsLineItems.map(item => ({
+        name: item.name + (item.details ? ` (${item.details})` : ''),
+        amount: item.amount
+      }));
+    } else {
+      deductions = [
+        { name: 'PF - Employees', amount: slip.deductions?.pfEmployee || 0 },
+        { name: 'ESIC Deduction', amount: slip.deductions?.esiEmployee || 0 },
+        { name: 'Prof Tax Deduction', amount: slip.deductions?.professionalTax || 0 },
+        { name: 'Income Tax', amount: slip.deductions?.tds || 0 },
+        { name: 'Advance Deduction', amount: slip.deductions?.advanceDeduction || 0 },
+        { name: 'Insurance Deduction', amount: slip.deductions?.insuranceEmployee || 0 },
+        { name: 'Employer PF', amount: slip.employerContributions?.pfEmployer || 0 }
+      ];
+
+      if (Array.isArray(slip.deductions?.loanRepayments) && slip.deductions.loanRepayments.length > 0) {
+        slip.deductions.loanRepayments.forEach(lr => {
+          if (Number(lr.amountApplied) > 0) {
+            deductions.push({ name: `Loan (${lr.loanReference || 'Repayment'})`, amount: lr.amountApplied });
+          }
+        });
+      } else if (slip.deductions?.loanDeduction > 0) {
+        deductions.push({ name: 'Loan Recovery', amount: slip.deductions.loanDeduction });
+      }
+
+      deductions = deductions.filter(d => d.amount > 0);
+    }
 
     // Determine how many rows to render so the table is aligned
     const maxRows = Math.max(earnings.length, deductions.length, 8);
@@ -328,12 +348,25 @@ const PayslipGeneration = () => {
             <div className="text-center flex-1 pr-10">
               <h1 className="text-sm font-bold uppercase tracking-tight">{company.companyName || 'Resource Gateway Consulting Private Limited'}</h1>
               <p className="text-[10px] text-gray-700 mt-0.5">{company.address?.line1 || 'C - 5/25, First Floor, Sector- 52'}, {company.address?.city || 'Gurgaon'}, {company.address?.state || 'Haryana'}</p>
-              <h2 className="text-xs font-bold mt-2 tracking-wide">PAY SLIP FOR THE MONTH OF {payPeriod}</h2>
+              <h2 className="text-xs font-bold mt-2 tracking-wide text-blue-950">
+                {Boolean(slip.isFullAndFinal || slip.settlementType === 'full_and_final') ? `FINAL SETTLEMENT STATEMENT — ${payPeriod}` : `PAY SLIP FOR THE MONTH OF ${payPeriod}`}
+              </h2>
             </div>
             <div className="text-right text-[10px] font-bold text-gray-800 whitespace-nowrap self-start">
               {employee.taxRegime === 'old' ? 'OLD TAX REGIME' : 'NEW TAX REGIME'}
             </div>
           </div>
+
+          {/* Compliance & Net Pay Warnings Banner */}
+          {Array.isArray(slip.complianceNotes) && slip.complianceNotes.length > 0 && (
+            <div className="bg-amber-50 border-b border-black p-2 text-[10px] font-semibold text-amber-900 font-sans space-y-0.5">
+              {slip.complianceNotes.map((note, idx) => (
+                <div key={idx} className="flex items-center gap-1">
+                  <span>⚠️</span> <span>{note}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Employee Info Grid */}
           <div className="grid grid-cols-3 border-b border-black">
