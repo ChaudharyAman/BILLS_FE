@@ -271,6 +271,7 @@ const EmployeeRow = ({
   selected,
   onToggleSelected,
   setBreakdownEmployee,
+  setFnfEmployee,
   monthWorkingDays,
   updateRow,
   claimsMap,
@@ -353,13 +354,20 @@ const EmployeeRow = ({
         ? (snapshot.master.hraPercent > 1 ? snapshot.master.hraPercent : snapshot.master.hraPercent * 100)
         : 50);
 
+  const isExitingInPeriod = useMemo(() => {
+    if (!employee.dateOfLeaving) return false;
+    const dol = new Date(employee.dateOfLeaving);
+    return dol.getUTCFullYear() === Number(year) && (dol.getUTCMonth() + 1) === Number(month);
+  }, [employee.dateOfLeaving, month, year]);
+
   return (
-    <tr key={employee._id} className={`${isExistingDisabled ? 'bg-gray-50 text-gray-500 opacity-80' : 'hover:bg-blue-50/40'} align-top`}>
+    <tr key={employee._id} className={`${isExistingDisabled ? 'bg-gray-50 text-gray-500 opacity-80' : (isExitingInPeriod ? 'bg-amber-50/60 border-l-4 border-l-amber-500' : 'hover:bg-blue-50/40')} align-top`}>
       <td className="px-4 py-2.5">
         <input
           type="checkbox"
-          checked={isExistingDisabled ? false : Boolean(selected)}
-          disabled={Boolean(isExistingDisabled)}
+          checked={isExistingDisabled || isExitingInPeriod ? false : Boolean(selected)}
+          disabled={Boolean(isExistingDisabled || isExitingInPeriod)}
+          title={isExitingInPeriod ? 'Exiting employee in this period — process via Final Settlement' : ''}
           onChange={(e) => onToggleSelected(employee._id, e.target.checked)}
           className="w-3.5 h-3.5 disabled:opacity-50"
         />
@@ -397,13 +405,50 @@ const EmployeeRow = ({
               )}
             </div>
           ) : null}
-          <button
-            type="button"
-            onClick={() => setBreakdownEmployee(employee)}
-            className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left flex items-center gap-1 self-start mt-0.5"
-          >
-            <FaCalculator className="w-2.5 h-2.5" /> {isExistingDisabled ? 'View Breakdown' : 'Breakdown & Adjust'}
-          </button>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            {isExitingInPeriod ? (
+              <button
+                type="button"
+                onClick={() => setFnfEmployee(employee)}
+                className="text-[11px] font-bold text-white bg-amber-600 hover:bg-amber-700 px-2.5 py-1 rounded-md shadow-xs transition-colors flex items-center gap-1 self-start"
+              >
+                📜 Process Final Settlement
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setFnfEmployee(employee)}
+                className="text-[10px] font-bold text-amber-700 hover:text-amber-900 hover:underline transition-colors text-left flex items-center gap-1 self-start"
+              >
+                📜 Full & Final (F&F)
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setBreakdownEmployee(employee)}
+              className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left flex items-center gap-1 self-start"
+            >
+              <FaCalculator className="w-2.5 h-2.5" /> {isExistingDisabled ? 'View Breakdown' : 'Breakdown & Adjust'}
+            </button>
+
+            {employee.dateOfLeaving && (
+              <span className={`text-[9px] font-bold rounded px-1.5 py-0.5 ${isExitingInPeriod ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                🚨 Exiting{isExitingInPeriod ? ' This Period' : ''}: {new Date(employee.dateOfLeaving).toLocaleDateString('en-IN')}
+              </span>
+            )}
+          </div>
+          {/* Edge Case Warning Badges: Net Pay Clamped & Below Minimum Wage */}
+          {(snapshot?.netPayClamped || snapshot?.payrollShortfall?.shortfallAmount > 0) && (
+            <div className="mt-1 text-[9px] font-bold text-amber-900 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5 self-start flex items-center gap-1 shadow-2xs" title="Net salary was clamped to ₹0 because deductions exceeded gross earnings">
+              ⚠️ Net Pay Clamped (Shortfall: {fmtMoney(snapshot.payrollShortfall?.shortfallAmount || 0)})
+            </div>
+          )}
+          {(snapshot?.belowMinimumWage || snapshot?.minimumWageCompliance?.flagged) && (
+            <div className="mt-1 text-[9px] font-bold text-rose-900 bg-rose-100 border border-rose-300 rounded px-1.5 py-0.5 self-start flex items-center gap-1 shadow-2xs" title={snapshot.minimumWageCompliance?.warningMessage || 'Gross earnings below minimum wage floor'}>
+              ⚠️ Below Minimum Wage Floor ({snapshot.minimumWageCompliance?.state || 'State'})
+            </div>
+          )}
           
           {/* Statutory Settings Badges */}
           <div className="flex flex-wrap gap-1 mt-1 font-mono">
@@ -526,6 +571,9 @@ const PayrollProcessing = () => {
   const [localVariableTransactions, setLocalVariableTransactions] = useState([]);
   const [compensationTypesMap, setCompensationTypesMap] = useState({});
   const [skippedSummaryList, setSkippedSummaryList] = useState([]);
+  const [fnfEmployee, setFnfEmployee] = useState(null);
+  const [fnfForm, setFnfForm] = useState({ noticePeriodServedDays: 0, noticePeriodRequiredDays: 30, leaveEncashmentDays: 0, comments: '' });
+  const [processingFnf, setProcessingFnf] = useState(false);
 
   const remainderId = useMemo(() => {
     return config?.salaryComponents?.find(c => c.linkedTo === 'remainder')?.id || 'special';
@@ -990,6 +1038,35 @@ const PayrollProcessing = () => {
     );
   }, [breakdownEmployee, rows, config, month, year]);
 
+  const handleProcessFnf = async (e) => {
+    e.preventDefault();
+    if (!fnfEmployee) return;
+    try {
+      setProcessingFnf(true);
+      const exitDateVal = fnfEmployee.dateOfLeaving 
+        ? new Date(fnfEmployee.dateOfLeaving) 
+        : new Date(year, month - 1, new Date(year, month, 0).getDate());
+      
+      const payload = {
+        employeeId: fnfEmployee._id,
+        lastWorkingDay: exitDateVal.toISOString(),
+        noticePeriodServedDays: Number(fnfForm.noticePeriodServedDays) || 0,
+        noticePeriodRequiredDays: Number(fnfForm.noticePeriodRequiredDays) || 0,
+        leaveEncashmentDays: Number(fnfForm.leaveEncashmentDays) || 0,
+        comments: fnfForm.comments || '',
+      };
+      const res = await api.post('/payroll/full-and-final', payload);
+      toast.success(res.data?.message || 'Full & Final Settlement processed successfully!');
+      setFnfEmployee(null);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to process Full & Final Settlement');
+    } finally {
+      setProcessingFnf(false);
+    }
+  };
+
   const submit = async (saveAsDraft) => {
     const invalid = selectedEmployees.find((employee) => {
       const row = rows[employee._id] || {};
@@ -1184,6 +1261,7 @@ const PayrollProcessing = () => {
                   selected={selected[employee._id]}
                   onToggleSelected={(empId, val) => setSelected((prev) => ({ ...prev, [empId]: val }))}
                   setBreakdownEmployee={setBreakdownEmployee}
+                  setFnfEmployee={setFnfEmployee}
                   monthWorkingDays={monthWorkingDays}
                   updateRow={updateRow}
                   claimsMap={claimsMap}
@@ -1254,6 +1332,30 @@ const PayrollProcessing = () => {
 
               {/* Modal Body */}
               <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6">
+                {/* Edge Case Warning Banners: Net Pay Clamped & Below Minimum Wage */}
+                {localSnapshot?.netPayClamped && (
+                  <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 text-amber-900 text-xs font-medium space-y-1">
+                    <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                      ⚠️ Net Pay Clamped to ₹0 (Deductions Exceeded Gross Earnings)
+                    </div>
+                    <p className="text-[11px] text-amber-800 leading-relaxed">
+                      Total deductions ({fmtMoney(localSnapshot.deductions?.totalDeductions)}) exceeded total earnings ({fmtMoney(localSnapshot.earnings?.totalEarnings)}).
+                      Non-statutory deductions (loans/advances) were clamped by {fmtMoney(localSnapshot.payrollShortfall?.shortfallAmount || 0)} to prevent negative net salary.
+                    </p>
+                  </div>
+                )}
+
+                {localSnapshot?.belowMinimumWage && (
+                  <div className="bg-rose-50 border border-rose-300 rounded-xl p-3 text-rose-900 text-xs font-medium space-y-1">
+                    <div className="font-bold flex items-center gap-1.5 text-rose-950">
+                      ⚠️ Statutory Minimum Wage Violation Flag
+                    </div>
+                    <p className="text-[11px] text-rose-800 leading-relaxed">
+                      {localSnapshot.minimumWageCompliance?.warningMessage || 'Computed gross earnings are below the statutory minimum wage floor for this state.'}
+                    </p>
+                  </div>
+                )}
+
                 {/* Proration Summary Banner */}
                 {localSnapshot && (
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-900 text-sm">
@@ -1667,6 +1769,120 @@ const PayrollProcessing = () => {
                             </select>
                           </div>
                         )}
+                        {/* Overtime Policy Structured Inputs */}
+                        <div className="col-span-full border border-slate-200 rounded-xl p-3 bg-white shadow-xs space-y-2">
+                          <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                            <span className="font-bold text-slate-800 text-xs flex items-center gap-1">
+                              ⏱️ Overtime Hours & Flat Override
+                            </span>
+                            <span className="text-[10px] text-slate-400">Policy Multipliers: Weekday {config?.overtimePolicy?.weekdayMultiplier || 1.5}x · Weekend {config?.overtimePolicy?.weekendMultiplier || 2.0}x · Holiday {config?.overtimePolicy?.holidayMultiplier || 2.0}x</span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Weekday Hrs</label>
+                              <input
+                                type="number" min="0" step="0.5"
+                                disabled={isReadOnly}
+                                value={typeof rows[empId]?.overtime === 'object' ? (rows[empId]?.overtime?.weekdayHours ?? 0) : 0}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value) || 0;
+                                  const curr = (typeof rows[empId]?.overtime === 'object' && rows[empId]?.overtime) ? rows[empId].overtime : {};
+                                  updateRow(empId, 'overtime', { ...curr, weekdayHours: val });
+                                }}
+                                className="w-full border border-slate-300 rounded px-2 py-1 text-right font-semibold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Weekend Hrs</label>
+                              <input
+                                type="number" min="0" step="0.5"
+                                disabled={isReadOnly}
+                                value={typeof rows[empId]?.overtime === 'object' ? (rows[empId]?.overtime?.weekendHours ?? 0) : 0}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value) || 0;
+                                  const curr = (typeof rows[empId]?.overtime === 'object' && rows[empId]?.overtime) ? rows[empId].overtime : {};
+                                  updateRow(empId, 'overtime', { ...curr, weekendHours: val });
+                                }}
+                                className="w-full border border-slate-300 rounded px-2 py-1 text-right font-semibold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Holiday Hrs</label>
+                              <input
+                                type="number" min="0" step="0.5"
+                                disabled={isReadOnly}
+                                value={typeof rows[empId]?.overtime === 'object' ? (rows[empId]?.overtime?.holidayHours ?? 0) : 0}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value) || 0;
+                                  const curr = (typeof rows[empId]?.overtime === 'object' && rows[empId]?.overtime) ? rows[empId].overtime : {};
+                                  updateRow(empId, 'overtime', { ...curr, holidayHours: val });
+                                }}
+                                className="w-full border border-slate-300 rounded px-2 py-1 text-right font-semibold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Flat Override (₹)</label>
+                              <input
+                                type="number" min="0" step="any"
+                                placeholder="Flat ₹"
+                                disabled={isReadOnly}
+                                value={typeof rows[empId]?.overtime === 'object' ? (rows[empId]?.overtime?.customAmount ?? '') : (Number(rows[empId]?.overtime) || '')}
+                                onChange={(e) => {
+                                  const val = e.target.value === '' ? 0 : Number(e.target.value) || 0;
+                                  const curr = (typeof rows[empId]?.overtime === 'object' && rows[empId]?.overtime) ? rows[empId].overtime : {};
+                                  updateRow(empId, 'overtime', { ...curr, customAmount: val });
+                                }}
+                                className="w-full border border-slate-300 rounded px-2 py-1 text-right font-semibold"
+                              />
+                            </div>
+                          </div>
+                          {/* Computed Overtime Breakdown Display */}
+                          {(() => {
+                            const otBreakdown = localSnapshot?.earnings?.overtimeBreakdown;
+                            const totalOtPay = localSnapshot?.earnings?.overtime || 0;
+                            if (!otBreakdown && totalOtPay === 0) return null;
+                            const hrRate = otBreakdown?.hourlyRate || (localSnapshot?.master?.hourlyRate || 0);
+                            return (
+                              <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 space-y-1.5 text-[11px] text-slate-700 mt-2">
+                                <div className="flex justify-between font-bold text-slate-800 border-b border-slate-200/80 pb-1">
+                                  <span>Computed OT Pay: {fmtMoney(totalOtPay)}</span>
+                                  <span>Base Rate: ₹{Math.round(hrRate * 100) / 100}/hr</span>
+                                </div>
+                                <div className="space-y-1 text-[10px] text-slate-600">
+                                  {otBreakdown?.weekday?.hours > 0 && (
+                                    <div className="flex justify-between">
+                                      <span>Weekday: {otBreakdown.weekday.hours} hrs × ₹{Math.round(otBreakdown.weekday.rate * 100)/100} × {otBreakdown.weekday.multiplier}x</span>
+                                      <span className="font-semibold text-slate-800">={fmtMoney(otBreakdown.weekday.amount)}</span>
+                                    </div>
+                                  )}
+                                  {otBreakdown?.weekend?.hours > 0 && (
+                                    <div className="flex justify-between">
+                                      <span>Weekend: {otBreakdown.weekend.hours} hrs × ₹{Math.round(otBreakdown.weekend.rate * 100)/100} × {otBreakdown.weekend.multiplier}x</span>
+                                      <span className="font-semibold text-slate-800">={fmtMoney(otBreakdown.weekend.amount)}</span>
+                                    </div>
+                                  )}
+                                  {otBreakdown?.holiday?.hours > 0 && (
+                                    <div className="flex justify-between">
+                                      <span>Holiday: {otBreakdown.holiday.hours} hrs × ₹{Math.round(otBreakdown.holiday.rate * 100)/100} × {otBreakdown.holiday.multiplier}x</span>
+                                      <span className="font-semibold text-slate-800">={fmtMoney(otBreakdown.holiday.amount)}</span>
+                                    </div>
+                                  )}
+                                  {otBreakdown?.customAmount > 0 && (
+                                    <div className="flex justify-between">
+                                      <span>Flat Override:</span>
+                                      <span className="font-semibold text-slate-800">={fmtMoney(otBreakdown.customAmount)}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                          {localSnapshot?.earnings?.overtimeCapWarning?.flagged && (
+                            <div className="text-[10px] text-amber-700 font-bold bg-amber-50 p-1.5 rounded border border-amber-200 mt-1">
+                              ⚠️ {localSnapshot.earnings.overtimeCapWarning.warningMessage}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -2050,6 +2266,28 @@ const PayrollProcessing = () => {
                                 {(!isHourly || localSnapshot.deductions.tds > 0) && (
                                   <DeductionRow label="Income Tax (TDS)" amount={localSnapshot.deductions.tds} isEditable={!isReadOnly} value={rows[empId]?.tds} onChange={(val) => updateRow(empId, 'tds', val === '' ? undefined : Number(val))} />
                                 )}
+                                {localSnapshot.deductions.loanDeduction > 0 && (
+                                  <DeductionRow label="Loan EMI Recovery" amount={localSnapshot.deductions.loanDeduction} />
+                                )}
+                                {localSnapshot?.deductions?.loanRepayments?.length > 0 && (
+                                  <div className="bg-slate-50 border-t border-slate-200 p-3 space-y-2 text-xs text-slate-700">
+                                    <div className="flex justify-between font-bold text-slate-800 border-b border-slate-200/80 pb-1.5 text-[11px]">
+                                      <span>💳 Multi-Loan Repayment Allocation</span>
+                                      <span>Total: {fmtMoney(localSnapshot.deductions.loanDeduction)}</span>
+                                    </div>
+                                    <div className="space-y-1.5 text-[10px]">
+                                      {localSnapshot.deductions.loanRepayments.map((lr, idx) => (
+                                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded border border-slate-200 shadow-2xs">
+                                          <div className="font-semibold text-slate-900">{lr.loanReference || `Loan #${idx + 1}`}</div>
+                                          <div className="text-right">
+                                            <div className="font-bold text-emerald-700">Applied: {fmtMoney(lr.amountApplied)}</div>
+                                            <div className="text-slate-500">Remaining: {fmtMoney(lr.remainingBalance)}</div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );
@@ -2228,6 +2466,109 @@ const PayrollProcessing = () => {
           </div>
         );
       })()}
+
+      {/* Full & Final Settlement (F&F) Modal */}
+      {fnfEmployee && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-200">
+            <div className="bg-amber-600 px-6 py-4 text-white flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-base flex items-center gap-2">
+                  📜 Full & Final (F&F) Settlement
+                </h3>
+                <p className="text-xs text-amber-100 mt-0.5">
+                  {fnfEmployee.firstName} {fnfEmployee.lastName} ({fnfEmployee.employeeId})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFnfEmployee(null)}
+                className="text-white/80 hover:text-white text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleProcessFnf} className="p-6 space-y-4 text-xs text-slate-700">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-900 leading-relaxed">
+                Processing F&F settlement will calculate gratuity (if tenure &ge; 5 yrs), notice period recovery/shortfall, leave encashment, outstanding loan balance recovery, and mark the employee status as terminated.
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Last Working Day</label>
+                <input
+                  type="date"
+                  required
+                  value={fnfEmployee.dateOfLeaving ? new Date(fnfEmployee.dateOfLeaving).toISOString().split('T')[0] : new Date(year, month - 1, new Date(year, month, 0).getDate()).toISOString().split('T')[0]}
+                  onChange={(e) => {
+                    const d = e.target.value;
+                    setFnfEmployee({ ...fnfEmployee, dateOfLeaving: d });
+                  }}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Notice Required (Days)</label>
+                  <input
+                    type="number" min="0"
+                    value={fnfForm.noticePeriodRequiredDays}
+                    onChange={(e) => setFnfForm({ ...fnfForm, noticePeriodRequiredDays: Number(e.target.value) || 0 })}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Notice Served (Days)</label>
+                  <input
+                    type="number" min="0"
+                    value={fnfForm.noticePeriodServedDays}
+                    onChange={(e) => setFnfForm({ ...fnfForm, noticePeriodServedDays: Number(e.target.value) || 0 })}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Leave Encashment Days</label>
+                <input
+                  type="number" min="0" step="0.5"
+                  value={fnfForm.leaveEncashmentDays}
+                  onChange={(e) => setFnfForm({ ...fnfForm, leaveEncashmentDays: Number(e.target.value) || 0 })}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Settlement Comments / Notes</label>
+                <textarea
+                  rows="2"
+                  placeholder="Optional exit notes..."
+                  value={fnfForm.comments}
+                  onChange={(e) => setFnfForm({ ...fnfForm, comments: e.target.value })}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setFnfEmployee(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={processingFnf}
+                  className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold disabled:opacity-50"
+                >
+                  {processingFnf ? 'Processing F&F...' : 'Finalize & Process F&F'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

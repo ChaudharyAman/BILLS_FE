@@ -38,7 +38,14 @@ export const usePayrollSnapshot = (employee, config, row, monthWorkingDays) => {
     };
 
     const adjustments = {
-      overtime:             Number(row.overtime)             || 0,
+      overtime: typeof row.overtime === 'object' && row.overtime !== null
+        ? {
+            weekdayHours: Number(row.overtime.weekdayHours) || 0,
+            weekendHours: Number(row.overtime.weekendHours) || 0,
+            holidayHours: Number(row.overtime.holidayHours) || 0,
+            customAmount: Number(row.overtime.customAmount) || 0,
+          }
+        : (Number(row.overtime) || 0),
       joiningBonus:         Number(row.joiningBonus)         || 0,
       loyaltyBonus:         Number(row.loyaltyBonus)         || 0,
       incentive:            Number(row.incentive)            || 0,
@@ -116,7 +123,7 @@ export const usePayrollSnapshot = (employee, config, row, monthWorkingDays) => {
     row?.paidLeaves,
     row?.unpaidLeaves,
     row?.hoursWorked,
-    row?.overtime,
+    JSON.stringify(row?.overtime),
     row?.joiningBonus,
     row?.loyaltyBonus,
     row?.incentive,

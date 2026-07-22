@@ -1418,6 +1418,50 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
   const reimbursements = Array.isArray(adjustments.reimbursements) ? adjustments.reimbursements : [];
   const totalReimbursementApproved = roundAmount(reimbursements.reduce((sum, r) => sum + (Number(r.approved) || 0), 0));
 
+  const unroundedNet = earnings.totalEarnings + variablePay.totalVariablePay + totalReimbursementApproved - deductions.totalDeductions;
+  const netPayClamped = unroundedNet < 0;
+  const netSalary = roundAmount(Math.max(0, unroundedNet));
+
+  const compType = employee.compensationType || (employee.payType === 'hourly' ? 'hourly' : 'monthly_salary');
+  let belowMinimumWage = false;
+  let minimumWageCompliance = null;
+
+  if (['hourly', 'daily_wage', 'piece_rate', 'timesheet_based'].includes(compType)) {
+    const minSlabs = {
+      KA: { daily: 450, hourly: 56.25 },
+      MH: { daily: 480, hourly: 60.00 },
+      DL: { daily: 650, hourly: 81.25 },
+      TN: { daily: 420, hourly: 52.50 },
+      GJ: { daily: 440, hourly: 55.00 },
+      DEFAULT: { daily: 400, hourly: 50.00 },
+    };
+    const stateKey = (employee.ptState || adjustments.ptState || 'DEFAULT').toUpperCase();
+    const slabs = minSlabs[stateKey] || minSlabs.DEFAULT;
+    let reqMin = 0;
+    if (compType === 'hourly') {
+      const hours = Number(attendance?.hoursWorked) || Number(adjustments?.hoursWorked) || 0;
+      reqMin = hours * slabs.hourly;
+    } else {
+      reqMin = Number(paidDays || 0) * slabs.daily;
+    }
+    if (reqMin > 0 && earnings.totalEarnings < reqMin) {
+      belowMinimumWage = true;
+      minimumWageCompliance = {
+        flagged: true,
+        state: stateKey,
+        computedGross: earnings.totalEarnings,
+        requiredMinimum: reqMin,
+        shortfall: roundAmount(reqMin - earnings.totalEarnings),
+        warningMessage: `[Minimum Wage Flag] Computed gross (₹${earnings.totalEarnings}) is below statutory minimum wage floor (₹${reqMin}) for state ${stateKey}`
+      };
+    }
+  }
+
+  const payrollShortfall = netPayClamped ? {
+    shortfallAmount: roundAmount(Math.abs(unroundedNet)),
+    notes: 'Non-statutory deductions adjusted to prevent negative net salary'
+  } : null;
+
   return {
     earnings,
     employerContributions,
@@ -1426,7 +1470,11 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
     totalPayable,
     reimbursements,
     totalReimbursementApproved,
-    netSalary: roundAmount(Math.max(0, earnings.totalEarnings + variablePay.totalVariablePay + totalReimbursementApproved - deductions.totalDeductions)),
+    netSalary,
+    netPayClamped,
+    belowMinimumWage,
+    payrollShortfall,
+    minimumWageCompliance,
     workingDays,
     paidDays,
     lop: roundAmount(Math.max(workingDays - paidDays, 0)),
@@ -1485,6 +1533,14 @@ export const serializeRow = (row, monthWorkingDays) => {
     paidLeaves: Number(row?.paidLeaves) || 0,
     unpaidLeaves: Number(row?.unpaidLeaves) || 0,
     hoursWorked: Number(row?.hoursWorked) || 0,
+    overtime: typeof row?.overtime === 'object' && row?.overtime !== null
+      ? {
+          weekdayHours: Number(row.overtime.weekdayHours) || 0,
+          weekendHours: Number(row.overtime.weekendHours) || 0,
+          holidayHours: Number(row.overtime.holidayHours) || 0,
+          customAmount: Number(row.overtime.customAmount) || 0,
+        }
+      : (Number(row?.overtime) || 0),
     attendanceSource: row?.attendanceSource || 'default',
     skip: Boolean(row?._skipPeriod),
     skipPeriod: Boolean(row?._skipPeriod),
