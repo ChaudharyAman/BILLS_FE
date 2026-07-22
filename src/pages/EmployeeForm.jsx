@@ -6,6 +6,7 @@ import api from '../api/axios';
 import Modal from '../components/Modal';
 import { buildMasterSalaryStructure, DEFAULT_PAYROLL_CONFIG, fmtMoney } from '../utils/payroll';
 import { PT_STATE_LIST } from '../constants/ptStates';
+import { getOnboardingFields } from '../utils/compensationTypeFields';
 
 export const STRATEGY_FIELD_MAP = {
   monthly_salary:        ['monthlyCTC', 'salaryComponentsEditor'],
@@ -154,13 +155,19 @@ const EmployeeForm = () => {
     }));
   }, [compensationTypes]);
 
-  const dynamicFieldMap = useMemo(() => {
-    const map = { ...STRATEGY_FIELD_MAP };
-    compensationTypes.forEach(ct => {
-      if (ct.inputFieldsAtOnboarding) map[ct.key] = ct.inputFieldsAtOnboarding;
-    });
+  const compensationTypesMap = useMemo(() => {
+    const map = {};
+    compensationTypes.forEach(ct => { map[ct.key] = ct; });
     return map;
   }, [compensationTypes]);
+
+  const dynamicFieldMap = useMemo(() => {
+    const map = {};
+    compensationTypes.forEach(ct => {
+      map[ct.key] = getOnboardingFields(ct.key, compensationTypesMap);
+    });
+    return map;
+  }, [compensationTypes, compensationTypesMap]);
 
   const dynamicUsesComponents = useMemo(() => {
     const map = { ...STRATEGY_USES_COMPONENTS };
@@ -180,6 +187,7 @@ const EmployeeForm = () => {
 
   const isIntern = formData.employmentType === 'intern';
   const compTypeKey = formData.compensationType || 'monthly_salary';
+  const visibleFields = getOnboardingFields(compTypeKey, compensationTypesMap);
   const strategyUsesComponents = dynamicUsesComponents[compTypeKey] ?? true;
   const useComponents = formData.useSalaryComponents !== false && strategyUsesComponents && !isIntern;
 
@@ -768,10 +776,8 @@ const EmployeeForm = () => {
             </div>
           )}
 
-          {step === 3 && (() => {
-            const visibleFields = dynamicFieldMap[formData.compensationType || 'monthly_salary'] || dynamicFieldMap.monthly_salary;
-            return (
-              <div className="space-y-6">
+          {step === 3 && (
+            <div className="space-y-6">
                 {/* Dynamic Inputs per strategy map */}
                 <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
                   <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2">
@@ -1766,8 +1772,7 @@ const EmployeeForm = () => {
                 </div>
               )}
             </div>
-          );
-        })()}
+          )}
 
           {step === 4 && (
             <div className="space-y-6">
