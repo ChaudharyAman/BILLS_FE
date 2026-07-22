@@ -204,6 +204,18 @@ const SalaryCalculator = () => {
     form.rentPaidMonthly, form.isMetroCity, form.otherExemptions
   ]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    api.post('/payroll/calculate-salary', localSource, { signal: controller.signal })
+      .then(res => setServerResult(res.data))
+      .catch(err => {
+        if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
+          console.error('[SalaryCalculator] Server preview calculation error:', err);
+        }
+      });
+    return () => controller.abort();
+  }, [localSource]);
+
   const localMaster = useMemo(() => buildMasterSalaryStructure(localSource, config), [localSource, config]);
   
   const localPayroll = useMemo(() => buildPayrollSnapshot(localSource, config, {

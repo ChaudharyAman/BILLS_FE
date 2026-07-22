@@ -444,25 +444,37 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
     Object.assign(src, breakupObj);
   }
 
-  let monthlyCTC = roundAmount(getMonthlyCTCValue(src));
+  const compType = src.compensationType || (src.payType === 'hourly' ? 'hourly' : 'monthly_salary');
+  const NON_COMPONENT_STRATEGIES = ['hourly', 'daily_wage', 'piece_rate', 'project_based', 'milestone_based', 'timesheet_based', 'commission_only', 'retainer'];
 
-  if (src.payType === 'hourly') {
-    const hours = src.hoursWorked !== undefined ? Number(src.hoursWorked) : 160;
+  if (compType === 'hourly' || compType === 'timesheet_based') {
+    const hours = src.hoursWorked !== undefined ? Number(src.hoursWorked) : (src.periodInput?.hoursWorked ?? 160);
     monthlyCTC = roundAmount((Number(src.hourlyRate) || 0) * hours);
+  } else if (compType === 'daily_wage') {
+    const days = src.paidDays !== undefined ? Number(src.paidDays) : (src.periodInput?.daysWorked ?? 26);
+    monthlyCTC = roundAmount((Number(src.dailyRate) || 0) * days);
+  } else if (compType === 'piece_rate') {
+    const units = Number(src.periodInput?.unitsProduced) || 0;
+    const rate = Number(src.periodInput?.ratePerUnit) || Number(src.rateCard?.[0]?.rate) || 0;
+    monthlyCTC = roundAmount(units * rate);
+  } else if (compType === 'project_based') {
+    monthlyCTC = roundAmount(Number(src.periodInput?.projectFee) || Number(src.projectFee) || 0);
+  } else if (compType === 'milestone_based') {
+    monthlyCTC = roundAmount(Number(src.periodInput?.milestoneAmount) || Number(src.milestoneAmount) || 0);
   }
 
   const isIntern = src.employmentType === 'intern';
-  const isHourly = src.payType === 'hourly';
-  const useComponents = src.useSalaryComponents !== false && !isIntern && !isHourly;
+  const isNonComponentStrategy = NON_COMPONENT_STRATEGIES.includes(compType);
+  const useComponents = src.useSalaryComponents !== false && !isIntern && !isNonComponentStrategy;
 
-  const pfEnabled = !isIntern && !isHourly && src.pfEnabled !== false;
-  const esiEnabled = !isIntern && !isHourly && src.esiEnabled !== false;
-  const ptEnabled = !isIntern && !isHourly && src.ptEnabled !== false;
-  const lwfEnabled = !isIntern && !isHourly && src.lwfEnabled !== false;
+  const pfEnabled = !isIntern && !isNonComponentStrategy && src.pfEnabled !== false;
+  const esiEnabled = !isIntern && !isNonComponentStrategy && src.esiEnabled !== false;
+  const ptEnabled = !isIntern && !isNonComponentStrategy && src.ptEnabled !== false;
+  const lwfEnabled = !isIntern && !isNonComponentStrategy && src.lwfEnabled !== false;
   const tdsEnabled = src.tdsEnabled !== false;
-  const gratuityEnabled = !isIntern && !isHourly && src.gratuityEnabled !== false;
-  const includePfInCTC = !isIntern && !isHourly && src.includePfInCTC === true;
-  const includeGratuityInCTC = !isIntern && !isHourly && src.includeGratuityInCTC !== false;
+  const gratuityEnabled = !isIntern && !isNonComponentStrategy && src.gratuityEnabled !== false;
+  const includePfInCTC = !isIntern && !isNonComponentStrategy && src.includePfInCTC === true;
+  const includeGratuityInCTC = !isIntern && !isNonComponentStrategy && src.includeGratuityInCTC !== false;
 
   let basicPercent = !useComponents ? 1.0 : config.basicPercent;
   if (useComponents && src.basicPercent !== undefined && src.basicPercent !== null && Number(src.basicPercent) > 0) {

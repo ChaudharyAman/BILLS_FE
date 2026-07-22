@@ -769,7 +769,7 @@ const EmployeeForm = () => {
           )}
 
           {step === 3 && (() => {
-            const visibleFields = STRATEGY_FIELD_MAP[formData.compensationType || 'monthly_salary'] || STRATEGY_FIELD_MAP.monthly_salary;
+            const visibleFields = dynamicFieldMap[formData.compensationType || 'monthly_salary'] || dynamicFieldMap.monthly_salary;
             return (
               <div className="space-y-6">
                 {/* Dynamic Inputs per strategy map */}
