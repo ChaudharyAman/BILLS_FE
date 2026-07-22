@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { FaDownload, FaEnvelope, FaChevronLeft } from 'react-icons/fa';
 import api from '../api/axios';
 import Skeleton from '../components/Skeleton';
+import { getPayslipLineItemLabels } from '../utils/compensationTypeFields';
 
 const fmtMoney = (value) => {
   if (value === undefined || value === null || value === '-') return '-';

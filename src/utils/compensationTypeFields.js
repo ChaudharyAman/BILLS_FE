@@ -69,3 +69,24 @@ export function getPeriodInputFields(compType, compensationTypesMap = {}) {
 
   return ['paidDays', 'workingDays'];
 }
+
+/**
+ * Resolves standard line item labels for PayslipGeneration.jsx
+ */
+export function getPayslipLineItemLabels(compType, compensationTypesMap = {}) {
+  const key = compType || 'monthly_salary';
+  const meta = compensationTypesMap[key];
+
+  if (meta && meta.displayName) {
+    return {
+      title: meta.displayName,
+      isComponentBased: meta.usesSalaryComponents !== false
+    };
+  }
+
+  const isComponentBased = ['monthly_salary', 'attendance_based', 'salary_plus_commission', 'weekly_salary'].includes(key);
+  return {
+    title: key.replace(/_/g, ' ').toUpperCase(),
+    isComponentBased
+  };
+}
