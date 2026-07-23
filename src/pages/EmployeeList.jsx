@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { FaDownload, FaEdit, FaEye, FaFileImport, FaPlus, FaUserSlash, FaTrash } from 'react-icons/fa';
+import { FaDownload, FaEdit, FaEye, FaFileImport, FaPlus, FaUserSlash, FaTrash, FaChartLine } from 'react-icons/fa';
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import Skeleton from '../components/Skeleton';
@@ -34,6 +34,19 @@ const EmployeeList = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  // States for bulk salary revision
+  const [showRevisionModal, setShowRevisionModal] = useState(false);
+  const [revisionStep, setRevisionStep] = useState('configure'); // 'configure' | 'preview' | 'result'
+  const [revisionForm, setRevisionForm] = useState({
+    incrementType: 'percentage',
+    incrementValue: '',
+    effectiveDate: new Date().toISOString().slice(0, 10),
+    reason: '',
+  });
+  const [revisionPreview, setRevisionPreview] = useState([]);
+  const [revisionResult, setRevisionResult] = useState(null);
+  const [revisionLoading, setRevisionLoading] = useState(false);
 
   const downloadImportTemplate = async () => {
     try {
@@ -147,6 +160,63 @@ const EmployeeList = () => {
     }
   };
 
+  const openRevisionModal = () => {
+    if (selectedIds.length === 0) { toast.error('Select at least one employee first'); return; }
+    setRevisionStep('configure');
+    setRevisionPreview([]);
+    setRevisionResult(null);
+    setRevisionForm({ incrementType: 'percentage', incrementValue: '', effectiveDate: new Date().toISOString().slice(0, 10), reason: '' });
+    setShowRevisionModal(true);
+  };
+
+  const handleRevisionPreview = async () => {
+    const val = Number(revisionForm.incrementValue);
+    if (!val || val <= 0) { toast.error('Enter a positive increment value'); return; }
+    if (!revisionForm.effectiveDate) { toast.error('Effective date is required'); return; }
+    try {
+      setRevisionLoading(true);
+      const res = await api.post('/employees/bulk-salary-revision', {
+        employeeIds: selectedIds,
+        incrementType: revisionForm.incrementType,
+        incrementValue: val,
+        effectiveDate: revisionForm.effectiveDate,
+        reason: revisionForm.reason || 'Bulk Salary Increment',
+        preview: true,
+        previewOnly: true,
+      });
+      setRevisionPreview(res.data.preview || res.data.success || []);
+      setRevisionStep('preview');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Preview failed');
+    } finally {
+      setRevisionLoading(false);
+    }
+  };
+
+  const handleRevisionCommit = async () => {
+    try {
+      setRevisionLoading(true);
+      const res = await api.post('/employees/bulk-salary-revision', {
+        employeeIds: selectedIds,
+        incrementType: revisionForm.incrementType,
+        incrementValue: Number(revisionForm.incrementValue),
+        effectiveDate: revisionForm.effectiveDate,
+        reason: revisionForm.reason || 'Bulk Salary Increment',
+      });
+      setRevisionResult(res.data);
+      setRevisionStep('result');
+      // Refresh list to show updated CTC values
+      const refreshed = await api.get(`/employees?page=${page}&limit=20`);
+      setEmployees(refreshed.data.data || []);
+      setSelectedIds([]);
+      toast.success(`Salary revision applied to ${res.data.success?.length || 0} employee(s)`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Revision failed');
+    } finally {
+      setRevisionLoading(false);
+    }
+  };
+
   const importSummary = useMemo(() => {
     if (!importResult) return '';
     return `${importResult.imported} employees imported, ${importResult.skipped} skipped, ${importResult.errors?.length || 0} errors`;
@@ -241,13 +311,23 @@ const EmployeeList = () => {
         </div>
         <div className="flex flex-wrap gap-3">
           {selectedIds.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowBulkDeleteModal(true)}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors"
-            >
-              <FaTrash size={14} /> Delete Selected ({selectedIds.length})
-            </button>
+            <>
+              <button
+                type="button"
+                id="btn-bulk-salary-revision"
+                onClick={openRevisionModal}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors"
+              >
+                <FaChartLine size={14} /> Salary Revision ({selectedIds.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors"
+              >
+                <FaTrash size={14} /> Delete Selected ({selectedIds.length})
+              </button>
+            </>
           )}
           <button
             type="button"
@@ -261,6 +341,12 @@ const EmployeeList = () => {
           >
             <FaFileImport size={14} /> Import Excel
           </button>
+          <Link
+            to="/employees/bulk-salary-revision"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors"
+          >
+            <FaChartLine size={14} /> Bulk Salary Revision
+          </Link>
           <button
             type="button"
             onClick={handleExport}
@@ -679,6 +765,174 @@ const EmployeeList = () => {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Bulk Salary Revision Modal */}
+      <Modal
+        isOpen={showRevisionModal}
+        onClose={() => !revisionLoading && setShowRevisionModal(false)}
+        title={revisionStep === 'configure' ? `Salary Revision — ${selectedIds.length} Employee(s)` : revisionStep === 'preview' ? 'Preview Changes' : 'Revision Complete'}
+      >
+        {revisionStep === 'configure' && (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Increment Type</label>
+                <select
+                  value={revisionForm.incrementType}
+                  onChange={e => setRevisionForm(f => ({ ...f, incrementType: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                >
+                  <option value="percentage">Percentage (%)</option>
+                  <option value="flat_amount">Flat Amount (₹)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  {revisionForm.incrementType === 'percentage' ? 'Increment %' : 'Flat Amount (₹)'}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step={revisionForm.incrementType === 'percentage' ? '0.1' : '100'}
+                  value={revisionForm.incrementValue}
+                  onChange={e => setRevisionForm(f => ({ ...f, incrementValue: e.target.value }))}
+                  placeholder={revisionForm.incrementType === 'percentage' ? 'e.g. 10' : 'e.g. 5000'}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Effective Date</label>
+              <input
+                type="date"
+                value={revisionForm.effectiveDate}
+                onChange={e => setRevisionForm(f => ({ ...f, effectiveDate: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Reason (optional)</label>
+              <input
+                type="text"
+                value={revisionForm.reason}
+                onChange={e => setRevisionForm(f => ({ ...f, reason: e.target.value }))}
+                placeholder="Annual increment, promotion, etc."
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => setShowRevisionModal(false)} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold">Cancel</button>
+              <button type="button" onClick={handleRevisionPreview} disabled={revisionLoading} className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold disabled:opacity-60">
+                {revisionLoading ? 'Loading...' : 'Preview Changes →'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {revisionStep === 'preview' && (() => {
+          const validItems = revisionPreview.filter((item) => !item.validationError);
+          const erroredItems = revisionPreview.filter((item) => item.validationError);
+
+          const totalCostChange = validItems.reduce((sum, item) => {
+            if (item.compensationType === 'hourly' || item.compensationType === 'daily_wage') return sum;
+            return sum + (Number(item.newCTC || 0) - Number(item.previousCTC || 0));
+          }, 0);
+
+          return (
+            <div className="space-y-4">
+              <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 font-medium">
+                <span className="font-bold text-blue-950">{validItems.length} employees will be revised</span>
+                {erroredItems.length > 0 && <span>, <span className="font-bold text-amber-700">{erroredItems.length} skipped due to validation errors</span></span>}
+                <span>, total monthly payroll cost change: <span className={`font-bold ${totalCostChange >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{totalCostChange >= 0 ? '+' : ''}{fmtMoney(totalCostChange)}</span></span>
+              </div>
+
+              <div className="border border-gray-200 rounded-xl overflow-hidden max-h-72 overflow-y-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2 text-gray-500 font-semibold">Employee</th>
+                      <th className="px-3 py-2 text-right text-gray-500 font-semibold">Current Pay</th>
+                      <th className="px-3 py-2 text-right text-gray-500 font-semibold">New Pay</th>
+                      <th className="px-3 py-2 text-right text-gray-500 font-semibold">Change</th>
+                      <th className="px-3 py-2 text-center text-gray-500 font-semibold">Type</th>
+                      <th className="px-3 py-2 text-gray-500 font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 bg-white">
+                    {revisionPreview.map((item, i) => {
+                      const isHourly = item.compensationType === 'hourly';
+                      const isDaily = item.compensationType === 'daily_wage';
+                      const prev = isHourly ? (item.previousHourlyRate || 0) : isDaily ? (item.previousDailyRate || 0) : (item.previousCTC || 0);
+                      const next = isHourly ? (item.newHourlyRate || 0) : isDaily ? (item.newDailyRate || 0) : (item.newCTC || 0);
+                      const diff = next - prev;
+                      const pctChange = prev > 0 ? ((diff / prev) * 100).toFixed(1) : '0.0';
+                      const hasErr = Boolean(item.validationError);
+
+                      return (
+                        <tr key={i} className={hasErr ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-gray-50'}>
+                          <td className="px-3 py-2">
+                            <div className="font-semibold text-gray-900">{item.employeeName}</div>
+                            <div className="text-gray-400 text-[10px]">{item.employeeCode}</div>
+                          </td>
+                          <td className="px-3 py-2 text-right text-gray-600">{fmtMoney(prev)}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-gray-900">{fmtMoney(next)}</td>
+                          <td className={`px-3 py-2 text-right font-semibold ${diff >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {diff >= 0 ? '+' : ''}{fmtMoney(diff)} <span className="text-[9px] font-normal text-gray-400">({diff >= 0 ? '+' : ''}{pctChange}%)</span>
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <span className="bg-gray-100 text-gray-700 text-[9px] px-1.5 py-0.5 rounded uppercase font-semibold">
+                              {(item.compensationType || 'monthly').slice(0, 7)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            {hasErr ? (
+                              <span className="text-red-600 font-bold text-[10px]">⚠️ {item.validationError}</span>
+                            ) : (
+                              <span className="text-emerald-600 font-bold text-[10px]">✅ Ready</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={() => setRevisionStep('configure')} disabled={revisionLoading} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold">← Back</button>
+                <button type="button" onClick={handleRevisionCommit} disabled={revisionLoading || validItems.length === 0} className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold disabled:opacity-60">
+                  {revisionLoading ? 'Applying...' : `Apply Revision to ${validItems.length} Employee(s)`}
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {revisionStep === 'result' && revisionResult && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
+                <div className="text-[10px] text-emerald-600 uppercase font-bold">Applied</div>
+                <div className="text-2xl font-extrabold text-emerald-700">{revisionResult.success?.length || 0}</div>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
+                <div className="text-[10px] text-red-600 uppercase font-bold">Errors</div>
+                <div className="text-2xl font-extrabold text-red-700">{revisionResult.errors?.length || 0}</div>
+              </div>
+            </div>
+            {revisionResult.errors?.length > 0 && (
+              <div className="border border-red-200 bg-red-50 rounded-xl p-3 max-h-40 overflow-y-auto">
+                <div className="text-xs font-bold text-red-700 mb-2">Errors</div>
+                {revisionResult.errors.map((e, i) => (
+                  <div key={i} className="text-xs text-red-600 py-0.5">{e.employeeName}: {e.error}</div>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-end">
+              <button type="button" onClick={() => setShowRevisionModal(false)} className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-900 text-white text-sm font-semibold">Close</button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

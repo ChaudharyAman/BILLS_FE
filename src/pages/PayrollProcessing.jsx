@@ -574,6 +574,8 @@ const PayrollProcessing = () => {
   const [fnfEmployee, setFnfEmployee] = useState(null);
   const [fnfForm, setFnfForm] = useState({ noticePeriodServedDays: 0, noticePeriodRequiredDays: 30, leaveEncashmentDays: 0, comments: '' });
   const [processingFnf, setProcessingFnf] = useState(false);
+  const [activeJobId, setActiveJobId] = useState(null);
+  const [jobProgress, setJobProgress] = useState(null);
 
   const remainderId = useMemo(() => {
     return config?.salaryComponents?.find(c => c.linkedTo === 'remainder')?.id || 'special';
@@ -1109,6 +1111,59 @@ const PayrollProcessing = () => {
       };
 
       const res = await api.post('/payroll/process', payload);
+
+      if (res.data?.jobId) {
+        const jobId = res.data.jobId;
+        setActiveJobId(jobId);
+        
+        let completed = false;
+        let jobData = null;
+        while (!completed) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const statusRes = await api.get(`/payroll/process/${jobId}/status`);
+          jobData = statusRes.data;
+          setJobProgress(jobData);
+          if (jobData.status === 'completed' || jobData.status === 'failed') {
+            completed = true;
+          }
+        }
+        
+        setActiveJobId(null);
+        setJobProgress(null);
+        
+        if (jobData.status === 'failed') {
+          toast.error(jobData.errorMessage || 'Background payroll processing failed');
+          return;
+        }
+
+        const successCount = jobData.success?.length || 0;
+        const errorCount = jobData.errors?.length || 0;
+        const skippedList = jobData.skippedNoActivity || [];
+        const skippedCount = skippedList.length;
+
+        let msgParts = [];
+        if (successCount > 0) msgParts.push(`${successCount} processed`);
+        if (skippedCount > 0) msgParts.push(`${skippedCount} skipped (no activity / marked skip)`);
+        if (errorCount > 0) msgParts.push(`${errorCount} failed`);
+
+        if (errorCount > 0) {
+          toast.error(msgParts.join(', '));
+        } else if (skippedCount > 0) {
+          toast(msgParts.join(', '), { icon: 'ℹ️' });
+        } else {
+          toast.success(saveAsDraft ? 'Payroll saved as draft' : 'Payroll processed successfully');
+        }
+
+        setSkippedSummaryList(skippedList);
+
+        if (!saveAsDraft && errorCount === 0) {
+          navigate('/payroll');
+        } else {
+          setRefreshTrigger(prev => prev + 1);
+        }
+        return;
+      }
+
       const successCount = res.data.success?.length || 0;
       const errorCount = res.data.errors?.length || 0;
       const skippedList = res.data.skippedNoActivity || [];
@@ -1173,6 +1228,26 @@ const PayrollProcessing = () => {
 
   return (
     <div className="max-w-[98%] mx-auto p-6 font-sans text-gray-900">
+      {activeJobId && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+              <span className="animate-spin text-blue-600">⏳</span> Processing Payroll Batch Asynchronously...
+            </span>
+            <span className="text-xs font-bold text-blue-700">{jobProgress?.progressPercent || 0}%</span>
+          </div>
+          <div className="w-full bg-blue-200 rounded-full h-2.5 overflow-hidden">
+            <div
+              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+              style={{ width: `${jobProgress?.progressPercent || 0}%` }}
+            ></div>
+          </div>
+          <p className="text-xs text-blue-700 mt-2">
+            Processed {jobProgress?.processed || 0} of {jobProgress?.total || 0} employees...
+          </p>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">Process Payroll</h1>

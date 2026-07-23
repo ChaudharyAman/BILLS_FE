@@ -33,6 +33,7 @@ const CategoryManagement = lazy(() => import('./pages/CategoryManagement'));
 const EmployeeList = lazy(() => import('./pages/EmployeeList'));
 const EmployeeForm = lazy(() => import('./pages/EmployeeForm'));
 const EmployeeDetails = lazy(() => import('./pages/EmployeeDetails'));
+const BulkSalaryRevision = lazy(() => import('./pages/BulkSalaryRevision'));
 const PayrollDashboard = lazy(() => import('./pages/PayrollDashboard'));
 const PayrollProcessing = lazy(() => import('./pages/PayrollProcessing'));
 const PayslipGeneration = lazy(() => import('./pages/PayslipGeneration'));
@@ -271,6 +272,7 @@ function App() {
                     <Route path="/categories" element={<CategoryManagement />} />
                     <Route path="/employees" element={<EmployeeList />} />
                     <Route path="/employees/new" element={<EmployeeForm />} />
+                    <Route path="/employees/bulk-salary-revision" element={<BulkSalaryRevision />} />
                     <Route path="/employees/:id" element={<EmployeeDetails />} />
                     <Route path="/employees/:id/edit" element={<EmployeeForm />} />
                     <Route path="/payroll" element={<PayrollDashboard />} />
