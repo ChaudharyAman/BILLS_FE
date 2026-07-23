@@ -808,6 +808,12 @@ const EmployeeDetails = () => {
     toast.success('Salary breakup downloaded successfully');
   };
 
+  const getInitials = (firstName = '', lastName = '') => {
+    const f = (firstName || '').trim()[0] || '';
+    const l = (lastName || '').trim()[0] || '';
+    return (f + l).toUpperCase() || 'E';
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-6 font-sans text-gray-900 space-y-4">
@@ -823,22 +829,47 @@ const EmployeeDetails = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 font-sans text-gray-900">
-      <div className="flex justify-between items-start mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{employee.firstName} {employee.lastName}</h1>
-          <p className="text-xs text-gray-500 mt-1">{employee.employeeId} · {employee.designation || 'No designation'}</p>
+    <div className="container mx-auto px-4 py-6 max-w-7xl font-sans text-slate-900 space-y-5">
+      {/* Keka Profile Hero Banner */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white font-bold text-xl flex items-center justify-center shadow-md flex-shrink-0">
+            {getInitials(employee.firstName, employee.lastName)}
+          </div>
+          <div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-bold text-slate-900">{employee.firstName} {employee.lastName}</h1>
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize ${
+                  employee.status === 'active'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : employee.status === 'inactive'
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${employee.status === 'active' ? 'bg-emerald-500' : employee.status === 'inactive' ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                {employee.status}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium mt-1">
+              ID: <strong className="text-slate-800">{employee.employeeId}</strong> · {employee.designation || 'No designation'} · {employee.department?.name || 'No department'}
+            </p>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <button onClick={() => setShowDeleteModal(true)} className="bg-white border border-red-300 hover:bg-red-50 text-red-600 px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold">
-            <FaTrash /> Delete
+        <div className="flex flex-wrap gap-2.5 items-center">
+          <button onClick={() => openRevisionModal()} className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold shadow-2xs transition-colors cursor-pointer">
+            <FaHistory size={12} className="text-indigo-600" /> Revise Salary
           </button>
-          <button onClick={() => openRevisionModal()} className="bg-white border border-gray-300 hover:bg-gray-50 px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold">
-            <FaHistory /> Revise Salary
+          <button onClick={handleDownloadBreakup} className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold shadow-2xs transition-colors cursor-pointer">
+            <FaDownload size={12} className="text-emerald-600" /> Download Breakup
           </button>
-          <Link to={`/employees/${employee._id}/edit`} className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold">
-            <FaEdit /> Edit
+          <Link to={`/employees/${employee._id}/edit`} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold shadow-xs transition-all">
+            <FaEdit size={12} /> Edit Profile
           </Link>
+          <button onClick={() => setShowDeleteModal(true)} className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer">
+            <FaTrash size={12} /> Delete
+          </button>
         </div>
       </div>
 

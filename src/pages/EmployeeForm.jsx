@@ -549,17 +549,31 @@ const EmployeeForm = () => {
     }
   };
 
-  const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
-  const labelCls = 'text-xs font-semibold text-gray-600 mb-1.5 inline-block';
+  const inputCls = 'w-full border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 bg-slate-50/20';
+  const labelCls = 'text-xs font-bold text-slate-700 mb-1.5 inline-block';
 
   return (
-    <div className="container mx-auto p-6 font-sans text-gray-900">
-      <h1 className="text-3xl font-bold mb-6">{id ? 'Edit Employee' : 'Add Employee'}</h1>
+    <div className="container mx-auto px-4 py-6 max-w-7xl font-sans text-slate-900 space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">{id ? '✏️ Edit Employee Profile' : '👤 Onboard New Employee'}</h1>
+          <p className="text-xs text-slate-500 mt-1">Configure profile details, statutory settings, and salary structure.</p>
+        </div>
+      </div>
 
-      <form onSubmit={submit} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="border-b border-gray-200 bg-gray-50 p-4 flex flex-wrap gap-2">
-          {['Personal', 'Employment', 'Salary', 'Bank & Tax'].map((label, idx) => (
-            <button key={label} type="button" onClick={(e) => { e.preventDefault(); setStep(idx + 1); }} className={`px-4 py-2 rounded-lg text-sm font-semibold ${step === idx + 1 ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600'}`}>
+      <form onSubmit={submit} className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
+        <div className="border-b border-slate-200/80 bg-slate-50/60 p-4 flex flex-wrap gap-2">
+          {['Personal Information', 'Employment & Role', 'Salary & Compensation', 'Bank & Statutory Details'].map((label, idx) => (
+            <button
+              key={label}
+              type="button"
+              onClick={(e) => { e.preventDefault(); setStep(idx + 1); }}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                step === idx + 1
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
               {idx + 1}. {label}
             </button>
           ))}

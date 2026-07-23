@@ -302,30 +302,51 @@ const EmployeeList = () => {
     }
   };
 
+  const getInitials = (firstName = '', lastName = '') => {
+    const f = (firstName || '').trim()[0] || '';
+    const l = (lastName || '').trim()[0] || '';
+    return (f + l).toUpperCase() || 'E';
+  };
+
+  const activeCount = useMemo(
+    () => employees.filter((e) => e.status === 'active').length,
+    [employees]
+  );
+
+  const totalMonthlyCTC = useMemo(
+    () => employees.reduce((sum, e) => sum + (Number(e.monthlyCTC) || 0), 0),
+    [employees]
+  );
+
   return (
-    <div className="container mx-auto p-6 font-sans text-gray-900">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+    <div className="container mx-auto px-4 py-6 max-w-7xl font-sans text-slate-900 space-y-5">
+      {/* Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Employees</h1>
-          <p className="text-gray-500 mt-1">Manage employee records, salary structures, and payroll-ready onboarding data</p>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+            🏢 Employee Directory
+          </h1>
+          <p className="text-xs md:text-sm text-slate-500 mt-1">
+            Manage employee profiles, designations, department assignments, and compensation records.
+          </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2.5 items-center">
           {selectedIds.length > 0 && (
             <>
               <button
                 type="button"
                 id="btn-bulk-salary-revision"
                 onClick={openRevisionModal}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transition-all shadow-xs cursor-pointer"
               >
-                <FaChartLine size={14} /> Salary Revision ({selectedIds.length})
+                <FaChartLine size={13} /> Salary Revision ({selectedIds.length})
               </button>
               <button
                 type="button"
                 onClick={() => setShowBulkDeleteModal(true)}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors"
+                className="bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transition-all shadow-xs cursor-pointer"
               >
-                <FaTrash size={14} /> Delete Selected ({selectedIds.length})
+                <FaTrash size={13} /> Delete ({selectedIds.length})
               </button>
             </>
           )}
@@ -337,31 +358,82 @@ const EmployeeList = () => {
               setImportPreviewCount(0);
               setImportResult(null);
             }}
-            className="bg-white border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold"
+            className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
           >
-            <FaFileImport size={14} /> Import Excel
+            <FaFileImport size={13} className="text-indigo-600" /> Import Excel
           </button>
           <Link
             to="/employees/bulk-salary-revision"
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors"
+            className="bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold transition-colors shadow-2xs"
           >
-            <FaChartLine size={14} /> Bulk Salary Revision
+            <FaChartLine size={13} className="text-emerald-400" /> Bulk Revision
           </Link>
           <button
             type="button"
             onClick={handleExport}
-            className="bg-white border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold"
+            className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
           >
-            <FaDownload size={14} /> Export
+            <FaDownload size={13} className="text-slate-500" /> Export
           </button>
-          <Link to="/employees/new" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold">
-            <FaPlus size={14} /> Add Employee
+          <Link
+            to="/employees/new"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transition-all shadow-sm"
+          >
+            <FaPlus size={13} /> Add Employee
           </Link>
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-200 bg-gray-50/60 grid grid-cols-1 md:grid-cols-4 gap-3">
+      {/* Keka Summary Metric Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex flex-col justify-between">
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Headcount</div>
+          <div className="text-2xl font-bold text-slate-900 mt-2">{total}</div>
+        </div>
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex flex-col justify-between">
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Workforce</div>
+          <div className="text-2xl font-bold text-emerald-600 mt-2">{activeCount}</div>
+        </div>
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex flex-col justify-between">
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Departments</div>
+          <div className="text-2xl font-bold text-indigo-600 mt-2">{departments.length}</div>
+        </div>
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex flex-col justify-between">
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Monthly CTC Outflow</div>
+          <div className="text-2xl font-bold text-slate-900 mt-2">{fmtMoney(totalMonthlyCTC)}</div>
+        </div>
+      </div>
+
+      {/* Main Content Card with Keka Tabs & Filters */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
+        {/* Status Tabs */}
+        <div className="border-b border-slate-200/80 px-4 pt-3 flex flex-wrap gap-1 bg-slate-50/50">
+          {[
+            { id: '', label: 'All Employees' },
+            { id: 'active', label: 'Active' },
+            { id: 'inactive', label: 'Inactive' },
+            { id: 'terminated', label: 'Terminated' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                setStatus(tab.id);
+                setPage(1);
+              }}
+              className={`px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                status === tab.id
+                  ? 'border-indigo-600 text-indigo-600 bg-white rounded-t-lg'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/60 rounded-t-lg'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Filter Controls */}
+        <div className="p-4 border-b border-slate-200/80 bg-white grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
           <input
             aria-label="Search employees"
             value={search}
@@ -369,23 +441,9 @@ const EmployeeList = () => {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Search name, ID, email, PAN..."
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm md:col-span-2"
+            placeholder="Search name, ID, email, designation..."
+            className="border border-slate-300 focus:ring-2 focus:ring-indigo-300 focus:outline-none rounded-xl px-3.5 py-2 text-xs md:col-span-3 font-medium bg-slate-50/30"
           />
-          <select
-            aria-label="Filter by status"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          >
-            <option value="">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="terminated">Terminated</option>
-          </select>
           <select
             aria-label="Filter by department"
             value={department}
@@ -393,36 +451,41 @@ const EmployeeList = () => {
               setDepartment(e.target.value);
               setPage(1);
             }}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            className="border border-slate-300 focus:ring-2 focus:ring-indigo-300 focus:outline-none rounded-xl px-3.5 py-2 text-xs font-semibold bg-white"
           >
             <option value="">All Departments</option>
-            {departments.map((dept) => <option key={dept._id} value={dept._id}>{dept.name}</option>)}
+            {departments.map((dept) => (
+              <option key={dept._id} value={dept._id}>
+                {dept.name}
+              </option>
+            ))}
           </select>
         </div>
 
+        {/* Table */}
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50/80">
               <tr>
-                <th className="px-4 py-3 text-left w-10">
+                <th className="px-4 py-3.5 text-left w-10">
                   <input
                     type="checkbox"
                     checked={employees.length > 0 && employees.every((emp) => selectedIds.includes(emp._id))}
                     onChange={handleToggleSelectAll}
-                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                    className="h-4 w-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
                     aria-label="Select all employees"
                   />
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Employee</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Department</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Location</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">PAN / Aadhar</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Monthly CTC</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Employee</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Department</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Location</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">PAN / Aadhaar</th>
+                <th className="px-5 py-3.5 text-right text-[11px] font-bold text-slate-500 uppercase tracking-wider">Monthly CTC</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                <th className="px-5 py-3.5 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-slate-100 text-xs">
               {loading ? (
                 Array.from({ length: 6 }).map((_, index) => (
                   <tr key={`employee-skeleton-${index}`}>
@@ -432,72 +495,163 @@ const EmployeeList = () => {
                   </tr>
                 ))
               ) : employees.length === 0 ? (
-                <tr><td colSpan="8" className="px-6 py-10 text-center text-gray-500">No employees found.</td></tr>
-              ) : employees.map((employee) => (
-                <tr key={employee._id} className={`hover:bg-blue-50/40 ${selectedIds.includes(employee._id) ? 'bg-blue-50/20' : ''}`}>
-                  <td className="px-4 py-4 align-middle">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(employee._id)}
-                      onChange={() => handleToggleSelect(employee._id)}
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-                      aria-label={`Select ${employee.firstName} ${employee.lastName}`}
-                    />
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="font-semibold text-gray-900">{employee.firstName} {employee.lastName}</div>
-                    <div className="text-xs text-gray-500">{employee.employeeId} · {employee.email}</div>
-                    <div className="text-xs text-gray-400">{employee.designation || '-'}</div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{employee.department?.name || '-'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{employee.location || '-'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    <div>{employee.panNumber || '-'}</div>
-                    <div className="text-xs text-gray-400">{employee.aadharNumber || '-'}</div>
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm font-semibold">{fmtMoney(employee.monthlyCTC)}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
-                      employee.status === 'active' ? 'bg-green-100 text-green-700' :
-                      employee.status === 'inactive' ? 'bg-amber-100 text-amber-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
-                      {employee.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-center gap-3">
-                      <Link to={`/employees/${employee._id}`} className="text-gray-400 hover:text-blue-600" title="View">
-                        <FaEye />
-                      </Link>
-                      <Link to={`/employees/${employee._id}/edit`} className="text-gray-400 hover:text-blue-600" title="Edit">
-                        <FaEdit />
-                      </Link>
-                      {employee.status === 'active' && (
-                        <button onClick={() => setConfirmEmployee(employee)} className="text-gray-400 hover:text-amber-600" title="Mark inactive">
-                          <FaUserSlash />
-                        </button>
-                      )}
-                      <button onClick={() => setDeleteEmployee(employee)} className="text-gray-400 hover:text-red-600" title="Delete">
-                        <FaTrash />
-                      </button>
-                    </div>
+                <tr>
+                  <td colSpan="8" className="px-6 py-12 text-center text-slate-400">
+                    <div className="text-3xl mb-2">🔍</div>
+                    <div className="font-semibold text-slate-600">No employees found.</div>
+                    <div className="text-xs text-slate-400 mt-1">Try adjusting search filters or onboarding new hires.</div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                employees.map((employee) => {
+                  const isSelected = selectedIds.includes(employee._id);
+                  const initials = getInitials(employee.firstName, employee.lastName);
+                  return (
+                    <tr
+                      key={employee._id}
+                      className={`hover:bg-slate-50/80 transition-colors ${isSelected ? 'bg-indigo-50/30' : ''}`}
+                    >
+                      <td className="px-4 py-3.5 align-middle">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleSelect(employee._id)}
+                          className="h-4 w-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                          aria-label={`Select ${employee.firstName} ${employee.lastName}`}
+                        />
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-indigo-100/80 text-indigo-700 font-bold text-xs flex items-center justify-center border border-indigo-200/60 shadow-2xs flex-shrink-0">
+                            {initials}
+                          </div>
+                          <div>
+                            <Link
+                              to={`/employees/${employee._id}`}
+                              className="font-bold text-slate-900 hover:text-indigo-600 transition-colors text-sm"
+                            >
+                              {employee.firstName} {employee.lastName}
+                            </Link>
+                            <div className="text-[11px] text-slate-500 font-medium">
+                              {employee.employeeId} · <span className="text-slate-400">{employee.email}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                              {employee.designation || '-'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {employee.department?.name ? (
+                          <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/60">
+                            {employee.department.name}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-600 font-medium">{employee.location || '-'}</td>
+                      <td className="px-5 py-3.5 font-mono text-[11px] text-slate-600">
+                        <div>{employee.panNumber || '-'}</div>
+                        <div className="text-[10px] text-slate-400">{employee.aadharNumber || '-'}</div>
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-bold text-slate-900 text-sm">
+                        {fmtMoney(employee.monthlyCTC)}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border capitalize ${
+                            employee.status === 'active'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
+                              : employee.status === 'inactive'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200/80'
+                              : 'bg-rose-50 text-rose-700 border-rose-200/80'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              employee.status === 'active'
+                                ? 'bg-emerald-500'
+                                : employee.status === 'inactive'
+                                ? 'bg-amber-500'
+                                : 'bg-rose-500'
+                            }`}
+                          />
+                          {employee.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-center">
+                        <div className="flex items-center justify-center gap-2 text-slate-400">
+                          <Link
+                            to={`/employees/${employee._id}`}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 hover:text-indigo-600 transition-colors"
+                            title="View Profile"
+                          >
+                            <FaEye size={13} />
+                          </Link>
+                          <Link
+                            to={`/employees/${employee._id}/edit`}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 hover:text-indigo-600 transition-colors"
+                            title="Edit Profile"
+                          >
+                            <FaEdit size={13} />
+                          </Link>
+                          {employee.status === 'active' && (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmEmployee(employee)}
+                              className="p-1.5 rounded-lg hover:bg-slate-100 hover:text-amber-600 transition-colors cursor-pointer"
+                              title="Mark Inactive"
+                            >
+                              <FaUserSlash size={13} />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setDeleteEmployee(employee)}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 hover:text-rose-600 transition-colors cursor-pointer"
+                            title="Delete Employee"
+                          >
+                            <FaTrash size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-          <span className="text-sm text-gray-500">Showing {employees.length} of {total}</span>
-          <div className="flex items-center gap-3">
-            <button disabled={page <= 1} onClick={() => setPage((current) => current - 1)} className="px-3 py-1.5 border rounded-md text-sm disabled:opacity-50">Previous</button>
-            <span className="text-sm text-gray-600">Page {page} of {totalPages}</span>
-            <button disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)} className="px-3 py-1.5 border rounded-md text-sm disabled:opacity-50">Next</button>
+        {/* Footer / Pagination */}
+        <div className="px-5 py-3.5 border-t border-slate-200/80 bg-slate-50/50 flex items-center justify-between text-xs text-slate-500">
+          <span>
+            Showing <strong className="text-slate-800">{employees.length}</strong> of{' '}
+            <strong className="text-slate-800">{total}</strong> employees
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((current) => current - 1)}
+              className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors cursor-pointer"
+            >
+              Previous
+            </button>
+            <span className="font-semibold text-slate-700">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage((current) => current + 1)}
+              className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors cursor-pointer"
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>
+
 
       <Modal isOpen={showImportModal} onClose={() => setShowImportModal(false)} title="Import Employees">
         <div className="space-y-5">
