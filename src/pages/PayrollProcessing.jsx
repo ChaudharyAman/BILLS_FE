@@ -11,6 +11,20 @@ import { getPeriodInputFields } from '../utils/compensationTypeFields';
 const monthName = (month) => new Date(0, month - 1).toLocaleString('en-US', { month: 'long' });
 const sumNamedAmounts = (items = []) => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
+const getDeptName = (dept) => {
+  if (!dept) return '';
+  if (typeof dept === 'string') return dept;
+  if (typeof dept === 'object') return dept.name || dept.code || String(dept._id || '');
+  return String(dept);
+};
+
+const getCompTypeStr = (type) => {
+  if (!type) return 'monthly_salary';
+  if (typeof type === 'string') return type;
+  if (typeof type === 'object') return type.key || type.name || String(type);
+  return String(type);
+};
+
 const getEarningValue = (snapshot, componentId) => {
   if (!snapshot?.earnings) return 0;
   let val = snapshot.earnings[componentId];
@@ -293,12 +307,19 @@ const EmployeeRow = ({
 
   const calculatedSnapshot = usePayrollSnapshot(employee, config, rowWithReimbursements, monthWorkingDays);
 
-  // Bubble the resolved netSalary up to the parent for the Estimated Net Payroll total
+  // Bubble net/gross/flags up to parent for summary dashboard + filter
   useEffect(() => {
     if (calculatedSnapshot?.netSalary !== undefined && onSnapshotReady) {
-      onSnapshotReady(employee._id, Number(calculatedSnapshot.netSalary) || 0);
+      onSnapshotReady(employee._id, {
+        net: Number(calculatedSnapshot.netSalary) || 0,
+        gross: Number(calculatedSnapshot.earnings?.totalEarnings) || 0,
+        flags: {
+          clamped: Boolean(calculatedSnapshot.netPayClamped || calculatedSnapshot.payrollShortfall?.shortfallAmount > 0),
+          belowMinWage: Boolean(calculatedSnapshot.belowMinimumWage || calculatedSnapshot.minimumWageCompliance?.flagged),
+        },
+      });
     }
-  }, [calculatedSnapshot?.netSalary, employee._id]);
+  }, [calculatedSnapshot?.netSalary, calculatedSnapshot?.earnings?.totalEarnings, calculatedSnapshot?.netPayClamped, calculatedSnapshot?.belowMinimumWage, employee._id]);
 
   const snapshot = useMemo(() => {
     if (existingPayroll && existingPayroll.status !== 'draft') {
@@ -360,8 +381,21 @@ const EmployeeRow = ({
         ? (snapshot.master.hraPercent > 1 ? snapshot.master.hraPercent : snapshot.master.hraPercent * 100)
         : 50);
 
+  const isBlocking = snapshot?.netPayClamped || snapshot?.payrollShortfall?.shortfallAmount > 0 || snapshot?.belowMinimumWage || snapshot?.minimumWageCompliance?.flagged;
+  const isProcessed = Boolean(existingPayroll && existingPayroll.status !== 'draft');
+
+  const rowClass = isBlocking && !isProcessed
+    ? 'bg-red-50/40 border-l-4 border-l-red-500 hover:bg-red-50/60'
+    : isExitingInPeriod && !isProcessed
+      ? 'bg-amber-50/60 border-l-4 border-l-amber-500'
+      : paidTooHigh && !isProcessed
+        ? 'bg-amber-50/40 border-l-4 border-l-amber-400'
+        : isProcessed
+          ? 'bg-gray-50 border-l-4 border-l-blue-400 text-gray-500 opacity-80'
+          : 'hover:bg-blue-50/40';
+
   return (
-    <tr key={employee._id} className={`${isExistingDisabled ? 'bg-gray-50 text-gray-500 opacity-80' : (isExitingInPeriod ? 'bg-amber-50/60 border-l-4 border-l-amber-500' : 'hover:bg-blue-50/40')} align-top`}>
+    <tr key={employee._id} className={`${rowClass} align-top`}>
       <td className="px-4 py-2.5">
         <input
           type="checkbox"
@@ -397,6 +431,7 @@ const EmployeeRow = ({
               {existingPayroll.status !== 'paid' && (
                 <button
                   type="button"
+                  aria-label={`Delete payroll for ${employee.firstName} ${employee.lastName}`}
                   onClick={() => onDeletePayroll(existingPayroll._id, `${employee.firstName} ${employee.lastName}`)}
                   className="text-[10px] font-bold text-red-600 hover:text-red-800 hover:underline transition-colors text-left flex items-center gap-1 self-start mt-0.5"
                 >
@@ -426,6 +461,7 @@ const EmployeeRow = ({
 
             <button
               type="button"
+              aria-label={isExistingDisabled ? `View breakdown for ${employee.firstName} ${employee.lastName}` : `Open breakdown and adjust for ${employee.firstName} ${employee.lastName}`}
               onClick={() => setBreakdownEmployee(employee)}
               className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left flex items-center gap-1 self-start"
             >
@@ -576,6 +612,21 @@ const PayrollProcessing = () => {
   const [processingFnf, setProcessingFnf] = useState(false);
   const [activeJobId, setActiveJobId] = useState(null);
   const [jobProgress, setJobProgress] = useState(null);
+
+  // Filter / sort state
+  const [searchQuery, setSearchQuery]         = useState('');
+  const [filterDept, setFilterDept]           = useState('');
+  const [filterCompType, setFilterCompType]   = useState('');
+  const [filterNeedsAttention, setFilterNeedsAttention] = useState(false);
+  const [sortKey, setSortKey]                 = useState('name');
+  const [sortDir, setSortDir]                 = useState('asc');
+
+  // Per-employee snapshot data bubbled up from EmployeeRow
+  const [snapshotFlagsMap, setSnapshotFlagsMap] = useState({});   // { empId: { clamped, belowMinWage } }
+  const [snapshotGrossMap, setSnapshotGrossMap] = useState({});   // { empId: number }
+
+  // Confirmation modal (Process Payroll only)
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const remainderId = useMemo(() => {
     return config?.salaryComponents?.find(c => c.linkedTo === 'remainder')?.id || 'special';
@@ -856,6 +907,62 @@ const PayrollProcessing = () => {
     () => selectedEmployees.reduce((sum, emp) => sum + (snapshotsNetMap[emp._id] || 0), 0),
     [selectedEmployees, snapshotsNetMap]
   );
+
+  const totalGrossPreview = useMemo(
+    () => selectedEmployees.reduce((sum, emp) => sum + (snapshotGrossMap[emp._id] || 0), 0),
+    [selectedEmployees, snapshotGrossMap]
+  );
+
+  const needsAttentionCount = useMemo(
+    () => employees.filter(emp => {
+      const f = snapshotFlagsMap[emp._id];
+      return f && (f.clamped || f.belowMinWage);
+    }).length,
+    [employees, snapshotFlagsMap]
+  );
+
+  // Derived dept / compType chip lists
+  const deptOptions = useMemo(
+    () => [...new Set(employees.map(e => getDeptName(e.department)).filter(Boolean))].sort(),
+    [employees]
+  );
+  const compTypeOptions = useMemo(
+    () => [...new Set(employees.map(e => getCompTypeStr(e.compensationType)).filter(Boolean))].sort(),
+    [employees]
+  );
+
+  const filteredSortedEmployees = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    let list = employees.filter(emp => {
+      if (q && !`${emp.firstName} ${emp.lastName} ${emp.employeeId} ${getDeptName(emp.department)}`.toLowerCase().includes(q)) return false;
+      if (filterDept && getDeptName(emp.department) !== filterDept) return false;
+      if (filterCompType && getCompTypeStr(emp.compensationType) !== filterCompType) return false;
+      if (filterNeedsAttention) {
+        const f = snapshotFlagsMap[emp._id];
+        if (!f || (!f.clamped && !f.belowMinWage)) return false;
+      }
+      return true;
+    });
+    list = [...list].sort((a, b) => {
+      let va, vb;
+      if (sortKey === 'net') {
+        va = snapshotsNetMap[a._id] || 0;
+        vb = snapshotsNetMap[b._id] || 0;
+      } else if (sortKey === 'type') {
+        va = getCompTypeStr(a.compensationType).toLowerCase();
+        vb = getCompTypeStr(b.compensationType).toLowerCase();
+      } else {
+        va = `${a.firstName} ${a.lastName}`.toLowerCase();
+        vb = `${b.firstName} ${b.lastName}`.toLowerCase();
+      }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return list;
+  }, [employees, searchQuery, filterDept, filterCompType, filterNeedsAttention, sortKey, sortDir, snapshotsNetMap, snapshotFlagsMap]);
+
+  const activeFiltersCount = [searchQuery.trim(), filterDept, filterCompType, filterNeedsAttention ? '1' : ''].filter(Boolean).length;
 
   const updateRow = (employeeId, field, value) => {
     setRows((prev) => {
@@ -1282,10 +1389,35 @@ const PayrollProcessing = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-        <SummaryCard label="Selected Employees" value={selectedEmployees.length} />
-        <SummaryCard label="Estimated Net Payroll" value={fmtMoney(totalPreview)} />
-        <SummaryCard label="Default Working Days" value={monthWorkingDays} />
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+        <SummaryCard
+          label="Total / Selected"
+          value={`${employees.length} / ${selectedEmployees.length}`}
+        />
+        <SummaryCard label="Gross Payroll" value={fmtMoney(totalGrossPreview)} />
+        <SummaryCard label="Net Payroll" value={fmtMoney(totalPreview)} />
+        <div
+          className={`rounded-xl p-4 border shadow-xs cursor-pointer transition-colors select-none ${
+            filterNeedsAttention
+              ? 'bg-red-50 border-red-300'
+              : needsAttentionCount > 0
+                ? 'bg-amber-50 border-amber-300 hover:bg-amber-100'
+                : 'bg-white border-gray-200'
+          }`}
+          onClick={() => needsAttentionCount > 0 && setFilterNeedsAttention(v => !v)}
+          title={needsAttentionCount > 0 ? 'Click to filter to employees needing attention' : ''}
+          role={needsAttentionCount > 0 ? 'button' : undefined}
+          tabIndex={needsAttentionCount > 0 ? 0 : undefined}
+          onKeyDown={e => e.key === 'Enter' && needsAttentionCount > 0 && setFilterNeedsAttention(v => !v)}
+        >
+          <div className="text-xs font-semibold text-gray-500 mb-1">Needs Attention</div>
+          <div className={`text-2xl font-bold ${
+            needsAttentionCount > 0 ? 'text-red-600' : 'text-gray-400'
+          }`}>
+            {needsAttentionCount}
+          </div>
+        </div>
+        <SummaryCard label="Working Days" value={monthWorkingDays} />
       </div>
 
       {skippedSummaryList.length > 0 && (
@@ -1316,10 +1448,88 @@ const PayrollProcessing = () => {
         </div>
       )}
 
+      {/* Filter / Sort bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <input
+          type="search"
+          aria-label="Search employees by name or code"
+          placeholder="Search name or code…"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs w-48 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        />
+        {deptOptions.length > 0 && (
+          <select
+            aria-label="Filter by department"
+            value={filterDept}
+            onChange={e => setFilterDept(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            <option value="">All Departments</option>
+            {deptOptions.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        )}
+        {compTypeOptions.length > 1 && (
+          <select
+            aria-label="Filter by compensation type"
+            value={filterCompType}
+            onChange={e => setFilterCompType(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            <option value="">All Types</option>
+            {compTypeOptions.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
+          </select>
+        )}
+        <button
+          type="button"
+          aria-pressed={filterNeedsAttention}
+          onClick={() => setFilterNeedsAttention(v => !v)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+            filterNeedsAttention
+              ? 'bg-red-600 text-white border-red-600'
+              : 'bg-white text-gray-700 border-gray-300 hover:border-red-400 hover:text-red-600'
+          }`}
+        >
+          {filterNeedsAttention ? '🔴 Attention (active)' : '🔴 Needs Attention'}
+          {needsAttentionCount > 0 && !filterNeedsAttention && (
+            <span className="ml-1 bg-red-100 text-red-700 rounded-full px-1.5 text-[10px] font-bold">{needsAttentionCount}</span>
+          )}
+        </button>
+        <div className="flex items-center gap-1 ml-auto">
+          <select
+            aria-label="Sort employees by"
+            value={sortKey}
+            onChange={e => setSortKey(e.target.value)}
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white"
+          >
+            <option value="name">Sort: Name</option>
+            <option value="type">Sort: Type</option>
+            <option value="net">Sort: Net Pay</option>
+          </select>
+          <button
+            type="button"
+            aria-label={`Sort direction: ${sortDir === 'asc' ? 'ascending' : 'descending'}`}
+            onClick={() => setSortDir(v => v === 'asc' ? 'desc' : 'asc')}
+            className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs bg-white hover:bg-gray-50"
+          >
+            {sortDir === 'asc' ? '↑' : '↓'}
+          </button>
+        </div>
+        {activeFiltersCount > 0 && (
+          <button
+            type="button"
+            onClick={() => { setSearchQuery(''); setFilterDept(''); setFilterCompType(''); setFilterNeedsAttention(false); }}
+            className="text-xs text-blue-600 hover:text-blue-800 underline"
+          >
+            Clear {activeFiltersCount} filter{activeFiltersCount > 1 ? 's' : ''}
+          </button>
+        )}
+      </div>
+
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
                 {headers.map((label) => (
                   <th key={label} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">{label}</th>
@@ -1335,7 +1545,19 @@ const PayrollProcessing = () => {
                 ))
               ) : employees.length === 0 ? (
                 <tr><td colSpan={headers.length} className="px-6 py-10 text-center text-gray-500">No active employees found.</td></tr>
-              ) : employees.map((employee) => (
+              ) : filteredSortedEmployees.length === 0 ? (
+                <tr><td colSpan={headers.length} className="px-6 py-10 text-center text-gray-400">
+                  <div className="text-2xl mb-2">🔍</div>
+                  <div className="font-semibold">No employees match your filters.</div>
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(''); setFilterDept(''); setFilterCompType(''); setFilterNeedsAttention(false); }}
+                    className="mt-2 text-xs text-blue-600 underline hover:text-blue-800"
+                  >
+                    Clear all filters
+                  </button>
+                </td></tr>
+              ) : filteredSortedEmployees.map((employee) => (
                 <EmployeeRow
                   key={employee._id}
                   employee={employee}
@@ -1353,26 +1575,97 @@ const PayrollProcessing = () => {
                   earningComponents={earningComponents}
                   existingPayroll={existingPayrollsMap.get(String(employee._id))}
                   onDeletePayroll={onDeletePayroll}
-                  onSnapshotReady={(empId, net) =>
-                    setSnapshotsNetMap((prev) => prev[empId] === net ? prev : { ...prev, [empId]: net })
-                  }
+                  onSnapshotReady={(empId, data) => {
+                    const net = data?.net ?? data ?? 0;
+                    const gross = data?.gross ?? 0;
+                    const flags = data?.flags ?? {};
+                    setSnapshotsNetMap(prev => prev[empId] === net ? prev : { ...prev, [empId]: net });
+                    setSnapshotGrossMap(prev => prev[empId] === gross ? prev : { ...prev, [empId]: gross });
+                    setSnapshotFlagsMap(prev => {
+                      const existing = prev[empId];
+                      if (existing?.clamped === flags.clamped && existing?.belowMinWage === flags.belowMinWage) return prev;
+                      return { ...prev, [empId]: flags };
+                    });
+                  }}
                   compensationTypesMap={compensationTypesMap}
                 />
               ))}
             </tbody>
           </table>
         </div>
+      </div>
 
-        <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-2.5">
-          <button type="button" onClick={() => navigate('/payroll')} className="px-3.5 py-1.5 rounded-lg bg-white border text-xs font-semibold">Cancel</button>
+      {/* Sticky action bar */}
+      <div className="sticky bottom-0 z-20 mt-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl shadow-lg px-4 py-3 flex items-center justify-between gap-2.5">
+        <div className="text-xs text-gray-500 font-medium">
+          {selectedEmployees.length} employee{selectedEmployees.length !== 1 ? 's' : ''} selected
+          {selectedEmployees.length > 0 && (
+            <span className="ml-2 text-gray-400">· Net: <span className="font-semibold text-gray-700">{fmtMoney(totalPreview)}</span></span>
+          )}
+          {needsAttentionCount > 0 && (
+            <span className="ml-2 text-red-600 font-semibold">· ⚠️ {needsAttentionCount} need attention</span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => navigate('/payroll')} className="px-3.5 py-1.5 rounded-lg bg-white border text-xs font-semibold hover:bg-gray-50">Cancel</button>
           <button type="button" onClick={() => submit(true)} disabled={saving || selectedEmployees.length === 0} className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60">
-            <FaSave /> Save as Draft
+            <FaSave aria-hidden="true" /> Save as Draft
           </button>
-          <button type="button" onClick={() => submit(false)} disabled={saving || selectedEmployees.length === 0} className="px-3.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60">
-            <FaCheck /> Process Payroll
+          <button type="button" onClick={() => setShowConfirmModal(true)} disabled={saving || selectedEmployees.length === 0} className="px-3.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60">
+            <FaCheck aria-hidden="true" /> Process Payroll
           </button>
         </div>
       </div>
+
+      {/* Process Payroll Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Confirm payroll processing">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 overflow-hidden">
+            <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+              <h2 className="font-bold text-base flex items-center gap-2">
+                <FaCheck className="text-green-400" aria-hidden="true" /> Confirm Payroll Processing
+              </h2>
+              <button type="button" aria-label="Close confirmation dialog" onClick={() => setShowConfirmModal(false)} className="text-gray-400 hover:text-white transition-colors">
+                <FaTimes className="w-5 h-5" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-sm text-slate-700">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                  <div className="text-xs text-slate-500 font-semibold mb-1">Employees</div>
+                  <div className="text-xl font-bold text-slate-900">{selectedEmployees.length}</div>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                  <div className="text-xs text-slate-500 font-semibold mb-1">Total Net Payout</div>
+                  <div className="text-xl font-bold text-emerald-700">{fmtMoney(totalPreview)}</div>
+                </div>
+              </div>
+              {needsAttentionCount > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-amber-900 text-xs font-medium flex items-start gap-2">
+                  <span className="text-base">⚠️</span>
+                  <span><strong>{needsAttentionCount}</strong> employee{needsAttentionCount !== 1 ? 's have' : ' has'} pay-clamping or minimum-wage flags. Review before processing.</span>
+                </div>
+              )}
+              <p className="text-xs text-slate-500 leading-relaxed">
+                This will process payroll for <strong>{monthName(month)} {year}</strong> for all {selectedEmployees.length} selected employees. Processed payrolls cannot be undone without a full month reset.
+              </p>
+            </div>
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button type="button" onClick={() => setShowConfirmModal(false)} className="px-4 py-2 border rounded-lg bg-white text-sm font-semibold hover:bg-gray-50 transition-colors">
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => { setShowConfirmModal(false); submit(false); }}
+                className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors shadow-sm flex items-center gap-1.5 disabled:opacity-60"
+              >
+                <FaCheck aria-hidden="true" /> {saving ? 'Processing…' : 'Confirm & Process'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Slide-over / Modal for Detailed Salary Breakdown & Adjustments */}
       {breakdownEmployee && (() => {
@@ -1406,10 +1699,11 @@ const PayrollProcessing = () => {
                 </div>
                 <button
                   type="button"
+                  aria-label={`Close breakdown for ${breakdownEmployee.firstName} ${breakdownEmployee.lastName}`}
                   onClick={() => setBreakdownEmployee(null)}
                   className="text-gray-400 hover:text-white transition-colors"
                 >
-                  <FaTimes className="w-5 h-5" />
+                  <FaTimes className="w-5 h-5" aria-hidden="true" />
                 </button>
               </div>
 

@@ -27,7 +27,8 @@ const TYPE_LABELS = {
   PayrollComponent: 'Payroll Components',
   PayrollVariableTransaction: 'Payroll Var Transactions',
   LeaveRequest: 'Leave Requests',
-  BankStatement: 'Bank Statements'
+  BankStatement: 'Bank Statements',
+  Loan: 'Employee Loans'
 };
 
 const TYPE_COLORS = {
@@ -53,7 +54,8 @@ const TYPE_COLORS = {
   PayrollComponent: 'bg-emerald-100 text-emerald-800 border-emerald-200',
   PayrollVariableTransaction: 'bg-cyan-100 text-cyan-800 border-cyan-200',
   LeaveRequest: 'bg-sky-100 text-sky-800 border-sky-200',
-  BankStatement: 'bg-blue-100 text-blue-800 border-blue-200'
+  BankStatement: 'bg-blue-100 text-blue-800 border-blue-200',
+  Loan: 'bg-amber-100 text-amber-800 border-amber-200'
 };
 
 const RecycleBin = () => {
@@ -62,6 +64,8 @@ const RecycleBin = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('All');
   const [actionLoading, setActionLoading] = useState(null); // id_type
+  const [selectedMap, setSelectedMap] = useState({}); // `${id}_${type}`: boolean
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   useEffect(() => {
     fetchRecycleBin();
@@ -72,6 +76,7 @@ const RecycleBin = () => {
       setLoading(true);
       const res = await api.get('/recycle-bin');
       setItems(res.data || []);
+      setSelectedMap({});
     } catch (error) {
       console.error('Error fetching recycle bin:', error);
       toast.error('Failed to load Recycle Bin items');
@@ -89,6 +94,7 @@ const RecycleBin = () => {
       await api.post('/recycle-bin/restore', { id, type });
       toast.success(`${type} restored successfully`);
       setItems(prev => prev.filter(item => !(item._id === id && item.type === type)));
+      setSelectedMap(prev => { const next = { ...prev }; delete next[key]; return next; });
     } catch (error) {
       console.error('Error restoring item:', error);
       if (error.response?.status === 409) {
@@ -100,6 +106,7 @@ const RecycleBin = () => {
             await api.post('/recycle-bin/restore', { id, type, forceRestore: true });
             toast.success(`${type} restored and duplicate overwritten successfully`);
             setItems(prev => prev.filter(item => !(item._id === id && item.type === type)));
+            setSelectedMap(prev => { const next = { ...prev }; delete next[key]; return next; });
             return;
           } catch (forceError) {
             console.error('Error during forced restore:', forceError);
@@ -123,6 +130,7 @@ const RecycleBin = () => {
       await api.delete(`/recycle-bin/permanent?id=${id}&type=${type}`);
       toast.success(`${type} permanently deleted`);
       setItems(prev => prev.filter(item => !(item._id === id && item.type === type)));
+      setSelectedMap(prev => { const next = { ...prev }; delete next[key]; return next; });
     } catch (error) {
       console.error('Error permanently deleting item:', error);
       toast.error(error.response?.data?.message || 'Failed to delete item');
@@ -139,8 +147,92 @@ const RecycleBin = () => {
     return matchesSearch && matchesType;
   });
 
-  // Get distinct types present in the recycle bin for filtering
   const distinctTypes = ['All', ...new Set(items.map(item => item.type))];
+
+  const selectedCount = Object.values(selectedMap).filter(Boolean).length;
+  const isAllSelected = filteredItems.length > 0 && filteredItems.every(item => selectedMap[`${item._id}_${item.type}`]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      const next = { ...selectedMap };
+      filteredItems.forEach(item => { delete next[`${item._id}_${item.type}`]; });
+      setSelectedMap(next);
+    } else {
+      const next = { ...selectedMap };
+      filteredItems.forEach(item => { next[`${item._id}_${item.type}`] = true; });
+      setSelectedMap(next);
+    }
+  };
+
+  const toggleSelectItem = (id, type) => {
+    const key = `${id}_${type}`;
+    setSelectedMap(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const getSelectedItemsPayload = () => {
+    const selectedKeys = new Set(Object.keys(selectedMap).filter(k => selectedMap[k]));
+    return items
+      .filter(item => selectedKeys.has(`${item._id}_${item.type}`))
+      .map(item => ({ id: item._id, type: item.type }));
+  };
+
+  const handleBulkRestore = async () => {
+    const selectedPayload = getSelectedItemsPayload();
+    if (selectedPayload.length === 0) return;
+    if (!window.confirm(`Are you sure you want to restore ${selectedPayload.length} selected item(s)?`)) return;
+
+    try {
+      setBulkLoading(true);
+      const res = await api.post('/recycle-bin/bulk-restore', { items: selectedPayload });
+      toast.success(res.data?.message || `${selectedPayload.length} item(s) restored successfully`);
+      const removedKeys = new Set(selectedPayload.map(i => `${i.id}_${i.type}`));
+      setItems(prev => prev.filter(item => !removedKeys.has(`${item._id}_${item.type}`)));
+      setSelectedMap({});
+    } catch (error) {
+      console.error('Error in bulk restore:', error);
+      toast.error(error.response?.data?.message || 'Failed to restore selected items');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkPermanentDelete = async () => {
+    const selectedPayload = getSelectedItemsPayload();
+    if (selectedPayload.length === 0) return;
+    if (!window.confirm(`WARNING: This will PERMANENTLY delete ${selectedPayload.length} selected item(s). This action CANNOT be undone! Are you sure?`)) return;
+
+    try {
+      setBulkLoading(true);
+      const res = await api.post('/recycle-bin/bulk-permanent', { items: selectedPayload });
+      toast.success(res.data?.message || `${selectedPayload.length} item(s) permanently deleted`);
+      const removedKeys = new Set(selectedPayload.map(i => `${i.id}_${i.type}`));
+      setItems(prev => prev.filter(item => !removedKeys.has(`${item._id}_${item.type}`)));
+      setSelectedMap({});
+    } catch (error) {
+      console.error('Error in bulk permanent delete:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete selected items');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleEmptyRecycleBin = async () => {
+    if (items.length === 0) return;
+    if (!window.confirm(`⚠️ EXTREME CAUTION: Are you sure you want to PERMANENTLY DELETE ALL ${items.length} items in the Recycle Bin?\n\nThis will purge all deleted records from the database and CANNOT BE UNDONE!`)) return;
+
+    try {
+      setBulkLoading(true);
+      const res = await api.post('/recycle-bin/empty');
+      toast.success(res.data?.message || 'Recycle Bin emptied successfully!');
+      setItems([]);
+      setSelectedMap({});
+    } catch (error) {
+      console.error('Error emptying recycle bin:', error);
+      toast.error(error.response?.data?.message || 'Failed to empty Recycle Bin');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
@@ -155,7 +247,18 @@ const RecycleBin = () => {
             View, restore, or permanently delete items that you have deleted.
           </p>
         </div>
+        {items.length > 0 && (
+          <button
+            type="button"
+            disabled={bulkLoading}
+            onClick={handleEmptyRecycleBin}
+            className="bg-rose-600 hover:bg-rose-700 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-colors disabled:opacity-50 self-start md:self-auto cursor-pointer"
+          >
+            <FaTrash size={12} /> Empty Recycle Bin ({items.length})
+          </button>
+        )}
       </div>
+
 
       {/* Warning Alert Banner */}
       <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-r-lg shadow-sm flex items-start gap-3">
@@ -201,6 +304,41 @@ const RecycleBin = () => {
         </div>
       </div>
 
+      {/* Bulk Action Toolbar Banner */}
+      {selectedCount > 0 && (
+        <div className="bg-teal-50 border border-teal-200 rounded-xl p-3.5 mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm animate-in fade-in duration-150">
+          <div className="text-xs font-semibold text-teal-900 flex items-center gap-2">
+            <span className="bg-teal-600 text-white rounded-full px-2.5 py-0.5 text-[11px] font-bold">{selectedCount}</span>
+            <span>item{selectedCount > 1 ? 's' : ''} selected</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={bulkLoading}
+              onClick={handleBulkRestore}
+              className="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+            >
+              <FaUndo size={11} /> Restore Selected ({selectedCount})
+            </button>
+            <button
+              type="button"
+              disabled={bulkLoading}
+              onClick={handleBulkPermanentDelete}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-semibold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+            >
+              <FaTrash size={11} /> Delete Selected Permanently ({selectedCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedMap({})}
+              className="text-xs text-teal-700 hover:text-teal-900 underline font-medium ml-1"
+            >
+              Deselect All
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
@@ -227,6 +365,15 @@ const RecycleBin = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="w-12 px-4 py-4 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 cursor-pointer"
+                      aria-label="Select all filtered items"
+                    />
+                  </th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">Item Type</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">Details</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-right">Value</th>
@@ -236,9 +383,22 @@ const RecycleBin = () => {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredItems.map((item) => {
-                  const isCurrentActionLoading = actionLoading === `${item._id}_${item.type}`;
+                  const key = `${item._id}_${item.type}`;
+                  const isCurrentActionLoading = actionLoading === key;
+                  const isSelected = Boolean(selectedMap[key]);
                   return (
-                    <tr key={`${item._id}_${item.type}`} className="hover:bg-gray-50/50 transition-colors group">
+                    <tr key={key} className={`${isSelected ? 'bg-teal-50/40' : 'hover:bg-gray-50/50'} transition-colors group`}>
+                      {/* Selection Checkbox */}
+                      <td className="w-12 px-4 py-4 text-center whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectItem(item._id, item.type)}
+                          className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 cursor-pointer"
+                          aria-label={`Select ${item.displayName}`}
+                        />
+                      </td>
+
                       {/* Badge Type */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${TYPE_COLORS[item.type] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
