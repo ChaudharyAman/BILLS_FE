@@ -798,6 +798,12 @@ const EmployeeForm = () => {
                     Compensation Parameters ({formData.compensationType || 'monthly_salary'})
                   </h3>
 
+                  {id && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-xl p-3 mb-4 flex items-center justify-between shadow-xs">
+                      <span>💡 <strong>Salary Edit Notice:</strong> To adjust an onboarded employee's salary or rate, please use <strong>Salary Revisions</strong> in Employee Details to ensure full audit history & back-pay calculations.</span>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {visibleFields.includes('monthlyCTC') && (
                       <div>
@@ -826,6 +832,7 @@ const EmployeeForm = () => {
                           type="number"
                           step="any"
                           min="0"
+                          disabled={Boolean(id)}
                           value={
                             ctcPeriod === 'monthly'
                               ? (formData.monthlyCTC || 0)
@@ -836,7 +843,7 @@ const EmployeeForm = () => {
                             setField('monthlyCTC', ctcPeriod === 'monthly' ? val : Math.round((val / 12) * 100) / 100);
                           }}
                           onBlur={refreshSalaryFromCTC}
-                          className={inputCls}
+                          className={`${inputCls} ${id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
                         />
                       </div>
                     )}
@@ -850,9 +857,10 @@ const EmployeeForm = () => {
                             type="number"
                             required
                             min="0"
+                            disabled={Boolean(id)}
                             value={formData.hourlyRate || 0}
                             onChange={(e) => setField('hourlyRate', Number(e.target.value) || 0)}
-                            className={inputCls + ' pl-7'}
+                            className={`${inputCls} pl-7 ${id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
                           />
                         </div>
                       </div>
@@ -867,9 +875,10 @@ const EmployeeForm = () => {
                             type="number"
                             required
                             min="0"
+                            disabled={Boolean(id)}
                             value={formData.dailyRate || 0}
                             onChange={(e) => setField('dailyRate', Number(e.target.value) || 0)}
-                            className={inputCls + ' pl-7'}
+                            className={`${inputCls} pl-7 ${id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
                           />
                         </div>
                       </div>
@@ -884,9 +893,10 @@ const EmployeeForm = () => {
                             type="number"
                             required
                             min="0"
+                            disabled={Boolean(id)}
                             value={formData.weeklyRate || 0}
                             onChange={(e) => setField('weeklyRate', Number(e.target.value) || 0)}
-                            className={inputCls + ' pl-7'}
+                            className={`${inputCls} pl-7 ${id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
                           />
                         </div>
                       </div>

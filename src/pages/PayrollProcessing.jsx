@@ -546,27 +546,43 @@ const EmployeeRow = ({
         {paidTooHigh ? <div className="mt-1 text-[10px] text-red-600">Paid days cannot exceed working days.</div> : null}
       </td>
       <td className="px-4 py-2.5 text-xs whitespace-nowrap">
-        {isHourly ? 'Hourly (N/A)' : `${Math.round((snapshot.paidDays / Math.max(snapshot.workingDays, 1)) * 100)}%`}
+        {isHourly || !snapshot.workingDays ? (
+          <span className="text-slate-400 font-medium italic">N/A</span>
+        ) : (
+          `${Math.round((snapshot.paidDays / Math.max(snapshot.workingDays, 1)) * 100)}%`
+        )}
       </td>
       {earningComponents.map(c => {
         const val = getEarningValue(snapshot, c.id);
+        const numVal = Number(val) || 0;
         return (
-          <EditableMoneyCell key={c.id} value={val} disabled />
+          <td key={c.id} className="px-4 py-2.5">
+            {numVal > 0 ? (
+              <div className="text-xs text-gray-700 whitespace-nowrap">{fmtMoney(numVal)}</div>
+            ) : (
+              <span className="text-xs text-slate-400 font-medium italic">N/A</span>
+            )}
+          </td>
         );
       })}
       <td className="px-4 py-2.5 text-xs font-semibold text-slate-700 whitespace-nowrap">
-        {fmtMoney(otherAllowancesTotal)}
+        {otherAllowancesTotal > 0 ? fmtMoney(otherAllowancesTotal) : <span className="text-slate-400 font-medium italic">N/A</span>}
       </td>
-      <EditableMoneyCell value={snapshot.employerContributions.gratuity} disabled />
-      <EditableMoneyCell value={snapshot.employerContributions.lwfEmployer} disabled />
-      <EditableMoneyCell value={row?.joiningBonus} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'joiningBonus', value)} />
-      <EditableMoneyCell value={row?.loyaltyBonus} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'loyaltyBonus', value)} />
-      <EditableMoneyCell value={row?.incentive} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'incentive', value)} />
-      <EditableMoneyCell value={row?.specialBonus} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'specialBonus', value)} />
+      <EditableMoneyCell value={snapshot.employerContributions.gratuity} disabled notApplicable={!isGratuityEnabled || !Number(snapshot.employerContributions.gratuity)} />
+      <EditableMoneyCell value={snapshot.employerContributions.lwfEmployer} disabled notApplicable={!isLwfEnabled || !Number(snapshot.employerContributions.lwfEmployer)} />
+      <EditableMoneyCell value={row?.joiningBonus} disabled={isExistingDisabled} notApplicable={isExistingDisabled && !Number(row?.joiningBonus)} onChange={(value) => updateRow(employee._id, 'joiningBonus', value)} />
+      <EditableMoneyCell value={row?.loyaltyBonus} disabled={isExistingDisabled} notApplicable={isExistingDisabled && !Number(row?.loyaltyBonus)} onChange={(value) => updateRow(employee._id, 'loyaltyBonus', value)} />
+      <EditableMoneyCell value={row?.incentive} disabled={isExistingDisabled} notApplicable={isExistingDisabled && !Number(row?.incentive)} onChange={(value) => updateRow(employee._id, 'incentive', value)} />
+      <EditableMoneyCell value={row?.specialBonus} disabled={isExistingDisabled} notApplicable={isExistingDisabled && !Number(row?.specialBonus)} onChange={(value) => updateRow(employee._id, 'specialBonus', value)} />
       <td className="px-4 py-2.5 text-xs font-semibold text-red-600 whitespace-nowrap">
-        {fmtMoney(sumNamedAmounts(snapshot.deductions.otherDeductions))}
+        {sumNamedAmounts(snapshot.deductions.otherDeductions) > 0 ? fmtMoney(sumNamedAmounts(snapshot.deductions.otherDeductions)) : <span className="text-slate-400 font-medium italic">N/A</span>}
       </td>
-      <EditableMoneyCell value={row?.tds !== undefined ? row.tds : snapshot.deductions.tds} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'tds', value)} />
+      <EditableMoneyCell
+        value={row?.tds !== undefined ? row.tds : snapshot.deductions.tds}
+        disabled={isExistingDisabled || !isTdsEnabled}
+        notApplicable={!isTdsEnabled || (isExistingDisabled && !Number(row?.tds !== undefined ? row.tds : snapshot.deductions.tds))}
+        onChange={(value) => updateRow(employee._id, 'tds', value)}
+      />
       <td className="px-4 py-2.5 text-xs font-bold whitespace-nowrap">{fmtMoney(snapshot.netSalary)}</td>
     </tr>
   );
@@ -2957,20 +2973,28 @@ const SummaryCard = ({ label, value }) => (
   </div>
 );
 
-const EditableMoneyCell = ({ value, onChange, disabled = false }) => (
-  <td className="px-4 py-2.5">
-    {disabled ? (
-      <div className="text-xs text-gray-700 whitespace-nowrap">{fmtMoney(value)}</div>
-    ) : (
-      <input
-        type="number"
-        min="0"
-        value={value ?? 0}
-        onChange={(e) => onChange?.(e.target.value)}
-        className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium"
-      />
-    )}
-  </td>
-);
+const EditableMoneyCell = ({ value, onChange, disabled = false, notApplicable = false }) => {
+  const numVal = Number(value) || 0;
+  const showNA = notApplicable || (disabled && numVal === 0);
+
+  return (
+    <td className="px-4 py-2.5">
+      {showNA ? (
+        <span className="text-xs text-slate-400 font-medium italic">N/A</span>
+      ) : disabled ? (
+        <div className="text-xs text-gray-700 whitespace-nowrap">{fmtMoney(numVal)}</div>
+      ) : (
+        <input
+          type="number"
+          min="0"
+          placeholder="N/A"
+          value={value !== undefined && value !== null && value !== '' ? value : ''}
+          onChange={(e) => onChange?.(e.target.value)}
+          className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium focus:ring-1 focus:ring-blue-500 focus:outline-none"
+        />
+      )}
+    </td>
+  );
+};
 
 export default PayrollProcessing;
