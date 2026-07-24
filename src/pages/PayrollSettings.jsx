@@ -453,12 +453,15 @@ const PayrollSettings = () => {
               seen.add(c.id);
               return true;
             }) : [];
-        } else if (key === 'pfCalculationType') {
+        } else if (key === 'pfCalculationType' || key === 'effectiveFrom') {
           payload[key] = value;
-        } else if (key === 'compensationTypeDefaults') {
-          payload[key] = value || {};
+        } else if (typeof value === 'object' && value !== null) {
+          payload[key] = value;
+        } else if (typeof value === 'boolean') {
+          payload[key] = value;
         } else {
-          payload[key] = typeof value === 'number' ? value : Number(value);
+          const num = Number(value);
+          payload[key] = isNaN(num) ? value : num;
         }
       });
 
