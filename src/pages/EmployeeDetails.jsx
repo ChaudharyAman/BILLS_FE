@@ -7,11 +7,67 @@ import api from '../api/axios';
 import Modal from '../components/Modal';
 import Skeleton from '../components/Skeleton';
 import { buildMasterSalaryStructure, DEFAULT_PAYROLL_CONFIG, fmtMoney, payrollStatusClass, calculateGratuityEntitlement } from '../utils/payroll';
+import { getOnboardingFields } from '../utils/compensationTypeFields';
+
+export const STRATEGY_FIELD_MAP = {
+  monthly_salary:        ['monthlyCTC', 'salaryComponentsEditor'],
+  hourly:                ['hourlyRate'],
+  daily_wage:            ['dailyRate'],
+  weekly_salary:         ['weeklyRate'],
+  piece_rate:            ['rateCardEditor'],
+  project_based:         ['projectFee', 'rateCardEditor'],
+  milestone_based:       ['milestoneAmount', 'rateCardEditor'],
+  attendance_based:      ['monthlyCTC', 'salaryComponentsEditor'],
+  timesheet_based:       ['hourlyRate', 'monthlyCTC'],
+  commission_only:       ['commissionNotes'],
+  salary_plus_commission:['monthlyCTC', 'salaryComponentsEditor', 'commissionNotes'],
+  retainer:              ['monthlyCTC'],
+};
+
+export const STRATEGY_USES_COMPONENTS = {
+  monthly_salary: true,
+  attendance_based: true,
+  salary_plus_commission: true,
+  hourly: false,
+  daily_wage: false,
+  weekly_salary: false,
+  piece_rate: false,
+  project_based: false,
+  milestone_based: false,
+  timesheet_based: false,
+  commission_only: false,
+  retainer: false,
+};
+
+export const DEFAULT_ATTENDANCE_MODE = {
+  monthly_salary:        'attendance',
+  attendance_based:      'attendance',
+  salary_plus_commission:'attendance',
+  hourly:                'timesheet',
+  timesheet_based:       'timesheet',
+  daily_wage:            'attendance',
+  weekly_salary:         'attendance',
+  piece_rate:            'unit_count',
+  project_based:         'none',
+  milestone_based:       'none',
+  commission_only:       'none',
+  retainer:              'none',
+};
 
 const fmtDate = (value) => {
   if (!value) return '-';
   const d = new Date(value);
   return Number.isFinite(d.getTime()) ? d.toLocaleDateString('en-IN') : '-';
+};
+
+const formatDateForInput = (dateVal) => {
+  if (!dateVal) return '';
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return '';
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 };
 
 const EmployeeDetails = () => {
@@ -27,11 +83,20 @@ const EmployeeDetails = () => {
   const [calculating, setCalculating] = useState(false);
   const [savingRevision, setSavingRevision] = useState(false);
   const [roles, setRoles] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [compensationTypes, setCompensationTypes] = useState([]);
+  const [ctcPeriod, setCtcPeriod] = useState('monthly');
   const [revisionDraft, setRevisionDraft] = useState({
     role: '',
     newCTC: '',
     newAnnualCTC: '',
     newHourlyRate: '',
+    dailyRate: 0,
+    weeklyRate: 0,
+    projectFee: 0,
+    milestoneAmount: 0,
+    commissionNotes: '',
+    rateCard: [],
     effectiveDate: new Date().toISOString().slice(0, 10),
     reason: '',
     pfEnabled: true,
@@ -44,7 +109,18 @@ const EmployeeDetails = () => {
     basicPercent: null,
     hraPercent: null,
     useSalaryComponents: true,
-    employmentType: 'full-time',
+    employmentType: 'permanent',
+    workingPattern: 'full_time',
+    compensationModel: 'SALARIED',
+    paymentBasis: 'MONTHLY',
+    compensationType: 'monthly_salary',
+    payFrequency: 'monthly',
+    attendanceMode: 'attendance',
+    designation: '',
+    department: '',
+    joiningDate: '',
+    dateOfLeaving: '',
+    status: 'active',
     flexiAmount: 0,
     broadband: 0,
     petrol: 0,
@@ -78,16 +154,22 @@ const EmployeeDetails = () => {
     const fetchPageData = async () => {
       try {
         setLoading(true);
-        const [employeeRes, payrollRes, configRes, rolesRes] = await Promise.all([
+        const [employeeRes, payrollRes, configRes, rolesRes, deptRes, compTypesRes] = await Promise.all([
           api.get(`/employees/${id}`, { signal: controller.signal }),
           api.get(`/payroll?employeeId=${id}&limit=12`, { signal: controller.signal }),
           api.get('/payroll/config', { signal: controller.signal }),
           api.get('/roles', { signal: controller.signal }),
+          api.get('/departments', { signal: controller.signal }).catch(() => ({ data: [] })),
+          api.get('/payroll/compensation-types', { signal: controller.signal }).catch(() => ({ data: [] })),
         ]);
         setEmployee(employeeRes.data);
         setPayrolls(payrollRes.data.data || []);
         setConfig({ ...DEFAULT_PAYROLL_CONFIG, ...(configRes.data || {}) });
         setRoles(rolesRes.data || []);
+        setDepartments(deptRes.data || []);
+        if (compTypesRes.data && Array.isArray(compTypesRes.data) && compTypesRes.data.length > 0) {
+          setCompensationTypes(compTypesRes.data);
+        }
       } catch (error) {
         if (error.name === 'CanceledError' || error.name === 'AbortError') return;
         console.error(error);
@@ -100,6 +182,42 @@ const EmployeeDetails = () => {
     fetchPageData();
     return () => controller.abort();
   }, [id]);
+
+  const compTypeOptions = useMemo(() => {
+    if (compensationTypes.length > 0) {
+      return compensationTypes.map(ct => ({ key: ct.key, label: ct.label }));
+    }
+    return Object.keys(STRATEGY_FIELD_MAP).map(key => ({
+      key,
+      label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    }));
+  }, [compensationTypes]);
+
+  const compensationTypesMap = useMemo(() => {
+    const map = {};
+    compensationTypes.forEach(ct => { map[ct.key] = ct; });
+    return map;
+  }, [compensationTypes]);
+
+  const dynamicUsesComponents = useMemo(() => {
+    const map = { ...STRATEGY_USES_COMPONENTS };
+    compensationTypes.forEach(ct => {
+      if (ct.usesSalaryComponents !== undefined) map[ct.key] = ct.usesSalaryComponents;
+    });
+    return map;
+  }, [compensationTypes]);
+
+  const dynamicDefaultAttModes = useMemo(() => {
+    const map = { ...DEFAULT_ATTENDANCE_MODE };
+    compensationTypes.forEach(ct => {
+      if (ct.defaultAttendanceMode) map[ct.key] = ct.defaultAttendanceMode;
+    });
+    return map;
+  }, [compensationTypes]);
+
+  const compTypeKey = revisionDraft.compensationType || 'monthly_salary';
+  const visibleFields = getOnboardingFields(compTypeKey, compensationTypesMap);
+  const strategyUsesComponents = dynamicUsesComponents[compTypeKey] ?? true;
 
   const salaryPreview = useMemo(() => buildMasterSalaryStructure(employee || {}, config), [employee, config]);
 
@@ -369,16 +487,34 @@ const EmployeeDetails = () => {
     const isEvent = revision && (revision.nativeEvent || revision.target);
     if (revision && !isEvent) {
       setEditingRevision(revision);
-      const effDateStr = revision.effectiveDate ? new Date(revision.effectiveDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+      const effDateStr = revision.effectiveDate ? formatDateForInput(revision.effectiveDate) : new Date().toISOString().slice(0, 10);
       const ctcVal = revision.newCTC !== undefined ? revision.newCTC : (revision.monthlyCTC || '');
       const hourlyVal = revision.newHourlyRate !== undefined ? revision.newHourlyRate : (revision.hourlyRate || '');
       revisionDraftObj = {
         role: revision.role?._id || revision.role || '',
+        employmentType: revision.employmentType || employee.employmentType || 'permanent',
+        workingPattern: revision.workingPattern || employee.workingPattern || 'full_time',
+        compensationModel: revision.compensationModel || employee.compensationModel || 'SALARIED',
+        paymentBasis: revision.paymentBasis || employee.paymentBasis || 'MONTHLY',
+        compensationType: revision.compensationType || employee.compensationType || 'monthly_salary',
+        payFrequency: revision.payFrequency || employee.payFrequency || 'monthly',
+        attendanceMode: revision.attendanceMode || employee.attendanceMode || 'attendance',
+        designation: revision.designation || employee.designation || '',
+        department: revision.department?._id || revision.department || employee.department?._id || employee.department || '',
+        joiningDate: formatDateForInput(revision.joiningDate || employee.joiningDate),
+        dateOfLeaving: formatDateForInput(revision.dateOfLeaving || employee.dateOfLeaving),
+        status: revision.status || employee.status || 'active',
+        effectiveDate: effDateStr,
+        reason: revision.reason || '',
         newCTC: ctcVal,
         newAnnualCTC: ctcVal ? Math.round(ctcVal * 12 * 100) / 100 : '',
         newHourlyRate: hourlyVal,
-        effectiveDate: effDateStr,
-        reason: revision.reason || '',
+        dailyRate: revision.dailyRate ?? employee.dailyRate ?? 0,
+        weeklyRate: revision.weeklyRate ?? employee.weeklyRate ?? 0,
+        projectFee: revision.projectFee ?? employee.projectFee ?? 0,
+        milestoneAmount: revision.milestoneAmount ?? employee.milestoneAmount ?? 0,
+        commissionNotes: revision.commissionNotes ?? employee.commissionNotes ?? '',
+        rateCard: revision.rateCard ? JSON.parse(JSON.stringify(revision.rateCard)) : JSON.parse(JSON.stringify(employee.rateCard || [])),
         pfEnabled: revision.pfEnabled !== false,
         esiEnabled: revision.esiEnabled !== false,
         ptEnabled: revision.ptEnabled !== false,
@@ -389,9 +525,6 @@ const EmployeeDetails = () => {
         basicPercent: revision.basicPercent ?? null,
         hraPercent: revision.hraPercent ?? null,
         useSalaryComponents: revision.useSalaryComponents !== false,
-        employmentType: revision.employmentType || 'full-time',
-        compensationModel: revision.compensationModel || 'SALARIED',
-        paymentBasis: revision.paymentBasis || 'MONTHLY',
         flexiAmount: revision.flexiAmount || 0,
         broadband: revision.broadband || 0,
         petrol: revision.petrol || 0,
@@ -416,7 +549,6 @@ const EmployeeDetails = () => {
         }
       };
 
-      // Copy custom percentage overrides from revision to revisionDraftObj
       Object.keys(revision).forEach(key => {
         if (key.endsWith('Percent') && !['basicPercent', 'hraPercent'].includes(key)) {
           revisionDraftObj[key] = revision[key];
@@ -426,11 +558,29 @@ const EmployeeDetails = () => {
       setEditingRevision(null);
       revisionDraftObj = {
         role: employee.role?._id || employee.role || '',
+        employmentType: employee.employmentType || 'permanent',
+        workingPattern: employee.workingPattern || 'full_time',
+        compensationModel: employee.compensationModel || 'SALARIED',
+        paymentBasis: employee.paymentBasis || 'MONTHLY',
+        compensationType: employee.compensationType || 'monthly_salary',
+        payFrequency: employee.payFrequency || 'monthly',
+        attendanceMode: employee.attendanceMode || 'attendance',
+        designation: employee.designation || '',
+        department: employee.department?._id || employee.department || '',
+        joiningDate: formatDateForInput(employee.joiningDate),
+        dateOfLeaving: formatDateForInput(employee.dateOfLeaving),
+        status: employee.status || 'active',
+        effectiveDate: new Date().toISOString().slice(0, 10),
+        reason: '',
         newCTC: employee.monthlyCTC || '',
         newAnnualCTC: employee.monthlyCTC ? Math.round(employee.monthlyCTC * 12 * 100) / 100 : '',
         newHourlyRate: employee.hourlyRate || '',
-        effectiveDate: new Date().toISOString().slice(0, 10),
-        reason: '',
+        dailyRate: employee.dailyRate || 0,
+        weeklyRate: employee.weeklyRate || 0,
+        projectFee: employee.projectFee || 0,
+        milestoneAmount: employee.milestoneAmount || 0,
+        commissionNotes: employee.commissionNotes || '',
+        rateCard: employee.rateCard ? JSON.parse(JSON.stringify(employee.rateCard)) : [],
         pfEnabled: employee.pfEnabled !== false,
         esiEnabled: employee.esiEnabled !== false,
         ptEnabled: employee.ptEnabled !== false,
@@ -441,9 +591,6 @@ const EmployeeDetails = () => {
         basicPercent: employee.basicPercent ?? null,
         hraPercent: employee.hraPercent ?? null,
         useSalaryComponents: employee.useSalaryComponents !== false,
-        employmentType: employee.employmentType || 'full-time',
-        compensationModel: employee.compensationModel || 'SALARIED',
-        paymentBasis: employee.paymentBasis || 'MONTHLY',
         flexiAmount: employee.flexiAmount || 0,
         broadband: employee.broadband || 0,
         petrol: employee.petrol || 0,
@@ -468,7 +615,6 @@ const EmployeeDetails = () => {
         }
       };
 
-      // Copy custom percentage overrides from employee to revisionDraftObj
       Object.keys(employee).forEach(key => {
         if (key.endsWith('Percent') && !['basicPercent', 'hraPercent'].includes(key)) {
           revisionDraftObj[key] = employee[key];
@@ -478,7 +624,7 @@ const EmployeeDetails = () => {
 
     setRevisionDraft(revisionDraftObj);
 
-    if (employee.payType === 'salaried' && revisionDraftObj.newCTC) {
+    if (revisionDraftObj.newCTC) {
       setTimeout(() => {
         refreshDraftSalaryFromCTC(revisionDraftObj);
       }, 0);
@@ -530,7 +676,6 @@ const EmployeeDetails = () => {
         includeGratuityInCTC: merged.includeGratuityInCTC !== false,
       };
 
-      // Copy any custom percentage overrides from merged to payload
       Object.keys(merged).forEach(key => {
         if (key.endsWith('Percent') && !['basicPercent', 'hraPercent'].includes(key)) {
           payload[key] = merged[key] === null || merged[key] === '' ? null : Number(merged[key]);
@@ -565,53 +710,64 @@ const EmployeeDetails = () => {
   const handleSalaryRevision = async () => {
     try {
       setSavingRevision(true);
-      const isHourly = employee.payType === 'hourly';
+      const compType = revisionDraft.compensationType || 'monthly_salary';
       const payload = {
         effectiveDate: revisionDraft.effectiveDate,
         reason: revisionDraft.reason,
         role: revisionDraft.role || '',
-      };
-
-      if (isHourly) {
-        payload.newHourlyRate = Number(revisionDraft.newHourlyRate) || 0;
-        payload.newCTC = 0;
-      } else {
-        payload.newCTC = Number(revisionDraft.newCTC);
-        payload.employmentType = revisionDraft.employmentType || 'full-time';
-        payload.compensationModel = revisionDraft.compensationModel || 'SALARIED';
-        payload.paymentBasis = revisionDraft.paymentBasis || 'MONTHLY';
-        payload.useSalaryComponents = revisionDraft.useSalaryComponents !== false;
-        payload.pfEnabled = revisionDraft.pfEnabled !== false;
-        payload.esiEnabled = revisionDraft.esiEnabled !== false;
-        payload.ptEnabled = revisionDraft.ptEnabled !== false;
-        payload.lwfEnabled = revisionDraft.lwfEnabled !== false;
-        payload.gratuityEnabled = revisionDraft.gratuityEnabled !== false;
-        payload.includePfInCTC = revisionDraft.includePfInCTC !== false;
-        payload.includeGratuityInCTC = revisionDraft.includeGratuityInCTC !== false;
-        payload.basicPercent = revisionDraft.basicPercent === null || revisionDraft.basicPercent === '' ? null : Number(revisionDraft.basicPercent);
-        payload.hraPercent = revisionDraft.hraPercent === null || revisionDraft.hraPercent === '' ? null : Number(revisionDraft.hraPercent);
-        payload.joiningBonus = Number(revisionDraft.joiningBonus) || 0;
-        payload.flexiAmount = Number(revisionDraft.flexiAmount) || 0;
-        payload.broadband = Number(revisionDraft.broadband) || 0;
-        payload.petrol = Number(revisionDraft.petrol) || 0;
-        payload.lta = Number(revisionDraft.lta) || 0;
-        payload.insuranceAmount = Number(revisionDraft.insuranceAmount) || 0;
-        payload.employerNPS = Number(revisionDraft.employerNPS) || 0;
-        payload.tds = Number(revisionDraft.deductions?.tds) || 0;
-        payload.professionalTax = Number(revisionDraft.deductions?.professionalTax) || 0;
-        payload.conveyance = Number(revisionDraft.salaryStructure?.conveyance) || 0;
-        payload.medicalAllowance = Number(revisionDraft.salaryStructure?.medicalAllowance) || 0;
-        payload.otherAllowances = (revisionDraft.salaryStructure?.otherAllowances || []).map(a => ({
+        employmentType: revisionDraft.employmentType || 'permanent',
+        workingPattern: revisionDraft.workingPattern || 'full_time',
+        compensationModel: revisionDraft.compensationModel || 'SALARIED',
+        paymentBasis: revisionDraft.paymentBasis || 'MONTHLY',
+        compensationType: compType,
+        payFrequency: revisionDraft.payFrequency || 'monthly',
+        attendanceMode: revisionDraft.attendanceMode || 'attendance',
+        designation: revisionDraft.designation || '',
+        department: revisionDraft.department || null,
+        joiningDate: revisionDraft.joiningDate || undefined,
+        dateOfLeaving: revisionDraft.dateOfLeaving || null,
+        status: revisionDraft.status || 'active',
+        newCTC: Number(revisionDraft.newCTC) || 0,
+        monthlyCTC: Number(revisionDraft.newCTC) || 0,
+        newHourlyRate: Number(revisionDraft.newHourlyRate) || 0,
+        hourlyRate: Number(revisionDraft.newHourlyRate) || 0,
+        dailyRate: Number(revisionDraft.dailyRate) || 0,
+        weeklyRate: Number(revisionDraft.weeklyRate) || 0,
+        projectFee: Number(revisionDraft.projectFee) || 0,
+        milestoneAmount: Number(revisionDraft.milestoneAmount) || 0,
+        commissionNotes: revisionDraft.commissionNotes || '',
+        rateCard: revisionDraft.rateCard || [],
+        useSalaryComponents: revisionDraft.useSalaryComponents !== false,
+        pfEnabled: revisionDraft.pfEnabled !== false,
+        esiEnabled: revisionDraft.esiEnabled !== false,
+        ptEnabled: revisionDraft.ptEnabled !== false,
+        lwfEnabled: revisionDraft.lwfEnabled !== false,
+        gratuityEnabled: revisionDraft.gratuityEnabled !== false,
+        includePfInCTC: revisionDraft.includePfInCTC === true,
+        includeGratuityInCTC: revisionDraft.includeGratuityInCTC !== false,
+        basicPercent: revisionDraft.basicPercent === null || revisionDraft.basicPercent === '' ? null : Number(revisionDraft.basicPercent),
+        hraPercent: revisionDraft.hraPercent === null || revisionDraft.hraPercent === '' ? null : Number(revisionDraft.hraPercent),
+        joiningBonus: Number(revisionDraft.joiningBonus) || 0,
+        flexiAmount: Number(revisionDraft.flexiAmount) || 0,
+        broadband: Number(revisionDraft.broadband) || 0,
+        petrol: Number(revisionDraft.petrol) || 0,
+        lta: Number(revisionDraft.lta) || 0,
+        insuranceAmount: Number(revisionDraft.insuranceAmount) || 0,
+        employerNPS: Number(revisionDraft.employerNPS) || 0,
+        tds: Number(revisionDraft.deductions?.tds) || 0,
+        professionalTax: Number(revisionDraft.deductions?.professionalTax) || 0,
+        conveyance: Number(revisionDraft.salaryStructure?.conveyance) || 0,
+        medicalAllowance: Number(revisionDraft.salaryStructure?.medicalAllowance) || 0,
+        otherAllowances: (revisionDraft.salaryStructure?.otherAllowances || []).map(a => ({
           name: a.name,
           amount: Number(a.amount) || 0
-        }));
-        payload.otherDeductions = (revisionDraft.deductions?.otherDeductions || []).map(d => ({
+        })),
+        otherDeductions: (revisionDraft.deductions?.otherDeductions || []).map(d => ({
           name: d.name,
           amount: Number(d.amount) || 0
-        }));
-      }
+        })),
+      };
 
-      // Copy any custom percentage overrides from revisionDraft to payload
       Object.keys(revisionDraft).forEach(key => {
         if (key.endsWith('Percent') && !['basicPercent', 'hraPercent'].includes(key)) {
           payload[key] = revisionDraft[key] === null || revisionDraft[key] === '' ? null : Number(revisionDraft[key]);
@@ -625,52 +781,9 @@ const EmployeeDetails = () => {
       }
       const res = await api.get(`/employees/${id}`);
       setEmployee(res.data);
-      setRevisionDraft({
-        role: '',
-        newCTC: '',
-        newAnnualCTC: '',
-        newHourlyRate: '',
-        effectiveDate: new Date().toISOString().slice(0, 10),
-        reason: '',
-        pfEnabled: true,
-        esiEnabled: true,
-        ptEnabled: true,
-        lwfEnabled: true,
-        gratuityEnabled: true,
-        includePfInCTC: false,
-        includeGratuityInCTC: true,
-        basicPercent: null,
-        hraPercent: null,
-        useSalaryComponents: true,
-        employmentType: 'full-time',
-        compensationModel: 'SALARIED',
-        paymentBasis: 'MONTHLY',
-        flexiAmount: 0,
-        broadband: 0,
-        petrol: 0,
-        lta: 0,
-        insuranceAmount: 0,
-        employerNPS: 0,
-        joiningBonus: 0,
-        salaryStructure: {
-          basic: 0,
-          hra: 0,
-          conveyance: 0,
-          medicalAllowance: 0,
-          specialAllowance: 0,
-          otherAllowances: [],
-        },
-        deductions: {
-          pf: 0,
-          esi: 0,
-          professionalTax: 0,
-          tds: 0,
-          otherDeductions: [],
-        }
-      });
       setEditingRevision(null);
       setShowRevisionModal(false);
-      toast.success(editingRevision ? 'Salary revision updated successfully' : (isHourly ? 'Hourly rate revised successfully' : 'Salary revised successfully'));
+      toast.success(editingRevision ? 'Salary revision updated successfully' : 'Salary & compensation profile revised successfully');
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Failed to save salary revision');
@@ -1109,195 +1222,458 @@ const EmployeeDetails = () => {
       <Modal 
         isOpen={showRevisionModal} 
         onClose={() => setShowRevisionModal(false)} 
-        title={
-          editingRevision
-            ? (employee.payType === 'hourly' ? 'Edit Hourly Rate Revision' : 'Edit Salary Revision')
-            : (employee.payType === 'hourly' ? 'Revise Hourly Rate' : 'Revise Salary')
-        }
+        title={editingRevision ? 'Edit Salary Revision' : 'Revise Salary & Compensation Profile'}
       >
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>Job Role Template</label>
-              <select
-                value={revisionDraft.role || ''}
-                onChange={(e) => handleRoleChange(e.target.value)}
-                className={inputCls}
-              >
-                <option value="">No Role (Custom Salary Components)</option>
-                {filteredRoles.map((r) => (
-                  <option key={r._id} value={r._id}>
-                    {r.name} ({r.payType === 'hourly' ? 'Hourly' : 'Salaried'})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Employment Type</label>
-              <select
-                value={revisionDraft.employmentType || 'full-time'}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setDraftField('employmentType', val);
-                  refreshDraftSalaryFromCTC({ employmentType: val });
-                }}
-                className={inputCls}
-              >
-                <option value="full-time">Full Time</option>
-                <option value="part-time">Part Time</option>
-                <option value="contract">Contract</option>
-                <option value="intern">Intern / Trainee</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Compensation Model</label>
-              <select
-                value={revisionDraft.compensationModel || 'SALARIED'}
-                onChange={(e) => {
-                  const cm = e.target.value;
-                  const isConsultant = cm !== 'SALARIED';
-                  const updated = {
-                    ...revisionDraft,
-                    compensationModel: cm,
-                    ...(isConsultant ? {
-                      useSalaryComponents: false,
-                      pfEnabled: false,
-                      esiEnabled: false,
-                      ptEnabled: false,
-                      lwfEnabled: false,
-                      gratuityEnabled: false,
-                      includePfInCTC: false,
-                      includeGratuityInCTC: false,
-                    } : {
-                      useSalaryComponents: revisionDraft.employmentType === 'intern' ? false : true,
-                      pfEnabled: revisionDraft.employmentType === 'intern' ? false : true,
-                      esiEnabled: revisionDraft.employmentType === 'intern' ? false : true,
-                      ptEnabled: revisionDraft.employmentType === 'intern' ? false : true,
-                      lwfEnabled: revisionDraft.employmentType === 'intern' ? false : true,
-                      gratuityEnabled: revisionDraft.employmentType === 'intern' ? false : true,
-                      includePfInCTC: false,
-                      includeGratuityInCTC: revisionDraft.employmentType === 'intern' ? false : true,
-                    }),
-                  };
-                  setRevisionDraft(updated);
-                  refreshDraftSalaryFromCTC(updated);
-                }}
-                className={inputCls}
-              >
-                <option value="SALARIED">Salaried Employee</option>
-                <option value="CONSULTANT">Recruitment Consultant</option>
-                <option value="PROJECT">Project-Based Contractor</option>
-                <option value="POSITION">Position-Based Contractor</option>
-                <option value="INTERVIEW">Interview-Based Contractor</option>
-                <option value="HOURLY">Hourly Contractor</option>
-                <option value="CUSTOM">Custom Contractor</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Payment Basis</label>
-              <select
-                value={revisionDraft.paymentBasis || 'MONTHLY'}
-                onChange={(e) => setDraftField('paymentBasis', e.target.value)}
-                className={inputCls}
-              >
-                <option value="MONTHLY">Monthly Retainer</option>
-                <option value="PROJECT">Per Closed Project</option>
-                <option value="POSITION">Per Closed Position</option>
-                <option value="INTERVIEW">Per Conducted Interview</option>
-                <option value="HOUR">Per Hour</option>
-                <option value="DAY">Per Day</option>
-                <option value="MILESTONE">Per Milestone</option>
-                <option value="CUSTOM">Custom Pay Event</option>
-              </select>
+          {/* Section 1: Employment & Role Classification */}
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+            <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2">
+              Employment &amp; Role Classification
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Employment Type</label>
+                <select
+                  value={revisionDraft.employmentType || 'permanent'}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setDraftField('employmentType', val);
+                    refreshDraftSalaryFromCTC({ employmentType: val });
+                  }}
+                  className={inputCls}
+                >
+                  <option value="permanent">Permanent</option>
+                  <option value="probation">Probationary</option>
+                  <option value="contract">Contract</option>
+                  <option value="temporary">Temporary</option>
+                  <option value="intern">Intern / Trainee</option>
+                  <option value="consultant">Consultant</option>
+                  <option value="freelancer">Freelancer</option>
+                  <option value="part_time">Part-Time</option>
+                  <option value="casual">Casual</option>
+                  <option value="seasonal">Seasonal</option>
+                  <option value="full-time">Full-Time (Legacy)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={labelCls}>Pay Frequency</label>
+                <select
+                  value={revisionDraft.payFrequency || 'monthly'}
+                  onChange={(e) => setDraftField('payFrequency', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="monthly">Monthly</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-Weekly</option>
+                  <option value="semi_monthly">Semi-Monthly</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={labelCls}>Working Pattern</label>
+                <select
+                  value={revisionDraft.workingPattern || 'full_time'}
+                  onChange={(e) => setDraftField('workingPattern', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="full_time">Full-Time (On-site)</option>
+                  <option value="part_time">Part-Time</option>
+                  <option value="remote">Remote</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="shift">Shift Based</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={labelCls}>Job Role Template</label>
+                <select
+                  value={revisionDraft.role || ''}
+                  onChange={(e) => handleRoleChange(e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">No Role (Custom Salary Components)</option>
+                  {roles.map((r) => (
+                    <option key={r._id} value={r._id}>
+                      {r.name} ({r.payType === 'hourly' ? 'Hourly' : 'Salaried'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className={labelCls}>Designation</label>
+                <input
+                  type="text"
+                  value={revisionDraft.designation || ''}
+                  onChange={(e) => setDraftField('designation', e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label className={labelCls}>Department</label>
+                <select
+                  value={revisionDraft.department || ''}
+                  onChange={(e) => setDraftField('department', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">Select Department</option>
+                  {departments.map((dept) => (
+                    <option key={dept._id} value={dept._id}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className={labelCls}>Joining Date *</label>
+                <input
+                  type="date"
+                  required
+                  value={revisionDraft.joiningDate || ''}
+                  onChange={(e) => setDraftField('joiningDate', e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label className={labelCls}>Date of Leaving</label>
+                <input
+                  type="date"
+                  value={revisionDraft.dateOfLeaving || ''}
+                  onChange={(e) => setDraftField('dateOfLeaving', e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label className={labelCls}>Status</label>
+                <select
+                  value={revisionDraft.status || 'active'}
+                  onChange={(e) => setDraftField('status', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="terminated">Terminated</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          {employee.payType === 'hourly' ? (
+          {/* Section 2: Compensation Configuration / Strategy Engine */}
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+            <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2 flex items-center justify-between">
+              <span>Compensation Configuration</span>
+              <span className="text-xs bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold">Strategy Engine</span>
+            </h2>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={labelCls}>Current Hourly Rate</label>
-                <div className="w-full bg-gray-50 border border-gray-200 text-gray-500 rounded-lg px-3 py-2 text-sm font-semibold select-none">
-                  {fmtMoney(employee.hourlyRate)}/hr
-                </div>
+                <label className={labelCls}>Compensation Type *</label>
+                <select
+                  value={revisionDraft.compensationType || 'monthly_salary'}
+                  onChange={(e) => {
+                    const newType = e.target.value;
+                    const currentType = revisionDraft.compensationType || 'monthly_salary';
+                    const currentUses = dynamicUsesComponents[currentType] ?? true;
+                    const newUses = dynamicUsesComponents[newType] ?? false;
+
+                    if (currentUses && !newUses && revisionDraft.useSalaryComponents !== false) {
+                      const currentLabel = compTypeOptions.find(o => o.key === currentType)?.label || currentType;
+                      const newLabel = compTypeOptions.find(o => o.key === newType)?.label || newType;
+                      const confirmed = window.confirm(
+                        `Switching to ${newLabel} will ignore fixed salary components and statutory benefits. Do you want to continue?`
+                      );
+                      if (!confirmed) return;
+                    }
+
+                    const defaultAtt = dynamicDefaultAttModes[newType] || 'attendance';
+                    setRevisionDraft((prev) => {
+                      const updated = {
+                        ...prev,
+                        compensationType: newType,
+                        useSalaryComponents: newUses,
+                        attendanceMode: defaultAtt,
+                      };
+                      if (newUses && updated.newCTC) {
+                        refreshDraftSalaryFromCTC(updated);
+                      }
+                      return updated;
+                    });
+                  }}
+                  className={inputCls}
+                >
+                  {compTypeOptions.map(opt => (
+                    <option key={opt.key} value={opt.key}>{opt.label}</option>
+                  ))}
+                </select>
               </div>
+
               <div>
-                <label className={labelCls}>New Hourly Rate *</label>
-                <div className="relative rounded-lg shadow-sm">
-                  <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 text-sm font-semibold">₹</span>
+                <label className={labelCls}>Attendance Mode *</label>
+                <select
+                  value={revisionDraft.attendanceMode || 'attendance'}
+                  onChange={(e) => setDraftField('attendanceMode', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="attendance">Attendance Based (paidDays / workingDays)</option>
+                  <option value="timesheet">Timesheet (hours logged)</option>
+                  <option value="shift">Shift Based (shifts worked)</option>
+                  <option value="unit_count">Unit Count (piece rate / deliverables)</option>
+                  <option value="fixed">Fixed (always full month / no proration)</option>
+                  <option value="none">None (milestone / project / commission)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Dynamic Compensation Inputs */}
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+            <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2">
+              Compensation Parameters ({revisionDraft.compensationType || 'monthly_salary'})
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {visibleFields.includes('monthlyCTC') && (
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="text-xs font-semibold text-gray-600 inline-block m-0">
+                      {ctcPeriod === 'monthly' ? 'Monthly CTC *' : 'Annual CTC *'}
+                    </label>
+                    <div className="flex bg-gray-100 p-0.5 rounded-lg border border-gray-200">
+                      <button
+                        type="button"
+                        onClick={() => setCtcPeriod('monthly')}
+                        className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${ctcPeriod === 'monthly' ? 'bg-white text-slate-800 shadow-sm border border-gray-100 font-extrabold' : 'text-gray-500 hover:text-slate-800'}`}
+                      >
+                        Monthly
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCtcPeriod('annual')}
+                        className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${ctcPeriod === 'annual' ? 'bg-white text-slate-800 shadow-sm border border-gray-100 font-extrabold' : 'text-gray-500 hover:text-slate-800'}`}
+                      >
+                        Annually
+                      </button>
+                    </div>
+                  </div>
                   <input
                     type="number"
-                    required
+                    step="any"
                     min="0"
-                    value={revisionDraft.newHourlyRate}
+                    value={
+                      ctcPeriod === 'monthly'
+                        ? (revisionDraft.newCTC || '')
+                        : (revisionDraft.newCTC ? Math.round(revisionDraft.newCTC * 12) : '')
+                    }
                     onChange={(e) => {
-                      const val = e.target.value === '' ? '' : Number(e.target.value);
+                      const inputVal = e.target.value === '' ? '' : Number(e.target.value);
+                      const computedMonthly = ctcPeriod === 'annual' ? (inputVal === '' ? '' : Math.round((inputVal / 12) * 100) / 100) : inputVal;
                       setRevisionDraft((prev) => ({
                         ...prev,
-                        newHourlyRate: val
+                        newCTC: computedMonthly,
+                        newAnnualCTC: computedMonthly === '' ? '' : Math.round(computedMonthly * 12 * 100) / 100,
                       }));
                     }}
-                    className={inputCls + ' pl-7'}
+                    onBlur={refreshDraftSalaryFromCTC}
+                    className={inputCls}
                   />
                 </div>
-              </div>
+              )}
+
+              {visibleFields.includes('hourlyRate') && (
+                <div>
+                  <label className={labelCls}>Hourly Rate (₹/hr) *</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={revisionDraft.newHourlyRate}
+                    onChange={(e) => setDraftField('newHourlyRate', e.target.value === '' ? '' : Number(e.target.value))}
+                    className={inputCls}
+                  />
+                </div>
+              )}
+
+              {visibleFields.includes('dailyRate') && (
+                <div>
+                  <label className={labelCls}>Daily Wage Rate (₹/day) *</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={revisionDraft.dailyRate || 0}
+                    onChange={(e) => setDraftField('dailyRate', e.target.value === '' ? '' : Number(e.target.value))}
+                    className={inputCls}
+                  />
+                </div>
+              )}
+
+              {visibleFields.includes('weeklyRate') && (
+                <div>
+                  <label className={labelCls}>Weekly Salary (₹/week) *</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={revisionDraft.weeklyRate || 0}
+                    onChange={(e) => setDraftField('weeklyRate', e.target.value === '' ? '' : Number(e.target.value))}
+                    className={inputCls}
+                  />
+                </div>
+              )}
+
+              {visibleFields.includes('projectFee') && (
+                <div>
+                  <label className={labelCls}>Flat Project Fee (₹) *</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={revisionDraft.projectFee || 0}
+                    onChange={(e) => setDraftField('projectFee', e.target.value === '' ? '' : Number(e.target.value))}
+                    className={inputCls}
+                  />
+                </div>
+              )}
+
+              {visibleFields.includes('milestoneAmount') && (
+                <div>
+                  <label className={labelCls}>Default Milestone Amount (₹)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={revisionDraft.milestoneAmount || 0}
+                    onChange={(e) => setDraftField('milestoneAmount', e.target.value === '' ? '' : Number(e.target.value))}
+                    className={inputCls}
+                  />
+                </div>
+              )}
+
+              {visibleFields.includes('commissionNotes') && (
+                <div className="col-span-2">
+                  <label className={labelCls}>Commission Structure Notes</label>
+                  <textarea
+                    rows={2}
+                    value={revisionDraft.commissionNotes || ''}
+                    onChange={(e) => setDraftField('commissionNotes', e.target.value)}
+                    placeholder="Describe commission terms, target thresholds, percentage tiers..."
+                    className={inputCls}
+                  />
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>New Annual CTC</label>
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={revisionDraft.newAnnualCTC}
-                  onChange={(e) => {
-                    const val = e.target.value === '' ? '' : (Number(e.target.value) || 0);
-                    setRevisionDraft((prev) => ({
-                      ...prev,
-                      newAnnualCTC: val,
-                      newCTC: val === '' ? '' : Math.round((val / 12) * 100) / 100
-                    }));
-                  }}
-                  onBlur={refreshDraftSalaryFromCTC}
-                  className={inputCls}
-                />
+
+            {/* Rate Card Editor for Piece Rate / Deliverable Strategies */}
+            {visibleFields.includes('rateCardEditor') && (
+              <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-3 mt-3">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">Rate Card Items</h4>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRevisionDraft(prev => ({
+                        ...prev,
+                        rateCard: [...(prev.rateCard || []), { paymentType: '', rate: 0, unit: 'unit' }]
+                      }));
+                    }}
+                    className="px-2.5 py-1 text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-100 flex items-center gap-1"
+                  >
+                    <FaPlus size={10} /> Add Item
+                  </button>
+                </div>
+
+                {(!revisionDraft.rateCard || revisionDraft.rateCard.length === 0) ? (
+                  <div className="text-center py-4 border border-dashed border-slate-200 rounded-lg text-slate-400 text-xs font-medium">
+                    No rate card items added. Click "+ Add Item" above.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {revisionDraft.rateCard.map((item, idx) => (
+                      <div key={idx} className="flex gap-2 items-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
+                        <div className="flex-1">
+                          <label className="text-[10px] font-bold text-slate-500 mb-1 block">Payment Type</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Article Written, Design Screen"
+                            value={item.paymentType || ''}
+                            onChange={(e) => {
+                              const list = [...(revisionDraft.rateCard || [])];
+                              list[idx] = { ...list[idx], paymentType: e.target.value };
+                              setDraftField('rateCard', list);
+                            }}
+                            className={inputCls}
+                          />
+                        </div>
+                        <div className="w-1/4">
+                          <label className="text-[10px] font-bold text-slate-500 mb-1 block">Rate (₹)</label>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            placeholder="Rate"
+                            value={item.rate || 0}
+                            onChange={(e) => {
+                              const list = [...(revisionDraft.rateCard || [])];
+                              list[idx] = { ...list[idx], rate: e.target.value === '' ? '' : Number(e.target.value) };
+                              setDraftField('rateCard', list);
+                            }}
+                            className={inputCls}
+                          />
+                        </div>
+                        <div className="w-1/4">
+                          <label className="text-[10px] font-bold text-slate-500 mb-1 block">Unit</label>
+                          <input
+                            type="text"
+                            placeholder="unit / article / hr"
+                            value={item.unit || ''}
+                            onChange={(e) => {
+                              const list = [...(revisionDraft.rateCard || [])];
+                              list[idx] = { ...list[idx], unit: e.target.value };
+                              setDraftField('rateCard', list);
+                            }}
+                            className={inputCls}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const list = (revisionDraft.rateCard || []).filter((_, i) => i !== idx);
+                            setDraftField('rateCard', list);
+                          }}
+                          className="mt-4 p-2 text-rose-600 hover:bg-rose-50 rounded-lg"
+                        >
+                          <FaTrash size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div>
-                <label className={labelCls}>New Monthly CTC</label>
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={revisionDraft.newCTC}
-                  onChange={(e) => {
-                    const val = e.target.value === '' ? '' : (Number(e.target.value) || 0);
-                    setRevisionDraft((prev) => ({
-                      ...prev,
-                      newCTC: val,
-                      newAnnualCTC: val === '' ? '' : Math.round(val * 12 * 100) / 100
-                    }));
-                  }}
-                  onBlur={refreshDraftSalaryFromCTC}
-                  className={inputCls}
-                />
-              </div>
-            </div>
-          )}
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            )}
+          </div>
+
+          {/* Section 4: Revision Effective Date & Reason */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
             <div>
-              <label className={labelCls}>Effective Date</label>
+              <label className={labelCls}>Effective Date *</label>
               <input
                 type="date"
+                required
                 value={revisionDraft.effectiveDate}
                 onChange={(e) => setDraftField('effectiveDate', e.target.value)}
                 className={inputCls}
               />
             </div>
             <div>
-              <label className={labelCls}>Reason</label>
+              <label className={labelCls}>Reason for Revision</label>
               <input
                 type="text"
+                placeholder="e.g. Annual Appraisal, Promotion, Strategy Adjustment"
                 value={revisionDraft.reason}
                 onChange={(e) => setDraftField('reason', e.target.value)}
                 className={inputCls}
@@ -1305,249 +1681,29 @@ const EmployeeDetails = () => {
             </div>
           </div>
 
-          {employee.payType !== 'hourly' && (
+          {/* Section 5: Component Preview & Statutory Toggles (for CTC & component based strategies) */}
+          {strategyUsesComponents && (
             <>
               {/* CTC Components Summary */}
-          {(() => {
-            const activePreview = draftSalaryPreview || salaryPreview || {};
-            return (
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold">CTC Components</h2>
-                  <span className="text-xs text-gray-500">Synced with payroll settings</span>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                  <SummaryCard label="PF Employer" value={fmtMoney(activePreview.pfEmployer || 0)} />
-                  <SummaryCard label="Gratuity" value={fmtMoney(activePreview.gratuity || 0)} />
-                  <SummaryCard label="LWF Employer" value={fmtMoney(activePreview.lwfEmployer || 0)} />
-                  <SummaryCard label="Annual CTC" value={fmtMoney(activePreview.annualCTC || 0)} />
-                  <SummaryCard label="Gross Salary" value={fmtMoney(activePreview.grossSalary || 0)} />
-                  <SummaryCard label="Net Take-Home Estimate" value={fmtMoney(activePreview.netTakeHome || 0)} />
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Statutory & Contribution Toggles */}
-          {(() => {
-            const activePreview = draftSalaryPreview || salaryPreview || {};
-            return (
-              <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
-                <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                  <span>Statutory Components & Contribution Toggles</span>
-                  <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-full font-semibold">Statutory Toggles</span>
-                </h3>
-                <p className="text-xs text-gray-500">
-                  Enable or disable specific statutory contributions for this employee. Disabling a component will zero out its values in salary calculations immediately.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Use Salary Components Toggle */}
-                  <div className="flex flex-col border border-blue-100 rounded-xl p-3 bg-blue-50/20">
-                    <label className="flex items-center justify-between cursor-pointer select-none">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-semibold text-blue-900">Use Salary Components</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={revisionDraft.useSalaryComponents ?? true}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setDraftField('useSalaryComponents', val);
-                          refreshDraftSalaryFromCTC({ useSalaryComponents: val });
-                        }}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
-                    </label>
-                    <span className="text-[10px] text-gray-400 mt-1">
-                      Distribute CTC into Basic, HRA, and Special Allowance components.
-                    </span>
+              {(() => {
+                const activePreview = draftSalaryPreview || salaryPreview || {};
+                return (
+                  <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-bold">CTC Components</h2>
+                      <span className="text-xs text-gray-500">Synced with payroll settings</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                      <SummaryCard label="PF Employer" value={fmtMoney(activePreview.pfEmployer || 0)} />
+                      <SummaryCard label="Gratuity" value={fmtMoney(activePreview.gratuity || 0)} />
+                      <SummaryCard label="LWF Employer" value={fmtMoney(activePreview.lwfEmployer || 0)} />
+                      <SummaryCard label="Annual CTC" value={fmtMoney(activePreview.annualCTC || 0)} />
+                      <SummaryCard label="Gross Salary" value={fmtMoney(activePreview.grossSalary || 0)} />
+                      <SummaryCard label="Net Take-Home Estimate" value={fmtMoney(activePreview.netTakeHome || 0)} />
+                    </div>
                   </div>
-
-                  {/* PF Toggle */}
-                  <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
-                    <label className="flex items-center justify-between cursor-pointer select-none">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-semibold text-gray-800">Provident Fund (PF)</span>
-                        {revisionDraft.pfEnabled !== false && activePreview && (
-                          <span className="text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100 rounded-full px-1.5 py-0.5">
-                            {fmtMoney((activePreview.pfEmployee || 0) + (activePreview.pfEmployer || 0))}
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={revisionDraft.pfEnabled ?? true}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setDraftField('pfEnabled', val);
-                          refreshDraftSalaryFromCTC({ pfEnabled: val });
-                        }}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
-                    </label>
-                    <span className="text-[10px] text-gray-400 mt-1">
-                      Both Employee & Employer PF contributions {revisionDraft.pfEnabled !== false && activePreview && `(EE: ${fmtMoney(activePreview.pfEmployee || 0)}, ER: ${fmtMoney(activePreview.pfEmployer || 0)})`}
-                    </span>
-                  </div>
-
-                  {/* ESI Toggle */}
-                  <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
-                    <label className="flex items-center justify-between cursor-pointer select-none">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-semibold text-gray-800">State Insurance (ESI)</span>
-                        {revisionDraft.esiEnabled !== false && activePreview && ((activePreview.esiEmployee || 0) + (activePreview.esiEmployer || 0)) > 0 && (
-                          <span className="text-[9px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-full px-1.5 py-0.5">
-                            {fmtMoney((activePreview.esiEmployee || 0) + (activePreview.esiEmployer || 0))}
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={revisionDraft.esiEnabled ?? true}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setDraftField('esiEnabled', val);
-                          refreshDraftSalaryFromCTC({ esiEnabled: val });
-                        }}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
-                    </label>
-                    <span className="text-[10px] text-gray-400 mt-1">
-                      Employee State Insurance (ESI) deductions {revisionDraft.esiEnabled !== false && activePreview && ((activePreview.esiEmployee || 0) + (activePreview.esiEmployer || 0)) > 0 && `(EE: ${fmtMoney(activePreview.esiEmployee || 0)}, ER: ${fmtMoney(activePreview.esiEmployer || 0)})`}
-                    </span>
-                  </div>
-
-                  {/* Professional Tax Toggle */}
-                  <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
-                    <label className="flex items-center justify-between cursor-pointer select-none">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-semibold text-gray-800">Professional Tax (PT)</span>
-                        {revisionDraft.ptEnabled !== false && activePreview && (activePreview.professionalTax || 0) > 0 && (
-                          <span className="text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full px-1.5 py-0.5">
-                            {fmtMoney(activePreview.professionalTax || 0)}
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={revisionDraft.ptEnabled ?? true}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setDraftField('ptEnabled', val);
-                          refreshDraftSalaryFromCTC({ ptEnabled: val });
-                        }}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
-                    </label>
-                    <span className="text-[10px] text-gray-400 mt-1">
-                      State Professional Tax deduction {revisionDraft.ptEnabled !== false && activePreview && (activePreview.professionalTax || 0) > 0 && `(${fmtMoney(activePreview.professionalTax || 0)})`}
-                    </span>
-                  </div>
-
-                  {/* LWF Toggle */}
-                  <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
-                    <label className="flex items-center justify-between cursor-pointer select-none">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-semibold text-gray-800">Welfare Fund (LWF)</span>
-                        {revisionDraft.lwfEnabled !== false && activePreview && ((activePreview.lwfEmployee || 0) + (activePreview.lwfEmployer || 0)) > 0 && (
-                          <span className="text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-100 rounded-full px-1.5 py-0.5">
-                            {fmtMoney((activePreview.lwfEmployee || 0) + (activePreview.lwfEmployer || 0))}
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={revisionDraft.lwfEnabled ?? true}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setDraftField('lwfEnabled', val);
-                          refreshDraftSalaryFromCTC({ lwfEnabled: val });
-                        }}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
-                    </label>
-                    <span className="text-[10px] text-gray-400 mt-1">
-                      Labour Welfare Fund contributions {revisionDraft.lwfEnabled !== false && activePreview && ((activePreview.lwfEmployee || 0) + (activePreview.lwfEmployer || 0)) > 0 && `(EE: ${fmtMoney(activePreview.lwfEmployee || 0)}, ER: ${fmtMoney(activePreview.lwfEmployer || 0)})`}
-                    </span>
-                  </div>
-
-                  {/* Gratuity Toggle */}
-                  <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
-                    <label className="flex items-center justify-between cursor-pointer select-none">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-semibold text-gray-800">Gratuity Provision</span>
-                        {revisionDraft.gratuityEnabled !== false && activePreview && (activePreview.gratuity || 0) > 0 && (
-                          <span className="text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100 rounded-full px-1.5 py-0.5">
-                            {fmtMoney(activePreview.gratuity || 0)}
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={revisionDraft.gratuityEnabled ?? true}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setDraftField('gratuityEnabled', val);
-                          refreshDraftSalaryFromCTC({ gratuityEnabled: val });
-                        }}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
-                    </label>
-                    <span className="text-[10px] text-gray-400 mt-1">
-                      Accrual of statutory gratuity amount {revisionDraft.gratuityEnabled !== false && activePreview && (activePreview.gratuity || 0) > 0 && `(${fmtMoney(activePreview.gratuity || 0)})`}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Additional CTC Settings if statutory components enabled */}
-                {((revisionDraft.pfEnabled !== false) || (revisionDraft.gratuityEnabled !== false)) && (
-                  <div className="border-t border-gray-100 pt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {(revisionDraft.pfEnabled !== false) && (
-                      <label className="flex items-center gap-2.5 cursor-pointer select-none border border-gray-100 rounded-xl p-3 bg-gray-50/30">
-                        <input
-                          type="checkbox"
-                          checked={revisionDraft.includePfInCTC ?? false}
-                          onChange={(e) => {
-                            const val = e.target.checked;
-                            setDraftField('includePfInCTC', val);
-                            refreshDraftSalaryFromCTC({ includePfInCTC: val });
-                          }}
-                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                        />
-                        <div>
-                          <span className="text-xs font-semibold text-gray-800 block">
-                            Include Employer PF in CTC {revisionDraft.includePfInCTC === true && activePreview && `(${fmtMoney(activePreview.pfEmployer || 0)})`}
-                          </span>
-                          <span className="text-[10px] text-gray-400">Employer contribution reduces Gross take-home</span>
-                        </div>
-                      </label>
-                    )}
-
-                    {(revisionDraft.gratuityEnabled !== false) && (
-                      <label className="flex items-center gap-2.5 cursor-pointer select-none border border-gray-100 rounded-xl p-3 bg-gray-50/30">
-                        <input
-                          type="checkbox"
-                          checked={revisionDraft.includeGratuityInCTC ?? true}
-                          onChange={(e) => {
-                            const val = e.target.checked;
-                            setDraftField('includeGratuityInCTC', val);
-                            refreshDraftSalaryFromCTC({ includeGratuityInCTC: val });
-                          }}
-                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                        />
-                        <div>
-                          <span className="text-xs font-semibold text-gray-800 block">
-                            Include Gratuity in CTC {revisionDraft.includeGratuityInCTC !== false && activePreview && `(${fmtMoney(activePreview.gratuity || 0)})`}
-                          </span>
-                          <span className="text-[10px] text-gray-400">Accrued gratuity reduces Gross take-home</span>
-                        </div>
-                      </label>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+                );
+              })()}
 
           {/* Custom Overrides Card */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-5 shadow-sm">
