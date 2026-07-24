@@ -176,9 +176,9 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, isExistingDisabled, u
           <input
             type="number" min="0"
             placeholder="Units"
-            value={row?.periodInput?.unitsProduced ?? 0}
+            value={row?.periodInput?.unitsProduced !== undefined ? row.periodInput.unitsProduced : 1}
             disabled={isExistingDisabled}
-            onChange={(e) => updatePeriodInput('unitsProduced', Number(e.target.value) || 0)}
+            onChange={(e) => updatePeriodInput('unitsProduced', e.target.value === '' ? 0 : Number(e.target.value))}
             className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
           />
           <span className="text-gray-400 text-xs">units</span>
@@ -1691,7 +1691,8 @@ const PayrollProcessing = () => {
         const showStatutoryOverrides = hasSalaryBreakup;
         const showLopStrategy = localSplits && localSplits.length > 1 && !isHourly;
         const isFlatSalary = !hasSalaryBreakup;
-        const isConsultantModel = breakdownEmployee.compensationModel && breakdownEmployee.compensationModel !== 'SALARIED';
+        const isConsultantModel = ['commission_only', 'salary_plus_commission', 'project_based', 'milestone_based'].includes(breakdownEmployee.compensationType)
+          || (breakdownEmployee.compensationModel && breakdownEmployee.compensationModel !== 'SALARIED' && !breakdownEmployee.compensationType);
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
@@ -1708,7 +1709,9 @@ const PayrollProcessing = () => {
                       {breakdownEmployee.employeeId || 'EMP-001'} · {breakdownEmployee.designation || 'SDE'} · {
                         isHourly
                           ? `Hourly Rate: ${fmtMoney(breakdownEmployee.hourlyRate)}/hr`
-                          : `CTC ${fmtMoney(breakdownEmployee.monthlyCTC)}`
+                          : (breakdownEmployee.compensationType === 'piece_rate'
+                              ? `Piece Rate: ${fmtMoney(breakdownEmployee.rateCard?.[0]?.rate || 0)}/unit`
+                              : `CTC ${fmtMoney(localSnapshot?.masterCTC || breakdownEmployee.monthlyCTC)}`)
                       }
                     </p>
                   </div>
@@ -2312,7 +2315,19 @@ const PayrollProcessing = () => {
                                 return (
                                   <BreakdownRow
                                     key={c.id}
-                                    label={(isHourly && c.id === 'basic') ? 'Contract Wages (Hourly)' : c.name}
+                                    label={
+                                      (isHourly && c.id === 'basic')
+                                        ? 'Contract Wages (Hourly)'
+                                        : (breakdownEmployee.compensationType === 'piece_rate' && c.id === 'basic'
+                                            ? 'Deliverable Output Pay (Piece Rate)'
+                                            : (breakdownEmployee.compensationType === 'daily_wage' && c.id === 'basic'
+                                                ? 'Daily Wage Earnings'
+                                                : (breakdownEmployee.compensationType === 'project_based' && c.id === 'basic'
+                                                    ? 'Project Fee Earnings'
+                                                    : (breakdownEmployee.compensationType === 'milestone_based' && c.id === 'basic'
+                                                        ? 'Milestone Output Pay'
+                                                        : c.name))))
+                                    }
                                     paid={paid}
                                     master={master}
                                   />
@@ -2331,12 +2346,19 @@ const PayrollProcessing = () => {
                                 <button
                                   type="button"
                                   onClick={() => {
+                                    const compTypeToPaymentType = {
+                                      project_based:   'PROJECT',
+                                      milestone_based: 'MILESTONE',
+                                      commission_only: 'COMMISSION',
+                                      salary_plus_commission: 'COMMISSION',
+                                    };
+                                    const defaultPaymentType = compTypeToPaymentType[breakdownEmployee.compensationType] || 'PROJECT';
                                     const rateCard = breakdownEmployee.rateCard || [];
-                                    const defaultRateItem = rateCard.find(rc => rc.paymentType === 'POSITION') || rateCard[0];
+                                    const defaultRateItem = rateCard.find(rc => rc.paymentType === defaultPaymentType) || rateCard[0];
                                     const defaultRate = defaultRateItem ? defaultRateItem.rate : 0;
                                     setLocalVariableTransactions([
                                       ...localVariableTransactions,
-                                      { paymentType: 'POSITION', reference: '', client: '', quantity: 1, rate: defaultRate, amount: defaultRate, remarks: '' }
+                                      { paymentType: defaultPaymentType, reference: '', client: '', quantity: 1, rate: defaultRate, amount: defaultRate, remarks: '' }
                                     ]);
                                   }}
                                   className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded transition-colors"

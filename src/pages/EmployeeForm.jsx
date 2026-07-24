@@ -7,6 +7,7 @@ import Modal from '../components/Modal';
 import { buildMasterSalaryStructure, DEFAULT_PAYROLL_CONFIG, fmtMoney } from '../utils/payroll';
 import { PT_STATE_LIST } from '../constants/ptStates';
 import { getOnboardingFields } from '../utils/compensationTypeFields';
+import { getDefaultRateCardType, getRateCardOptionsForCompType } from '../constants/rateCardTypes';
 
 export const STRATEGY_FIELD_MAP = {
   monthly_salary:        ['monthlyCTC', 'salaryComponentsEditor'],
@@ -954,7 +955,7 @@ const EmployeeForm = () => {
                           type="button"
                           onClick={() => {
                             const current = formData.rateCard || [];
-                            const defaultType = formData.compensationType === 'piece_rate' ? 'UNIT' : 'PROJECT';
+                            const defaultType = getDefaultRateCardType(formData.compensationType);
                             setFormData({
                               ...formData,
                               rateCard: [...current, { paymentType: defaultType, rate: 0, unit: 'Per Deliverable' }]
@@ -984,13 +985,9 @@ const EmployeeForm = () => {
                                   }}
                                   className={inputCls}
                                 >
-                                  <option value="PROJECT">Project</option>
-                                  <option value="MILESTONE">Milestone</option>
-                                  <option value="POSITION">Position</option>
-                                  <option value="INTERVIEW">Interview</option>
-                                  <option value="HOUR">Hour</option>
-                                  <option value="DAY">Day</option>
-                                  <option value="CUSTOM">Custom</option>
+                                  {getRateCardOptionsForCompType(formData.compensationType).map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                  ))}
                                 </select>
                               </div>
                               <div className="w-28">
