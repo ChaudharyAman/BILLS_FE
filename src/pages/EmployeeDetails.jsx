@@ -1844,9 +1844,10 @@ const EmployeeDetails = () => {
                   const isCalculated = c.linkedTo !== 'fixed';
                   let suffix = '';
                   let freqSuffix = '';
-                  if (c.frequency === 'quarterly') freqSuffix = ' — Quarterly';
-                  else if (c.frequency === 'semi_annually') freqSuffix = ' — Semi-Annually';
-                  else if (c.frequency === 'annually') freqSuffix = ' — Annually';
+                  const effectiveFreq = revisionDraft.componentFrequencies?.[c.id] || c.frequency || 'monthly';
+                  if (effectiveFreq === 'quarterly') freqSuffix = ' — Quarterly';
+                  else if (effectiveFreq === 'semi_annually') freqSuffix = ' — Semi-Annually';
+                  else if (effectiveFreq === 'annually') freqSuffix = ' — Annually';
 
                   if (c.id === 'basic') {
                     const pct = revisionDraft.basicPercent !== null && revisionDraft.basicPercent !== undefined ? revisionDraft.basicPercent : Math.round(c.linkValue * 100);
@@ -1872,7 +1873,9 @@ const EmployeeDetails = () => {
                     id: c.id,
                     name: getFieldMapping(c.id),
                     label: `${c.name}${suffix}`,
-                    isCalculated
+                    isCalculated,
+                    cItem: c,
+                    frequency: effectiveFreq,
                   };
                 });
 
@@ -1933,9 +1936,29 @@ const EmployeeDetails = () => {
                   
                   return (
                     <div key={item.id}>
-                      <label className={labelCls}>
-                        {item.label}
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className={labelCls}>
+                          {item.label}
+                        </label>
+                        {strategyUsesComponents && item.cItem && (
+                          <select
+                            value={revisionDraft.componentFrequencies?.[item.id] || item.cItem.frequency || 'monthly'}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setRevisionDraft(prev => ({
+                                ...prev,
+                                componentFrequencies: { ...(prev.componentFrequencies || {}), [item.id]: val }
+                              }));
+                            }}
+                            className="text-[11px] bg-white border border-gray-300 rounded px-1.5 py-0.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
+                          >
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="semi_annually">Semi-Annually</option>
+                            <option value="annually">Annually</option>
+                          </select>
+                        )}
+                      </div>
                       <input
                         type="number"
                         step="any"

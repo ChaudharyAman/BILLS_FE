@@ -104,6 +104,7 @@ const defaultForm = {
   gratuityEnabled: true,
   includePfInCTC: false,
   includeGratuityInCTC: true,
+  componentFrequencies: {},
   salaryStructure: {
     basic: 0,
     hra: 0,
@@ -244,6 +245,7 @@ const EmployeeForm = () => {
           gratuityEnabled: data.gratuityEnabled !== false,
           includePfInCTC: data.includePfInCTC === true,
           includeGratuityInCTC: data.includeGratuityInCTC !== false,
+          componentFrequencies: data.componentFrequencies || {},
         });
       } catch (error) {
         if (error.name === 'CanceledError' || error.name === 'AbortError') return;
@@ -1492,9 +1494,10 @@ const EmployeeForm = () => {
                     const isCalculated = isIntern || isHourly ? true : (c.linkedTo !== 'fixed');
                     let suffix = '';
                     let freqSuffix = '';
-                    if (c.frequency === 'quarterly') freqSuffix = ' — Quarterly';
-                    else if (c.frequency === 'semi_annually') freqSuffix = ' — Semi-Annually';
-                    else if (c.frequency === 'annually') freqSuffix = ' — Annually';
+                    const effectiveFreq = formData.componentFrequencies?.[c.id] || c.frequency || 'monthly';
+                    if (effectiveFreq === 'quarterly') freqSuffix = ' — Quarterly';
+                    else if (effectiveFreq === 'semi_annually') freqSuffix = ' — Semi-Annually';
+                    else if (effectiveFreq === 'annually') freqSuffix = ' — Annually';
 
                     let labelName = c.name || c.id;
                     if (c.id === 'basic') {
@@ -1530,7 +1533,9 @@ const EmployeeForm = () => {
                       id: c.id,
                       name: getFieldMapping(c.id),
                       label: `${labelName}${suffix}`,
-                      isCalculated
+                      isCalculated,
+                      cItem: c,
+                      frequency: effectiveFreq,
                     };
                   });
 
@@ -1593,16 +1598,36 @@ const EmployeeForm = () => {
                              (item.name.includes('.') 
                                ? (item.name.split('.').reduce((obj, key) => obj?.[key], formData) ?? getPreviewValue(item.id) ?? 0)
                                : (formData[item.name] ?? getPreviewValue(item.id) ?? 0)
-                             )
+                              )
                             )
                         );
                     
                     
                     return (
                       <div key={item.id}>
-                        <label className={labelCls}>
-                          {item.label}
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className={labelCls}>
+                            {item.label}
+                          </label>
+                          {useComponents && item.cItem && (
+                            <select
+                              value={formData.componentFrequencies?.[item.id] || item.cItem.frequency || 'monthly'}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setFormData(prev => ({
+                                  ...prev,
+                                  componentFrequencies: { ...(prev.componentFrequencies || {}), [item.id]: val }
+                                }));
+                              }}
+                              className="text-[11px] bg-white border border-gray-300 rounded px-1.5 py-0.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
+                            >
+                              <option value="monthly">Monthly</option>
+                              <option value="quarterly">Quarterly</option>
+                              <option value="semi_annually">Semi-Annually</option>
+                              <option value="annually">Annually</option>
+                            </select>
+                          )}
+                        </div>
                         <input
                           type="number"
                           step="any"
