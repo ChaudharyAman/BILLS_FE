@@ -834,7 +834,6 @@ const EmployeeForm = () => {
                           type="number"
                           step="any"
                           min="0"
-                          disabled={Boolean(id)}
                           value={
                             ctcPeriod === 'monthly'
                               ? (formData.monthlyCTC || 0)
@@ -845,7 +844,7 @@ const EmployeeForm = () => {
                             setField('monthlyCTC', ctcPeriod === 'monthly' ? val : Math.round((val / 12) * 100) / 100);
                           }}
                           onBlur={refreshSalaryFromCTC}
-                          className={`${inputCls} ${id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
+                          className={inputCls}
                         />
                       </div>
                     )}
@@ -859,10 +858,9 @@ const EmployeeForm = () => {
                             type="number"
                             required
                             min="0"
-                            disabled={Boolean(id)}
                             value={formData.hourlyRate || 0}
                             onChange={(e) => setField('hourlyRate', Number(e.target.value) || 0)}
-                            className={`${inputCls} pl-7 ${id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
+                            className={`${inputCls} pl-7`}
                           />
                         </div>
                       </div>
@@ -877,10 +875,9 @@ const EmployeeForm = () => {
                             type="number"
                             required
                             min="0"
-                            disabled={Boolean(id)}
                             value={formData.dailyRate || 0}
                             onChange={(e) => setField('dailyRate', Number(e.target.value) || 0)}
-                            className={`${inputCls} pl-7 ${id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
+                            className={`${inputCls} pl-7`}
                           />
                         </div>
                       </div>
@@ -895,10 +892,9 @@ const EmployeeForm = () => {
                             type="number"
                             required
                             min="0"
-                            disabled={Boolean(id)}
                             value={formData.weeklyRate || 0}
                             onChange={(e) => setField('weeklyRate', Number(e.target.value) || 0)}
-                            className={`${inputCls} pl-7 ${id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
+                            className={`${inputCls} pl-7`}
                           />
                         </div>
                       </div>
@@ -958,9 +954,10 @@ const EmployeeForm = () => {
                           type="button"
                           onClick={() => {
                             const current = formData.rateCard || [];
+                            const defaultType = formData.compensationType === 'piece_rate' ? 'UNIT' : 'PROJECT';
                             setFormData({
                               ...formData,
-                              rateCard: [...current, { paymentType: 'PROJECT', rate: 0, unit: 'Per Deliverable' }]
+                              rateCard: [...current, { paymentType: defaultType, rate: 0, unit: 'Per Deliverable' }]
                             });
                           }}
                           className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded"
