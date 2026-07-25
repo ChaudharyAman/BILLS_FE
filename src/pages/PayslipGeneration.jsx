@@ -43,41 +43,32 @@ const PayslipGeneration = () => {
     return () => controller.abort();
   }, [id]);
 
-  const downloadPdf = () => {
-    const styleNode = document.createElement('style');
-    styleNode.innerHTML = `
-      @page { 
-        size: A4 portrait; 
-        margin: 0.5cm; 
-      }
-      @media print {
-        .print-hide { display: none !important; }
-        body { 
-          background: white !important; 
-          margin: 0 !important;
-          padding: 0 !important;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-        .payslip-container {
-          box-shadow: none !important;
-          border: none !important;
-          padding: 0 !important;
-          margin: 0 !important;
-          max-width: 100% !important;
-          width: 100% !important;
-        }
-      }
-    `;
-    document.head.appendChild(styleNode);
+  const [downloading, setDownloading] = useState(false);
 
-    const cleanup = () => {
-      styleNode.remove();
-      window.removeEventListener('afterprint', cleanup);
-    };
-
-    window.addEventListener('afterprint', cleanup);
-    window.print();
+  const downloadPdf = async () => {
+    try {
+      setDownloading(true);
+      const response = await api.get(`/payroll/${id}/payslip-pdf`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const empId = slip?.employee?.employeeId || slip?.employeeSnapshot?.employeeId || 'EMP';
+      const period = slip?.period ? `${slip.period.monthName}_${slip.period.year}` : 'payslip';
+      link.setAttribute('download', `Payslip_${empId}_${period}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Payslip PDF downloaded successfully!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to download PDF payslip');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const emailPayslip = async () => {

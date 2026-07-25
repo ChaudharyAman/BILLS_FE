@@ -538,26 +538,45 @@ const EmployeePortal = () => {
   };
 
   // Payslip password protection validator
-  const handleUnlockPayslip = (e) => {
+  const handleUnlockPayslip = async (e) => {
     e.preventDefault();
     if (!selectedSlip || !employee) return;
     
     // Password combination rule: First 4 characters of name in UPPERCASE + DDMM of joiningDate or dateOfBirth
     // Since DOB might be empty, use joiningDate as reliable fallback.
-    const cleanName = (employee.firstName + employee.lastName).replace(/\s+/g, '').toUpperCase();
+    const cleanName = ((employee.firstName || '') + (employee.lastName || '')).replace(/\s+/g, '').toUpperCase();
     const namePart = cleanName.slice(0, 4).padEnd(4, 'X');
     
-    const dateRef = employee.dateOfBirth ? new Date(employee.dateOfBirth) : new Date(employee.joiningDate);
+    const dateRef = employee.dateOfBirth ? new Date(employee.dateOfBirth) : (employee.joiningDate ? new Date(employee.joiningDate) : new Date());
     const day = String(dateRef.getDate()).padStart(2, '0');
     const month = String(dateRef.getMonth() + 1).padStart(2, '0');
     const expectedPassword = `${namePart}${day}${month}`;
 
     if (unlockPassword.trim().toUpperCase() === expectedPassword) {
-      toast.success('Payslip unlocked successfully!');
-      setShowUnlockModal(false);
-      setUnlockPassword('');
-      setPasswordError(false);
-      window.open(`/payroll/${selectedSlip._id}/payslip`, '_blank');
+      try {
+        toast.success('Payslip unlocked! Downloading encrypted PDF...');
+        setShowUnlockModal(false);
+        setUnlockPassword('');
+        setPasswordError(false);
+
+        const response = await api.get(`/payroll/${selectedSlip._id}/payslip-pdf?encrypted=true`, {
+          responseType: 'blob',
+        });
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        const empId = employee.employeeId || 'EMP';
+        const mLabel = selectedSlip.month || 'Payslip';
+        link.setAttribute('download', `Payslip_${empId}_${mLabel}_${selectedSlip.year || 2026}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(blobUrl);
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to download encrypted PDF payslip');
+      }
     } else {
       setPasswordError(true);
       toast.error('Invalid password! Hint: Name initials + DDMM format.');

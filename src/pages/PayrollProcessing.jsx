@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { FaCheck, FaSave, FaPlus, FaTrash, FaCalculator, FaTimes } from 'react-icons/fa';
+import { FaCheck, FaSave, FaPlus, FaTrash, FaCalculator, FaTimes, FaDownload } from 'react-icons/fa';
 import api from '../api/axios';
 import Skeleton from '../components/Skeleton';
 import { DEFAULT_PAYROLL_CONFIG, fmtMoney, serializeRow, getSalarySplits } from '../utils/payroll';
@@ -1423,6 +1423,33 @@ const PayrollProcessing = () => {
     }
   };
 
+  const [downloadingZip, setDownloadingZip] = useState(false);
+
+  const handleDownloadBulkZip = async () => {
+    try {
+      setDownloadingZip(true);
+      toast.loading(`Generating ZIP archive for ${monthName(month)} ${year}...`, { id: 'zip-bulk' });
+      const response = await api.post('/payroll/bulk-payslip-pdf', { month, year }, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/zip' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Payslips_${monthName(month)}_${year}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Bulk payslips ZIP downloaded successfully!', { id: 'zip-bulk' });
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to download bulk payslips ZIP', { id: 'zip-bulk' });
+    } finally {
+      setDownloadingZip(false);
+    }
+  };
+
   return (
     <div className="max-w-[98%] mx-auto p-6 font-sans text-gray-900">
       {activeJobId && (
@@ -1451,6 +1478,14 @@ const PayrollProcessing = () => {
           <p className="text-xs text-gray-500 mt-1">Review proration, variable pay, and deduction inputs before generating payroll.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleDownloadBulkZip}
+            disabled={downloadingZip}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors flex items-center gap-1"
+          >
+            <FaDownload className="w-3 h-3" /> Download All (ZIP)
+          </button>
           {isHrmsEnabled && (
             <button
               type="button"

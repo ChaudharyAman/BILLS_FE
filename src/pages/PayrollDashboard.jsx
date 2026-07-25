@@ -706,6 +706,29 @@ const PayrollDashboard = () => {
     }
   };
 
+  const handleDownloadDrawerPdf = async () => {
+    if (!drawerSlip) return;
+    try {
+      toast.loading('Downloading payslip PDF...', { id: 'drawer-pdf-toast' });
+      const response = await api.get(`/payroll/${drawerSlip.id}/payslip-pdf`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Payslip_${drawerSlip.period?.monthName}_${drawerSlip.period?.year}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Payslip PDF downloaded successfully!', { id: 'drawer-pdf-toast' });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to download PDF payslip', { id: 'drawer-pdf-toast' });
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 font-sans text-gray-900">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -1621,8 +1644,8 @@ const PayrollDashboard = () => {
                 </button>
               ) : null}
               {drawerSlip ? (
-                <button onClick={() => window.open(`/payroll/${drawerSlip.id}/payslip`, '_blank')} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">
-                  Download
+                <button onClick={handleDownloadDrawerPdf} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">
+                  Download PDF
                 </button>
               ) : null}
               <button onClick={() => setDrawerSlip(null)} className="px-3 py-2 rounded-lg border bg-white text-sm font-semibold">Close</button>
