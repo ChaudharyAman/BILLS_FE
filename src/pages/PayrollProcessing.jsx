@@ -6,7 +6,7 @@ import api from '../api/axios';
 import Skeleton from '../components/Skeleton';
 import { DEFAULT_PAYROLL_CONFIG, fmtMoney, serializeRow, getSalarySplits } from '../utils/payroll';
 import { usePayrollSnapshot } from '../hooks/usePayrollSnapshot';
-import { getPeriodInputFields } from '../utils/compensationTypeFields';
+import { getPeriodInputFields, isAttendanceLinked } from '../utils/compensationTypeFields';
 
 const monthName = (month) => new Date(0, month - 1).toLocaleString('en-US', { month: 'long' });
 const sumNamedAmounts = (items = []) => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
@@ -24,6 +24,74 @@ const getCompTypeStr = (type) => {
   if (typeof type === 'object') return type.key || type.name || String(type);
   return String(type);
 };
+
+export function getCompensationBadgeInfo(employee = {}, snapshot = null) {
+  const compType = getCompTypeStr(employee.compensationType || (employee.payType === 'hourly' ? 'hourly' : 'monthly_salary'));
+
+  if (compType === 'hourly') {
+    return { label: `Rate: ${fmtMoney(employee.hourlyRate)}/hr`, isBadge: true };
+  }
+  if (compType === 'daily_wage') {
+    return { label: `Daily: ${fmtMoney(employee.dailyRate)}/day`, isBadge: true };
+  }
+  if (compType === 'weekly_salary') {
+    return { label: `Weekly: ${fmtMoney(employee.weeklyRate)}/wk`, isBadge: true };
+  }
+  if (compType === 'piece_rate') {
+    const rateCardEntry = (employee.rateCard || []).find(r => r.paymentType === 'UNIT') || (employee.rateCard || [])[0];
+    const rate = rateCardEntry ? rateCardEntry.rate : 0;
+    return { label: rate > 0 ? `Piece Rate: ${fmtMoney(rate)}/unit` : 'Piece Rate', isBadge: true };
+  }
+  if (compType === 'project_based') {
+    const rateCardEntry = (employee.rateCard || []).find(r => r.paymentType === 'PROJECT');
+    const fee = rateCardEntry ? rateCardEntry.rate : (employee.projectFee || snapshot?.master?.monthlyCTC || employee.monthlyCTC || 0);
+    return { label: fee > 0 ? `Project Fee: ${fmtMoney(fee)}` : 'Project Fee', isBadge: true };
+  }
+  if (compType === 'milestone_based') {
+    const rateCardEntry = (employee.rateCard || []).find(r => r.paymentType === 'MILESTONE');
+    const rate = rateCardEntry ? rateCardEntry.rate : (employee.milestoneAmount || 0);
+    return { label: rate > 0 ? `Milestone: ${fmtMoney(rate)}/milestone` : 'Milestone-based', isBadge: true };
+  }
+  if (compType === 'commission_only') {
+    return { label: 'Commission Only', isBadge: true };
+  }
+  if (compType === 'retainer') {
+    const rateCardEntry = (employee.rateCard || []).find(r => r.paymentType === 'MONTHLY');
+    const rate = rateCardEntry ? rateCardEntry.rate : (snapshot?.master?.monthlyCTC || employee.monthlyCTC || 0);
+    return { label: rate > 0 ? `Retainer: ${fmtMoney(rate)}/mo` : 'Retainer', isBadge: true };
+  }
+  if (compType === 'timesheet_based') {
+    return { label: `Timesheet: ${fmtMoney(employee.hourlyRate)}/hr`, isBadge: true };
+  }
+
+  // Everything else: monthly_salary, attendance_based, salary_plus_commission
+  const ctc = snapshot?.master?.monthlyCTC || employee.monthlyCTC || 0;
+  return { label: `CTC ${fmtMoney(ctc)}`, isBadge: false };
+}
+
+export const PRIMARY_EARNINGS_LABELS = {
+  hourly:                 'Contract Wages (Hourly)',
+  timesheet_based:        'Timesheet-Based Pay',
+  daily_wage:             'Daily Wage Earnings',
+  weekly_salary:          'Weekly Salary Earnings',
+  piece_rate:             'Deliverable Output Pay (Piece Rate)',
+  project_based:          'Project Fee Earnings',
+  milestone_based:        'Milestone Output Pay',
+  commission_only:        'Commission Earnings',
+  retainer:               'Retainer Payment',
+  salary_plus_commission: 'Base Salary + Commission',
+};
+
+export function getEarningsRowLabel(employee = {}, component = {}) {
+  if (!component) return '';
+  if (component.id === 'basic') {
+    const compType = getCompTypeStr(employee.compensationType || (employee.payType === 'hourly' ? 'hourly' : 'monthly_salary'));
+    if (PRIMARY_EARNINGS_LABELS[compType]) {
+      return PRIMARY_EARNINGS_LABELS[compType];
+    }
+  }
+  return component.name || component.id;
+}
 
 const getEarningValue = (snapshot, componentId) => {
   if (!snapshot?.earnings) return 0;
@@ -109,7 +177,7 @@ const DeductionRow = ({ label, amount, isContrib = false, isEditable = false, va
   </div>
 );
 
-const RenderPeriodInputField = ({ fieldKey, employee, row, isExistingDisabled, updateRow, updatePeriodInput, monthWorkingDays }) => {
+const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingDisabled, updateRow, updatePeriodInput, monthWorkingDays }) => {
   switch (fieldKey) {
     case 'paidDays':
     case 'workingDays':
@@ -255,10 +323,11 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, isExistingDisabled, u
     case 'retainer':
     case 'skipPeriod':
       const isSkipped = Boolean(row?._skipPeriod);
+      const retainerVal = row?.snapshot?.master?.monthlyCTC ?? snapshot?.master?.monthlyCTC ?? employee.monthlyCTC ?? 0;
       return (
         <div key={fieldKey} className="flex flex-col gap-1">
           <span className={`text-xs font-semibold ${isSkipped ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-            {fmtMoney(employee.monthlyCTC || 0)}
+            {fmtMoney(retainerVal)}
           </span>
           <label className="inline-flex items-center gap-1 cursor-pointer">
             <input
@@ -410,13 +479,17 @@ const EmployeeRow = ({
         <div className={`font-semibold text-xs ${isExistingDisabled ? 'text-gray-600' : 'text-gray-900'}`}>{employee.firstName} {employee.lastName}</div>
         <div className="text-[10px] text-gray-400 mt-0.5">{employee.employeeId} · {employee.designation || '-'}</div>
         <div className="text-[10px] text-gray-400 mt-0.5 flex flex-col gap-0.5">
-          {employee.compensationModel && employee.compensationModel !== 'SALARIED' ? (
-            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 self-start">
-              💼 {employee.compensationModel} · {employee.paymentBasis}
-            </span>
-          ) : (
-            <span>{isHourly ? `Rate: ${fmtMoney(employee.hourlyRate)}/hr` : `CTC ${fmtMoney(snapshot?.master?.monthlyCTC || employee.monthlyCTC)}`}</span>
-          )}
+          {(() => {
+            const badgeInfo = getCompensationBadgeInfo(employee, snapshot);
+            if (badgeInfo.isBadge) {
+              return (
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 self-start">
+                  💼 {badgeInfo.label}
+                </span>
+              );
+            }
+            return <span>{badgeInfo.label}</span>;
+          })()}
           
           {existingPayroll ? (
             <div className="mt-1 flex flex-col gap-1">
@@ -529,6 +602,7 @@ const EmployeeRow = ({
                   fieldKey={fKey}
                   employee={employee}
                   row={row}
+                  snapshot={snapshot}
                   isExistingDisabled={isExistingDisabled}
                   updateRow={updateRow}
                   updatePeriodInput={updatePeriodInput}
@@ -1710,7 +1784,7 @@ const PayrollProcessing = () => {
                         isHourly
                           ? `Hourly Rate: ${fmtMoney(breakdownEmployee.hourlyRate)}/hr`
                           : (breakdownEmployee.compensationType === 'piece_rate'
-                              ? `Piece Rate: ${fmtMoney(breakdownEmployee.rateCard?.[0]?.rate || 0)}/unit`
+                              ? `Piece Rate: ${fmtMoney((breakdownEmployee.rateCard || []).find(r => r.paymentType === 'UNIT')?.rate ?? breakdownEmployee.rateCard?.[0]?.rate ?? 0)}/unit`
                               : `CTC ${fmtMoney(localSnapshot?.masterCTC || breakdownEmployee.monthlyCTC)}`)
                       }
                     </p>
@@ -1777,7 +1851,7 @@ const PayrollProcessing = () => {
                   </div>
                 )}
 
-                {localSplits && localSplits.length > 1 && !isHourly && (
+                {localSplits && localSplits.length > 1 && isAttendanceLinked(breakdownEmployee.compensationType, isHourly) && (
                   <div className="border border-blue-200 rounded-xl overflow-hidden bg-white shadow-sm">
                     <div className="bg-blue-50 px-4 py-3 border-b border-blue-100 font-bold text-blue-900 text-sm">
                       Mid-Month Revision Calculation Split
@@ -2315,19 +2389,7 @@ const PayrollProcessing = () => {
                                 return (
                                   <BreakdownRow
                                     key={c.id}
-                                    label={
-                                      (isHourly && c.id === 'basic')
-                                        ? 'Contract Wages (Hourly)'
-                                        : (breakdownEmployee.compensationType === 'piece_rate' && c.id === 'basic'
-                                            ? 'Deliverable Output Pay (Piece Rate)'
-                                            : (breakdownEmployee.compensationType === 'daily_wage' && c.id === 'basic'
-                                                ? 'Daily Wage Earnings'
-                                                : (breakdownEmployee.compensationType === 'project_based' && c.id === 'basic'
-                                                    ? 'Project Fee Earnings'
-                                                    : (breakdownEmployee.compensationType === 'milestone_based' && c.id === 'basic'
-                                                        ? 'Milestone Output Pay'
-                                                        : c.name))))
-                                    }
+                                    label={getEarningsRowLabel(breakdownEmployee, c)}
                                     paid={paid}
                                     master={master}
                                   />

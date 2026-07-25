@@ -8,6 +8,7 @@ import Modal from '../components/Modal';
 import Skeleton from '../components/Skeleton';
 import { buildMasterSalaryStructure, DEFAULT_PAYROLL_CONFIG, fmtMoney, payrollStatusClass, calculateGratuityEntitlement } from '../utils/payroll';
 import { getOnboardingFields } from '../utils/compensationTypeFields';
+import { getDefaultRateCardType, getRateCardOptionsForCompType } from '../constants/rateCardTypes';
 
 export const STRATEGY_FIELD_MAP = {
   monthly_salary:        ['monthlyCTC', 'salaryComponentsEditor'],
@@ -52,6 +53,141 @@ export const DEFAULT_ATTENDANCE_MODE = {
   milestone_based:       'none',
   commission_only:       'none',
   retainer:              'none',
+};
+
+export const COMPENSATION_SNAPSHOT_CONFIG = {
+  monthly_salary: {
+    title: 'CTC Snapshot',
+    showComponents: true,
+    showStatutory: true,
+    headlineRows: (emp, preview) => [
+      { label: 'Monthly CTC', value: fmtMoney(preview.monthlyCTC), strong: true },
+      { label: 'Gross Salary', value: fmtMoney(preview.grossSalary) },
+    ],
+  },
+  attendance_based: {
+    title: 'CTC Snapshot (Attendance-Linked)',
+    showComponents: true,
+    showStatutory: true,
+    headlineRows: (emp, preview) => [
+      { label: 'Monthly CTC', value: fmtMoney(preview.monthlyCTC), strong: true },
+      { label: 'Gross Salary', value: fmtMoney(preview.grossSalary) },
+    ],
+  },
+  salary_plus_commission: {
+    title: 'CTC + Commission Snapshot',
+    showComponents: true,
+    showStatutory: true,
+    headlineRows: (emp, preview) => [
+      { label: 'Base Monthly CTC', value: fmtMoney(preview.monthlyCTC), strong: true },
+      { label: 'Gross Salary', value: fmtMoney(preview.grossSalary) },
+      { label: 'Commission Terms', value: emp.commissionNotes || 'Commission earned per period in addition to base CTC.' },
+    ],
+  },
+  hourly: {
+    title: 'Hourly Rate Snapshot',
+    showComponents: false,
+    showStatutory: false,
+    headlineRows: (emp, preview) => [
+      { label: 'Hourly Rate', value: `${fmtMoney(emp.hourlyRate)}/hr`, strong: true },
+      { label: 'Estimated Monthly Hours', value: '160 hours' },
+      { label: 'Est. Monthly Gross', value: fmtMoney(preview.monthlyCTC) },
+      { label: 'Est. Net Take-Home', value: fmtMoney(preview.netTakeHome), strong: true },
+    ],
+  },
+  timesheet_based: {
+    title: 'Timesheet-Based Snapshot',
+    showComponents: false,
+    showStatutory: false,
+    headlineRows: (emp, preview) => [
+      { label: 'Hourly Rate', value: `${fmtMoney(emp.hourlyRate)}/hr`, strong: true },
+      { label: 'Est. Monthly Hours', value: '160 hours' },
+      { label: 'Est. Monthly Gross', value: fmtMoney(preview.monthlyCTC) },
+      { label: 'Est. Net Take-Home', value: fmtMoney(preview.netTakeHome), strong: true },
+    ],
+  },
+  daily_wage: {
+    title: 'Daily Wage Snapshot',
+    showComponents: false,
+    showStatutory: false,
+    headlineRows: (emp, preview) => [
+      { label: 'Daily Rate', value: `${fmtMoney(emp.dailyRate)}/day`, strong: true },
+      { label: 'Assumed Working Days', value: '26 days / month' },
+      { label: 'Est. Monthly Gross', value: fmtMoney(preview.monthlyCTC) },
+      { label: 'Est. Net Take-Home', value: fmtMoney(preview.netTakeHome), strong: true },
+    ],
+  },
+  weekly_salary: {
+    title: 'Weekly Salary Snapshot',
+    showComponents: false,
+    showStatutory: false,
+    headlineRows: (emp, preview) => [
+      { label: 'Weekly Rate', value: `${fmtMoney(emp.weeklyRate)}/week`, strong: true },
+      { label: 'Est. Monthly Gross (52/12 wks)', value: fmtMoney(preview.monthlyCTC) },
+      { label: 'Est. Net Take-Home', value: fmtMoney(preview.netTakeHome), strong: true },
+    ],
+  },
+  piece_rate: {
+    title: 'Piece Rate Snapshot',
+    showComponents: false,
+    showStatutory: false,
+    headlineRows: (emp, preview) => {
+      const rateCardEntry = (emp.rateCard || []).find(r => r.paymentType === 'UNIT') || (emp.rateCard || [])[0];
+      const unitRate = rateCardEntry ? rateCardEntry.rate : 0;
+      return [
+        { label: 'Rate per Deliverable', value: `${fmtMoney(unitRate)}/unit`, strong: true },
+        { label: 'Pay Terms', value: 'Pay varies directly with output produced each period.' },
+      ];
+    },
+  },
+  project_based: {
+    title: 'Project Fee Snapshot',
+    showComponents: false,
+    showStatutory: false,
+    noAnnualize: true,
+    headlineRows: (emp, preview) => {
+      const rateCardEntry = (emp.rateCard || []).find(r => r.paymentType === 'PROJECT');
+      const fee = rateCardEntry ? rateCardEntry.rate : (emp.projectFee || preview.monthlyCTC || 0);
+      return [
+        { label: 'Agreed Project Fee (Flat)', value: fmtMoney(fee), strong: true },
+        { label: 'Payout Structure', value: 'Flat fee per project deliverable. Not annualized.' },
+      ];
+    },
+  },
+  milestone_based: {
+    title: 'Milestone Pay Snapshot',
+    showComponents: false,
+    showStatutory: false,
+    noAnnualize: true,
+    headlineRows: (emp, preview) => {
+      const rateCardEntry = (emp.rateCard || []).find(r => r.paymentType === 'MILESTONE');
+      const amt = rateCardEntry ? rateCardEntry.rate : (emp.milestoneAmount || preview.monthlyCTC || 0);
+      return [
+        { label: 'Configured Milestone Rate', value: fmtMoney(amt), strong: true },
+        { label: 'Payout Structure', value: 'Paid on milestone completion. Not annualized.' },
+      ];
+    },
+  },
+  commission_only: {
+    title: 'Commission Snapshot',
+    showComponents: false,
+    showStatutory: false,
+    noAnnualize: true,
+    headlineRows: (emp, preview) => [
+      { label: 'Base Monthly Salary', value: 'Variable (Commission Only)', strong: true },
+      { label: 'Payout Structure', value: 'Pay determined by approved commission transactions each period.' },
+      ...(emp.commissionNotes ? [{ label: 'Commission Terms', value: emp.commissionNotes }] : []),
+    ],
+  },
+  retainer: {
+    title: 'Retainer Snapshot',
+    showComponents: false,
+    showStatutory: false,
+    headlineRows: (emp, preview) => [
+      { label: 'Monthly Retainer Fee', value: fmtMoney(preview.monthlyCTC), strong: true },
+      { label: 'Payout Structure', value: 'Fixed monthly fee regardless of attendance.' },
+    ],
+  },
 };
 
 const fmtDate = (value) => {
@@ -225,12 +361,12 @@ const EmployeeDetails = () => {
   // Uses dateOfLeaving if set (terminated/inactive employee), otherwise today
   // (active employee, shows current entitlement estimate).
   const gratuityInfo = useMemo(() => {
-    if (!employee || employee.payType === 'hourly' || !employee.gratuityEnabled) return null;
+    if (!employee || !strategyUsesComponents || !employee.gratuityEnabled) return null;
     if (!employee.joiningDate) return null;
     const separationDate = employee.dateOfLeaving ? new Date(employee.dateOfLeaving) : new Date();
     const basicPlusDa = salaryPreview.basicMaster || 0;
     return calculateGratuityEntitlement(employee.joiningDate, separationDate, basicPlusDa);
-  }, [employee, salaryPreview]);
+  }, [employee, strategyUsesComponents, salaryPreview]);
 
   const draftSalaryPreview = useMemo(() => {
     if (!revisionDraft.newCTC || isNaN(Number(revisionDraft.newCTC)) || Number(revisionDraft.newCTC) <= 0) return null;
@@ -708,6 +844,14 @@ const EmployeeDetails = () => {
   };
 
   const handleSalaryRevision = async () => {
+    if (visibleFields.includes('rateCardEditor') && Array.isArray(revisionDraft.rateCard) && revisionDraft.rateCard.length > 0) {
+      const validTypes = new Set(getRateCardOptionsForCompType(revisionDraft.compensationType).map(o => o.value));
+      const invalidItem = revisionDraft.rateCard.find(item => !item.paymentType || !validTypes.has(item.paymentType));
+      if (invalidItem) {
+        toast.error('Please select a valid Payment Type for all rate card items.');
+        return;
+      }
+    }
     try {
       setSavingRevision(true);
       const compType = revisionDraft.compensationType || 'monthly_salary';
@@ -819,10 +963,13 @@ const EmployeeDetails = () => {
   const handleDownloadBreakup = () => {
     if (!employee || !salaryPreview) return;
 
-    const toAnnual = (val) => (Number(val) || 0) * 12;
+    const compType = employee.compensationType || (employee.payType === 'hourly' ? 'hourly' : 'monthly_salary');
+    const cfg = COMPENSATION_SNAPSHOT_CONFIG[compType] || COMPENSATION_SNAPSHOT_CONFIG.monthly_salary;
+    const isNoAnnualize = ['project_based', 'milestone_based', 'commission_only', 'piece_rate'].includes(compType);
+    const toAnnual = (val) => isNoAnnualize ? 'N/A' : (Number(val) || 0) * 12;
 
     const data = [
-      ['SALARY BREAKUP / CTC STRUCTURE', ''],
+      [cfg.title.toUpperCase(), ''],
       ['', ''],
       ['EMPLOYEE DETAILS', ''],
       ['Employee ID', employee.employeeId],
@@ -833,91 +980,76 @@ const EmployeeDetails = () => {
       ['Location', employee.location || '-'],
       ['Employment Type', employee.employmentType || '-'],
       ['Tax Regime', employee.taxRegime === 'old' ? 'Old Regime' : 'New Regime'],
+      ['Compensation Type', cfg.title],
       ['', ''],
-      ['SALARY COMPONENTS', 'Monthly (INR)', 'Annual (INR)'],
-      ['Basic Salary', salaryPreview.basicMaster, toAnnual(salaryPreview.basicMaster)],
-      ['House Rent Allowance (HRA)', salaryPreview.hraMaster, toAnnual(salaryPreview.hraMaster)],
     ];
 
-    earningsList.forEach(c => {
-      if (c.id !== 'basic' && c.id !== 'hra') {
-        const val = getEarningValue(c.id);
-        if (val > 0) {
-          data.push([c.name || c.id, val, toAnnual(val)]);
-        }
-      }
-    });
-
-    data.push(['Gross Salary', salaryPreview.grossSalary, toAnnual(salaryPreview.grossSalary)]);
-    data.push(['', '', '']);
-    data.push(['EMPLOYER CONTRIBUTIONS', 'Monthly (INR)', 'Annual (INR)']);
-    
-    if (salaryPreview.pfEmployer > 0) {
-      data.push(['Provident Fund (PF) Employer', salaryPreview.pfEmployer, toAnnual(salaryPreview.pfEmployer)]);
-    }
-    if (salaryPreview.gratuity > 0) {
-      data.push(['Gratuity Provision', salaryPreview.gratuity, toAnnual(salaryPreview.gratuity)]);
-    }
-    if (salaryPreview.insurance > 0) {
-      data.push(['Health Insurance', salaryPreview.insurance, toAnnual(salaryPreview.insurance)]);
-    }
-    if (salaryPreview.employerNPS > 0) {
-      data.push(['Employer NPS Contribution', salaryPreview.employerNPS, toAnnual(salaryPreview.employerNPS)]);
-    }
-    if (salaryPreview.lwfEmployer > 0) {
-      data.push(['LWF Employer', salaryPreview.lwfEmployer, toAnnual(salaryPreview.lwfEmployer)]);
-    }
-    if (salaryPreview.esiEmployer > 0) {
-      data.push(['ESI Employer', salaryPreview.esiEmployer, toAnnual(salaryPreview.esiEmployer)]);
-    }
-
-    data.push(['Total Employer Cost', salaryPreview.totalEmployerContributions, toAnnual(salaryPreview.totalEmployerContributions)]);
-    data.push(['', '', '']);
-    data.push(['COST TO COMPANY (CTC)', salaryPreview.monthlyCTC, salaryPreview.annualCTC]);
-    data.push(['', '', '']);
-    data.push(['STATUTORY DEDUCTIONS (EMPLOYEE)', 'Monthly (INR)', 'Annual (INR)']);
-    
-    if (salaryPreview.pfEmployee > 0) {
-      data.push(['PF Employee Deduction', salaryPreview.pfEmployee, toAnnual(salaryPreview.pfEmployee)]);
-    }
-    if (salaryPreview.esiEmployee > 0) {
-      data.push(['ESI Employee Deduction', salaryPreview.esiEmployee, toAnnual(salaryPreview.esiEmployee)]);
-    }
-    if (salaryPreview.professionalTax > 0) {
-      data.push(['Professional Tax (PT)', salaryPreview.professionalTax, toAnnual(salaryPreview.professionalTax)]);
-    }
-    if (salaryPreview.tds > 0) {
-      data.push(['Income Tax (TDS) Projection', salaryPreview.tds, toAnnual(salaryPreview.tds)]);
-    }
-    if (salaryPreview.lwfEmployee > 0) {
-      data.push(['LWF Employee Deduction', salaryPreview.lwfEmployee, toAnnual(salaryPreview.lwfEmployee)]);
-    }
-
-    if (salaryPreview.deductionsMap) {
-      Object.entries(salaryPreview.deductionsMap).forEach(([cId, val]) => {
-        if (val > 0) {
-          const comp = config.salaryComponents?.find(c => c.id === cId);
-          data.push([comp?.name || cId, val, toAnnual(val)]);
+    if (cfg.showComponents) {
+      data.push(['SALARY COMPONENTS', 'Monthly (INR)', 'Annual (INR)']);
+      data.push(['Basic Salary', salaryPreview.basicMaster, toAnnual(salaryPreview.basicMaster)]);
+      data.push(['House Rent Allowance (HRA)', salaryPreview.hraMaster, toAnnual(salaryPreview.hraMaster)]);
+      earningsList.forEach(c => {
+        if (c.id !== 'basic' && c.id !== 'hra') {
+          const val = getEarningValue(c.id);
+          if (val > 0) {
+            data.push([c.name || c.id, val, toAnnual(val)]);
+          }
         }
       });
+      data.push(['Gross Salary', salaryPreview.grossSalary, toAnnual(salaryPreview.grossSalary)]);
+      data.push(['', '', '']);
+    } else {
+      data.push(['COMPENSATION DETAILS', 'Value / Rate']);
+      const headlineRows = cfg.headlineRows(employee, salaryPreview);
+      headlineRows.forEach(r => {
+        data.push([r.label, r.value]);
+      });
+      data.push(['', '']);
     }
-    
-    data.push(['Total Deductions', salaryPreview.totalDeductions, toAnnual(salaryPreview.totalDeductions)]);
-    data.push(['', '', '']);
-    data.push(['ESTIMATED TAKE-HOME PAY', salaryPreview.netTakeHome, toAnnual(salaryPreview.netTakeHome)]);
+
+    if (cfg.showStatutory) {
+      data.push(['EMPLOYER CONTRIBUTIONS', 'Monthly (INR)', 'Annual (INR)']);
+      if (salaryPreview.pfEmployer > 0) data.push(['Provident Fund (PF) Employer', salaryPreview.pfEmployer, toAnnual(salaryPreview.pfEmployer)]);
+      if (salaryPreview.gratuity > 0) data.push(['Gratuity Provision', salaryPreview.gratuity, toAnnual(salaryPreview.gratuity)]);
+      if (salaryPreview.insurance > 0) data.push(['Health Insurance', salaryPreview.insurance, toAnnual(salaryPreview.insurance)]);
+      if (salaryPreview.employerNPS > 0) data.push(['Employer NPS Contribution', salaryPreview.employerNPS, toAnnual(salaryPreview.employerNPS)]);
+      if (salaryPreview.lwfEmployer > 0) data.push(['LWF Employer', salaryPreview.lwfEmployer, toAnnual(salaryPreview.lwfEmployer)]);
+      if (salaryPreview.esiEmployer > 0) data.push(['ESI Employer', salaryPreview.esiEmployer, toAnnual(salaryPreview.esiEmployer)]);
+      data.push(['Total Employer Cost', salaryPreview.totalEmployerContributions, toAnnual(salaryPreview.totalEmployerContributions)]);
+      data.push(['', '', '']);
+
+      data.push([cfg.title.toUpperCase(), salaryPreview.monthlyCTC, isNoAnnualize ? 'N/A' : salaryPreview.annualCTC]);
+      data.push(['', '', '']);
+
+      data.push(['STATUTORY DEDUCTIONS (EMPLOYEE)', 'Monthly (INR)', 'Annual (INR)']);
+      if (salaryPreview.pfEmployee > 0) data.push(['PF Employee Deduction', salaryPreview.pfEmployee, toAnnual(salaryPreview.pfEmployee)]);
+      if (salaryPreview.esiEmployee > 0) data.push(['ESI Employee Deduction', salaryPreview.esiEmployee, toAnnual(salaryPreview.esiEmployee)]);
+      if (salaryPreview.professionalTax > 0) data.push(['Professional Tax (PT)', salaryPreview.professionalTax, toAnnual(salaryPreview.professionalTax)]);
+      if (salaryPreview.tds > 0) data.push(['Income Tax (TDS) Projection', salaryPreview.tds, toAnnual(salaryPreview.tds)]);
+      if (salaryPreview.lwfEmployee > 0) data.push(['LWF Employee Deduction', salaryPreview.lwfEmployee, toAnnual(salaryPreview.lwfEmployee)]);
+      if (salaryPreview.deductionsMap) {
+        Object.entries(salaryPreview.deductionsMap).forEach(([cId, val]) => {
+          if (val > 0) {
+            const comp = config.salaryComponents?.find(c => c.id === cId);
+            data.push([comp?.name || cId, val, toAnnual(val)]);
+          }
+        });
+      }
+      data.push(['Total Deductions', salaryPreview.totalDeductions, toAnnual(salaryPreview.totalDeductions)]);
+      data.push(['', '', '']);
+      data.push(['ESTIMATED TAKE-HOME PAY', salaryPreview.netTakeHome, isNoAnnualize ? 'N/A' : toAnnual(salaryPreview.netTakeHome)]);
+    } else {
+      data.push(['STATUTORY BENEFITS & DEDUCTIONS', 'N/A']);
+      data.push(['Note', 'Non-Salaried Compensation Type: subject to TDS on total earnings, no statutory benefits (PF, ESI, PT, LWF, Gratuity).']);
+      data.push(['', '']);
+      data.push(['ESTIMATED NET TAKE-HOME', salaryPreview.netTakeHome > 0 ? salaryPreview.netTakeHome : 'Pay varies by period']);
+    }
 
     const worksheet = XLSX.utils.aoa_to_sheet(data);
-    
-    worksheet['!cols'] = [
-      { wch: 35 },
-      { wch: 15 },
-      { wch: 15 }
-    ];
-
+    worksheet['!cols'] = [{ wch: 35 }, { wch: 25 }, { wch: 25 }];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Salary Breakup');
-    
-    XLSX.writeFile(workbook, `${employee.firstName}_${employee.lastName}_Salary_Breakup.xlsx`);
+    XLSX.writeFile(workbook, `Salary_Breakup_${employee.employeeId || 'Emp'}.xlsx`);
     toast.success('Salary breakup downloaded successfully');
   };
 
@@ -1009,7 +1141,7 @@ const EmployeeDetails = () => {
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
           <div className="flex justify-between items-center mb-4 border-b border-gray-150 pb-2">
             <h2 className="font-semibold text-sm text-gray-700">
-              {employee.payType === 'hourly' ? 'Hourly Rate Snapshot' : 'CTC Snapshot'}
+              {(COMPENSATION_SNAPSHOT_CONFIG[employee.compensationType || (employee.payType === 'hourly' ? 'hourly' : 'monthly_salary')] || COMPENSATION_SNAPSHOT_CONFIG.monthly_salary).title}
             </h2>
             <button
               onClick={handleDownloadBreakup}
@@ -1019,42 +1151,43 @@ const EmployeeDetails = () => {
               Download Breakup
             </button>
           </div>
-          {employee.payType === 'hourly' ? (
-            <div className="space-y-2 text-xs">
-              <Info label="Pay Contract Type" value="Hourly Contractor" strong />
-              <Info label="Hourly Rate" value={`${fmtMoney(employee.hourlyRate)}/hr`} strong />
-              <Info label="Estimated Monthly Hours" value="160 hours" />
-              <Info label="Est. Monthly Gross" value={fmtMoney((employee.hourlyRate || 0) * 160)} />
-              <div className="border-t border-dashed border-gray-100 my-2 pt-2 text-[10px] text-amber-700 leading-normal">
-                Statutory deductions (PF, ESI, PT, LWF, Gratuity) are not applicable for hourly contractors.
-              </div>
-              <Info label="Est. Net Take-Home" value={fmtMoney((employee.hourlyRate || 0) * 160)} strong />
-            </div>
-          ) : (
-            <div className="space-y-2 text-xs">
-              <Info label="Monthly CTC" value={fmtMoney(employee.monthlyCTC)} strong />
-              <Info label="Gross Salary" value={fmtMoney(salaryPreview.grossSalary)} />
-              
-              {earningsList.map(c => {
-                const val = getEarningValue(c.id);
-                // Always show basic and HRA, show others if they are non-zero
-                if (c.id === 'basic' || c.id === 'hra' || val > 0) {
-                  return (
-                    <Info key={c.id} label={c.name || c.id} value={fmtMoney(val)} />
-                  );
-                }
-                return null;
-              })}
+          {(() => {
+            const compType = employee.compensationType || (employee.payType === 'hourly' ? 'hourly' : 'monthly_salary');
+            const cfg = COMPENSATION_SNAPSHOT_CONFIG[compType] || COMPENSATION_SNAPSHOT_CONFIG.monthly_salary;
+            const rows = cfg.headlineRows(employee, salaryPreview);
 
-              <Info label="PF Employer" value={fmtMoney(salaryPreview.pfEmployer)} />
-              <Info label="Gratuity" value={fmtMoney(salaryPreview.gratuity)} />
-              <Info label="Insurance" value={fmtMoney(salaryPreview.insurance)} />
-              {salaryPreview.employerNPS > 0 && (
-                <Info label="Employer NPS" value={fmtMoney(salaryPreview.employerNPS)} />
-              )}
-              <Info label="Net Take-Home" value={fmtMoney(salaryPreview.netTakeHome)} strong />
-            </div>
-          )}
+            return (
+              <div className="space-y-2 text-xs">
+                {rows.map((r, i) => (
+                  <Info key={i} label={r.label} value={r.value} strong={r.strong} />
+                ))}
+
+                {cfg.showComponents && earningsList.map(c => {
+                  const val = getEarningValue(c.id);
+                  if (c.id === 'basic' || c.id === 'hra' || val > 0) {
+                    return <Info key={c.id} label={c.name || c.id} value={fmtMoney(val)} />;
+                  }
+                  return null;
+                })}
+
+                {cfg.showStatutory ? (
+                  <>
+                    <Info label="PF Employer" value={fmtMoney(salaryPreview.pfEmployer)} />
+                    <Info label="Gratuity" value={fmtMoney(salaryPreview.gratuity)} />
+                    <Info label="Insurance" value={fmtMoney(salaryPreview.insurance)} />
+                    {salaryPreview.employerNPS > 0 && (
+                      <Info label="Employer NPS" value={fmtMoney(salaryPreview.employerNPS)} />
+                    )}
+                    <Info label="Net Take-Home" value={fmtMoney(salaryPreview.netTakeHome)} strong />
+                  </>
+                ) : (
+                  <div className="border-t border-dashed border-gray-200 my-2 pt-2 text-[10px] text-amber-700 leading-normal font-medium bg-amber-50/50 p-2.5 rounded-lg border border-amber-100">
+                    💼 Non-Salaried Compensation Type: subject to TDS on total earnings, no statutory benefits (PF, ESI, PT, LWF, Gratuity).
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -1576,9 +1709,10 @@ const EmployeeDetails = () => {
                   <button
                     type="button"
                     onClick={() => {
+                      const defaultType = getDefaultRateCardType(revisionDraft.compensationType);
                       setRevisionDraft(prev => ({
                         ...prev,
-                        rateCard: [...(prev.rateCard || []), { paymentType: '', rate: 0, unit: 'unit' }]
+                        rateCard: [...(prev.rateCard || []), { paymentType: defaultType, rate: 0, unit: 'unit' }]
                       }));
                     }}
                     className="px-2.5 py-1 text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-100 flex items-center gap-1"
@@ -1597,17 +1731,19 @@ const EmployeeDetails = () => {
                       <div key={idx} className="flex gap-2 items-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
                         <div className="flex-1">
                           <label className="text-[10px] font-bold text-slate-500 mb-1 block">Payment Type</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. Article Written, Design Screen"
-                            value={item.paymentType || ''}
+                          <select
+                            value={item.paymentType || getDefaultRateCardType(revisionDraft.compensationType)}
                             onChange={(e) => {
                               const list = [...(revisionDraft.rateCard || [])];
                               list[idx] = { ...list[idx], paymentType: e.target.value };
                               setDraftField('rateCard', list);
                             }}
                             className={inputCls}
-                          />
+                          >
+                            {getRateCardOptionsForCompType(revisionDraft.compensationType).map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
                         </div>
                         <div className="w-1/4">
                           <label className="text-[10px] font-bold text-slate-500 mb-1 block">Rate (₹)</label>

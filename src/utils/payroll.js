@@ -480,9 +480,19 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
     const rate = Number(src.periodInput?.ratePerUnit) || (rateCardEntry ? Number(rateCardEntry.rate) : 0);
     monthlyCTC = roundAmount(units * rate);
   } else if (compType === 'project_based') {
-    monthlyCTC = roundAmount(Number(src.periodInput?.projectFee) || Number(src.projectFee) || 0);
+    const rateCardEntry = (src.rateCard || []).find(r => r.paymentType === 'PROJECT');
+    monthlyCTC = roundAmount(Number(src.periodInput?.projectFee) || (rateCardEntry ? Number(rateCardEntry.rate) : (Number(src.projectFee) || Number(src.monthlyCTC) || 0)));
   } else if (compType === 'milestone_based') {
-    monthlyCTC = roundAmount(Number(src.periodInput?.milestoneAmount) || Number(src.milestoneAmount) || 0);
+    const rateCardEntry = (src.rateCard || []).find(r => r.paymentType === 'MILESTONE');
+    monthlyCTC = roundAmount(Number(src.periodInput?.milestoneAmount) || (rateCardEntry ? Number(rateCardEntry.rate) : (Number(src.milestoneAmount) || 0)));
+  } else if (compType === 'retainer') {
+    const rateCardEntry = (src.rateCard || []).find(r => r.paymentType === 'MONTHLY');
+    monthlyCTC = roundAmount(rateCardEntry ? Number(rateCardEntry.rate) : (Number(src.monthlyCTC) || 0));
+  } else if (compType === 'weekly_salary') {
+    const weeksPerMonth = Number(config.weeksPerMonth) || (52 / 12);
+    monthlyCTC = roundAmount((Number(src.weeklyRate) || 0) * weeksPerMonth);
+  } else if (compType === 'commission_only') {
+    monthlyCTC = 0;
   }
 
   const isIntern = src.employmentType === 'intern';
@@ -849,6 +859,8 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
     includePfInCTC,
     includeGratuityInCTC,
     useSalaryComponents: source.useSalaryComponents !== false,
+    isVariablePay: compType === 'commission_only',
+    compensationBasis: compType === 'commission_only' ? 'commission' : undefined,
     earningsMap,
     deductionsMap,
   };

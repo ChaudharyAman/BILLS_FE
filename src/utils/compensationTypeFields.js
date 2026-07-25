@@ -35,6 +35,14 @@ export const DEFAULT_PERIOD_INPUT_FIELD_MAP = {
   retainer:              ['retainer', 'skipPeriod'],
 };
 
+export const ATTENDANCE_LINKED_TYPES = ['monthly_salary', 'attendance_based', 'salary_plus_commission', 'weekly_salary'];
+
+export function isAttendanceLinked(compType, isHourly = false) {
+  if (!compType) return !isHourly;
+  const key = typeof compType === 'string' ? compType : (compType.key || compType.name || String(compType));
+  return ATTENDANCE_LINKED_TYPES.includes(key);
+}
+
 /**
  * Resolves onboarding fields for EmployeeForm.jsx
  */
