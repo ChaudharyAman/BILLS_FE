@@ -71,6 +71,7 @@ export const usePayrollSnapshot = (employee, config, row, monthWorkingDays) => {
       segmentLops:          row.segmentLops,
       reimbursements:       row.reimbursements       || [],
       variableTransactions: row.variableTransactions || [],
+      compensationType:     row.compensationType,
       // periodInput for new compensation types
       periodInput:          row.periodInput          || {},
     };
@@ -138,6 +139,7 @@ export const usePayrollSnapshot = (employee, config, row, monthWorkingDays) => {
     JSON.stringify(row?.reimbursements),
     JSON.stringify(row?.variableTransactions),
     JSON.stringify(row?.periodInput),
+    row?.compensationType,
     row?.pfEnabled,
     row?.tdsEnabled,
     row?.esiEnabled,

@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { FaDownload, FaEnvelope, FaChevronLeft } from 'react-icons/fa';
 import api from '../api/axios';
 import Skeleton from '../components/Skeleton';
-import { getPayslipLineItemLabels } from '../utils/compensationTypeFields';
+import { getPayslipLineItemLabels, resolveCompensationTypeClient } from '../utils/compensationTypeFields';
 
 const fmtMoney = (value) => {
   if (value === undefined || value === null || value === '-') return '-';
@@ -101,7 +101,7 @@ const PayslipGeneration = () => {
         arrear: item.details || '-'
       }));
     } else {
-      const compType = slip.employeeSnapshot?.compensationType || emp.compensationType || (slip.payType === 'hourly' ? 'hourly' : 'monthly_salary');
+      const compType = resolveCompensationTypeClient(slip.employeeSnapshot || emp || slip);
       const periodInput = slip.periodInput || {};
 
       if (['monthly_salary', 'attendance_based', 'salary_plus_commission'].includes(compType)) {

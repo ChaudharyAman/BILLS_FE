@@ -1,3 +1,5 @@
+import { resolveCompensationTypeClient } from './compensationTypeFields';
+
 export const DEFAULT_PAYROLL_CONFIG = {
   basicPercent: 0.5,
   hraPercent: 0.5,
@@ -463,7 +465,7 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
     Object.assign(src, breakupObj);
   }
 
-  const compType = src.compensationType || (src.payType === 'hourly' ? 'hourly' : 'monthly_salary');
+  const compType = resolveCompensationTypeClient(src);
   const NON_COMPONENT_STRATEGIES = ['hourly', 'daily_wage', 'piece_rate', 'project_based', 'milestone_based', 'timesheet_based', 'commission_only', 'retainer'];
 
   let monthlyCTC = roundAmount(Number(src.monthlyCTC) || 0);
@@ -996,12 +998,13 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
   const dailyOtherAllowances = [];
   const dailyOtherDeductions = [];
 
-  const isHourly = employee.payType === 'hourly';
+  const effectiveCompType = resolveCompensationTypeClient(employee);
+  const isHourly = effectiveCompType === 'hourly' || employee.payType === 'hourly';
   const hoursWorked = isHourly ? (Number(attendance?.hoursWorked) || Number(adjustments?.hoursWorked) || Number(employee.hoursWorked) || 0) : 0;
 
   const periodInput = {
     daysWorked:      Number(adjustments.daysWorked ?? adjustments.periodInput?.daysWorked ?? attendance?.paidDays ?? 0),
-    unitsProduced:   Number(adjustments.unitsProduced ?? adjustments.periodInput?.unitsProduced ?? 0),
+    unitsProduced:   adjustments.unitsProduced !== undefined ? Number(adjustments.unitsProduced) : (adjustments.periodInput?.unitsProduced !== undefined ? Number(adjustments.periodInput.unitsProduced) : undefined),
     hoursLogged:     Number(adjustments.hoursLogged ?? adjustments.periodInput?.hoursLogged ?? adjustments.timesheetHours ?? 0),
     hoursWorked:     Number(attendance?.hoursWorked ?? adjustments.hoursWorked ?? adjustments.periodInput?.hoursWorked ?? employee.hoursWorked ?? 0),
     projectFee:      adjustments.projectFee !== undefined ? Number(adjustments.projectFee) : (adjustments.periodInput?.projectFee !== undefined ? Number(adjustments.periodInput.projectFee) : undefined),
@@ -1456,7 +1459,7 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
   const netPayClamped = unroundedNet < 0;
   const netSalary = roundAmount(Math.max(0, unroundedNet));
 
-  const compType = employee.compensationType || (employee.payType === 'hourly' ? 'hourly' : 'monthly_salary');
+  const compType = resolveCompensationTypeClient(employee);
   let belowMinimumWage = false;
   let minimumWageCompliance = null;
 

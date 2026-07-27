@@ -1,9 +1,21 @@
 /**
- * compensationTypeFields.js
- *
- * Shared helper to resolve visible onboarding fields and period input fields for any strategy.
- * Uses backend registry metadata (compensationTypesMap) as steady-state source of truth.
+ * Resolves the effective compensation type for an employee client-side,
+ * using the EXACT same fallback logic as backend's deriveCompensationTypeFromLegacy.
  */
+export function resolveCompensationTypeClient(employee = {}) {
+  if (!employee) return 'monthly_salary';
+  if (employee.compensationType) return String(employee.compensationType);
+  const payType = employee.payType;
+  const compensationModel = employee.compensationModel;
+  const employmentType = employee.employmentType;
+
+  if (payType === 'hourly') return 'hourly';
+  if (employmentType === 'intern') return 'attendance_based';
+  if (!compensationModel || compensationModel === 'SALARIED') return 'monthly_salary';
+  if (['CONSULTANT', 'PROJECT', 'POSITION', 'INTERVIEW'].includes(compensationModel)) return 'retainer';
+  if (compensationModel === 'HOURLY') return 'hourly';
+  return 'monthly_salary';
+}
 
 export const DEFAULT_ONBOARDING_FIELD_MAP = {
   monthly_salary:        ['monthlyCTC', 'salaryComponentsEditor'],

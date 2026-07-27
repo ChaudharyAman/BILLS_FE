@@ -1262,7 +1262,15 @@ const EmployeeDetails = () => {
       )}
 
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm mt-6 overflow-hidden">
-        <div className="p-4 border-b bg-gray-50 font-bold">Salary Revision History</div>
+        <div className="p-4 border-b bg-gray-50 font-bold flex justify-between items-center">
+          <span>Salary Revision History</span>
+          <button
+            onClick={() => openRevisionModal()}
+            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <FaPlus size={12} /> Revise Salary
+          </button>
+        </div>
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>

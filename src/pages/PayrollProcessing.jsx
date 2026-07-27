@@ -6,7 +6,7 @@ import api from '../api/axios';
 import Skeleton from '../components/Skeleton';
 import { DEFAULT_PAYROLL_CONFIG, fmtMoney, serializeRow, getSalarySplits } from '../utils/payroll';
 import { usePayrollSnapshot } from '../hooks/usePayrollSnapshot';
-import { getPeriodInputFields, isAttendanceLinked } from '../utils/compensationTypeFields';
+import { getPeriodInputFields, isAttendanceLinked, resolveCompensationTypeClient } from '../utils/compensationTypeFields';
 
 const monthName = (month) => new Date(0, month - 1).toLocaleString('en-US', { month: 'long' });
 const sumNamedAmounts = (items = []) => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
@@ -26,7 +26,7 @@ const getCompTypeStr = (type) => {
 };
 
 export function getCompensationBadgeInfo(employee = {}, snapshot = null) {
-  const compType = getCompTypeStr(employee.compensationType || (employee.payType === 'hourly' ? 'hourly' : 'monthly_salary'));
+  const compType = resolveCompensationTypeClient(employee);
 
   if (compType === 'hourly') {
     return { label: `Rate: ${fmtMoney(employee.hourlyRate)}/hr`, isBadge: true };
@@ -85,7 +85,7 @@ export const PRIMARY_EARNINGS_LABELS = {
 export function getEarningsRowLabel(employee = {}, component = {}) {
   if (!component) return '';
   if (component.id === 'basic') {
-    const compType = getCompTypeStr(employee.compensationType || (employee.payType === 'hourly' ? 'hourly' : 'monthly_salary'));
+    const compType = resolveCompensationTypeClient(employee);
     if (PRIMARY_EARNINGS_LABELS[compType]) {
       return PRIMARY_EARNINGS_LABELS[compType];
     }
@@ -243,10 +243,10 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
         <div key={fieldKey} className="flex items-center gap-1">
           <input
             type="number" min="0"
-            placeholder="Units"
-            value={row?.periodInput?.unitsProduced !== undefined ? row.periodInput.unitsProduced : 1}
+            placeholder="1"
+            value={row?.periodInput?.unitsProduced !== undefined ? row.periodInput.unitsProduced : ''}
             disabled={isExistingDisabled}
-            onChange={(e) => updatePeriodInput('unitsProduced', e.target.value === '' ? 0 : Number(e.target.value))}
+            onChange={(e) => updatePeriodInput('unitsProduced', e.target.value === '' ? undefined : Number(e.target.value))}
             className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
           />
           <span className="text-gray-400 text-xs">units</span>
@@ -586,7 +586,7 @@ const EmployeeRow = ({
       </td>
       <td className="px-4 py-2.5 min-w-[180px]">
         {(() => {
-          const compType = employee.compensationType || (employee.payType === 'hourly' ? 'hourly' : 'monthly_salary');
+          const compType = resolveCompensationTypeClient(employee);
           const allFields = getPeriodInputFields(compType, compensationTypesMap);
 
           const updatePeriodInput = (field, val) => {
@@ -698,7 +698,7 @@ const PayrollProcessing = () => {
   const [compensationTypesMap, setCompensationTypesMap] = useState({});
   const [skippedSummaryList, setSkippedSummaryList] = useState([]);
   const [fnfEmployee, setFnfEmployee] = useState(null);
-  const [fnfForm, setFnfForm] = useState({ noticePeriodServedDays: 0, noticePeriodRequiredDays: 30, leaveEncashmentDays: 0, comments: '' });
+  const [fnfForm, setFnfForm] = useState({ noticePeriodServedDays: 0, noticePeriodRequiredDays: 30, leaveEncashmentDays: 0, comments: '', hoursWorked: '', unitsProduced: '', ratePerUnit: '' });
   const [processingFnf, setProcessingFnf] = useState(false);
   const [activeJobId, setActiveJobId] = useState(null);
   const [jobProgress, setJobProgress] = useState(null);
@@ -926,11 +926,12 @@ const PayrollProcessing = () => {
           let proratedPaidDays = defaultDays;
 
           const initialRow = {
+            compensationType: resolveCompensationTypeClient(emp),
             workingDays: defaultDays,
             paidDays: proratedPaidDays,
             paidLeaves: 0,
             unpaidLeaves: 0,
-            hoursWorked: emp.payType === 'hourly' ? 160 : 0,
+            hoursWorked: (resolveCompensationTypeClient(emp) === 'hourly' || emp.payType === 'hourly') ? 160 : 0,
             overtime: 0,
             joiningBonus: autoJoiningBonus,
             loyaltyBonus: 0,
@@ -956,8 +957,6 @@ const PayrollProcessing = () => {
             excludedClaimIds: [],
             attendanceSource: 'default',
             variableTransactions: transactionsByEmp.get(emp._id) || [],
-            // periodInput: strategy-specific inputs for new compensation types
-            // (e.g. { unitsProduced: 0 } for piece_rate, { hoursLogged: 0 } for timesheet_based)
             periodInput: {},
           };
 
@@ -1253,6 +1252,11 @@ const PayrollProcessing = () => {
         noticePeriodRequiredDays: Number(fnfForm.noticePeriodRequiredDays) || 0,
         leaveEncashmentDays: Number(fnfForm.leaveEncashmentDays) || 0,
         comments: fnfForm.comments || '',
+        // Period-specific inputs — only sent when the user has entered them.
+        // Omitting (undefined) lets the backend strategy use its own default.
+        ...(fnfForm.hoursWorked !== '' ? { hoursWorked: Number(fnfForm.hoursWorked) } : {}),
+        ...(fnfForm.unitsProduced !== '' ? { unitsProduced: Number(fnfForm.unitsProduced) } : {}),
+        ...(fnfForm.ratePerUnit !== '' ? { ratePerUnit: Number(fnfForm.ratePerUnit) } : {}),
       };
       const res = await api.post('/payroll/full-and-final', payload);
       toast.success(res.data?.message || 'Full & Final Settlement processed successfully!');
@@ -3018,6 +3022,56 @@ const PayrollProcessing = () => {
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold"
                 />
               </div>
+
+              {/* Period-specific earnings inputs — shown only when relevant to the employee's comp type */}
+              {(() => {
+                const compType = resolveCompensationTypeClient(fnfEmployee);
+                const isHourlyType = compType === 'hourly' || compType === 'timesheet_based';
+                const isPieceRate = compType === 'piece_rate';
+                if (!isHourlyType && !isPieceRate) return null;
+                return (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-3">
+                    <p className="text-[11px] font-bold text-blue-800">Final Period Work Input</p>
+                    {isHourlyType && (
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">Hours Worked in Final Period</label>
+                        <input
+                          type="number" min="0" step="0.5"
+                          placeholder="0"
+                          value={fnfForm.hoursWorked}
+                          onChange={(e) => setFnfForm({ ...fnfForm, hoursWorked: e.target.value })}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                        />
+                        <p className="text-[10px] text-slate-500 mt-0.5">Leave blank to use the stored default from the employee record.</p>
+                      </div>
+                    )}
+                    {isPieceRate && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Units Produced</label>
+                          <input
+                            type="number" min="0"
+                            placeholder="1"
+                            value={fnfForm.unitsProduced}
+                            onChange={(e) => setFnfForm({ ...fnfForm, unitsProduced: e.target.value })}
+                            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Rate Per Unit (override)</label>
+                          <input
+                            type="number" min="0"
+                            placeholder="From rate card"
+                            value={fnfForm.ratePerUnit}
+                            onChange={(e) => setFnfForm({ ...fnfForm, ratePerUnit: e.target.value })}
+                            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
