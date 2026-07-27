@@ -9,6 +9,7 @@ import Skeleton from '../components/Skeleton';
 import { buildMasterSalaryStructure, DEFAULT_PAYROLL_CONFIG, fmtMoney, payrollStatusClass, calculateGratuityEntitlement } from '../utils/payroll';
 import { getOnboardingFields } from '../utils/compensationTypeFields';
 import { getDefaultRateCardType, getRateCardOptionsForCompType } from '../constants/rateCardTypes';
+import { PT_STATE_LIST } from '../constants/ptStates';
 
 export const STRATEGY_FIELD_MAP = {
   monthly_salary:        ['monthlyCTC', 'salaryComponentsEditor'],
@@ -585,13 +586,15 @@ const EmployeeDetails = () => {
         newCTC: ctc,
         newAnnualCTC: ctc ? Math.round(ctc * 12 * 100) / 100 : '',
         newHourlyRate: hourly,
-        pfEnabled: selectedRole.pfEnabled,
-        esiEnabled: selectedRole.esiEnabled,
-        ptEnabled: selectedRole.ptEnabled,
-        lwfEnabled: selectedRole.lwfEnabled,
-        gratuityEnabled: selectedRole.gratuityEnabled,
-        includePfInCTC: selectedRole.includePfInCTC,
-        includeGratuityInCTC: selectedRole.includeGratuityInCTC,
+        pfEnabled: selectedRole.pfEnabled !== false,
+        tdsEnabled: selectedRole.tdsEnabled !== false,
+        esiEnabled: selectedRole.esiEnabled !== false,
+        ptEnabled: selectedRole.ptEnabled !== false,
+        ptState: selectedRole.ptState || '',
+        lwfEnabled: selectedRole.lwfEnabled !== false,
+        gratuityEnabled: selectedRole.gratuityEnabled !== false,
+        includePfInCTC: selectedRole.includePfInCTC === true,
+        includeGratuityInCTC: selectedRole.includeGratuityInCTC !== false,
         basicPercent: selectedRole.basicPercent !== null ? selectedRole.basicPercent : null,
         hraPercent: selectedRole.hraPercent !== null ? selectedRole.hraPercent : null,
         useSalaryComponents: selectedRole.useSalaryComponents !== false,
@@ -652,8 +655,10 @@ const EmployeeDetails = () => {
         commissionNotes: revision.commissionNotes ?? employee.commissionNotes ?? '',
         rateCard: revision.rateCard ? JSON.parse(JSON.stringify(revision.rateCard)) : JSON.parse(JSON.stringify(employee.rateCard || [])),
         pfEnabled: revision.pfEnabled !== false,
+        tdsEnabled: revision.tdsEnabled !== false,
         esiEnabled: revision.esiEnabled !== false,
         ptEnabled: revision.ptEnabled !== false,
+        ptState: revision.ptState !== undefined ? revision.ptState : (employee.ptState || ''),
         lwfEnabled: revision.lwfEnabled !== false,
         gratuityEnabled: revision.gratuityEnabled !== false,
         includePfInCTC: revision.includePfInCTC === true,
@@ -718,8 +723,10 @@ const EmployeeDetails = () => {
         commissionNotes: employee.commissionNotes || '',
         rateCard: employee.rateCard ? JSON.parse(JSON.stringify(employee.rateCard)) : [],
         pfEnabled: employee.pfEnabled !== false,
+        tdsEnabled: employee.tdsEnabled !== false,
         esiEnabled: employee.esiEnabled !== false,
         ptEnabled: employee.ptEnabled !== false,
+        ptState: employee.ptState || '',
         lwfEnabled: employee.lwfEnabled !== false,
         gratuityEnabled: employee.gratuityEnabled !== false,
         includePfInCTC: employee.includePfInCTC === true,
@@ -804,8 +811,10 @@ const EmployeeDetails = () => {
           amount: Number(allowance.amount) || 0,
         })),
         pfEnabled: merged.pfEnabled !== false,
+        tdsEnabled: merged.tdsEnabled !== false,
         esiEnabled: merged.esiEnabled !== false,
         ptEnabled: merged.ptEnabled !== false,
+        ptState: merged.ptState || '',
         lwfEnabled: merged.lwfEnabled !== false,
         gratuityEnabled: merged.gratuityEnabled !== false,
         includePfInCTC: merged.includePfInCTC !== false,
@@ -883,8 +892,10 @@ const EmployeeDetails = () => {
         rateCard: revisionDraft.rateCard || [],
         useSalaryComponents: revisionDraft.useSalaryComponents !== false,
         pfEnabled: revisionDraft.pfEnabled !== false,
+        tdsEnabled: revisionDraft.tdsEnabled !== false,
         esiEnabled: revisionDraft.esiEnabled !== false,
         ptEnabled: revisionDraft.ptEnabled !== false,
+        ptState: revisionDraft.ptState || '',
         lwfEnabled: revisionDraft.lwfEnabled !== false,
         gratuityEnabled: revisionDraft.gratuityEnabled !== false,
         includePfInCTC: revisionDraft.includePfInCTC === true,
@@ -1828,6 +1839,261 @@ const EmployeeDetails = () => {
           {/* Section 5: Component Preview & Statutory Toggles (for CTC & component based strategies) */}
           {strategyUsesComponents && (
             <>
+              {/* Statutory Components & Contribution Toggles */}
+              {(() => {
+                const activePreview = draftSalaryPreview || salaryPreview || {};
+                return (
+                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                      <span>Statutory Components &amp; Contribution Toggles</span>
+                      <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-full font-semibold">Statutory Toggles</span>
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      Enable or disable specific statutory contributions for this employee. Disabling a component will zero out its values in salary calculations immediately.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Provident Fund (PF) */}
+                      <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                        <label className="flex items-center justify-between cursor-pointer select-none">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-800">Provident Fund (PF)</span>
+                            {revisionDraft.pfEnabled !== false && activePreview && (
+                              <span className="text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100 rounded-full px-1.5 py-0.5">
+                                {fmtMoney((activePreview.pfEmployee || 0) + (activePreview.pfEmployer || 0))}
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={revisionDraft.pfEnabled !== false}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              setDraftField('pfEnabled', val);
+                              refreshDraftSalaryFromCTC({ pfEnabled: val });
+                            }}
+                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                        <span className="text-[10px] text-gray-400 mt-1">
+                          Both Employee &amp; Employer PF contributions {revisionDraft.pfEnabled !== false && activePreview && `(EE: ${fmtMoney(activePreview.pfEmployee || 0)}, ER: ${fmtMoney(activePreview.pfEmployer || 0)})`}
+                        </span>
+                      </div>
+
+                      {/* State Insurance (ESI) */}
+                      <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                        <label className="flex items-center justify-between cursor-pointer select-none">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-800">State Insurance (ESI)</span>
+                            {revisionDraft.esiEnabled !== false && activePreview && ((activePreview.esiEmployee || 0) + (activePreview.esiEmployer || 0)) > 0 && (
+                              <span className="text-[9px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-full px-1.5 py-0.5">
+                                {fmtMoney((activePreview.esiEmployee || 0) + (activePreview.esiEmployer || 0))}
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={revisionDraft.esiEnabled !== false}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              setDraftField('esiEnabled', val);
+                              refreshDraftSalaryFromCTC({ esiEnabled: val });
+                            }}
+                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                        <span className="text-[10px] text-gray-400 mt-1">
+                          Employee State Insurance (ESI) deductions{' '}
+                          {revisionDraft.esiEnabled !== false && activePreview && ((activePreview.esiEmployee || 0) + (activePreview.esiEmployer || 0)) > 0
+                            ? `(EE: ${fmtMoney(activePreview.esiEmployee || 0)}, ER: ${fmtMoney(activePreview.esiEmployer || 0)})`
+                            : revisionDraft.esiEnabled !== false && activePreview && (activePreview.grossSalary || 0) > (config?.esiBasicThreshold ?? 21000)
+                              ? <span className="text-amber-500 font-semibold">Not applicable — gross wages exceed ₹{(config?.esiBasicThreshold ?? 21000).toLocaleString('en-IN')} statutory ceiling</span>
+                              : null}
+                        </span>
+                      </div>
+
+                      {/* Professional Tax (PT) */}
+                      <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                        <label className="flex items-center justify-between cursor-pointer select-none">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-800">Professional Tax (PT)</span>
+                            {revisionDraft.ptEnabled !== false && activePreview && (activePreview.professionalTax || 0) > 0 && (
+                              <span className="text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full px-1.5 py-0.5">
+                                {fmtMoney(activePreview.professionalTax || 0)}
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={revisionDraft.ptEnabled !== false}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              setDraftField('ptEnabled', val);
+                              refreshDraftSalaryFromCTC({ ptEnabled: val });
+                            }}
+                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                        <span className="text-[10px] text-gray-400 mt-1">
+                          State Professional Tax deduction {revisionDraft.ptEnabled !== false && activePreview && (activePreview.professionalTax || 0) > 0 && `(${fmtMoney(activePreview.professionalTax || 0)})`}
+                        </span>
+
+                        {/* PT State Dropdown */}
+                        {revisionDraft.ptEnabled !== false && (
+                          <div className="mt-2">
+                            <label className="block text-[10px] font-semibold text-gray-600 mb-1" htmlFor="ptStateRevision">
+                              PT State <span className="text-gray-400 font-normal">(auto-computes slab amount)</span>
+                            </label>
+                            <select
+                              id="ptStateRevision"
+                              value={revisionDraft.ptState || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setDraftField('ptState', val);
+                                refreshDraftSalaryFromCTC({ ptState: val });
+                              }}
+                              className="w-full text-xs rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+                            >
+                              <optgroup label="── No PT / Manual">
+                                <option value="">None — use manual amount below</option>
+                              </optgroup>
+                              <optgroup label="── States that levy PT">
+                                {PT_STATE_LIST.filter(s => s.leviesPT).map(s => (
+                                  <option key={s.code} value={s.code}>{s.name}</option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="── States with no PT">
+                                {PT_STATE_LIST.filter(s => s.code && !s.leviesPT).map(s => (
+                                  <option key={s.code} value={s.code}>{s.name}</option>
+                                ))}
+                              </optgroup>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Welfare Fund (LWF) */}
+                      <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                        <label className="flex items-center justify-between cursor-pointer select-none">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-800">Welfare Fund (LWF)</span>
+                            {revisionDraft.lwfEnabled !== false && activePreview && ((activePreview.lwfEmployee || 0) + (activePreview.lwfEmployer || 0)) > 0 && (
+                              <span className="text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-100 rounded-full px-1.5 py-0.5">
+                                {fmtMoney((activePreview.lwfEmployee || 0) + (activePreview.lwfEmployer || 0))}
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={revisionDraft.lwfEnabled !== false}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              setDraftField('lwfEnabled', val);
+                              refreshDraftSalaryFromCTC({ lwfEnabled: val });
+                            }}
+                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                        <span className="text-[10px] text-gray-400 mt-1">
+                          Labour Welfare Fund contributions {revisionDraft.lwfEnabled !== false && activePreview && ((activePreview.lwfEmployee || 0) + (activePreview.lwfEmployer || 0)) > 0 && `(EE: ${fmtMoney(activePreview.lwfEmployee || 0)}, ER: ${fmtMoney(activePreview.lwfEmployer || 0)})`}
+                        </span>
+                      </div>
+
+                      {/* Gratuity Provision */}
+                      <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                        <label className="flex items-center justify-between cursor-pointer select-none">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-800">Gratuity Provision</span>
+                            {revisionDraft.gratuityEnabled !== false && activePreview && (activePreview.gratuity || 0) > 0 && (
+                              <span className="text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100 rounded-full px-1.5 py-0.5">
+                                {fmtMoney(activePreview.gratuity || 0)}
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={revisionDraft.gratuityEnabled !== false}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              setDraftField('gratuityEnabled', val);
+                              refreshDraftSalaryFromCTC({ gratuityEnabled: val });
+                            }}
+                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                        <span className="text-[10px] text-gray-400 mt-1">
+                          Accrual of statutory gratuity amount {revisionDraft.gratuityEnabled !== false && activePreview && (activePreview.gratuity || 0) > 0 && `(${fmtMoney(activePreview.gratuity || 0)})`}
+                        </span>
+                      </div>
+
+                      {/* Income Tax (TDS) */}
+                      <div className="flex flex-col border border-gray-100 rounded-xl p-3 bg-gray-50/30">
+                        <label className="flex items-center justify-between cursor-pointer select-none">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-800">Income Tax (TDS)</span>
+                            {revisionDraft.tdsEnabled !== false && activePreview && (activePreview.tds || 0) > 0 && (
+                              <span className="text-[9px] font-bold bg-orange-50 text-orange-600 border border-orange-100 rounded-full px-1.5 py-0.5">
+                                {fmtMoney(activePreview.tds || 0)}
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={revisionDraft.tdsEnabled !== false}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              setDraftField('tdsEnabled', val);
+                              refreshDraftSalaryFromCTC({ tdsEnabled: val });
+                            }}
+                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                        <span className="text-[10px] text-gray-400 mt-1">
+                          Enable Income Tax TDS deductions
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Additional CTC Settings if statutory components enabled */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between p-3 border border-gray-100 rounded-xl bg-gray-50/30">
+                        <div>
+                          <label className="text-xs font-semibold text-gray-800 block">Include Employer PF in CTC</label>
+                          <span className="text-[10px] text-gray-400">Employer contribution reduces Gross take-home</span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={revisionDraft.includePfInCTC === true}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setDraftField('includePfInCTC', val);
+                            refreshDraftSalaryFromCTC({ includePfInCTC: val });
+                          }}
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 border border-gray-100 rounded-xl bg-gray-50/30">
+                        <div>
+                          <label className="text-xs font-semibold text-gray-800 block">
+                            Include Gratuity in CTC {activePreview && `(${fmtMoney(activePreview.gratuity || 0)})`}
+                          </label>
+                          <span className="text-[10px] text-gray-400">Accrued gratuity reduces Gross take-home</span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={revisionDraft.includeGratuityInCTC !== false}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setDraftField('includeGratuityInCTC', val);
+                            refreshDraftSalaryFromCTC({ includeGratuityInCTC: val });
+                          }}
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
               {/* CTC Components Summary */}
               {(() => {
                 const activePreview = draftSalaryPreview || salaryPreview || {};
