@@ -56,7 +56,7 @@ const GW = ({ children, className = '', highlight = false }) => {
 const SLabel = ({ children }) => {
   const darkMode = React.useContext(ThemeContext);
   return (
-    <div className={`text-[11px] font-bold uppercase tracking-widest mb-3 ${
+    <div className={`text-[10px] font-bold uppercase tracking-widest mb-2.5 ${
       darkMode ? 'text-indigo-400' : 'text-indigo-600'
     }`}>{children}</div>
   );
@@ -150,6 +150,33 @@ export default function FinancialDashboard() {
   const [payrollSummary, setPayrollSummary] = useState(null);
   const [payrollLoadingState, setPayrollLoadingState] = useState(false);
   const [selectedSourceDetail, setSelectedSourceDetail] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleSourceItemStatusChange = async (item, newStatus) => {
+    if (item.status === newStatus) return;
+    try {
+      const itemId = item.id || item._id;
+      if (item.source && item.source.includes('Expense')) {
+        await api.put(`/expenses/${itemId}`, { status: newStatus });
+      } else if (item.source && item.source.includes('Invoice')) {
+        await api.put(`/invoices/${itemId}`, { status: newStatus });
+      } else {
+        try {
+          await api.put(`/expenses/${itemId}`, { status: newStatus });
+        } catch (e) {
+          await api.put(`/invoices/${itemId}`, { status: newStatus });
+        }
+      }
+      setSelectedSourceDetail(prev => prev ? {
+        ...prev,
+        items: prev.items.map(i => ((i.id || i._id) === itemId) ? { ...i, status: newStatus } : i)
+      } : null);
+      setRefreshKey(k => k + 1);
+    } catch (e) {
+      console.error('Failed to update status:', e);
+      alert(e.response?.data?.message || 'Failed to update status');
+    }
+  };
 
   const handleViewSource = (label) => {
     if (label === 'Total Revenue') {
@@ -350,7 +377,7 @@ export default function FinancialDashboard() {
       .catch(e => { if (e.name !== 'CanceledError' && e.name !== 'AbortError') setError(e.response?.data?.message || 'Failed to load'); })
       .finally(() => setLoading(false));
     return () => ctrl.abort();
-  }, [activeTab, customMonth, customRange.startDate, customRange.endDate]);
+  }, [activeTab, customMonth, customRange.startDate, customRange.endDate, refreshKey]);
 
   const s = data?.summary || {};
   const gst = data?.gst || {};
@@ -399,12 +426,12 @@ export default function FinancialDashboard() {
         {/* ── Header ── */}
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between animate-rise-in">
           <div>
-            <div className={`flex items-center gap-2 text-[10px] font-extrabold tracking-widest uppercase mb-1 ${darkMode ? 'text-[#818cf8]' : 'text-[#5b61eb]'}`}>
+            <div className={`flex items-center gap-2 text-[9px] font-extrabold tracking-widest uppercase mb-1 ${darkMode ? 'text-[#818cf8]' : 'text-[#5b61eb]'}`}>
               <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${darkMode ? 'bg-[#818cf8]' : 'bg-[#5b61eb]'}`}></span>
               FINANCIAL REPORT CARD
             </div>
-            <h1 className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${darkMode ? 'text-white' : 'text-slate-950'}`}>Financial Dashboard</h1>
-            <p className={`text-sm mt-1 ${darkMode ? 'text-slate-400' : 'text-gray-400'}`}>Tax · Revenue · GST · Cash Flow</p>
+            <h1 className={`text-xl sm:text-2xl font-extrabold tracking-tight ${darkMode ? 'text-white' : 'text-slate-950'}`}>Financial Dashboard</h1>
+            <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-gray-400'}`}>Tax · Revenue · GST · Cash Flow</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -567,15 +594,15 @@ export default function FinancialDashboard() {
                         )}
                       </div>
                     </div>
-                    <div className={`text-base font-extrabold animate-count-up ${darkMode ? 'text-slate-100' : 'text-gray-800'}`}>{k.value}</div>
+                    <div className={`text-sm sm:text-base font-extrabold animate-count-up ${darkMode ? 'text-slate-100' : 'text-gray-800'}`}>{k.value}</div>
                     <div 
                       onClick={() => handleViewSource(k.label)}
-                      className={`text-[10px] font-bold uppercase tracking-wide mt-0.5 cursor-pointer hover:underline hover:text-indigo-500 transition-colors ${darkMode ? 'text-slate-400' : 'text-gray-400'}`}
+                      className={`text-[9px] font-bold uppercase tracking-wide mt-0.5 cursor-pointer hover:underline hover:text-indigo-500 transition-colors ${darkMode ? 'text-slate-400' : 'text-gray-400'}`}
                       title={`Click to view ${k.label} source details`}
                     >
                       {k.label}
                     </div>
-                    {k.sub && <div className={`text-[10px] mt-1 ${darkMode ? 'text-slate-500' : 'text-gray-400'}`}>{k.sub}</div>}
+                    {k.sub && <div className={`text-[9px] mt-0.5 ${darkMode ? 'text-slate-500' : 'text-gray-400'}`}>{k.sub}</div>}
                   </div>
                 );
               })}
@@ -610,7 +637,7 @@ export default function FinancialDashboard() {
                   Net Profit After Tax
                 </span>
               </div>
-              <div className={`text-4xl font-black ${Number(s.netProfit) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+              <div className={`text-3xl font-black ${Number(s.netProfit) >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
                 {fmt(s.netProfit, 2)}
               </div>
             </div>
@@ -620,9 +647,9 @@ export default function FinancialDashboard() {
                 { l: 'Combined Tax Outflow', v: s.netTaxPayable, bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.20)', c: '#f59e0b' },
                 { l: 'TCS Collected', v: s.tcsCollected, bg: 'rgba(6,182,212,0.08)', border: 'rgba(6,182,212,0.20)', c: '#06b6d4' },
               ].map(m => (
-                <div key={m.l} className="rounded-xl px-4 py-2.5 text-center border transition-all hover:scale-[1.03]" style={{ background: m.bg, borderColor: m.border }}>
-                  <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: m.c }}>{m.l}</div>
-                  <div className="text-xl font-extrabold mt-0.5" style={{ color: m.c }}>{fmt(m.v)}</div>
+                <div key={m.l} className="rounded-xl px-3.5 py-2 text-center border transition-all hover:scale-[1.03]" style={{ background: m.bg, borderColor: m.border }}>
+                  <div className="text-[9px] font-bold uppercase tracking-wide" style={{ color: m.c }}>{m.l}</div>
+                  <div className="text-lg font-extrabold mt-0.5" style={{ color: m.c }}>{fmt(m.v)}</div>
                 </div>
               ))}
             </div>
@@ -1216,15 +1243,24 @@ export default function FinancialDashboard() {
                               </span>
                             </td>
                             <td className="p-3">
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
-                                ['PAID', 'active', 'approved'].includes(item.status)
-                                  ? (darkMode ? 'bg-emerald-950/50 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
-                                  : ['PARTIAL', 'pending', 'pending_approval'].includes(item.status)
-                                    ? (darkMode ? 'bg-amber-950/50 text-amber-400' : 'bg-amber-50 text-amber-600')
-                                    : (darkMode ? 'bg-rose-950/50 text-rose-400' : 'bg-rose-50 text-rose-600')
-                              }`}>
-                                {item.status}
-                              </span>
+                              <select
+                                value={item.status}
+                                onChange={(e) => handleSourceItemStatusChange(item, e.target.value)}
+                                className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border cursor-pointer focus:outline-none focus:ring-1 transition-all ${
+                                  ['PAID', 'active', 'approved'].includes(item.status)
+                                    ? (darkMode ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-200')
+                                    : ['PARTIAL', 'pending', 'pending_approval'].includes(item.status)
+                                      ? (darkMode ? 'bg-amber-950/80 text-amber-300 border-amber-800' : 'bg-amber-50 text-amber-700 border-amber-200')
+                                      : (darkMode ? 'bg-rose-950/80 text-rose-300 border-rose-800' : 'bg-rose-50 text-rose-700 border-rose-200')
+                                }`}
+                                title="Click to change status"
+                              >
+                                <option value="PAID" className={darkMode ? 'bg-slate-900 text-emerald-400' : 'bg-white text-emerald-700'}>PAID</option>
+                                <option value="UNPAID" className={darkMode ? 'bg-slate-900 text-rose-400' : 'bg-white text-rose-700'}>UNPAID</option>
+                                <option value="PARTIAL" className={darkMode ? 'bg-slate-900 text-amber-400' : 'bg-white text-amber-700'}>PARTIAL</option>
+                                <option value="DRAFT" className={darkMode ? 'bg-slate-900 text-slate-400' : 'bg-white text-gray-700'}>DRAFT</option>
+                                <option value="CANCELLED" className={darkMode ? 'bg-slate-900 text-slate-500' : 'bg-white text-gray-500'}>CANCELLED</option>
+                              </select>
                             </td>
                             <td className="p-3 text-right font-bold">
                               {fmt(item.amount, 2)}

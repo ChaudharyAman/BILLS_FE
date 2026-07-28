@@ -1,3 +1,5 @@
+import { resolveCompensationTypeClient } from './compensationTypeFields';
+
 export const DEFAULT_PAYROLL_CONFIG = {
   basicPercent: 0.5,
   hraPercent: 0.5,
@@ -16,9 +18,12 @@ export const DEFAULT_PAYROLL_CONFIG = {
   defaultWorkingDays: 30,
   defaultInsurance: 0,
   ltaMaxPercent: 0.0833,
+  standardMonthlyHours: 160,
+  compensationTypeDefaults: {},
 };
 
-export const fmtMoney = (value) => `₹${(Number(value) || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+const moneyFormatter = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+export const fmtMoney = (value) => moneyFormatter.format(Number(value) || 0);
 
 export const payrollStatusClass = {
   draft: 'bg-gray-100 text-gray-700',
@@ -180,7 +185,7 @@ const PT_STATE_CONFIGS = {
   },
 };
 
-const getMonthlyPT = (stateCode, monthlyGross, month = 0) => {
+const getMonthlyPT = (stateCode, monthlyGross, month = 0, year = 0, targetDate = null) => {
   if (!stateCode) return 0;
   const cfg = PT_STATE_CONFIGS[stateCode.toUpperCase()];
   if (!cfg) return 0;
@@ -188,16 +193,35 @@ const getMonthlyPT = (stateCode, monthlyGross, month = 0) => {
   const gross = Number(monthlyGross) || 0;
   if (gross <= 0) return 0;
 
-  const matchedSlab = cfg.slabs.find(s => gross <= s.upTo);
-  const slabAmount = matchedSlab ? matchedSlab.monthly : cfg.slabs[cfg.slabs.length - 1].monthly;
+  let effectiveDateObj = targetDate ? new Date(targetDate) : null;
+  if (!effectiveDateObj && year > 0 && month > 0) {
+    effectiveDateObj = new Date(year, month - 1, 1);
+  }
+
+  let activeConfig = cfg;
+  if (Array.isArray(cfg.versions) && cfg.versions.length > 0) {
+    const searchDate = effectiveDateObj || new Date();
+    const matchedVersion = cfg.versions
+      .filter(v => new Date(v.effectiveFrom) <= searchDate)
+      .sort((a, b) => new Date(b.effectiveFrom) - new Date(a.effectiveFrom))[0];
+    if (matchedVersion) {
+      activeConfig = matchedVersion;
+    }
+  }
+
+  const slabs = activeConfig.slabs || cfg.slabs || [];
+  if (slabs.length === 0) return 0;
+
+  const matchedSlab = slabs.find(s => gross <= s.upTo);
+  const slabAmount = matchedSlab ? matchedSlab.monthly : slabs[slabs.length - 1].monthly;
 
   if (
     stateCode.toUpperCase() === 'MH' &&
     Number(month) === 2 &&
-    cfg.februaryTopBracketThreshold !== undefined &&
-    gross > cfg.februaryTopBracketThreshold
+    activeConfig.februaryTopBracketThreshold !== undefined &&
+    gross > activeConfig.februaryTopBracketThreshold
   ) {
-    return cfg.februaryTopBracketAmount;
+    return activeConfig.februaryTopBracketAmount;
   }
 
   return slabAmount;
@@ -270,31 +294,14 @@ const getDayProrateArray = (totalDays, workingDays, paidDays, strategy = 'propor
 };
 
 export const normalizePayrollConfig = (config = {}) => {
-  const getNum = (val, def) => {
-    const n = Number(val);
-    return Number.isFinite(n) ? n : def;
-  };
-  const cfg = config || {};
-  return {
-    basicPercent: getNum(cfg.basicPercent, DEFAULT_PAYROLL_CONFIG.basicPercent),
-    hraPercent: getNum(cfg.hraPercent, DEFAULT_PAYROLL_CONFIG.hraPercent),
-    pfRate: getNum(cfg.pfRate, DEFAULT_PAYROLL_CONFIG.pfRate),
-    pfCap: getNum(cfg.pfCap, DEFAULT_PAYROLL_CONFIG.pfCap),
-    pfEmployerRate: getNum(cfg.pfEmployerRate, DEFAULT_PAYROLL_CONFIG.pfEmployerRate),
-    pfCalculationType: cfg.pfCalculationType || DEFAULT_PAYROLL_CONFIG.pfCalculationType,
-    pfAmountEmployee: getNum(cfg.pfAmountEmployee, DEFAULT_PAYROLL_CONFIG.pfAmountEmployee),
-    pfAmountEmployer: getNum(cfg.pfAmountEmployer, DEFAULT_PAYROLL_CONFIG.pfAmountEmployer),
-    esiEmployeeRate: getNum(cfg.esiEmployeeRate, DEFAULT_PAYROLL_CONFIG.esiEmployeeRate),
-    esiEmployerRate: getNum(cfg.esiEmployerRate, DEFAULT_PAYROLL_CONFIG.esiEmployerRate),
-    esiBasicThreshold: getNum(cfg.esiBasicThreshold, DEFAULT_PAYROLL_CONFIG.esiBasicThreshold),
-    lwfEmployer: getNum(cfg.lwfEmployer, DEFAULT_PAYROLL_CONFIG.lwfEmployer),
-    lwfEmployee: getNum(cfg.lwfEmployee, DEFAULT_PAYROLL_CONFIG.lwfEmployee),
-    gratuityRate: getNum(cfg.gratuityRate, DEFAULT_PAYROLL_CONFIG.gratuityRate),
-    defaultWorkingDays: getNum(cfg.defaultWorkingDays, DEFAULT_PAYROLL_CONFIG.defaultWorkingDays),
-    defaultInsurance: getNum(cfg.defaultInsurance, DEFAULT_PAYROLL_CONFIG.defaultInsurance),
-    ltaMaxPercent: getNum(cfg.ltaMaxPercent, DEFAULT_PAYROLL_CONFIG.ltaMaxPercent),
-    salaryComponents: cfg.salaryComponents || null,
-  };
+  const res = { ...DEFAULT_PAYROLL_CONFIG, ...config };
+  Object.keys(DEFAULT_PAYROLL_CONFIG).forEach(k => {
+    if (typeof DEFAULT_PAYROLL_CONFIG[k] === 'number') {
+      const n = Number(config?.[k]);
+      res[k] = Number.isFinite(n) ? n : DEFAULT_PAYROLL_CONFIG[k];
+    }
+  });
+  return res;
 };
 
 export const getMonthlyCTCValue = (source = {}) => {
@@ -458,25 +465,50 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
     Object.assign(src, breakupObj);
   }
 
-  let monthlyCTC = roundAmount(getMonthlyCTCValue(src));
+  const compType = resolveCompensationTypeClient(src);
+  const NON_COMPONENT_STRATEGIES = ['hourly', 'daily_wage', 'piece_rate', 'project_based', 'milestone_based', 'timesheet_based', 'commission_only', 'retainer'];
 
-  if (src.payType === 'hourly') {
-    const hours = src.hoursWorked !== undefined ? Number(src.hoursWorked) : 160;
+  let monthlyCTC = roundAmount(Number(src.monthlyCTC) || 0);
+
+  if (compType === 'hourly' || compType === 'timesheet_based') {
+    const hours = src.hoursWorked !== undefined ? Number(src.hoursWorked) : (src.periodInput?.hoursWorked ?? 160);
     monthlyCTC = roundAmount((Number(src.hourlyRate) || 0) * hours);
+  } else if (compType === 'daily_wage') {
+    const days = src.paidDays !== undefined ? Number(src.paidDays) : (src.periodInput?.daysWorked ?? 26);
+    monthlyCTC = roundAmount((Number(src.dailyRate) || 0) * days);
+  } else if (compType === 'piece_rate') {
+    const units = src.periodInput?.unitsProduced !== undefined ? Number(src.periodInput.unitsProduced) : 1;
+    const rateCardEntry = (src.rateCard || []).find(r => r.paymentType === 'UNIT') || (src.rateCard || [])[0];
+    const rate = Number(src.periodInput?.ratePerUnit) || (rateCardEntry ? Number(rateCardEntry.rate) : 0);
+    monthlyCTC = roundAmount(units * rate);
+  } else if (compType === 'project_based') {
+    const rateCardEntry = (src.rateCard || []).find(r => r.paymentType === 'PROJECT');
+    monthlyCTC = roundAmount(Number(src.periodInput?.projectFee) || (rateCardEntry ? Number(rateCardEntry.rate) : (Number(src.projectFee) || Number(src.monthlyCTC) || 0)));
+  } else if (compType === 'milestone_based') {
+    const rateCardEntry = (src.rateCard || []).find(r => r.paymentType === 'MILESTONE');
+    monthlyCTC = roundAmount(Number(src.periodInput?.milestoneAmount) || (rateCardEntry ? Number(rateCardEntry.rate) : (Number(src.milestoneAmount) || 0)));
+  } else if (compType === 'retainer') {
+    const rateCardEntry = (src.rateCard || []).find(r => r.paymentType === 'MONTHLY');
+    monthlyCTC = roundAmount(rateCardEntry ? Number(rateCardEntry.rate) : (Number(src.monthlyCTC) || 0));
+  } else if (compType === 'weekly_salary') {
+    const weeksPerMonth = Number(config.weeksPerMonth) || (52 / 12);
+    monthlyCTC = roundAmount((Number(src.weeklyRate) || 0) * weeksPerMonth);
+  } else if (compType === 'commission_only') {
+    monthlyCTC = 0;
   }
 
   const isIntern = src.employmentType === 'intern';
-  const isHourly = src.payType === 'hourly';
-  const useComponents = src.useSalaryComponents !== false && !isIntern && !isHourly;
+  const isNonComponentStrategy = NON_COMPONENT_STRATEGIES.includes(compType);
+  const useComponents = src.useSalaryComponents !== false && !isIntern && !isNonComponentStrategy;
 
-  const pfEnabled = !isIntern && !isHourly && src.pfEnabled !== false;
-  const esiEnabled = !isIntern && !isHourly && src.esiEnabled !== false;
-  const ptEnabled = !isIntern && !isHourly && src.ptEnabled !== false;
-  const lwfEnabled = !isIntern && !isHourly && src.lwfEnabled !== false;
+  const pfEnabled = !isIntern && !isNonComponentStrategy && src.pfEnabled !== false;
+  const esiEnabled = !isIntern && !isNonComponentStrategy && src.esiEnabled !== false;
+  const ptEnabled = !isIntern && !isNonComponentStrategy && src.ptEnabled !== false;
+  const lwfEnabled = !isIntern && !isNonComponentStrategy && src.lwfEnabled !== false;
   const tdsEnabled = src.tdsEnabled !== false;
-  const gratuityEnabled = !isIntern && !isHourly && src.gratuityEnabled !== false;
-  const includePfInCTC = !isIntern && !isHourly && src.includePfInCTC === true;
-  const includeGratuityInCTC = !isIntern && !isHourly && src.includeGratuityInCTC !== false;
+  const gratuityEnabled = !isIntern && !isNonComponentStrategy && src.gratuityEnabled !== false;
+  const includePfInCTC = !isIntern && !isNonComponentStrategy && src.includePfInCTC === true;
+  const includeGratuityInCTC = !isIntern && !isNonComponentStrategy && src.includeGratuityInCTC !== false;
 
   let basicPercent = !useComponents ? 1.0 : config.basicPercent;
   if (useComponents && src.basicPercent !== undefined && src.basicPercent !== null && Number(src.basicPercent) > 0) {
@@ -829,6 +861,8 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
     includePfInCTC,
     includeGratuityInCTC,
     useSalaryComponents: source.useSalaryComponents !== false,
+    isVariablePay: compType === 'commission_only',
+    compensationBasis: compType === 'commission_only' ? 'commission' : undefined,
     earningsMap,
     deductionsMap,
   };
@@ -964,8 +998,20 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
   const dailyOtherAllowances = [];
   const dailyOtherDeductions = [];
 
-  const isHourly = employee.payType === 'hourly';
+  const effectiveCompType = resolveCompensationTypeClient(employee);
+  const isHourly = effectiveCompType === 'hourly' || employee.payType === 'hourly';
   const hoursWorked = isHourly ? (Number(attendance?.hoursWorked) || Number(adjustments?.hoursWorked) || Number(employee.hoursWorked) || 0) : 0;
+
+  const periodInput = {
+    daysWorked:      Number(adjustments.daysWorked ?? adjustments.periodInput?.daysWorked ?? attendance?.paidDays ?? 0),
+    unitsProduced:   adjustments.unitsProduced !== undefined ? Number(adjustments.unitsProduced) : (adjustments.periodInput?.unitsProduced !== undefined ? Number(adjustments.periodInput.unitsProduced) : undefined),
+    hoursLogged:     Number(adjustments.hoursLogged ?? adjustments.periodInput?.hoursLogged ?? adjustments.timesheetHours ?? 0),
+    hoursWorked:     Number(attendance?.hoursWorked ?? adjustments.hoursWorked ?? adjustments.periodInput?.hoursWorked ?? employee.hoursWorked ?? 0),
+    projectFee:      adjustments.projectFee !== undefined ? Number(adjustments.projectFee) : (adjustments.periodInput?.projectFee !== undefined ? Number(adjustments.periodInput.projectFee) : undefined),
+    milestoneAmount: adjustments.milestoneAmount !== undefined ? Number(adjustments.milestoneAmount) : (adjustments.periodInput?.milestoneAmount !== undefined ? Number(adjustments.periodInput.milestoneAmount) : undefined),
+    ratePerUnit:     adjustments.ratePerUnit !== undefined ? Number(adjustments.ratePerUnit) : (adjustments.periodInput?.ratePerUnit !== undefined ? Number(adjustments.periodInput.ratePerUnit) : undefined),
+    variableTransactions: Array.isArray(adjustments.variableTransactions) ? adjustments.variableTransactions : (Array.isArray(adjustments.periodInput?.variableTransactions) ? adjustments.periodInput.variableTransactions : []),
+  };
 
   for (let d = 1; d <= totalDaysInMonth; d++) {
     const currentStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -973,6 +1019,7 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
     
     const daySource = {
       ...activeParams,
+      periodInput,
       hoursWorked: isHourly ? hoursWorked : undefined,
       pfEnabled: adjustments.pfEnabled !== undefined ? adjustments.pfEnabled : activeParams.pfEnabled,
       tdsEnabled: adjustments.tdsEnabled !== undefined ? adjustments.tdsEnabled : activeParams.tdsEnabled,
@@ -1408,6 +1455,50 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
   const reimbursements = Array.isArray(adjustments.reimbursements) ? adjustments.reimbursements : [];
   const totalReimbursementApproved = roundAmount(reimbursements.reduce((sum, r) => sum + (Number(r.approved) || 0), 0));
 
+  const unroundedNet = earnings.totalEarnings + variablePay.totalVariablePay + totalReimbursementApproved - deductions.totalDeductions;
+  const netPayClamped = unroundedNet < 0;
+  const netSalary = roundAmount(Math.max(0, unroundedNet));
+
+  const compType = resolveCompensationTypeClient(employee);
+  let belowMinimumWage = false;
+  let minimumWageCompliance = null;
+
+  if (['hourly', 'daily_wage', 'piece_rate', 'timesheet_based'].includes(compType)) {
+    const minSlabs = {
+      KA: { daily: 450, hourly: 56.25 },
+      MH: { daily: 480, hourly: 60.00 },
+      DL: { daily: 650, hourly: 81.25 },
+      TN: { daily: 420, hourly: 52.50 },
+      GJ: { daily: 440, hourly: 55.00 },
+      DEFAULT: { daily: 400, hourly: 50.00 },
+    };
+    const stateKey = (employee.ptState || adjustments.ptState || 'DEFAULT').toUpperCase();
+    const slabs = minSlabs[stateKey] || minSlabs.DEFAULT;
+    let reqMin = 0;
+    if (compType === 'hourly') {
+      const hours = Number(attendance?.hoursWorked) || Number(adjustments?.hoursWorked) || 0;
+      reqMin = hours * slabs.hourly;
+    } else {
+      reqMin = Number(paidDays || 0) * slabs.daily;
+    }
+    if (reqMin > 0 && earnings.totalEarnings < reqMin) {
+      belowMinimumWage = true;
+      minimumWageCompliance = {
+        flagged: true,
+        state: stateKey,
+        computedGross: earnings.totalEarnings,
+        requiredMinimum: reqMin,
+        shortfall: roundAmount(reqMin - earnings.totalEarnings),
+        warningMessage: `[Minimum Wage Flag] Computed gross (₹${earnings.totalEarnings}) is below statutory minimum wage floor (₹${reqMin}) for state ${stateKey}`
+      };
+    }
+  }
+
+  const payrollShortfall = netPayClamped ? {
+    shortfallAmount: roundAmount(Math.abs(unroundedNet)),
+    notes: 'Non-statutory deductions adjusted to prevent negative net salary'
+  } : null;
+
   return {
     earnings,
     employerContributions,
@@ -1416,7 +1507,11 @@ export const buildPayrollSnapshot = (employee, configInput, attendance, adjustme
     totalPayable,
     reimbursements,
     totalReimbursementApproved,
-    netSalary: roundAmount(Math.max(0, earnings.totalEarnings + variablePay.totalVariablePay + totalReimbursementApproved - deductions.totalDeductions)),
+    netSalary,
+    netPayClamped,
+    belowMinimumWage,
+    payrollShortfall,
+    minimumWageCompliance,
     workingDays,
     paidDays,
     lop: roundAmount(Math.max(workingDays - paidDays, 0)),
@@ -1437,7 +1532,14 @@ export const serializeRow = (row, monthWorkingDays) => {
     loanDeduction: Number(row?.loanDeduction) || 0,
     advanceDeduction: Number(row?.advanceDeduction) || 0,
     tds: row?.tds !== undefined && row?.tds !== null ? Number(row.tds) : undefined,
-    hoursWorked: Number(row?.hoursWorked) || 0,
+    hoursWorked: Number(row?.hoursWorked) || Number(row?.periodInput?.hoursWorked) || 0,
+    daysWorked: row?.daysWorked !== undefined ? Number(row.daysWorked) : (row?.periodInput?.daysWorked !== undefined ? Number(row.periodInput.daysWorked) : (row?.adjustments?.daysWorked !== undefined ? Number(row.adjustments.daysWorked) : undefined)),
+    unitsProduced: row?.unitsProduced !== undefined ? Number(row.unitsProduced) : (row?.periodInput?.unitsProduced !== undefined ? Number(row.periodInput.unitsProduced) : (row?.adjustments?.unitsProduced !== undefined ? Number(row.adjustments.unitsProduced) : undefined)),
+    hoursLogged: row?.hoursLogged !== undefined ? Number(row.hoursLogged) : (row?.periodInput?.hoursLogged !== undefined ? Number(row.periodInput.hoursLogged) : (row?.adjustments?.hoursLogged !== undefined ? Number(row.adjustments.hoursLogged) : undefined)),
+    projectFee: row?.projectFee !== undefined ? Number(row.projectFee) : (row?.periodInput?.projectFee !== undefined ? Number(row.periodInput.projectFee) : (row?.adjustments?.projectFee !== undefined ? Number(row.adjustments.projectFee) : undefined)),
+    milestoneAmount: row?.milestoneAmount !== undefined ? Number(row.milestoneAmount) : (row?.periodInput?.milestoneAmount !== undefined ? Number(row.periodInput.milestoneAmount) : (row?.adjustments?.milestoneAmount !== undefined ? Number(row.adjustments.milestoneAmount) : undefined)),
+    ratePerUnit: row?.ratePerUnit !== undefined ? Number(row.ratePerUnit) : (row?.periodInput?.ratePerUnit !== undefined ? Number(row.periodInput.ratePerUnit) : (row?.adjustments?.ratePerUnit !== undefined ? Number(row.adjustments.ratePerUnit) : undefined)),
+    periodInput: row?.periodInput || row?.adjustments?.periodInput || {},
     otherEarnings: row?.otherEarnings || [],
     otherDeductions: row?.otherDeductions || [],
     pfEnabled: row?.pfEnabled,
@@ -1469,8 +1571,24 @@ export const serializeRow = (row, monthWorkingDays) => {
     paidLeaves: Number(row?.paidLeaves) || 0,
     unpaidLeaves: Number(row?.unpaidLeaves) || 0,
     hoursWorked: Number(row?.hoursWorked) || 0,
+    overtime: typeof row?.overtime === 'object' && row?.overtime !== null
+      ? {
+          weekdayHours: Number(row.overtime.weekdayHours) || 0,
+          weekendHours: Number(row.overtime.weekendHours) || 0,
+          holidayHours: Number(row.overtime.holidayHours) || 0,
+          customAmount: Number(row.overtime.customAmount) || 0,
+        }
+      : (Number(row?.overtime) || 0),
     attendanceSource: row?.attendanceSource || 'default',
-    adjustments
+    skip: Boolean(row?._skipPeriod),
+    skipPeriod: Boolean(row?._skipPeriod),
+    _skipPeriod: Boolean(row?._skipPeriod),
+    adjustments: {
+      ...adjustments,
+      skip: Boolean(row?._skipPeriod),
+      skipPeriod: Boolean(row?._skipPeriod),
+      _skipPeriod: Boolean(row?._skipPeriod),
+    }
   };
 };
 

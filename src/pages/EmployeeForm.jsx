@@ -6,6 +6,53 @@ import api from '../api/axios';
 import Modal from '../components/Modal';
 import { buildMasterSalaryStructure, DEFAULT_PAYROLL_CONFIG, fmtMoney } from '../utils/payroll';
 import { PT_STATE_LIST } from '../constants/ptStates';
+import { getOnboardingFields } from '../utils/compensationTypeFields';
+import { getDefaultRateCardType, getRateCardOptionsForCompType } from '../constants/rateCardTypes';
+
+export const STRATEGY_FIELD_MAP = {
+  monthly_salary:        ['monthlyCTC', 'salaryComponentsEditor'],
+  hourly:                ['hourlyRate'],
+  daily_wage:            ['dailyRate'],
+  weekly_salary:         ['weeklyRate'],
+  piece_rate:            ['rateCardEditor'],
+  project_based:         ['projectFee', 'rateCardEditor'],
+  milestone_based:       ['milestoneAmount', 'rateCardEditor'],
+  attendance_based:      ['monthlyCTC', 'salaryComponentsEditor'],
+  timesheet_based:       ['hourlyRate', 'monthlyCTC'],
+  commission_only:       ['commissionNotes'],
+  salary_plus_commission:['monthlyCTC', 'salaryComponentsEditor', 'commissionNotes'],
+  retainer:              ['monthlyCTC'],
+};
+
+export const STRATEGY_USES_COMPONENTS = {
+  monthly_salary: true,
+  attendance_based: true,
+  salary_plus_commission: true,
+  hourly: false,
+  daily_wage: false,
+  weekly_salary: false,
+  piece_rate: false,
+  project_based: false,
+  milestone_based: false,
+  timesheet_based: false,
+  commission_only: false,
+  retainer: false,
+};
+
+export const DEFAULT_ATTENDANCE_MODE = {
+  monthly_salary:        'attendance',
+  attendance_based:      'attendance',
+  salary_plus_commission:'attendance',
+  hourly:                'timesheet',
+  timesheet_based:       'timesheet',
+  daily_wage:            'attendance',
+  weekly_salary:         'attendance',
+  piece_rate:            'unit_count',
+  project_based:         'none',
+  milestone_based:       'none',
+  commission_only:       'none',
+  retainer:              'none',
+};
 
 const defaultForm = {
   employeeId: '',
@@ -21,7 +68,8 @@ const defaultForm = {
   joiningDate: '',
   dateOfLeaving: '',
   location: '',
-  employmentType: 'full-time',
+  employmentType: 'permanent',
+  workingPattern: 'full_time',
   compensationModel: 'SALARIED',
   paymentBasis: 'MONTHLY',
   rateCard: [],
@@ -29,7 +77,15 @@ const defaultForm = {
   status: 'active',
   role: '',
   payType: 'salaried',
+  compensationType: 'monthly_salary',
+  payFrequency: 'monthly',
+  attendanceMode: 'attendance',
   hourlyRate: 0,
+  dailyRate: 0,
+  weeklyRate: 0,
+  projectFee: 0,
+  milestoneAmount: 0,
+  commissionNotes: '',
   monthlyCTC: 0,
   flexiAmount: 0,
   broadband: 0,
@@ -49,6 +105,7 @@ const defaultForm = {
   gratuityEnabled: true,
   includePfInCTC: false,
   includeGratuityInCTC: true,
+  componentFrequencies: {},
   salaryStructure: {
     basic: 0,
     hra: 0,
@@ -88,24 +145,71 @@ const EmployeeForm = () => {
   const [showDepartmentModal, setShowDepartmentModal] = useState(false);
   const [departmentDraft, setDepartmentDraft] = useState({ name: '', code: '' });
   const [ctcPeriod, setCtcPeriod] = useState('monthly');
+  const [compensationTypes, setCompensationTypes] = useState([]);
+
+  const compTypeOptions = useMemo(() => {
+    if (compensationTypes.length > 0) {
+      return compensationTypes.map(ct => ({ key: ct.key, label: ct.label }));
+    }
+    return Object.keys(STRATEGY_FIELD_MAP).map(key => ({
+      key,
+      label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    }));
+  }, [compensationTypes]);
+
+  const compensationTypesMap = useMemo(() => {
+    const map = {};
+    compensationTypes.forEach(ct => { map[ct.key] = ct; });
+    return map;
+  }, [compensationTypes]);
+
+  const dynamicFieldMap = useMemo(() => {
+    const map = {};
+    compensationTypes.forEach(ct => {
+      map[ct.key] = getOnboardingFields(ct.key, compensationTypesMap);
+    });
+    return map;
+  }, [compensationTypes, compensationTypesMap]);
+
+  const dynamicUsesComponents = useMemo(() => {
+    const map = { ...STRATEGY_USES_COMPONENTS };
+    compensationTypes.forEach(ct => {
+      if (ct.usesSalaryComponents !== undefined) map[ct.key] = ct.usesSalaryComponents;
+    });
+    return map;
+  }, [compensationTypes]);
+
+  const dynamicDefaultAttModes = useMemo(() => {
+    const map = { ...DEFAULT_ATTENDANCE_MODE };
+    compensationTypes.forEach(ct => {
+      if (ct.defaultAttendanceMode) map[ct.key] = ct.defaultAttendanceMode;
+    });
+    return map;
+  }, [compensationTypes]);
 
   const isIntern = formData.employmentType === 'intern';
-  const isHourly = formData.payType === 'hourly';
-  const useComponents = formData.useSalaryComponents !== false && !isIntern && !isHourly;
+  const compTypeKey = formData.compensationType || 'monthly_salary';
+  const visibleFields = getOnboardingFields(compTypeKey, compensationTypesMap);
+  const strategyUsesComponents = dynamicUsesComponents[compTypeKey] ?? true;
+  const useComponents = formData.useSalaryComponents !== false && strategyUsesComponents && !isIntern;
 
   useEffect(() => {
     const controller = new AbortController();
 
     const fetchData = async () => {
       try {
-        const [deptRes, configRes, rolesRes] = await Promise.all([
+        const [deptRes, configRes, rolesRes, compTypesRes] = await Promise.all([
           api.get('/departments', { signal: controller.signal }),
           api.get('/payroll/config', { signal: controller.signal }),
           api.get('/roles', { signal: controller.signal }),
+          api.get('/payroll/compensation-types', { signal: controller.signal }).catch(() => ({ data: [] })),
         ]);
         setDepartments(deptRes.data || []);
         setConfig({ ...DEFAULT_PAYROLL_CONFIG, ...(configRes.data || {}) });
         setRoles(rolesRes.data || []);
+        if (compTypesRes.data && Array.isArray(compTypesRes.data) && compTypesRes.data.length > 0) {
+          setCompensationTypes(compTypesRes.data);
+        }
       } catch (error) {
         if (error.name === 'CanceledError' || error.name === 'AbortError') return;
         console.error(error);
@@ -142,6 +246,7 @@ const EmployeeForm = () => {
           gratuityEnabled: data.gratuityEnabled !== false,
           includePfInCTC: data.includePfInCTC === true,
           includeGratuityInCTC: data.includeGratuityInCTC !== false,
+          componentFrequencies: data.componentFrequencies || {},
         });
       } catch (error) {
         if (error.name === 'CanceledError' || error.name === 'AbortError') return;
@@ -447,17 +552,31 @@ const EmployeeForm = () => {
     }
   };
 
-  const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
-  const labelCls = 'text-xs font-semibold text-gray-600 mb-1.5 inline-block';
+  const inputCls = 'w-full border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 bg-slate-50/20';
+  const labelCls = 'text-xs font-bold text-slate-700 mb-1.5 inline-block';
 
   return (
-    <div className="container mx-auto p-6 font-sans text-gray-900">
-      <h1 className="text-3xl font-bold mb-6">{id ? 'Edit Employee' : 'Add Employee'}</h1>
+    <div className="container mx-auto px-4 py-6 max-w-7xl font-sans text-slate-900 space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">{id ? '✏️ Edit Employee Profile' : '👤 Onboard New Employee'}</h1>
+          <p className="text-xs text-slate-500 mt-1">Configure profile details, statutory settings, and salary structure.</p>
+        </div>
+      </div>
 
-      <form onSubmit={submit} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="border-b border-gray-200 bg-gray-50 p-4 flex flex-wrap gap-2">
-          {['Personal', 'Employment', 'Salary', 'Bank & Tax'].map((label, idx) => (
-            <button key={label} type="button" onClick={(e) => { e.preventDefault(); setStep(idx + 1); }} className={`px-4 py-2 rounded-lg text-sm font-semibold ${step === idx + 1 ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600'}`}>
+      <form onSubmit={submit} className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
+        <div className="border-b border-slate-200/80 bg-slate-50/60 p-4 flex flex-wrap gap-2">
+          {['Personal Information', 'Employment & Role', 'Salary & Compensation', 'Bank & Statutory Details'].map((label, idx) => (
+            <button
+              key={label}
+              type="button"
+              onClick={(e) => { e.preventDefault(); setStep(idx + 1); }}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                step === idx + 1
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
               {idx + 1}. {label}
             </button>
           ))}
@@ -499,353 +618,423 @@ const EmployeeForm = () => {
           )}
 
           {step === 2 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>Job Role Template</label>
-                <select
-                  value={formData.role || ''}
-                  onChange={(e) => handleRoleChange(e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="">No Role (Custom Salary Components)</option>
-                  {roles.map((r) => (
-                    <option key={r._id} value={r._id}>
-                      {r.name} ({r.payType === 'hourly' ? 'Hourly' : 'Salaried'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={labelCls}>Compensation Model</label>
-                <select
-                  value={formData.compensationModel || 'SALARIED'}
-                  onChange={(e) => {
-                    const cm = e.target.value;
-                    const isConsultant = cm !== 'SALARIED';
-                    setFormData((prev) => ({
-                      ...prev,
-                      compensationModel: cm,
-                      ...(isConsultant ? {
-                        useSalaryComponents: false,
-                        pfEnabled: false,
-                        esiEnabled: false,
-                        ptEnabled: false,
-                        lwfEnabled: false,
-                        gratuityEnabled: false,
-                        includePfInCTC: false,
-                        includeGratuityInCTC: false,
-                      } : {
-                        useSalaryComponents: prev.employmentType === 'intern' ? false : true,
-                        pfEnabled: prev.employmentType === 'intern' ? false : true,
-                        esiEnabled: prev.employmentType === 'intern' ? false : true,
-                        ptEnabled: prev.employmentType === 'intern' ? false : true,
-                        lwfEnabled: prev.employmentType === 'intern' ? false : true,
-                        gratuityEnabled: prev.employmentType === 'intern' ? false : true,
-                        includePfInCTC: false,
-                        includeGratuityInCTC: prev.employmentType === 'intern' ? false : true,
-                      }),
-                    }));
-                    if (isConsultant) {
-                      toast('Consultant mode: 10% TDS (Section 194J) applies, statutory deductions disabled.', { icon: '💼' });
-                    }
-                  }}
-                  className={inputCls}
-                >
-                  <option value="SALARIED">Salaried Employee</option>
-                  <option value="CONSULTANT">Recruitment Consultant</option>
-                  <option value="PROJECT">Project-Based Contractor</option>
-                  <option value="POSITION">Position-Based Contractor</option>
-                  <option value="INTERVIEW">Interview-Based Contractor</option>
-                  <option value="HOURLY">Hourly Contractor</option>
-                  <option value="CUSTOM">Custom Contractor</option>
-                </select>
-              </div>
-              <div>
-                <label className={labelCls}>Payment Basis</label>
-                <select
-                  value={formData.paymentBasis || 'MONTHLY'}
-                  onChange={(e) => setField('paymentBasis', e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="MONTHLY">Monthly Retainer</option>
-                  <option value="PROJECT">Per Closed Project</option>
-                  <option value="POSITION">Per Closed Position</option>
-                  <option value="INTERVIEW">Per Conducted Interview</option>
-                  <option value="HOUR">Per Hour</option>
-                  <option value="DAY">Per Day</option>
-                  <option value="MILESTONE">Per Milestone</option>
-                  <option value="CUSTOM">Custom Pay Event</option>
-                </select>
-              </div>
-              <div>
-                <label className={labelCls}>Pay Type</label>
-                <select
-                  value={formData.payType || 'salaried'}
-                  onChange={(e) => setField('payType', e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="salaried">Salaried (Monthly Base)</option>
-                  <option value="hourly">Hourly Rate contract</option>
-                </select>
-              </div>
-
-              {formData.compensationModel && formData.compensationModel !== 'SALARIED' && (
-                <div className="col-span-1 md:col-span-2 bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                      <span>Employee Rate Card</span>
-                      <span className="text-[10px] bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full font-semibold">Custom Rates</span>
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const current = formData.rateCard || [];
-                        setFormData({
-                          ...formData,
-                          rateCard: [...current, { paymentType: 'POSITION', rate: 0, unit: 'Per Closed Position' }]
-                        });
-                      }}
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
-                    >
-                      <FaPlus className="w-2.5 h-2.5 mr-1 inline" /> Add Rate Card Item
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Define specific payment rates for different deliverables. These will be used to pre-fill unit rates during payroll runs.
-                  </p>
-                  
-                  {(!formData.rateCard || formData.rateCard.length === 0) ? (
-                    <div className="text-xs text-gray-500 text-center py-4 border border-dashed border-gray-200 rounded-lg">
-                      No rates defined. Click "Add Rate Card Item" to configure.
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {formData.rateCard.map((item, idx) => (
-                        <div key={`rc-${idx}`} className="flex gap-2 items-end">
-                          <div className="flex-1">
-                            <label className="block text-[10px] font-semibold text-gray-600 mb-1">Payment Type</label>
-                            <select
-                              value={item.paymentType}
-                              onChange={(e) => {
-                                const list = [...formData.rateCard];
-                                list[idx].paymentType = e.target.value;
-                                setFormData({ ...formData, rateCard: list });
-                              }}
-                              className={inputCls}
-                            >
-                              <option value="POSITION">Position</option>
-                              <option value="INTERVIEW">Interview</option>
-                              <option value="PROJECT">Project</option>
-                              <option value="MILESTONE">Milestone</option>
-                              <option value="HOUR">Hour</option>
-                              <option value="DAY">Day</option>
-                              <option value="CUSTOM">Custom</option>
-                            </select>
-                          </div>
-                          
-                          <div className="w-32">
-                            <label className="block text-[10px] font-semibold text-gray-600 mb-1">Rate (₹)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              value={item.rate}
-                              onChange={(e) => {
-                                const list = [...formData.rateCard];
-                                list[idx].rate = Number(e.target.value) || 0;
-                                setFormData({ ...formData, rateCard: list });
-                              }}
-                              className={inputCls}
-                            />
-                          </div>
-
-                          <div className="flex-1">
-                            <label className="block text-[10px] font-semibold text-gray-600 mb-1">Unit Description</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. Per Closed Position"
-                              value={item.unit}
-                              onChange={(e) => {
-                                const list = [...formData.rateCard];
-                                list[idx].unit = e.target.value;
-                                setFormData({ ...formData, rateCard: list });
-                              }}
-                              className={inputCls}
-                            />
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const list = formData.rateCard.filter((_, i) => i !== idx);
-                              setFormData({ ...formData, rateCard: list });
-                            }}
-                            className="text-red-500 hover:text-red-700 p-2.5 transition-colors"
-                          >
-                            <FaTrash className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {formData.role && (
-                <div className="col-span-1 md:col-span-2 bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-800 flex flex-wrap items-center gap-2">
-                  <span className="font-bold">Job Role Template Applied:</span>
-                  <span>Selecting this role pre-populated salary parameters and statutory switches. You can still modify values manually.</span>
-                  {formData.useSalaryComponents === false && (
-                    <span className="ml-auto bg-amber-100 text-amber-800 border border-amber-200 rounded-full px-2.5 py-0.5 font-bold text-[10px] uppercase tracking-wide">Flat Salary — No Component Breakdown</span>
-                  )}
-                  {formData.payType === 'hourly' && (
-                    <span className="ml-auto bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-full px-2.5 py-0.5 font-bold text-[10px] uppercase tracking-wide">Hourly Rate Contract</span>
-                  )}
-                </div>
-              )}
-
-              <div>
-                <label className={labelCls}>Designation</label>
-                <input value={formData.designation} onChange={(e) => setField('designation', e.target.value)} className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Department</label>
-                <div className="flex gap-2">
-                  <select value={formData.department} onChange={(e) => setField('department', e.target.value)} className={inputCls}>
-                    <option value="">Select Department</option>
-                    {departments.map((dept) => <option key={dept._id} value={dept._id}>{dept.name}</option>)}
-                  </select>
-                  <button type="button" onClick={() => setShowDepartmentModal(true)} className="px-3 rounded-lg bg-gray-100 border border-gray-300 text-gray-600"><FaPlus /></button>
-                </div>
-              </div>
-              <div>
-                <label className={labelCls}>Joining Date *</label>
-                <input type="date" required value={formData.joiningDate} onChange={(e) => setField('joiningDate', e.target.value)} className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Date of Leaving</label>
-                <input type="date" value={formData.dateOfLeaving} onChange={(e) => setField('dateOfLeaving', e.target.value)} className={inputCls} />
-              </div>
-
-              <div>
-                <label className={labelCls}>Status</label>
-                <select value={formData.status} onChange={(e) => setField('status', e.target.value)} className={inputCls}>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="terminated">Terminated</option>
-                </select>
-              </div>
-
-              {formData.payType === 'salaried' && formData.employmentType !== 'intern' && (
-                <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+            <div className="space-y-6">
+              {/* Group 1: Employment Classification */}
+              <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+                <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2">
+                  Employment Classification
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs font-bold text-gray-700">Use Salary Components</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Break salary into Basic, HRA, etc. Disable for a flat monthly amount.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newVal = formData.useSalaryComponents === false;
-                      const extraOverrides = !newVal ? {
-                        pfEnabled: false,
-                        esiEnabled: false,
-                        ptEnabled: false,
-                        lwfEnabled: false,
-                        gratuityEnabled: false,
-                        includePfInCTC: false,
-                        includeGratuityInCTC: false,
-                      } : {
-                        pfEnabled: true,
-                        esiEnabled: true,
-                        ptEnabled: true,
-                        lwfEnabled: true,
-                        gratuityEnabled: true,
-                        includePfInCTC: false,
-                        includeGratuityInCTC: true,
-                      };
-                      setFormData(prev => ({
-                        ...prev,
-                        useSalaryComponents: newVal,
-                        ...extraOverrides,
-                      }));
-                      refreshSalaryFromCTC({ useSalaryComponents: newVal, ...extraOverrides });
-                    }}
-                    className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      formData.useSalaryComponents !== false ? 'bg-blue-600' : 'bg-gray-300'
-                    }`}
-                  >
-                    <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      formData.useSalaryComponents !== false ? 'translate-x-4' : 'translate-x-0'
-                    }`} />
-                  </button>
-                </div>
-              )}
-
-              <div>
-                {formData.payType === 'hourly' ? (
-                  <div>
-                    <label className={labelCls}>Hourly Rate *</label>
-                    <div className="relative rounded-lg shadow-sm">
-                      <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 text-sm font-semibold">₹</span>
-                      <input
-                        type="number"
-                        required
-                        min="0"
-                        value={formData.hourlyRate || 0}
-                        onChange={(e) => setField('hourlyRate', Number(e.target.value) || 0)}
-                        className={inputCls + ' pl-7'}
-                      />
-                    </div>
-                    <p className="mt-1 text-[10px] text-gray-400">Estimates in next steps are calculated assuming 160 hours/month.</p>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <label className="text-xs font-semibold text-gray-600 inline-block m-0">
-                        {ctcPeriod === 'monthly' ? 'Monthly CTC *' : 'Annual CTC *'}
-                      </label>
-                      <div className="flex bg-gray-100 p-0.5 rounded-lg border border-gray-200">
-                        <button
-                          type="button"
-                          onClick={() => setCtcPeriod('monthly')}
-                          className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${ctcPeriod === 'monthly' ? 'bg-white text-slate-800 shadow-sm border border-gray-100 font-extrabold' : 'text-gray-500 hover:text-slate-800'}`}
-                        >
-                          Monthly
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCtcPeriod('annual')}
-                          className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${ctcPeriod === 'annual' ? 'bg-white text-slate-800 shadow-sm border border-gray-100 font-extrabold' : 'text-gray-500 hover:text-slate-800'}`}
-                        >
-                          Annually
-                        </button>
-                      </div>
-                    </div>
-
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      value={
-                        ctcPeriod === 'monthly'
-                          ? (formData.monthlyCTC || 0)
-                          : Math.round((formData.monthlyCTC || 0) * 12)
-                      }
-                      onChange={(e) => {
-                        const val = Number(e.target.value) || 0;
-                        setField('monthlyCTC', ctcPeriod === 'monthly' ? val : Math.round((val / 12) * 100) / 100);
-                      }}
-                      onBlur={refreshSalaryFromCTC}
+                    <label className={labelCls}>Employment Type</label>
+                    <select
+                      value={formData.employmentType || 'permanent'}
+                      onChange={(e) => setField('employmentType', e.target.value)}
                       className={inputCls}
-                    />
-                    <div className="mt-1 text-xs text-gray-500">{calculating ? 'Calculating salary structure...' : 'Auto-fills Basic, HRA, and Special Allowance using payroll settings.'}</div>
+                    >
+                      <option value="permanent">Permanent</option>
+                      <option value="probation">Probationary</option>
+                      <option value="contract">Contract</option>
+                      <option value="temporary">Temporary</option>
+                      <option value="intern">Intern / Trainee</option>
+                      <option value="consultant">Consultant</option>
+                      <option value="freelancer">Freelancer</option>
+                      <option value="part_time">Part-Time</option>
+                      <option value="casual">Casual</option>
+                      <option value="seasonal">Seasonal</option>
+                      <option value="full-time">Full-Time (Legacy)</option>
+                    </select>
                   </div>
-                )}
+
+                  <div>
+                    <label className={labelCls}>Pay Frequency</label>
+                    <select
+                      value={formData.payFrequency || 'monthly'}
+                      onChange={(e) => setField('payFrequency', e.target.value)}
+                      className={inputCls}
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="biweekly">Bi-Weekly</option>
+                      <option value="semi_monthly">Semi-Monthly</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={labelCls}>Working Pattern</label>
+                    <select
+                      value={formData.workingPattern || 'full_time'}
+                      onChange={(e) => setField('workingPattern', e.target.value)}
+                      className={inputCls}
+                    >
+                      <option value="full_time">Full-Time (On-site)</option>
+                      <option value="part_time">Part-Time</option>
+                      <option value="remote">Remote</option>
+                      <option value="hybrid">Hybrid</option>
+                      <option value="shift">Shift Based</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={labelCls}>Job Role Template</label>
+                    <select
+                      value={formData.role || ''}
+                      onChange={(e) => handleRoleChange(e.target.value)}
+                      className={inputCls}
+                    >
+                      <option value="">No Role (Custom Salary Components)</option>
+                      {roles.map((r) => (
+                        <option key={r._id} value={r._id}>
+                          {r.name} ({r.payType === 'hourly' ? 'Hourly' : 'Salaried'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={labelCls}>Designation</label>
+                    <input value={formData.designation} onChange={(e) => setField('designation', e.target.value)} className={inputCls} />
+                  </div>
+
+                  <div>
+                    <label className={labelCls}>Department</label>
+                    <div className="flex gap-2">
+                      <select value={formData.department} onChange={(e) => setField('department', e.target.value)} className={inputCls}>
+                        <option value="">Select Department</option>
+                        {departments.map((dept) => <option key={dept._id} value={dept._id}>{dept.name}</option>)}
+                      </select>
+                      <button type="button" onClick={() => setShowDepartmentModal(true)} className="px-3 rounded-lg bg-gray-100 border border-gray-300 text-gray-600"><FaPlus /></button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelCls}>Joining Date *</label>
+                    <input type="date" required value={formData.joiningDate} onChange={(e) => setField('joiningDate', e.target.value)} className={inputCls} />
+                  </div>
+
+                  <div>
+                    <label className={labelCls}>Date of Leaving</label>
+                    <input type="date" value={formData.dateOfLeaving} onChange={(e) => setField('dateOfLeaving', e.target.value)} className={inputCls} />
+                  </div>
+
+                  <div>
+                    <label className={labelCls}>Status</label>
+                    <select value={formData.status} onChange={(e) => setField('status', e.target.value)} className={inputCls}>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="terminated">Terminated</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Group 2: Compensation Configuration */}
+              <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+                <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2 flex items-center justify-between">
+                  <span>Compensation Configuration</span>
+                  <span className="text-xs bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold">Strategy Engine</span>
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Compensation Type *</label>
+                    <select
+                      value={formData.compensationType || 'monthly_salary'}
+                      onChange={(e) => {
+                        const newType = e.target.value;
+                        const currentType = formData.compensationType || 'monthly_salary';
+                        const currentUses = dynamicUsesComponents[currentType] ?? true;
+                        const newUses = dynamicUsesComponents[newType] ?? false;
+
+                        if (currentUses && !newUses && formData.useSalaryComponents !== false) {
+                          const currentLabel = compTypeOptions.find(o => o.key === currentType)?.label || currentType;
+                          const newLabel = compTypeOptions.find(o => o.key === newType)?.label || newType;
+                          const confirmed = window.confirm(
+                            `This employee currently has salary components configured under ${currentLabel}. ` +
+                            `Switching to ${newLabel} will ignore fixed salary components and statutory benefits. Do you want to continue?`
+                          );
+                          if (!confirmed) return;
+                        }
+
+                        const defaultAtt = dynamicDefaultAttModes[newType] || 'attendance';
+                        setFormData((prev) => ({
+                          ...prev,
+                          compensationType: newType,
+                          useSalaryComponents: newUses,
+                          attendanceMode: defaultAtt,
+                          payType: newType === 'hourly' ? 'hourly' : 'salaried',
+                        }));
+                      }}
+                      className={inputCls}
+                    >
+                      {compTypeOptions.map(opt => (
+                        <option key={opt.key} value={opt.key}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={labelCls}>Attendance Mode *</label>
+                    <select
+                      value={formData.attendanceMode || 'attendance'}
+                      onChange={(e) => setField('attendanceMode', e.target.value)}
+                      className={inputCls}
+                    >
+                      <option value="attendance">Attendance Based (paidDays / workingDays)</option>
+                      <option value="timesheet">Timesheet (hours logged)</option>
+                      <option value="shift">Shift Based (shifts worked)</option>
+                      <option value="unit_count">Unit Count (piece rate / deliverables)</option>
+                      <option value="fixed">Fixed (always full month / no proration)</option>
+                      <option value="none">None (milestone / project / commission)</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {step === 3 && (
             <div className="space-y-6">
+                {/* Dynamic Inputs per strategy map */}
+                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+                  <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2">
+                    Compensation Parameters ({formData.compensationType || 'monthly_salary'})
+                  </h3>
+
+                  {id && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-xl p-3 mb-4 flex items-center justify-between shadow-xs">
+                      <span>💡 <strong>Salary Edit Notice:</strong> To adjust an onboarded employee's salary or rate, please use <strong>Salary Revisions</strong> in Employee Details to ensure full audit history & back-pay calculations.</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {visibleFields.includes('monthlyCTC') && (
+                      <div>
+                        <div className="flex justify-between items-center mb-1.5">
+                          <label className="text-xs font-semibold text-gray-600 inline-block m-0">
+                            {ctcPeriod === 'monthly' ? 'Monthly CTC *' : 'Annual CTC *'}
+                          </label>
+                          <div className="flex bg-gray-100 p-0.5 rounded-lg border border-gray-200">
+                            <button
+                              type="button"
+                              onClick={() => setCtcPeriod('monthly')}
+                              className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${ctcPeriod === 'monthly' ? 'bg-white text-slate-800 shadow-sm border border-gray-100 font-extrabold' : 'text-gray-500 hover:text-slate-800'}`}
+                            >
+                              Monthly
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCtcPeriod('annual')}
+                              className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${ctcPeriod === 'annual' ? 'bg-white text-slate-800 shadow-sm border border-gray-100 font-extrabold' : 'text-gray-500 hover:text-slate-800'}`}
+                            >
+                              Annually
+                            </button>
+                          </div>
+                        </div>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={
+                            ctcPeriod === 'monthly'
+                              ? (formData.monthlyCTC || 0)
+                              : Math.round((formData.monthlyCTC || 0) * 12)
+                          }
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 0;
+                            setField('monthlyCTC', ctcPeriod === 'monthly' ? val : Math.round((val / 12) * 100) / 100);
+                          }}
+                          onBlur={refreshSalaryFromCTC}
+                          className={inputCls}
+                        />
+                      </div>
+                    )}
+
+                    {visibleFields.includes('hourlyRate') && (
+                      <div>
+                        <label className={labelCls}>Hourly Rate (₹/hr) *</label>
+                        <div className="relative rounded-lg shadow-sm">
+                          <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 text-sm font-semibold">₹</span>
+                          <input
+                            type="number"
+                            required
+                            min="0"
+                            value={formData.hourlyRate || 0}
+                            onChange={(e) => setField('hourlyRate', Number(e.target.value) || 0)}
+                            className={`${inputCls} pl-7`}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {visibleFields.includes('dailyRate') && (
+                      <div>
+                        <label className={labelCls}>Daily Rate (₹/day) *</label>
+                        <div className="relative rounded-lg shadow-sm">
+                          <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 text-sm font-semibold">₹</span>
+                          <input
+                            type="number"
+                            required
+                            min="0"
+                            value={formData.dailyRate || 0}
+                            onChange={(e) => setField('dailyRate', Number(e.target.value) || 0)}
+                            className={`${inputCls} pl-7`}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {visibleFields.includes('weeklyRate') && (
+                      <div>
+                        <label className={labelCls}>Weekly Rate (₹/week) *</label>
+                        <div className="relative rounded-lg shadow-sm">
+                          <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 text-sm font-semibold">₹</span>
+                          <input
+                            type="number"
+                            required
+                            min="0"
+                            value={formData.weeklyRate || 0}
+                            onChange={(e) => setField('weeklyRate', Number(e.target.value) || 0)}
+                            className={`${inputCls} pl-7`}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {visibleFields.includes('projectFee') && (
+                      <div>
+                        <label className={labelCls}>Default Project Fee (₹)</label>
+                        <div className="relative rounded-lg shadow-sm">
+                          <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 text-sm font-semibold">₹</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={formData.projectFee || 0}
+                            onChange={(e) => setField('projectFee', Number(e.target.value) || 0)}
+                            className={inputCls + ' pl-7'}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {visibleFields.includes('milestoneAmount') && (
+                      <div>
+                        <label className={labelCls}>Default Milestone Amount (₹)</label>
+                        <div className="relative rounded-lg shadow-sm">
+                          <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 text-sm font-semibold">₹</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={formData.milestoneAmount || 0}
+                            onChange={(e) => setField('milestoneAmount', Number(e.target.value) || 0)}
+                            className={inputCls + ' pl-7'}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {visibleFields.includes('commissionNotes') && (
+                    <div>
+                      <label className={labelCls}>Commission Structure & Notes</label>
+                      <textarea
+                        rows={3}
+                        placeholder="e.g. 5% commission per closed deal over ₹1,00,000..."
+                        value={formData.commissionNotes || ''}
+                        onChange={(e) => setField('commissionNotes', e.target.value)}
+                        className={inputCls}
+                      />
+                    </div>
+                  )}
+
+                  {visibleFields.includes('rateCardEditor') && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-sm font-bold text-gray-800">Deliverable Rate Card</h4>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const current = formData.rateCard || [];
+                            const defaultType = getDefaultRateCardType(formData.compensationType);
+                            setFormData({
+                              ...formData,
+                              rateCard: [...current, { paymentType: defaultType, rate: 0, unit: 'Per Deliverable' }]
+                            });
+                          }}
+                          className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded"
+                        >
+                          <FaPlus className="w-2.5 h-2.5 mr-1 inline" /> Add Rate Card Item
+                        </button>
+                      </div>
+                      {(!formData.rateCard || formData.rateCard.length === 0) ? (
+                        <div className="text-xs text-gray-500 text-center py-3 border border-dashed border-gray-200 rounded-lg">
+                          No rates defined. Click "Add Rate Card Item" to configure.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {formData.rateCard.map((item, idx) => (
+                            <div key={`rc-${idx}`} className="flex gap-2 items-end">
+                              <div className="flex-1">
+                                <label className="block text-[10px] font-semibold text-gray-600 mb-1">Type</label>
+                                <select
+                                  value={item.paymentType}
+                                  onChange={(e) => {
+                                    const list = [...formData.rateCard];
+                                    list[idx].paymentType = e.target.value;
+                                    setFormData({ ...formData, rateCard: list });
+                                  }}
+                                  className={inputCls}
+                                >
+                                  {getRateCardOptionsForCompType(formData.compensationType).map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="w-28">
+                                <label className="block text-[10px] font-semibold text-gray-600 mb-1">Rate (₹)</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={item.rate}
+                                  onChange={(e) => {
+                                    const list = [...formData.rateCard];
+                                    list[idx].rate = Number(e.target.value) || 0;
+                                    setFormData({ ...formData, rateCard: list });
+                                  }}
+                                  className={inputCls}
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <label className="block text-[10px] font-semibold text-gray-600 mb-1">Unit</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Unit / Piece"
+                                  value={item.unit}
+                                  onChange={(e) => {
+                                    const list = [...formData.rateCard];
+                                    list[idx].unit = e.target.value;
+                                    setFormData({ ...formData, rateCard: list });
+                                  }}
+                                  className={inputCls}
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const list = formData.rateCard.filter((_, i) => i !== idx);
+                                  setFormData({ ...formData, rateCard: list });
+                                }}
+                                className="text-red-500 p-2"
+                              >
+                                <FaTrash className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               {formData.employmentType === 'intern' && (
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm font-semibold text-blue-800 animate-fade-in">
                   Interns/Trainees receive a consolidated stipend (100% Basic Salary) without HRA or statutory contributions.
@@ -1271,7 +1460,7 @@ const EmployeeForm = () => {
                   };
 
                   const isIntern = formData.employmentType === 'intern';
-                  const isHourly = formData.payType === 'hourly';
+                  const isHourly = formData.payType === 'hourly' || formData.compensationType === 'hourly';
                   const useComponents = formData.useSalaryComponents !== false && !isIntern && !isHourly;
                   const comps = config?.salaryComponents || [];
                   
@@ -1295,13 +1484,14 @@ const EmployeeForm = () => {
                   }
 
                   const list = filtered.map(c => {
-                    const isHourly = formData.payType === 'hourly';
+                    const isHourly = formData.payType === 'hourly' || formData.compensationType === 'hourly';
                     const isCalculated = isIntern || isHourly ? true : (c.linkedTo !== 'fixed');
                     let suffix = '';
                     let freqSuffix = '';
-                    if (c.frequency === 'quarterly') freqSuffix = ' — Quarterly';
-                    else if (c.frequency === 'semi_annually') freqSuffix = ' — Semi-Annually';
-                    else if (c.frequency === 'annually') freqSuffix = ' — Annually';
+                    const effectiveFreq = formData.componentFrequencies?.[c.id] || c.frequency || 'monthly';
+                    if (effectiveFreq === 'quarterly') freqSuffix = ' — Quarterly';
+                    else if (effectiveFreq === 'semi_annually') freqSuffix = ' — Semi-Annually';
+                    else if (effectiveFreq === 'annually') freqSuffix = ' — Annually';
 
                     let labelName = c.name || c.id;
                     if (c.id === 'basic') {
@@ -1337,7 +1527,9 @@ const EmployeeForm = () => {
                       id: c.id,
                       name: getFieldMapping(c.id),
                       label: `${labelName}${suffix}`,
-                      isCalculated
+                      isCalculated,
+                      cItem: c,
+                      frequency: effectiveFreq,
                     };
                   });
 
@@ -1400,16 +1592,36 @@ const EmployeeForm = () => {
                              (item.name.includes('.') 
                                ? (item.name.split('.').reduce((obj, key) => obj?.[key], formData) ?? getPreviewValue(item.id) ?? 0)
                                : (formData[item.name] ?? getPreviewValue(item.id) ?? 0)
-                             )
+                              )
                             )
                         );
                     
                     
                     return (
                       <div key={item.id}>
-                        <label className={labelCls}>
-                          {item.label}
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className={labelCls}>
+                            {item.label}
+                          </label>
+                          {useComponents && item.cItem && (
+                            <select
+                              value={formData.componentFrequencies?.[item.id] || item.cItem.frequency || 'monthly'}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setFormData(prev => ({
+                                  ...prev,
+                                  componentFrequencies: { ...(prev.componentFrequencies || {}), [item.id]: val }
+                                }));
+                              }}
+                              className="text-[11px] bg-white border border-gray-300 rounded px-1.5 py-0.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
+                            >
+                              <option value="monthly">Monthly</option>
+                              <option value="quarterly">Quarterly</option>
+                              <option value="semi_annually">Semi-Annually</option>
+                              <option value="annually">Annually</option>
+                            </select>
+                          )}
+                        </div>
                         <input
                           type="number"
                           step="any"

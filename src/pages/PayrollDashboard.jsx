@@ -8,6 +8,8 @@ import Modal from '../components/Modal';
 import Skeleton from '../components/Skeleton';
 import { fmtMoney, payrollStatusClass, getSalarySplits } from '../utils/payroll';
 import { usePayrollSnapshot } from '../hooks/usePayrollSnapshot';
+import { isAttendanceLinked } from '../utils/compensationTypeFields';
+import { getCompensationBadgeInfo, PRIMARY_EARNINGS_LABELS } from './PayrollProcessing';
 
 const monthName = (month) => new Date(0, month - 1).toLocaleString('en-US', { month: 'short' });
 const STATUS_TABS = ['all', 'draft', 'processed', 'approved', 'paid'];
@@ -706,6 +708,29 @@ const PayrollDashboard = () => {
     }
   };
 
+  const handleDownloadDrawerPdf = async () => {
+    if (!drawerSlip) return;
+    try {
+      toast.loading('Downloading payslip PDF...', { id: 'drawer-pdf-toast' });
+      const response = await api.get(`/payroll/${drawerSlip.id}/payslip-pdf`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Payslip_${drawerSlip.period?.monthName}_${drawerSlip.period?.year}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Payslip PDF downloaded successfully!', { id: 'drawer-pdf-toast' });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to download PDF payslip', { id: 'drawer-pdf-toast' });
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 font-sans text-gray-900">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -1146,10 +1171,21 @@ const PayrollDashboard = () => {
                           </button>
                         </td>
                         <td className="px-6 py-4 text-right text-sm">
-                          {payroll.payType === 'hourly' ? `${payroll.hoursWorked || 0} hrs` : payroll.paidDays}
+                          {(() => {
+                            const _ct = payroll.employeeSnapshot?.compensationType || payroll.compensationType || payroll.payType;
+                            if (!isAttendanceLinked(_ct)) {
+                              if (_ct === 'hourly' || _ct === 'timesheet_based') return `${payroll.hoursWorked || 0} hrs`;
+                              return '—';
+                            }
+                            return payroll.paidDays;
+                          })()}
                         </td>
                         <td className="px-6 py-4 text-right text-sm">
-                          {payroll.payType === 'hourly' ? 'Hourly (N/A)' : payroll.workingDays}
+                          {(() => {
+                            const _ct = payroll.employeeSnapshot?.compensationType || payroll.compensationType || payroll.payType;
+                            if (!isAttendanceLinked(_ct)) return '—';
+                            return payroll.workingDays;
+                          })()}
                         </td>
                         <td className="px-6 py-4 text-right text-sm">{fmtMoney(payroll.earnings?.totalEarnings)}</td>
                         <td className="px-6 py-4 text-right text-sm">{fmtMoney(employerContribution)}</td>
@@ -1621,8 +1657,8 @@ const PayrollDashboard = () => {
                 </button>
               ) : null}
               {drawerSlip ? (
-                <button onClick={() => window.open(`/payroll/${drawerSlip.id}/payslip`, '_blank')} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">
-                  Download
+                <button onClick={handleDownloadDrawerPdf} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">
+                  Download PDF
                 </button>
               ) : null}
               <button onClick={() => setDrawerSlip(null)} className="px-3 py-2 rounded-lg border bg-white text-sm font-semibold">Close</button>
@@ -1636,17 +1672,22 @@ const PayrollDashboard = () => {
                   ['Net Salary', fmtMoney(drawerSlip.netSalary)],
                   ['Total Payable', fmtMoney(drawerSlip.totalPayable)],
                   ['Status', drawerSlip.status],
-                  ...(drawerSlip.payType === 'hourly' ? [
-                    ['Hours Worked', `${drawerSlip.hoursWorked || 0} hrs`],
-                    ['Hourly Rate', `${fmtMoney(drawerSlip.hourlyRate || 0)}/hr`],
-                  ] : [
-                    ['Working Days', drawerSlip.workingDays],
-                    ['Paid Days', drawerSlip.paidDays],
-                    ['LOP Days', drawerSlip.lop || 0],
-                    ['Proration Ratio', `${Math.round((drawerSlip.paidDays / Math.max(drawerSlip.workingDays || 1, 1)) * 100)}%`],
-                  ])
+                  ...(() => {
+                    const _dct = drawerSlip.employeeSnapshot?.compensationType || drawerSlip.compensationType || drawerSlip.payType;
+                    if (!isAttendanceLinked(_dct)) {
+                      const rows = [['Hours / Units', drawerSlip.hoursWorked > 0 ? `${drawerSlip.hoursWorked} hrs` : '—']];
+                      if (drawerSlip.hourlyRate) rows.push(['Hourly Rate', `${fmtMoney(drawerSlip.hourlyRate)}/hr`]);
+                      return rows;
+                    }
+                    return [
+                      ['Working Days', drawerSlip.workingDays],
+                      ['Paid Days', drawerSlip.paidDays],
+                      ['LOP Days', drawerSlip.lop || 0],
+                      ['Proration Ratio', `${Math.round((drawerSlip.paidDays / Math.max(drawerSlip.workingDays || 1, 1)) * 100)}%`],
+                    ];
+                  })()
                 ]} />
-                {drawerSlip.salarySplits && drawerSlip.salarySplits.length > 1 && drawerSlip.payType !== 'hourly' && (
+                {drawerSlip.salarySplits && drawerSlip.salarySplits.length > 1 && isAttendanceLinked(drawerSlip.employeeSnapshot?.compensationType || drawerSlip.compensationType || drawerSlip.payType) && (
                   <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
                     <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">
                       Mid-Month Revision Calculation Split
@@ -1836,7 +1877,7 @@ const PayrollDashboard = () => {
       {/* Detailed Salary Breakdown Modal */}
       {breakdownPayroll && breakdownEmployee && (() => {
         const empSnapshot = breakdownPayroll.employeeSnapshot || {};
-        const isHourly = breakdownPayroll.payType === 'hourly';
+        const isHourly = breakdownEmployee.payType === 'hourly' || breakdownEmployee.compensationType === 'hourly';
         const hasSalaryBreakup = breakdownEmployee.useSalaryComponents !== false && breakdownEmployee.employmentType !== 'intern' && !isHourly;
         const isReadOnly = true;
         const localExcludedClaimIds = new Set();
@@ -1859,7 +1900,7 @@ const PayrollDashboard = () => {
           : [];
         const remainderId = config?.salaryComponents?.find(c => c.linkedTo === 'remainder')?.id || 'special';
 
-        const showLopStrategy = localSplits && localSplits.length > 1 && breakdownEmployee.payType !== 'hourly';
+        const showLopStrategy = localSplits && localSplits.length > 1 && !isHourly;
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
@@ -1874,9 +1915,7 @@ const PayrollDashboard = () => {
                     <h2 className="text-xl font-bold">{breakdownEmployee.firstName} {breakdownEmployee.lastName}</h2>
                     <p className="text-xs text-gray-400">
                       {breakdownEmployee.employeeId || 'EMP-001'} · {empSnapshot?.designation || breakdownEmployee.designation || 'SDE'} · {
-                        breakdownEmployee.payType === 'hourly'
-                          ? `Hourly Rate: ${fmtMoney(breakdownEmployee.hourlyRate)}/hr`
-                          : `CTC ${fmtMoney(empSnapshot?.monthlyCTC || breakdownEmployee.monthlyCTC)}`
+                        getCompensationBadgeInfo(breakdownEmployee, localSnapshotComputed).label
                       }
                     </p>
                   </div>
@@ -1895,29 +1934,35 @@ const PayrollDashboard = () => {
                 {/* Proration Summary Banner */}
                 {localSnapshot && (
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-900 text-sm">
-                    {breakdownEmployee.payType === 'hourly' ? (
+                    {isHourly ? (
                       <div>
                         <span className="font-semibold text-blue-900">Hours Worked:</span> {breakdownRow?.hoursWorked ?? 160} hrs
                         <span className="mx-2 text-blue-300">|</span>
                         <span className="font-semibold text-blue-900">Hourly Rate:</span> {fmtMoney(breakdownEmployee.hourlyRate)}/hr
                       </div>
-                    ) : (
+                    ) : isAttendanceLinked(breakdownEmployee.compensationType || breakdownEmployee.payType) ? (
                       <div>
                         <span className="font-semibold text-blue-900">Paid / Working Days:</span> {localSnapshot.paidDays} / {localSnapshot.workingDays} days
                         <span className="mx-2 text-blue-300">|</span>
                         <span className="font-semibold text-blue-900">Proration Ratio:</span> {Math.round((localSnapshot.paidDays / localSnapshot.workingDays) * 100)}%
                       </div>
+                    ) : (
+                      <div>
+                        <span className="font-semibold text-blue-900">Compensation Type:</span> {(breakdownEmployee.compensationType || '').replace(/_/g, ' ')}
+                      </div>
                     )}
                     <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold self-start sm:self-auto">
-                      {breakdownEmployee.payType === 'hourly' 
-                        ? `${breakdownRow?.hoursWorked ?? 160} hrs logged` 
-                        : (localSnapshot.lop > 0 ? `${localSnapshot.lop} LOP Days` : 'Full Attendance')
+                      {isHourly
+                        ? `${breakdownRow?.hoursWorked ?? 160} hrs logged`
+                        : isAttendanceLinked(breakdownEmployee.compensationType || breakdownEmployee.payType)
+                          ? (localSnapshot.lop > 0 ? `${localSnapshot.lop} LOP Days` : 'Full Attendance')
+                          : (breakdownEmployee.compensationType || '').replace(/_/g, ' ')
                       }
                     </div>
                   </div>
                 )}
 
-                {localSplits && localSplits.length > 1 && breakdownEmployee.payType !== 'hourly' && (
+                {localSplits && localSplits.length > 1 && isAttendanceLinked(breakdownEmployee.compensationType || breakdownEmployee.payType) && (
                   <div className="border border-blue-200 rounded-xl overflow-hidden bg-white shadow-sm">
                     <div className="bg-blue-50 px-4 py-3 border-b border-blue-100 font-bold text-blue-900 text-sm">
                       Mid-Month Revision Calculation Split
@@ -2270,7 +2315,7 @@ const PayrollDashboard = () => {
                               return (
                                 <BreakdownRow
                                   key={c.id}
-                                  label={(isHourly && c.id === 'basic') ? 'Contract Wages (Hourly)' : c.name}
+                                  label={(c.id === 'basic' && PRIMARY_EARNINGS_LABELS[breakdownEmployee.compensationType || (isHourly ? 'hourly' : 'monthly_salary')]) ? PRIMARY_EARNINGS_LABELS[breakdownEmployee.compensationType || 'hourly'] : c.name}
                                   paid={paid}
                                   master={master}
                                 />
@@ -2320,7 +2365,7 @@ const PayrollDashboard = () => {
                       {/* Right Column: Deductions, Contributions & Net Pay */}
                       <div className="space-y-4">
                         {/* Deductions Card */}
-                        {(breakdownEmployee.payType !== 'hourly' || (localSnapshot.deductions.pfEmployee || 0) + (localSnapshot.deductions.esiEmployee || 0) + (localSnapshot.deductions.lwfEmployee || 0) + (localSnapshot.deductions.professionalTax || 0) + (localSnapshot.deductions.tds || 0) > 0) && (
+                        {(!isHourly || (localSnapshot.deductions.pfEmployee || 0) + (localSnapshot.deductions.esiEmployee || 0) + (localSnapshot.deductions.lwfEmployee || 0) + (localSnapshot.deductions.professionalTax || 0) + (localSnapshot.deductions.tds || 0) > 0) && (
                           <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
                             <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
                               Statutory & Voluntary Deductions
@@ -2348,7 +2393,7 @@ const PayrollDashboard = () => {
                                     : c.linkedTo === 'fixed' ? ' (Fixed)' : '';
                                 return <DeductionRow key={c.id} label={`${c.name}${suffix}`} amount={amount} />;
                               })}
-                              {(breakdownEmployee.payType !== 'hourly' || localSnapshot.deductions.tds > 0) && (
+                              {(!isHourly || localSnapshot.deductions.tds > 0) && (
                                 <DeductionRow label="Income Tax (TDS)" amount={localSnapshot.deductions.tds} isEditable={!isReadOnly} value={breakdownRow?.tds !== undefined ? breakdownRow.tds : localSnapshot.deductions.tds} />
                               )}
                             </div>

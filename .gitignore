@@ -34,6 +34,8 @@ coverage/
 # Test results
 test-results/
 tests/
+scripts/
+scripts
 
 playwrite-report/
 playwright-report/

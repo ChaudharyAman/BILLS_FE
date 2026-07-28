@@ -1,14 +1,97 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { FaCheck, FaSave, FaPlus, FaTrash, FaCalculator, FaTimes } from 'react-icons/fa';
+import { FaCheck, FaSave, FaPlus, FaTrash, FaCalculator, FaTimes, FaDownload } from 'react-icons/fa';
 import api from '../api/axios';
 import Skeleton from '../components/Skeleton';
-import { buildPayrollSnapshot, DEFAULT_PAYROLL_CONFIG, fmtMoney, serializeRow, getSalarySplits } from '../utils/payroll';
+import { DEFAULT_PAYROLL_CONFIG, fmtMoney, serializeRow, getSalarySplits } from '../utils/payroll';
 import { usePayrollSnapshot } from '../hooks/usePayrollSnapshot';
+import { getPeriodInputFields, isAttendanceLinked, resolveCompensationTypeClient } from '../utils/compensationTypeFields';
 
 const monthName = (month) => new Date(0, month - 1).toLocaleString('en-US', { month: 'long' });
 const sumNamedAmounts = (items = []) => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+const getDeptName = (dept) => {
+  if (!dept) return '';
+  if (typeof dept === 'string') return dept;
+  if (typeof dept === 'object') return dept.name || dept.code || String(dept._id || '');
+  return String(dept);
+};
+
+const getCompTypeStr = (type) => {
+  if (!type) return 'monthly_salary';
+  if (typeof type === 'string') return type;
+  if (typeof type === 'object') return type.key || type.name || String(type);
+  return String(type);
+};
+
+export function getCompensationBadgeInfo(employee = {}, snapshot = null) {
+  const compType = resolveCompensationTypeClient(employee);
+
+  if (compType === 'hourly') {
+    return { label: `Rate: ${fmtMoney(employee.hourlyRate)}/hr`, isBadge: true };
+  }
+  if (compType === 'daily_wage') {
+    return { label: `Daily: ${fmtMoney(employee.dailyRate)}/day`, isBadge: true };
+  }
+  if (compType === 'weekly_salary') {
+    return { label: `Weekly: ${fmtMoney(employee.weeklyRate)}/wk`, isBadge: true };
+  }
+  if (compType === 'piece_rate') {
+    const rateCardEntry = (employee.rateCard || []).find(r => r.paymentType === 'UNIT') || (employee.rateCard || [])[0];
+    const rate = rateCardEntry ? rateCardEntry.rate : 0;
+    return { label: rate > 0 ? `Piece Rate: ${fmtMoney(rate)}/unit` : 'Piece Rate', isBadge: true };
+  }
+  if (compType === 'project_based') {
+    const rateCardEntry = (employee.rateCard || []).find(r => r.paymentType === 'PROJECT');
+    const fee = rateCardEntry ? rateCardEntry.rate : (employee.projectFee || snapshot?.master?.monthlyCTC || employee.monthlyCTC || 0);
+    return { label: fee > 0 ? `Project Fee: ${fmtMoney(fee)}` : 'Project Fee', isBadge: true };
+  }
+  if (compType === 'milestone_based') {
+    const rateCardEntry = (employee.rateCard || []).find(r => r.paymentType === 'MILESTONE');
+    const rate = rateCardEntry ? rateCardEntry.rate : (employee.milestoneAmount || 0);
+    return { label: rate > 0 ? `Milestone: ${fmtMoney(rate)}/milestone` : 'Milestone-based', isBadge: true };
+  }
+  if (compType === 'commission_only') {
+    return { label: 'Commission Only', isBadge: true };
+  }
+  if (compType === 'retainer') {
+    const rateCardEntry = (employee.rateCard || []).find(r => r.paymentType === 'MONTHLY');
+    const rate = rateCardEntry ? rateCardEntry.rate : (snapshot?.master?.monthlyCTC || employee.monthlyCTC || 0);
+    return { label: rate > 0 ? `Retainer: ${fmtMoney(rate)}/mo` : 'Retainer', isBadge: true };
+  }
+  if (compType === 'timesheet_based') {
+    return { label: `Timesheet: ${fmtMoney(employee.hourlyRate)}/hr`, isBadge: true };
+  }
+
+  // Everything else: monthly_salary, attendance_based, salary_plus_commission
+  const ctc = snapshot?.master?.monthlyCTC || employee.monthlyCTC || 0;
+  return { label: `CTC ${fmtMoney(ctc)}`, isBadge: false };
+}
+
+export const PRIMARY_EARNINGS_LABELS = {
+  hourly:                 'Contract Wages (Hourly)',
+  timesheet_based:        'Timesheet-Based Pay',
+  daily_wage:             'Daily Wage Earnings',
+  weekly_salary:          'Weekly Salary Earnings',
+  piece_rate:             'Deliverable Output Pay (Piece Rate)',
+  project_based:          'Project Fee Earnings',
+  milestone_based:        'Milestone Output Pay',
+  commission_only:        'Commission Earnings',
+  retainer:               'Retainer Payment',
+  salary_plus_commission: 'Base Salary + Commission',
+};
+
+export function getEarningsRowLabel(employee = {}, component = {}) {
+  if (!component) return '';
+  if (component.id === 'basic') {
+    const compType = resolveCompensationTypeClient(employee);
+    if (PRIMARY_EARNINGS_LABELS[compType]) {
+      return PRIMARY_EARNINGS_LABELS[compType];
+    }
+  }
+  return component.name || component.id;
+}
 
 const getEarningValue = (snapshot, componentId) => {
   if (!snapshot?.earnings) return 0;
@@ -94,6 +177,176 @@ const DeductionRow = ({ label, amount, isContrib = false, isEditable = false, va
   </div>
 );
 
+const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingDisabled, updateRow, updatePeriodInput, monthWorkingDays }) => {
+  switch (fieldKey) {
+    case 'paidDays':
+    case 'workingDays':
+      return (
+        <div key={fieldKey} className="flex gap-1.5">
+          <input
+            type="number" min="0"
+            value={row?.paidDays ?? 0}
+            disabled={isExistingDisabled}
+            onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)}
+            className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400"
+          />
+          <span className="self-center text-gray-400 text-xs">/</span>
+          <input
+            type="number" min="1"
+            value={row?.workingDays ?? monthWorkingDays}
+            disabled={isExistingDisabled}
+            onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)}
+            className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400"
+          />
+        </div>
+      );
+
+    case 'hoursWorked':
+    case 'hoursLogged':
+      return (
+        <div key={fieldKey} className="flex items-center gap-1">
+          <input
+            type="number" min="0"
+            value={row?.hoursWorked ?? row?.periodInput?.hoursWorked ?? 160}
+            disabled={isExistingDisabled}
+            onChange={(e) => {
+              const hrs = Number(e.target.value) || 0;
+              updateRow(employee._id, 'hoursWorked', hrs);
+              updatePeriodInput('hoursWorked', hrs);
+            }}
+            className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+          />
+          <span className="text-gray-400 text-xs">hrs</span>
+        </div>
+      );
+
+    case 'daysWorked':
+      return (
+        <div key={fieldKey} className="flex items-center gap-1">
+          <input
+            type="number" min="0"
+            value={row?.periodInput?.daysWorked ?? row?.paidDays ?? 26}
+            disabled={isExistingDisabled}
+            onChange={(e) => {
+              const days = Number(e.target.value) || 0;
+              updateRow(employee._id, 'paidDays', days);
+              updatePeriodInput('daysWorked', days);
+            }}
+            className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+          />
+          <span className="text-gray-400 text-xs">days</span>
+        </div>
+      );
+
+    case 'unitsProduced':
+      return (
+        <div key={fieldKey} className="flex items-center gap-1">
+          <input
+            type="number" min="0"
+            placeholder="1"
+            value={row?.periodInput?.unitsProduced !== undefined ? row.periodInput.unitsProduced : ''}
+            disabled={isExistingDisabled}
+            onChange={(e) => updatePeriodInput('unitsProduced', e.target.value === '' ? undefined : Number(e.target.value))}
+            className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+          />
+          <span className="text-gray-400 text-xs">units</span>
+        </div>
+      );
+
+    case 'ratePerUnit':
+      return (
+        <div key={fieldKey} className="flex items-center gap-1">
+          <input
+            type="number" min="0"
+            placeholder="Rate ₹"
+            value={row?.periodInput?.ratePerUnit ?? ''}
+            disabled={isExistingDisabled}
+            onChange={(e) => updatePeriodInput('ratePerUnit', Number(e.target.value) || 0)}
+            className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+          />
+          <span className="text-gray-400 text-xs">₹/u</span>
+        </div>
+      );
+
+    case 'projectFee':
+      return (
+        <div key={fieldKey} className="flex items-center gap-1">
+          <input
+            type="number" min="0"
+            placeholder="Project Fee"
+            value={row?.periodInput?.projectFee ?? 0}
+            disabled={isExistingDisabled}
+            onChange={(e) => updatePeriodInput('projectFee', Number(e.target.value) || 0)}
+            className="w-24 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+          />
+        </div>
+      );
+
+    case 'milestoneAmount':
+      return (
+        <div key={fieldKey} className="flex items-center gap-1">
+          <input
+            type="number" min="0"
+            placeholder="Amount ₹"
+            value={row?.periodInput?.milestoneAmount ?? 0}
+            disabled={isExistingDisabled}
+            onChange={(e) => updatePeriodInput('milestoneAmount', Number(e.target.value) || 0)}
+            className="w-24 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+          />
+        </div>
+      );
+
+    case 'milestoneRef':
+      return (
+        <div key={fieldKey} className="flex items-center gap-1">
+          <input
+            type="text"
+            placeholder="Milestone ref"
+            value={row?.periodInput?.milestoneRef ?? ''}
+            disabled={isExistingDisabled}
+            onChange={(e) => updatePeriodInput('milestoneRef', e.target.value)}
+            className="w-24 border border-gray-300 rounded px-1.5 py-0.5 text-[10px] disabled:bg-gray-100 disabled:text-gray-400"
+          />
+        </div>
+      );
+
+    case 'variableTransactions':
+    case 'commission':
+      const commSum = (row?.variableTransactions || []).reduce((sum, t) => sum + (t.amount || 0), 0);
+      return (
+        <div key={fieldKey} className="flex flex-col gap-0.5">
+          <span className="text-xs font-semibold text-gray-800">{fmtMoney(commSum)}</span>
+          <span className="text-[9px] text-blue-600 font-bold">Commission</span>
+        </div>
+      );
+
+    case 'retainer':
+    case 'skipPeriod':
+      const isSkipped = Boolean(row?._skipPeriod);
+      const retainerVal = row?.snapshot?.master?.monthlyCTC ?? snapshot?.master?.monthlyCTC ?? employee.monthlyCTC ?? 0;
+      return (
+        <div key={fieldKey} className="flex flex-col gap-1">
+          <span className={`text-xs font-semibold ${isSkipped ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+            {fmtMoney(retainerVal)}
+          </span>
+          <label className="inline-flex items-center gap-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isSkipped}
+              disabled={isExistingDisabled}
+              onChange={(e) => updateRow(employee._id, '_skipPeriod', e.target.checked)}
+              className="w-3 h-3 rounded"
+            />
+            <span className="text-[9px] text-gray-500 font-medium">Skip period</span>
+          </label>
+        </div>
+      );
+
+    default:
+      return null;
+  }
+};
+
 const EmployeeRow = ({
   employee,
   config,
@@ -101,6 +354,7 @@ const EmployeeRow = ({
   selected,
   onToggleSelected,
   setBreakdownEmployee,
+  setFnfEmployee,
   monthWorkingDays,
   updateRow,
   claimsMap,
@@ -109,6 +363,8 @@ const EmployeeRow = ({
   earningComponents,
   existingPayroll,
   onDeletePayroll,
+  onSnapshotReady,
+  compensationTypesMap = {},
 }) => {
   const filteredReimbursements = useMemo(() => {
     return (claimsMap.get(employee._id) || []).filter(c => !(row?.excludedClaimIds || []).includes(c._id));
@@ -119,6 +375,20 @@ const EmployeeRow = ({
   }, [row, filteredReimbursements, month, year]);
 
   const calculatedSnapshot = usePayrollSnapshot(employee, config, rowWithReimbursements, monthWorkingDays);
+
+  // Bubble net/gross/flags up to parent for summary dashboard + filter
+  useEffect(() => {
+    if (calculatedSnapshot?.netSalary !== undefined && onSnapshotReady) {
+      onSnapshotReady(employee._id, {
+        net: Number(calculatedSnapshot.netSalary) || 0,
+        gross: Number(calculatedSnapshot.earnings?.totalEarnings) || 0,
+        flags: {
+          clamped: Boolean(calculatedSnapshot.netPayClamped || calculatedSnapshot.payrollShortfall?.shortfallAmount > 0),
+          belowMinWage: Boolean(calculatedSnapshot.belowMinimumWage || calculatedSnapshot.minimumWageCompliance?.flagged),
+        },
+      });
+    }
+  }, [calculatedSnapshot?.netSalary, calculatedSnapshot?.earnings?.totalEarnings, calculatedSnapshot?.netPayClamped, calculatedSnapshot?.belowMinimumWage, employee._id]);
 
   const snapshot = useMemo(() => {
     if (existingPayroll && existingPayroll.status !== 'draft') {
@@ -141,12 +411,6 @@ const EmployeeRow = ({
     return calculatedSnapshot;
   }, [existingPayroll, calculatedSnapshot]);
 
-  if (!snapshot) return null;
-
-  const isHourly = employee.payType === 'hourly';
-  const paidTooHigh = !isHourly && Number(row?.paidDays) > Number(row?.workingDays || monthWorkingDays);
-  const isExistingDisabled = existingPayroll && existingPayroll.status !== 'draft';
-
   const otherAllowancesTotal = useMemo(() => {
     if (!snapshot?.earnings?.otherEarnings) return 0;
     const filtered = snapshot.earnings.otherEarnings.filter(
@@ -154,6 +418,18 @@ const EmployeeRow = ({
     );
     return sumNamedAmounts(filtered);
   }, [snapshot?.earnings?.otherEarnings, earningComponents]);
+
+  const isExitingInPeriod = useMemo(() => {
+    if (!employee.dateOfLeaving) return false;
+    const dol = new Date(employee.dateOfLeaving);
+    return dol.getUTCFullYear() === Number(year) && (dol.getUTCMonth() + 1) === Number(month);
+  }, [employee.dateOfLeaving, month, year]);
+
+  if (!snapshot) return null;
+
+  const isHourly = employee.payType === 'hourly' || employee.compensationType === 'hourly';
+  const paidTooHigh = !isHourly && Number(row?.paidDays) > Number(row?.workingDays || monthWorkingDays);
+  const isExistingDisabled = existingPayroll && existingPayroll.status !== 'draft';
 
   const isPfEnabled = row?.pfEnabled !== undefined ? row.pfEnabled : snapshot?.master?.pfEnabled !== false;
   const isTdsEnabled = row?.tdsEnabled !== undefined ? row.tdsEnabled : snapshot?.master?.tdsEnabled !== false;
@@ -174,13 +450,27 @@ const EmployeeRow = ({
         ? (snapshot.master.hraPercent > 1 ? snapshot.master.hraPercent : snapshot.master.hraPercent * 100)
         : 50);
 
+  const isBlocking = snapshot?.netPayClamped || snapshot?.payrollShortfall?.shortfallAmount > 0 || snapshot?.belowMinimumWage || snapshot?.minimumWageCompliance?.flagged;
+  const isProcessed = Boolean(existingPayroll && existingPayroll.status !== 'draft');
+
+  const rowClass = isBlocking && !isProcessed
+    ? 'bg-red-50/40 border-l-4 border-l-red-500 hover:bg-red-50/60'
+    : isExitingInPeriod && !isProcessed
+      ? 'bg-amber-50/60 border-l-4 border-l-amber-500'
+      : paidTooHigh && !isProcessed
+        ? 'bg-amber-50/40 border-l-4 border-l-amber-400'
+        : isProcessed
+          ? 'bg-gray-50 border-l-4 border-l-blue-400 text-gray-500 opacity-80'
+          : 'hover:bg-blue-50/40';
+
   return (
-    <tr key={employee._id} className={`${isExistingDisabled ? 'bg-gray-50 text-gray-500 opacity-80' : 'hover:bg-blue-50/40'} align-top`}>
+    <tr key={employee._id} className={`${rowClass} align-top`}>
       <td className="px-4 py-2.5">
         <input
           type="checkbox"
-          checked={isExistingDisabled ? false : Boolean(selected)}
-          disabled={Boolean(isExistingDisabled)}
+          checked={isExistingDisabled || isExitingInPeriod ? false : Boolean(selected)}
+          disabled={Boolean(isExistingDisabled || isExitingInPeriod)}
+          title={isExitingInPeriod ? 'Exiting employee in this period — process via Final Settlement' : ''}
           onChange={(e) => onToggleSelected(employee._id, e.target.checked)}
           className="w-3.5 h-3.5 disabled:opacity-50"
         />
@@ -189,13 +479,17 @@ const EmployeeRow = ({
         <div className={`font-semibold text-xs ${isExistingDisabled ? 'text-gray-600' : 'text-gray-900'}`}>{employee.firstName} {employee.lastName}</div>
         <div className="text-[10px] text-gray-400 mt-0.5">{employee.employeeId} · {employee.designation || '-'}</div>
         <div className="text-[10px] text-gray-400 mt-0.5 flex flex-col gap-0.5">
-          {employee.compensationModel && employee.compensationModel !== 'SALARIED' ? (
-            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 self-start">
-              💼 {employee.compensationModel} · {employee.paymentBasis}
-            </span>
-          ) : (
-            <span>{isHourly ? `Rate: ${fmtMoney(employee.hourlyRate)}/hr` : `CTC ${fmtMoney(snapshot?.master?.monthlyCTC || employee.monthlyCTC)}`}</span>
-          )}
+          {(() => {
+            const badgeInfo = getCompensationBadgeInfo(employee, snapshot);
+            if (badgeInfo.isBadge) {
+              return (
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 self-start">
+                  💼 {badgeInfo.label}
+                </span>
+              );
+            }
+            return <span>{badgeInfo.label}</span>;
+          })()}
           
           {existingPayroll ? (
             <div className="mt-1 flex flex-col gap-1">
@@ -210,6 +504,7 @@ const EmployeeRow = ({
               {existingPayroll.status !== 'paid' && (
                 <button
                   type="button"
+                  aria-label={`Delete payroll for ${employee.firstName} ${employee.lastName}`}
                   onClick={() => onDeletePayroll(existingPayroll._id, `${employee.firstName} ${employee.lastName}`)}
                   className="text-[10px] font-bold text-red-600 hover:text-red-800 hover:underline transition-colors text-left flex items-center gap-1 self-start mt-0.5"
                 >
@@ -218,13 +513,51 @@ const EmployeeRow = ({
               )}
             </div>
           ) : null}
-          <button
-            type="button"
-            onClick={() => setBreakdownEmployee(employee)}
-            className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left flex items-center gap-1 self-start mt-0.5"
-          >
-            <FaCalculator className="w-2.5 h-2.5" /> {isExistingDisabled ? 'View Breakdown' : 'Breakdown & Adjust'}
-          </button>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            {isExitingInPeriod ? (
+              <button
+                type="button"
+                onClick={() => setFnfEmployee(employee)}
+                className="text-[11px] font-bold text-white bg-amber-600 hover:bg-amber-700 px-2.5 py-1 rounded-md shadow-xs transition-colors flex items-center gap-1 self-start"
+              >
+                📜 Process Final Settlement
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setFnfEmployee(employee)}
+                className="text-[10px] font-bold text-amber-700 hover:text-amber-900 hover:underline transition-colors text-left flex items-center gap-1 self-start"
+              >
+                📜 Full & Final (F&F)
+              </button>
+            )}
+
+            <button
+              type="button"
+              aria-label={isExistingDisabled ? `View breakdown for ${employee.firstName} ${employee.lastName}` : `Open breakdown and adjust for ${employee.firstName} ${employee.lastName}`}
+              onClick={() => setBreakdownEmployee(employee)}
+              className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left flex items-center gap-1 self-start"
+            >
+              <FaCalculator className="w-2.5 h-2.5" /> {isExistingDisabled ? 'View Breakdown' : 'Breakdown & Adjust'}
+            </button>
+
+            {employee.dateOfLeaving && (
+              <span className={`text-[9px] font-bold rounded px-1.5 py-0.5 ${isExitingInPeriod ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                🚨 Exiting{isExitingInPeriod ? ' This Period' : ''}: {new Date(employee.dateOfLeaving).toLocaleDateString('en-IN')}
+              </span>
+            )}
+          </div>
+          {/* Edge Case Warning Badges: Net Pay Clamped & Below Minimum Wage */}
+          {(snapshot?.netPayClamped || snapshot?.payrollShortfall?.shortfallAmount > 0) && (
+            <div className="mt-1 text-[9px] font-bold text-amber-900 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5 self-start flex items-center gap-1 shadow-2xs" title="Net salary was clamped to ₹0 because deductions exceeded gross earnings">
+              ⚠️ Net Pay Clamped (Shortfall: {fmtMoney(snapshot.payrollShortfall?.shortfallAmount || 0)})
+            </div>
+          )}
+          {(snapshot?.belowMinimumWage || snapshot?.minimumWageCompliance?.flagged) && (
+            <div className="mt-1 text-[9px] font-bold text-rose-900 bg-rose-100 border border-rose-300 rounded px-1.5 py-0.5 self-start flex items-center gap-1 shadow-2xs" title={snapshot.minimumWageCompliance?.warningMessage || 'Gross earnings below minimum wage floor'}>
+              ⚠️ Below Minimum Wage Floor ({snapshot.minimumWageCompliance?.state || 'State'})
+            </div>
+          )}
           
           {/* Statutory Settings Badges */}
           <div className="flex flex-wrap gap-1 mt-1 font-mono">
@@ -252,73 +585,78 @@ const EmployeeRow = ({
         </div>
       </td>
       <td className="px-4 py-2.5 min-w-[180px]">
-        {isHourly ? (
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              min="0"
-              value={row?.hoursWorked ?? 160}
-              disabled={isExistingDisabled}
-              onChange={(e) => updateRow(employee._id, 'hoursWorked', Number(e.target.value) || 0)}
-              className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
-            />
-            <span className="text-gray-400 text-xs">hrs</span>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-1">
-            <div className="flex gap-1.5">
-              <input type="number" min="0" value={row?.paidDays ?? 0} disabled={isExistingDisabled} onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400" />
-              <span className="self-center text-gray-400 text-xs">/</span>
-              <input type="number" min="1" value={row?.workingDays ?? monthWorkingDays} disabled={isExistingDisabled} onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)} className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400" />
+        {(() => {
+          const compType = resolveCompensationTypeClient(employee);
+          const allFields = getPeriodInputFields(compType, compensationTypesMap);
+
+          const updatePeriodInput = (field, val) => {
+            const existingPeriodInput = row?.periodInput || {};
+            updateRow(employee._id, 'periodInput', { ...existingPeriodInput, [field]: val });
+          };
+
+          return (
+            <div className="flex flex-col gap-1">
+              {allFields.map(fKey => (
+                <RenderPeriodInputField
+                  key={fKey}
+                  fieldKey={fKey}
+                  employee={employee}
+                  row={row}
+                  snapshot={snapshot}
+                  isExistingDisabled={isExistingDisabled}
+                  updateRow={updateRow}
+                  updatePeriodInput={updatePeriodInput}
+                  monthWorkingDays={monthWorkingDays}
+                />
+              ))}
+              {compType === 'salary_plus_commission' && (
+                <div className="text-[10px] text-amber-700 font-medium">
+                  + Comm: {fmtMoney((row?.variableTransactions || []).reduce((sum, t) => sum + (t.amount || 0), 0))}
+                </div>
+              )}
             </div>
-            {(() => {
-              const source = existingPayroll?.attendanceSource || row?.attendanceSource || 'default';
-              if (source === 'hrms') {
-                return (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 self-start">
-                    HRMS Sync
-                  </span>
-                );
-              } else if (source === 'manual') {
-                return (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 self-start">
-                    Manual Override
-                  </span>
-                );
-              } else {
-                return (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-50 text-slate-500 border border-slate-200 self-start">
-                    Default Fallback
-                  </span>
-                );
-              }
-            })()}
-          </div>
-        )}
+          );
+        })()}
         {paidTooHigh ? <div className="mt-1 text-[10px] text-red-600">Paid days cannot exceed working days.</div> : null}
       </td>
       <td className="px-4 py-2.5 text-xs whitespace-nowrap">
-        {isHourly ? 'Hourly (N/A)' : `${Math.round((snapshot.paidDays / Math.max(snapshot.workingDays, 1)) * 100)}%`}
+        {isHourly || !snapshot.workingDays ? (
+          <span className="text-slate-400 font-medium italic">N/A</span>
+        ) : (
+          `${Math.round((snapshot.paidDays / Math.max(snapshot.workingDays, 1)) * 100)}%`
+        )}
       </td>
       {earningComponents.map(c => {
         const val = getEarningValue(snapshot, c.id);
+        const numVal = Number(val) || 0;
         return (
-          <EditableMoneyCell key={c.id} value={val} disabled />
+          <td key={c.id} className="px-4 py-2.5">
+            {numVal > 0 ? (
+              <div className="text-xs text-gray-700 whitespace-nowrap">{fmtMoney(numVal)}</div>
+            ) : (
+              <span className="text-xs text-slate-400 font-medium italic">N/A</span>
+            )}
+          </td>
         );
       })}
       <td className="px-4 py-2.5 text-xs font-semibold text-slate-700 whitespace-nowrap">
-        {fmtMoney(otherAllowancesTotal)}
+        {otherAllowancesTotal > 0 ? fmtMoney(otherAllowancesTotal) : <span className="text-slate-400 font-medium italic">N/A</span>}
       </td>
-      <EditableMoneyCell value={snapshot.employerContributions.gratuity} disabled />
-      <EditableMoneyCell value={snapshot.employerContributions.lwfEmployer} disabled />
-      <EditableMoneyCell value={row?.joiningBonus} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'joiningBonus', value)} />
-      <EditableMoneyCell value={row?.loyaltyBonus} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'loyaltyBonus', value)} />
-      <EditableMoneyCell value={row?.incentive} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'incentive', value)} />
-      <EditableMoneyCell value={row?.specialBonus} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'specialBonus', value)} />
+      <EditableMoneyCell value={snapshot.employerContributions.gratuity} disabled notApplicable={!isGratuityEnabled || !Number(snapshot.employerContributions.gratuity)} />
+      <EditableMoneyCell value={snapshot.employerContributions.lwfEmployer} disabled notApplicable={!isLwfEnabled || !Number(snapshot.employerContributions.lwfEmployer)} />
+      <EditableMoneyCell value={row?.joiningBonus} disabled={isExistingDisabled} notApplicable={isExistingDisabled && !Number(row?.joiningBonus)} onChange={(value) => updateRow(employee._id, 'joiningBonus', value)} />
+      <EditableMoneyCell value={row?.loyaltyBonus} disabled={isExistingDisabled} notApplicable={isExistingDisabled && !Number(row?.loyaltyBonus)} onChange={(value) => updateRow(employee._id, 'loyaltyBonus', value)} />
+      <EditableMoneyCell value={row?.incentive} disabled={isExistingDisabled} notApplicable={isExistingDisabled && !Number(row?.incentive)} onChange={(value) => updateRow(employee._id, 'incentive', value)} />
+      <EditableMoneyCell value={row?.specialBonus} disabled={isExistingDisabled} notApplicable={isExistingDisabled && !Number(row?.specialBonus)} onChange={(value) => updateRow(employee._id, 'specialBonus', value)} />
       <td className="px-4 py-2.5 text-xs font-semibold text-red-600 whitespace-nowrap">
-        {fmtMoney(sumNamedAmounts(snapshot.deductions.otherDeductions))}
+        {sumNamedAmounts(snapshot.deductions.otherDeductions) > 0 ? fmtMoney(sumNamedAmounts(snapshot.deductions.otherDeductions)) : <span className="text-slate-400 font-medium italic">N/A</span>}
       </td>
-      <EditableMoneyCell value={row?.tds !== undefined ? row.tds : snapshot.deductions.tds} disabled={isExistingDisabled} onChange={(value) => updateRow(employee._id, 'tds', value)} />
+      <EditableMoneyCell
+        value={row?.tds !== undefined ? row.tds : snapshot.deductions.tds}
+        disabled={isExistingDisabled || !isTdsEnabled}
+        notApplicable={!isTdsEnabled || (isExistingDisabled && !Number(row?.tds !== undefined ? row.tds : snapshot.deductions.tds))}
+        onChange={(value) => updateRow(employee._id, 'tds', value)}
+      />
       <td className="px-4 py-2.5 text-xs font-bold whitespace-nowrap">{fmtMoney(snapshot.netSalary)}</td>
     </tr>
   );
@@ -339,6 +677,8 @@ const PayrollProcessing = () => {
   const [claimsMap, setClaimsMap] = useState(new Map());
   const [existingPayrollsMap, setExistingPayrollsMap] = useState(new Map());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  // Stores the most-recent server-resolved netSalary per employee, for the total preview card
+  const [snapshotsNetMap, setSnapshotsNetMap] = useState({});
 
   // Integration States
   const [syncingAttendance, setSyncingAttendance] = useState(false);
@@ -355,6 +695,28 @@ const PayrollProcessing = () => {
   const [localDeductions, setLocalDeductions] = useState([]);
   const [localExcludedClaimIds, setLocalExcludedClaimIds] = useState(new Set());
   const [localVariableTransactions, setLocalVariableTransactions] = useState([]);
+  const [compensationTypesMap, setCompensationTypesMap] = useState({});
+  const [skippedSummaryList, setSkippedSummaryList] = useState([]);
+  const [fnfEmployee, setFnfEmployee] = useState(null);
+  const [fnfForm, setFnfForm] = useState({ noticePeriodServedDays: 0, noticePeriodRequiredDays: 30, leaveEncashmentDays: 0, comments: '', hoursWorked: '', unitsProduced: '', ratePerUnit: '' });
+  const [processingFnf, setProcessingFnf] = useState(false);
+  const [activeJobId, setActiveJobId] = useState(null);
+  const [jobProgress, setJobProgress] = useState(null);
+
+  // Filter / sort state
+  const [searchQuery, setSearchQuery]         = useState('');
+  const [filterDept, setFilterDept]           = useState('');
+  const [filterCompType, setFilterCompType]   = useState('');
+  const [filterNeedsAttention, setFilterNeedsAttention] = useState(false);
+  const [sortKey, setSortKey]                 = useState('name');
+  const [sortDir, setSortDir]                 = useState('asc');
+
+  // Per-employee snapshot data bubbled up from EmployeeRow
+  const [snapshotFlagsMap, setSnapshotFlagsMap] = useState({});   // { empId: { clamped, belowMinWage } }
+  const [snapshotGrossMap, setSnapshotGrossMap] = useState({});   // { empId: number }
+
+  // Confirmation modal (Process Payroll only)
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const remainderId = useMemo(() => {
     return config?.salaryComponents?.find(c => c.linkedTo === 'remainder')?.id || 'special';
@@ -428,14 +790,21 @@ const PayrollProcessing = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [employeesRes, configRes, claimsRes, settingsRes, payrollsRes, transactionsRes] = await Promise.all([
+        const [employeesRes, configRes, claimsRes, settingsRes, payrollsRes, transactionsRes, compTypesRes] = await Promise.all([
           api.get(`/employees/active?month=${month}&year=${year}`, { signal: controller.signal }),
           api.get('/payroll/config', { signal: controller.signal }),
           api.get(`/reimbursements?status=approved&month=${month}&year=${year}`, { signal: controller.signal }),
           api.get('/settings', { signal: controller.signal }),
           api.get(`/payroll?month=${month}&year=${year}&limit=1000`, { signal: controller.signal }),
           api.get(`/payroll-variable-transactions?month=${month}&year=${year}&status=approved`, { signal: controller.signal }),
+          api.get('/payroll/compensation-types', { signal: controller.signal }).catch(() => ({ data: [] })),
         ]);
+
+        if (compTypesRes.data && Array.isArray(compTypesRes.data)) {
+          const map = {};
+          compTypesRes.data.forEach(ct => { map[ct.key] = ct; });
+          setCompensationTypesMap(map);
+        }
 
         const nextConfig = { ...DEFAULT_PAYROLL_CONFIG, ...(configRes.data || {}) };
         const activeEmployees = employeesRes.data || [];
@@ -557,11 +926,12 @@ const PayrollProcessing = () => {
           let proratedPaidDays = defaultDays;
 
           const initialRow = {
+            compensationType: resolveCompensationTypeClient(emp),
             workingDays: defaultDays,
             paidDays: proratedPaidDays,
             paidLeaves: 0,
             unpaidLeaves: 0,
-            hoursWorked: emp.payType === 'hourly' ? 160 : 0,
+            hoursWorked: (resolveCompensationTypeClient(emp) === 'hourly' || emp.payType === 'hourly') ? 160 : 0,
             overtime: 0,
             joiningBonus: autoJoiningBonus,
             loyaltyBonus: 0,
@@ -587,6 +957,7 @@ const PayrollProcessing = () => {
             excludedClaimIds: [],
             attendanceSource: 'default',
             variableTransactions: transactionsByEmp.get(emp._id) || [],
+            periodInput: {},
           };
 
           Object.keys(emp).forEach(key => {
@@ -620,57 +991,67 @@ const PayrollProcessing = () => {
 
   const selectedEmployees = useMemo(() => employees.filter((emp) => selected[emp._id]), [employees, selected]);
 
-  const getSnapshot = (employee) => {
-    return usePayrollSnapshot(employee, config, { ...rows[employee._id], month, year }, monthWorkingDays);
-  };
+  // Sum netSalary from server-resolved previews (only for selected employees)
+  const totalPreview = useMemo(
+    () => selectedEmployees.reduce((sum, emp) => sum + (snapshotsNetMap[emp._id] || 0), 0),
+    [selectedEmployees, snapshotsNetMap]
+  );
 
-  const totalPreview = useMemo(() => selectedEmployees.reduce((sum, employee) => {
-    const row = rows[employee._id] || {};
-    const adjustments = {
-      overtime: Number(row.overtime) || 0,
-      joiningBonus: Number(row.joiningBonus) || 0,
-      loyaltyBonus: Number(row.loyaltyBonus) || 0,
-      incentive: Number(row.incentive) || 0,
-      specialBonus: Number(row.specialBonus) || 0,
-      otherAllowanceArrear: Number(row.otherAllowanceArrear) || 0,
-      loanDeduction: Number(row.loanDeduction) || 0,
-      advanceDeduction: Number(row.advanceDeduction) || 0,
-      tds: Number(row.tds) || 0,
-      hoursWorked: Number(row.hoursWorked) || 0,
-      otherEarnings: row.otherEarnings || [],
-      otherDeductions: row.otherDeductions || [],
-      pfEnabled: row.pfEnabled,
-      tdsEnabled: row.tdsEnabled,
-      esiEnabled: row.esiEnabled,
-      ptEnabled: row.ptEnabled,
-      lwfEnabled: row.lwfEnabled,
-      gratuityEnabled: row.gratuityEnabled,
-      includePfInCTC: row.includePfInCTC,
-      includeGratuityInCTC: row.includeGratuityInCTC,
-      basicPercent: row.basicPercent,
-      hraPercent: row.hraPercent,
-      lopStrategy: row.lopStrategy,
-      segmentLops: row.segmentLops,
-      reimbursements: (claimsMap.get(employee._id) || []).filter(c => !(row.excludedClaimIds || []).includes(c._id)),
-    };
+  const totalGrossPreview = useMemo(
+    () => selectedEmployees.reduce((sum, emp) => sum + (snapshotGrossMap[emp._id] || 0), 0),
+    [selectedEmployees, snapshotGrossMap]
+  );
 
-    Object.keys(row).forEach(key => {
-      if (key.endsWith('Percent') || (config?.salaryComponents && config.salaryComponents.some(c => c.id === key || `${c.id}Percent` === key))) {
-        if (row[key] !== undefined && row[key] !== null) {
-          adjustments[key] = row[key];
-        }
+  const needsAttentionCount = useMemo(
+    () => employees.filter(emp => {
+      const f = snapshotFlagsMap[emp._id];
+      return f && (f.clamped || f.belowMinWage);
+    }).length,
+    [employees, snapshotFlagsMap]
+  );
+
+  // Derived dept / compType chip lists
+  const deptOptions = useMemo(
+    () => [...new Set(employees.map(e => getDeptName(e.department)).filter(Boolean))].sort(),
+    [employees]
+  );
+  const compTypeOptions = useMemo(
+    () => [...new Set(employees.map(e => getCompTypeStr(e.compensationType)).filter(Boolean))].sort(),
+    [employees]
+  );
+
+  const filteredSortedEmployees = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    let list = employees.filter(emp => {
+      if (q && !`${emp.firstName} ${emp.lastName} ${emp.employeeId} ${getDeptName(emp.department)}`.toLowerCase().includes(q)) return false;
+      if (filterDept && getDeptName(emp.department) !== filterDept) return false;
+      if (filterCompType && getCompTypeStr(emp.compensationType) !== filterCompType) return false;
+      if (filterNeedsAttention) {
+        const f = snapshotFlagsMap[emp._id];
+        if (!f || (!f.clamped && !f.belowMinWage)) return false;
       }
+      return true;
     });
+    list = [...list].sort((a, b) => {
+      let va, vb;
+      if (sortKey === 'net') {
+        va = snapshotsNetMap[a._id] || 0;
+        vb = snapshotsNetMap[b._id] || 0;
+      } else if (sortKey === 'type') {
+        va = getCompTypeStr(a.compensationType).toLowerCase();
+        vb = getCompTypeStr(b.compensationType).toLowerCase();
+      } else {
+        va = `${a.firstName} ${a.lastName}`.toLowerCase();
+        vb = `${b.firstName} ${b.lastName}`.toLowerCase();
+      }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return list;
+  }, [employees, searchQuery, filterDept, filterCompType, filterNeedsAttention, sortKey, sortDir, snapshotsNetMap, snapshotFlagsMap]);
 
-    const snapshot = buildPayrollSnapshot(employee, config, {
-      workingDays: Number(row.workingDays) || Number(monthWorkingDays) || 26,
-      paidDays: Number(row.paidDays) || 0,
-      paidLeaves: Number(row.paidLeaves) || 0,
-      unpaidLeaves: Number(row.unpaidLeaves) || 0,
-      hoursWorked: Number(row.hoursWorked) || 0,
-    }, adjustments, month, year);
-    return sum + (Number(snapshot.netSalary) || 0);
-  }, 0), [selectedEmployees, rows, claimsMap, config, monthWorkingDays, month, year]);
+  const activeFiltersCount = [searchQuery.trim(), filterDept, filterCompType, filterNeedsAttention ? '1' : ''].filter(Boolean).length;
 
   const updateRow = (employeeId, field, value) => {
     setRows((prev) => {
@@ -855,10 +1236,44 @@ const PayrollProcessing = () => {
     );
   }, [breakdownEmployee, rows, config, month, year]);
 
+  const handleProcessFnf = async (e) => {
+    e.preventDefault();
+    if (!fnfEmployee) return;
+    try {
+      setProcessingFnf(true);
+      const exitDateVal = fnfEmployee.dateOfLeaving 
+        ? new Date(fnfEmployee.dateOfLeaving) 
+        : new Date(year, month - 1, new Date(year, month, 0).getDate());
+      
+      const payload = {
+        employeeId: fnfEmployee._id,
+        lastWorkingDay: exitDateVal.toISOString(),
+        noticePeriodServedDays: Number(fnfForm.noticePeriodServedDays) || 0,
+        noticePeriodRequiredDays: Number(fnfForm.noticePeriodRequiredDays) || 0,
+        leaveEncashmentDays: Number(fnfForm.leaveEncashmentDays) || 0,
+        comments: fnfForm.comments || '',
+        // Period-specific inputs — only sent when the user has entered them.
+        // Omitting (undefined) lets the backend strategy use its own default.
+        ...(fnfForm.hoursWorked !== '' ? { hoursWorked: Number(fnfForm.hoursWorked) } : {}),
+        ...(fnfForm.unitsProduced !== '' ? { unitsProduced: Number(fnfForm.unitsProduced) } : {}),
+        ...(fnfForm.ratePerUnit !== '' ? { ratePerUnit: Number(fnfForm.ratePerUnit) } : {}),
+      };
+      const res = await api.post('/payroll/full-and-final', payload);
+      toast.success(res.data?.message || 'Full & Final Settlement processed successfully!');
+      setFnfEmployee(null);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to process Full & Final Settlement');
+    } finally {
+      setProcessingFnf(false);
+    }
+  };
+
   const submit = async (saveAsDraft) => {
     const invalid = selectedEmployees.find((employee) => {
       const row = rows[employee._id] || {};
-      return employee.payType !== 'hourly' && Number(row.paidDays) > Number(row.workingDays || monthWorkingDays);
+      return (employee.payType !== 'hourly' && employee.compensationType !== 'hourly') && Number(row.paidDays) > Number(row.workingDays || monthWorkingDays);
     });
 
     if (invalid) {
@@ -873,9 +1288,17 @@ const PayrollProcessing = () => {
         year,
         saveAsDraft,
         employees: selectedEmployees.map((employee) => {
-          const rowData = serializeRow(rows[employee._id], monthWorkingDays);
+          const row = rows[employee._id] || {};
+          const isSkip = Boolean(row._skipPeriod);
+          const rowData = serializeRow(row, monthWorkingDays);
+          rowData.skip = isSkip;
+          rowData.skipPeriod = isSkip;
+          rowData._skipPeriod = isSkip;
+          rowData.adjustments.skip = isSkip;
+          rowData.adjustments.skipPeriod = isSkip;
+          rowData.adjustments._skipPeriod = isSkip;
           rowData.adjustments.reimbursements = (claimsMap.get(employee._id) || [])
-            .filter((r) => !(rows[employee._id]?.excludedClaimIds || []).includes(r._id))
+            .filter((r) => !(row.excludedClaimIds || []).includes(r._id))
             .map((r) => ({
               _id: r._id,
               amount: r.amount,
@@ -889,12 +1312,80 @@ const PayrollProcessing = () => {
       };
 
       const res = await api.post('/payroll/process', payload);
-      if (res.data.errors?.length) {
-        toast.error(`${res.data.success.length} processed, ${res.data.errors.length} skipped`);
+
+      if (res.data?.jobId) {
+        const jobId = res.data.jobId;
+        setActiveJobId(jobId);
+        
+        let completed = false;
+        let jobData = null;
+        while (!completed) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const statusRes = await api.get(`/payroll/process/${jobId}/status`);
+          jobData = statusRes.data;
+          setJobProgress(jobData);
+          if (jobData.status === 'completed' || jobData.status === 'failed') {
+            completed = true;
+          }
+        }
+        
+        setActiveJobId(null);
+        setJobProgress(null);
+        
+        if (jobData.status === 'failed') {
+          toast.error(jobData.errorMessage || 'Background payroll processing failed');
+          return;
+        }
+
+        const successCount = jobData.success?.length || 0;
+        const errorCount = jobData.errors?.length || 0;
+        const skippedList = jobData.skippedNoActivity || [];
+        const skippedCount = skippedList.length;
+
+        let msgParts = [];
+        if (successCount > 0) msgParts.push(`${successCount} processed`);
+        if (skippedCount > 0) msgParts.push(`${skippedCount} skipped (no activity / marked skip)`);
+        if (errorCount > 0) msgParts.push(`${errorCount} failed`);
+
+        if (errorCount > 0) {
+          toast.error(msgParts.join(', '));
+        } else if (skippedCount > 0) {
+          toast(msgParts.join(', '), { icon: 'ℹ️' });
+        } else {
+          toast.success(saveAsDraft ? 'Payroll saved as draft' : 'Payroll processed successfully');
+        }
+
+        setSkippedSummaryList(skippedList);
+
+        if (!saveAsDraft && errorCount === 0) {
+          navigate('/payroll');
+        } else {
+          setRefreshTrigger(prev => prev + 1);
+        }
+        return;
+      }
+
+      const successCount = res.data.success?.length || 0;
+      const errorCount = res.data.errors?.length || 0;
+      const skippedList = res.data.skippedNoActivity || [];
+      const skippedCount = skippedList.length;
+
+      let msgParts = [];
+      if (successCount > 0) msgParts.push(`${successCount} processed`);
+      if (skippedCount > 0) msgParts.push(`${skippedCount} skipped (no activity / marked skip)`);
+      if (errorCount > 0) msgParts.push(`${errorCount} failed`);
+
+      if (errorCount > 0) {
+        toast.error(msgParts.join(', '));
+      } else if (skippedCount > 0) {
+        toast(msgParts.join(', '), { icon: 'ℹ️' });
       } else {
         toast.success(saveAsDraft ? 'Payroll saved as draft' : 'Payroll processed successfully');
       }
-      if (!saveAsDraft) {
+
+      setSkippedSummaryList(skippedList);
+
+      if (!saveAsDraft && errorCount === 0) {
         navigate('/payroll');
       } else {
         setRefreshTrigger(prev => prev + 1);
@@ -936,14 +1427,69 @@ const PayrollProcessing = () => {
     }
   };
 
+  const [downloadingZip, setDownloadingZip] = useState(false);
+
+  const handleDownloadBulkZip = async () => {
+    try {
+      setDownloadingZip(true);
+      toast.loading(`Generating ZIP archive for ${monthName(month)} ${year}...`, { id: 'zip-bulk' });
+      const response = await api.post('/payroll/bulk-payslip-pdf', { month, year }, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/zip' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Payslips_${monthName(month)}_${year}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Bulk payslips ZIP downloaded successfully!', { id: 'zip-bulk' });
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to download bulk payslips ZIP', { id: 'zip-bulk' });
+    } finally {
+      setDownloadingZip(false);
+    }
+  };
+
   return (
     <div className="max-w-[98%] mx-auto p-6 font-sans text-gray-900">
+      {activeJobId && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+              <span className="animate-spin text-blue-600">⏳</span> Processing Payroll Batch Asynchronously...
+            </span>
+            <span className="text-xs font-bold text-blue-700">{jobProgress?.progressPercent || 0}%</span>
+          </div>
+          <div className="w-full bg-blue-200 rounded-full h-2.5 overflow-hidden">
+            <div
+              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+              style={{ width: `${jobProgress?.progressPercent || 0}%` }}
+            ></div>
+          </div>
+          <p className="text-xs text-blue-700 mt-2">
+            Processed {jobProgress?.processed || 0} of {jobProgress?.total || 0} employees...
+          </p>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">Process Payroll</h1>
           <p className="text-xs text-gray-500 mt-1">Review proration, variable pay, and deduction inputs before generating payroll.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleDownloadBulkZip}
+            disabled={downloadingZip}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors flex items-center gap-1"
+          >
+            <FaDownload className="w-3 h-3" /> Download All (ZIP)
+          </button>
           {isHrmsEnabled && (
             <button
               type="button"
@@ -972,16 +1518,147 @@ const PayrollProcessing = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-        <SummaryCard label="Selected Employees" value={selectedEmployees.length} />
-        <SummaryCard label="Estimated Net Payroll" value={fmtMoney(totalPreview)} />
-        <SummaryCard label="Default Working Days" value={monthWorkingDays} />
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+        <SummaryCard
+          label="Total / Selected"
+          value={`${employees.length} / ${selectedEmployees.length}`}
+        />
+        <SummaryCard label="Gross Payroll" value={fmtMoney(totalGrossPreview)} />
+        <SummaryCard label="Net Payroll" value={fmtMoney(totalPreview)} />
+        <div
+          className={`rounded-xl p-4 border shadow-xs cursor-pointer transition-colors select-none ${
+            filterNeedsAttention
+              ? 'bg-red-50 border-red-300'
+              : needsAttentionCount > 0
+                ? 'bg-amber-50 border-amber-300 hover:bg-amber-100'
+                : 'bg-white border-gray-200'
+          }`}
+          onClick={() => needsAttentionCount > 0 && setFilterNeedsAttention(v => !v)}
+          title={needsAttentionCount > 0 ? 'Click to filter to employees needing attention' : ''}
+          role={needsAttentionCount > 0 ? 'button' : undefined}
+          tabIndex={needsAttentionCount > 0 ? 0 : undefined}
+          onKeyDown={e => e.key === 'Enter' && needsAttentionCount > 0 && setFilterNeedsAttention(v => !v)}
+        >
+          <div className="text-xs font-semibold text-gray-500 mb-1">Needs Attention</div>
+          <div className={`text-2xl font-bold ${
+            needsAttentionCount > 0 ? 'text-red-600' : 'text-gray-400'
+          }`}>
+            {needsAttentionCount}
+          </div>
+        </div>
+        <SummaryCard label="Working Days" value={monthWorkingDays} />
+      </div>
+
+      {skippedSummaryList.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex flex-col gap-2 text-xs text-amber-900 shadow-sm">
+          <div className="flex justify-between items-center border-b border-amber-200/60 pb-2">
+            <span className="font-bold text-amber-900 text-sm flex items-center gap-1.5">
+              ℹ️ {skippedSummaryList.length} Employee(s) Skipped (No Activity / Marked Skip)
+            </span>
+            <button
+              type="button"
+              onClick={() => setSkippedSummaryList([])}
+              className="text-xs text-amber-700 hover:text-amber-900 font-bold underline"
+            >
+              Dismiss
+            </button>
+          </div>
+          <p className="text-amber-800">
+            The following employees were excluded from payslip creation for this cycle:
+          </p>
+          <div className="space-y-1 mt-1 bg-white/80 p-3 rounded-lg border border-amber-200 max-h-40 overflow-y-auto">
+            {skippedSummaryList.map((item, idx) => (
+              <div key={idx} className="flex justify-between text-xs py-0.5 border-b border-amber-100 last:border-0">
+                <span className="font-semibold text-amber-950">{item.employeeName || item.employeeId}</span>
+                <span className="text-amber-700 font-medium">[{item.compensationType || 'strategy'}]: {item.message || 'No activity'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Filter / Sort bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <input
+          type="search"
+          aria-label="Search employees by name or code"
+          placeholder="Search name or code…"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs w-48 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        />
+        {deptOptions.length > 0 && (
+          <select
+            aria-label="Filter by department"
+            value={filterDept}
+            onChange={e => setFilterDept(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            <option value="">All Departments</option>
+            {deptOptions.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        )}
+        {compTypeOptions.length > 1 && (
+          <select
+            aria-label="Filter by compensation type"
+            value={filterCompType}
+            onChange={e => setFilterCompType(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            <option value="">All Types</option>
+            {compTypeOptions.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
+          </select>
+        )}
+        <button
+          type="button"
+          aria-pressed={filterNeedsAttention}
+          onClick={() => setFilterNeedsAttention(v => !v)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+            filterNeedsAttention
+              ? 'bg-red-600 text-white border-red-600'
+              : 'bg-white text-gray-700 border-gray-300 hover:border-red-400 hover:text-red-600'
+          }`}
+        >
+          {filterNeedsAttention ? '🔴 Attention (active)' : '🔴 Needs Attention'}
+          {needsAttentionCount > 0 && !filterNeedsAttention && (
+            <span className="ml-1 bg-red-100 text-red-700 rounded-full px-1.5 text-[10px] font-bold">{needsAttentionCount}</span>
+          )}
+        </button>
+        <div className="flex items-center gap-1 ml-auto">
+          <select
+            aria-label="Sort employees by"
+            value={sortKey}
+            onChange={e => setSortKey(e.target.value)}
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white"
+          >
+            <option value="name">Sort: Name</option>
+            <option value="type">Sort: Type</option>
+            <option value="net">Sort: Net Pay</option>
+          </select>
+          <button
+            type="button"
+            aria-label={`Sort direction: ${sortDir === 'asc' ? 'ascending' : 'descending'}`}
+            onClick={() => setSortDir(v => v === 'asc' ? 'desc' : 'asc')}
+            className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs bg-white hover:bg-gray-50"
+          >
+            {sortDir === 'asc' ? '↑' : '↓'}
+          </button>
+        </div>
+        {activeFiltersCount > 0 && (
+          <button
+            type="button"
+            onClick={() => { setSearchQuery(''); setFilterDept(''); setFilterCompType(''); setFilterNeedsAttention(false); }}
+            className="text-xs text-blue-600 hover:text-blue-800 underline"
+          >
+            Clear {activeFiltersCount} filter{activeFiltersCount > 1 ? 's' : ''}
+          </button>
+        )}
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
                 {headers.map((label) => (
                   <th key={label} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">{label}</th>
@@ -997,7 +1674,19 @@ const PayrollProcessing = () => {
                 ))
               ) : employees.length === 0 ? (
                 <tr><td colSpan={headers.length} className="px-6 py-10 text-center text-gray-500">No active employees found.</td></tr>
-              ) : employees.map((employee) => (
+              ) : filteredSortedEmployees.length === 0 ? (
+                <tr><td colSpan={headers.length} className="px-6 py-10 text-center text-gray-400">
+                  <div className="text-2xl mb-2">🔍</div>
+                  <div className="font-semibold">No employees match your filters.</div>
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(''); setFilterDept(''); setFilterCompType(''); setFilterNeedsAttention(false); }}
+                    className="mt-2 text-xs text-blue-600 underline hover:text-blue-800"
+                  >
+                    Clear all filters
+                  </button>
+                </td></tr>
+              ) : filteredSortedEmployees.map((employee) => (
                 <EmployeeRow
                   key={employee._id}
                   employee={employee}
@@ -1006,6 +1695,7 @@ const PayrollProcessing = () => {
                   selected={selected[employee._id]}
                   onToggleSelected={(empId, val) => setSelected((prev) => ({ ...prev, [empId]: val }))}
                   setBreakdownEmployee={setBreakdownEmployee}
+                  setFnfEmployee={setFnfEmployee}
                   monthWorkingDays={monthWorkingDays}
                   updateRow={updateRow}
                   claimsMap={claimsMap}
@@ -1014,32 +1704,108 @@ const PayrollProcessing = () => {
                   earningComponents={earningComponents}
                   existingPayroll={existingPayrollsMap.get(String(employee._id))}
                   onDeletePayroll={onDeletePayroll}
+                  onSnapshotReady={(empId, data) => {
+                    const net = data?.net ?? data ?? 0;
+                    const gross = data?.gross ?? 0;
+                    const flags = data?.flags ?? {};
+                    setSnapshotsNetMap(prev => prev[empId] === net ? prev : { ...prev, [empId]: net });
+                    setSnapshotGrossMap(prev => prev[empId] === gross ? prev : { ...prev, [empId]: gross });
+                    setSnapshotFlagsMap(prev => {
+                      const existing = prev[empId];
+                      if (existing?.clamped === flags.clamped && existing?.belowMinWage === flags.belowMinWage) return prev;
+                      return { ...prev, [empId]: flags };
+                    });
+                  }}
+                  compensationTypesMap={compensationTypesMap}
                 />
               ))}
             </tbody>
           </table>
         </div>
+      </div>
 
-        <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-2.5">
-          <button type="button" onClick={() => navigate('/payroll')} className="px-3.5 py-1.5 rounded-lg bg-white border text-xs font-semibold">Cancel</button>
+      {/* Sticky action bar */}
+      <div className="sticky bottom-0 z-20 mt-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl shadow-lg px-4 py-3 flex items-center justify-between gap-2.5">
+        <div className="text-xs text-gray-500 font-medium">
+          {selectedEmployees.length} employee{selectedEmployees.length !== 1 ? 's' : ''} selected
+          {selectedEmployees.length > 0 && (
+            <span className="ml-2 text-gray-400">· Net: <span className="font-semibold text-gray-700">{fmtMoney(totalPreview)}</span></span>
+          )}
+          {needsAttentionCount > 0 && (
+            <span className="ml-2 text-red-600 font-semibold">· ⚠️ {needsAttentionCount} need attention</span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => navigate('/payroll')} className="px-3.5 py-1.5 rounded-lg bg-white border text-xs font-semibold hover:bg-gray-50">Cancel</button>
           <button type="button" onClick={() => submit(true)} disabled={saving || selectedEmployees.length === 0} className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60">
-            <FaSave /> Save as Draft
+            <FaSave aria-hidden="true" /> Save as Draft
           </button>
-          <button type="button" onClick={() => submit(false)} disabled={saving || selectedEmployees.length === 0} className="px-3.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60">
-            <FaCheck /> Process Payroll
+          <button type="button" onClick={() => setShowConfirmModal(true)} disabled={saving || selectedEmployees.length === 0} className="px-3.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60">
+            <FaCheck aria-hidden="true" /> Process Payroll
           </button>
         </div>
       </div>
 
+      {/* Process Payroll Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Confirm payroll processing">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 overflow-hidden">
+            <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+              <h2 className="font-bold text-base flex items-center gap-2">
+                <FaCheck className="text-green-400" aria-hidden="true" /> Confirm Payroll Processing
+              </h2>
+              <button type="button" aria-label="Close confirmation dialog" onClick={() => setShowConfirmModal(false)} className="text-gray-400 hover:text-white transition-colors">
+                <FaTimes className="w-5 h-5" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-sm text-slate-700">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                  <div className="text-xs text-slate-500 font-semibold mb-1">Employees</div>
+                  <div className="text-xl font-bold text-slate-900">{selectedEmployees.length}</div>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                  <div className="text-xs text-slate-500 font-semibold mb-1">Total Net Payout</div>
+                  <div className="text-xl font-bold text-emerald-700">{fmtMoney(totalPreview)}</div>
+                </div>
+              </div>
+              {needsAttentionCount > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-amber-900 text-xs font-medium flex items-start gap-2">
+                  <span className="text-base">⚠️</span>
+                  <span><strong>{needsAttentionCount}</strong> employee{needsAttentionCount !== 1 ? 's have' : ' has'} pay-clamping or minimum-wage flags. Review before processing.</span>
+                </div>
+              )}
+              <p className="text-xs text-slate-500 leading-relaxed">
+                This will process payroll for <strong>{monthName(month)} {year}</strong> for all {selectedEmployees.length} selected employees. Processed payrolls cannot be undone without a full month reset.
+              </p>
+            </div>
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button type="button" onClick={() => setShowConfirmModal(false)} className="px-4 py-2 border rounded-lg bg-white text-sm font-semibold hover:bg-gray-50 transition-colors">
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => { setShowConfirmModal(false); submit(false); }}
+                className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors shadow-sm flex items-center gap-1.5 disabled:opacity-60"
+              >
+                <FaCheck aria-hidden="true" /> {saving ? 'Processing…' : 'Confirm & Process'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Slide-over / Modal for Detailed Salary Breakdown & Adjustments */}
       {breakdownEmployee && (() => {
         const empId = breakdownEmployee._id;
-        const isHourly = breakdownEmployee.payType === 'hourly';
+        const isHourly = breakdownEmployee.payType === 'hourly' || breakdownEmployee.compensationType === 'hourly';
         const hasSalaryBreakup = breakdownEmployee.useSalaryComponents !== false && breakdownEmployee.employmentType !== 'intern' && !isHourly;
         const showStatutoryOverrides = hasSalaryBreakup;
         const showLopStrategy = localSplits && localSplits.length > 1 && !isHourly;
         const isFlatSalary = !hasSalaryBreakup;
-        const isConsultantModel = breakdownEmployee.compensationModel && breakdownEmployee.compensationModel !== 'SALARIED';
+        const isConsultantModel = ['commission_only', 'salary_plus_commission', 'project_based', 'milestone_based'].includes(breakdownEmployee.compensationType)
+          || (breakdownEmployee.compensationModel && breakdownEmployee.compensationModel !== 'SALARIED' && !breakdownEmployee.compensationType);
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
@@ -1056,22 +1822,49 @@ const PayrollProcessing = () => {
                       {breakdownEmployee.employeeId || 'EMP-001'} · {breakdownEmployee.designation || 'SDE'} · {
                         isHourly
                           ? `Hourly Rate: ${fmtMoney(breakdownEmployee.hourlyRate)}/hr`
-                          : `CTC ${fmtMoney(breakdownEmployee.monthlyCTC)}`
+                          : (breakdownEmployee.compensationType === 'piece_rate'
+                              ? `Piece Rate: ${fmtMoney((breakdownEmployee.rateCard || []).find(r => r.paymentType === 'UNIT')?.rate ?? breakdownEmployee.rateCard?.[0]?.rate ?? 0)}/unit`
+                              : `CTC ${fmtMoney(localSnapshot?.masterCTC || breakdownEmployee.monthlyCTC)}`)
                       }
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
+                  aria-label={`Close breakdown for ${breakdownEmployee.firstName} ${breakdownEmployee.lastName}`}
                   onClick={() => setBreakdownEmployee(null)}
                   className="text-gray-400 hover:text-white transition-colors"
                 >
-                  <FaTimes className="w-5 h-5" />
+                  <FaTimes className="w-5 h-5" aria-hidden="true" />
                 </button>
               </div>
 
               {/* Modal Body */}
               <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6">
+                {/* Edge Case Warning Banners: Net Pay Clamped & Below Minimum Wage */}
+                {localSnapshot?.netPayClamped && (
+                  <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 text-amber-900 text-xs font-medium space-y-1">
+                    <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                      ⚠️ Net Pay Clamped to ₹0 (Deductions Exceeded Gross Earnings)
+                    </div>
+                    <p className="text-[11px] text-amber-800 leading-relaxed">
+                      Total deductions ({fmtMoney(localSnapshot.deductions?.totalDeductions)}) exceeded total earnings ({fmtMoney(localSnapshot.earnings?.totalEarnings)}).
+                      Non-statutory deductions (loans/advances) were clamped by {fmtMoney(localSnapshot.payrollShortfall?.shortfallAmount || 0)} to prevent negative net salary.
+                    </p>
+                  </div>
+                )}
+
+                {localSnapshot?.belowMinimumWage && (
+                  <div className="bg-rose-50 border border-rose-300 rounded-xl p-3 text-rose-900 text-xs font-medium space-y-1">
+                    <div className="font-bold flex items-center gap-1.5 text-rose-950">
+                      ⚠️ Statutory Minimum Wage Violation Flag
+                    </div>
+                    <p className="text-[11px] text-rose-800 leading-relaxed">
+                      {localSnapshot.minimumWageCompliance?.warningMessage || 'Computed gross earnings are below the statutory minimum wage floor for this state.'}
+                    </p>
+                  </div>
+                )}
+
                 {/* Proration Summary Banner */}
                 {localSnapshot && (
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-900 text-sm">
@@ -1097,7 +1890,7 @@ const PayrollProcessing = () => {
                   </div>
                 )}
 
-                {localSplits && localSplits.length > 1 && !isHourly && (
+                {localSplits && localSplits.length > 1 && isAttendanceLinked(breakdownEmployee.compensationType, isHourly) && (
                   <div className="border border-blue-200 rounded-xl overflow-hidden bg-white shadow-sm">
                     <div className="bg-blue-50 px-4 py-3 border-b border-blue-100 font-bold text-blue-900 text-sm">
                       Mid-Month Revision Calculation Split
@@ -1485,6 +2278,120 @@ const PayrollProcessing = () => {
                             </select>
                           </div>
                         )}
+                        {/* Overtime Policy Structured Inputs */}
+                        <div className="col-span-full border border-slate-200 rounded-xl p-3 bg-white shadow-xs space-y-2">
+                          <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                            <span className="font-bold text-slate-800 text-xs flex items-center gap-1">
+                              ⏱️ Overtime Hours & Flat Override
+                            </span>
+                            <span className="text-[10px] text-slate-400">Policy Multipliers: Weekday {config?.overtimePolicy?.weekdayMultiplier || 1.5}x · Weekend {config?.overtimePolicy?.weekendMultiplier || 2.0}x · Holiday {config?.overtimePolicy?.holidayMultiplier || 2.0}x</span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Weekday Hrs</label>
+                              <input
+                                type="number" min="0" step="0.5"
+                                disabled={isReadOnly}
+                                value={typeof rows[empId]?.overtime === 'object' ? (rows[empId]?.overtime?.weekdayHours ?? 0) : 0}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value) || 0;
+                                  const curr = (typeof rows[empId]?.overtime === 'object' && rows[empId]?.overtime) ? rows[empId].overtime : {};
+                                  updateRow(empId, 'overtime', { ...curr, weekdayHours: val });
+                                }}
+                                className="w-full border border-slate-300 rounded px-2 py-1 text-right font-semibold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Weekend Hrs</label>
+                              <input
+                                type="number" min="0" step="0.5"
+                                disabled={isReadOnly}
+                                value={typeof rows[empId]?.overtime === 'object' ? (rows[empId]?.overtime?.weekendHours ?? 0) : 0}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value) || 0;
+                                  const curr = (typeof rows[empId]?.overtime === 'object' && rows[empId]?.overtime) ? rows[empId].overtime : {};
+                                  updateRow(empId, 'overtime', { ...curr, weekendHours: val });
+                                }}
+                                className="w-full border border-slate-300 rounded px-2 py-1 text-right font-semibold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Holiday Hrs</label>
+                              <input
+                                type="number" min="0" step="0.5"
+                                disabled={isReadOnly}
+                                value={typeof rows[empId]?.overtime === 'object' ? (rows[empId]?.overtime?.holidayHours ?? 0) : 0}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value) || 0;
+                                  const curr = (typeof rows[empId]?.overtime === 'object' && rows[empId]?.overtime) ? rows[empId].overtime : {};
+                                  updateRow(empId, 'overtime', { ...curr, holidayHours: val });
+                                }}
+                                className="w-full border border-slate-300 rounded px-2 py-1 text-right font-semibold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Flat Override (₹)</label>
+                              <input
+                                type="number" min="0" step="any"
+                                placeholder="Flat ₹"
+                                disabled={isReadOnly}
+                                value={typeof rows[empId]?.overtime === 'object' ? (rows[empId]?.overtime?.customAmount ?? '') : (Number(rows[empId]?.overtime) || '')}
+                                onChange={(e) => {
+                                  const val = e.target.value === '' ? 0 : Number(e.target.value) || 0;
+                                  const curr = (typeof rows[empId]?.overtime === 'object' && rows[empId]?.overtime) ? rows[empId].overtime : {};
+                                  updateRow(empId, 'overtime', { ...curr, customAmount: val });
+                                }}
+                                className="w-full border border-slate-300 rounded px-2 py-1 text-right font-semibold"
+                              />
+                            </div>
+                          </div>
+                          {/* Computed Overtime Breakdown Display */}
+                          {(() => {
+                            const otBreakdown = localSnapshot?.earnings?.overtimeBreakdown;
+                            const totalOtPay = localSnapshot?.earnings?.overtime || 0;
+                            if (!otBreakdown && totalOtPay === 0) return null;
+                            const hrRate = otBreakdown?.hourlyRate || (localSnapshot?.master?.hourlyRate || 0);
+                            return (
+                              <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 space-y-1.5 text-[11px] text-slate-700 mt-2">
+                                <div className="flex justify-between font-bold text-slate-800 border-b border-slate-200/80 pb-1">
+                                  <span>Computed OT Pay: {fmtMoney(totalOtPay)}</span>
+                                  <span>Base Rate: ₹{Math.round(hrRate * 100) / 100}/hr</span>
+                                </div>
+                                <div className="space-y-1 text-[10px] text-slate-600">
+                                  {otBreakdown?.weekday?.hours > 0 && (
+                                    <div className="flex justify-between">
+                                      <span>Weekday: {otBreakdown.weekday.hours} hrs × ₹{Math.round(otBreakdown.weekday.rate * 100)/100} × {otBreakdown.weekday.multiplier}x</span>
+                                      <span className="font-semibold text-slate-800">={fmtMoney(otBreakdown.weekday.amount)}</span>
+                                    </div>
+                                  )}
+                                  {otBreakdown?.weekend?.hours > 0 && (
+                                    <div className="flex justify-between">
+                                      <span>Weekend: {otBreakdown.weekend.hours} hrs × ₹{Math.round(otBreakdown.weekend.rate * 100)/100} × {otBreakdown.weekend.multiplier}x</span>
+                                      <span className="font-semibold text-slate-800">={fmtMoney(otBreakdown.weekend.amount)}</span>
+                                    </div>
+                                  )}
+                                  {otBreakdown?.holiday?.hours > 0 && (
+                                    <div className="flex justify-between">
+                                      <span>Holiday: {otBreakdown.holiday.hours} hrs × ₹{Math.round(otBreakdown.holiday.rate * 100)/100} × {otBreakdown.holiday.multiplier}x</span>
+                                      <span className="font-semibold text-slate-800">={fmtMoney(otBreakdown.holiday.amount)}</span>
+                                    </div>
+                                  )}
+                                  {otBreakdown?.customAmount > 0 && (
+                                    <div className="flex justify-between">
+                                      <span>Flat Override:</span>
+                                      <span className="font-semibold text-slate-800">={fmtMoney(otBreakdown.customAmount)}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                          {localSnapshot?.earnings?.overtimeCapWarning?.flagged && (
+                            <div className="text-[10px] text-amber-700 font-bold bg-amber-50 p-1.5 rounded border border-amber-200 mt-1">
+                              ⚠️ {localSnapshot.earnings.overtimeCapWarning.warningMessage}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -1521,7 +2428,7 @@ const PayrollProcessing = () => {
                                 return (
                                   <BreakdownRow
                                     key={c.id}
-                                    label={(isHourly && c.id === 'basic') ? 'Contract Wages (Hourly)' : c.name}
+                                    label={getEarningsRowLabel(breakdownEmployee, c)}
                                     paid={paid}
                                     master={master}
                                   />
@@ -1540,12 +2447,19 @@ const PayrollProcessing = () => {
                                 <button
                                   type="button"
                                   onClick={() => {
+                                    const compTypeToPaymentType = {
+                                      project_based:   'PROJECT',
+                                      milestone_based: 'MILESTONE',
+                                      commission_only: 'COMMISSION',
+                                      salary_plus_commission: 'COMMISSION',
+                                    };
+                                    const defaultPaymentType = compTypeToPaymentType[breakdownEmployee.compensationType] || 'PROJECT';
                                     const rateCard = breakdownEmployee.rateCard || [];
-                                    const defaultRateItem = rateCard.find(rc => rc.paymentType === 'POSITION') || rateCard[0];
+                                    const defaultRateItem = rateCard.find(rc => rc.paymentType === defaultPaymentType) || rateCard[0];
                                     const defaultRate = defaultRateItem ? defaultRateItem.rate : 0;
                                     setLocalVariableTransactions([
                                       ...localVariableTransactions,
-                                      { paymentType: 'POSITION', reference: '', client: '', quantity: 1, rate: defaultRate, amount: defaultRate, remarks: '' }
+                                      { paymentType: defaultPaymentType, reference: '', client: '', quantity: 1, rate: defaultRate, amount: defaultRate, remarks: '' }
                                     ]);
                                   }}
                                   className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded transition-colors"
@@ -1868,6 +2782,28 @@ const PayrollProcessing = () => {
                                 {(!isHourly || localSnapshot.deductions.tds > 0) && (
                                   <DeductionRow label="Income Tax (TDS)" amount={localSnapshot.deductions.tds} isEditable={!isReadOnly} value={rows[empId]?.tds} onChange={(val) => updateRow(empId, 'tds', val === '' ? undefined : Number(val))} />
                                 )}
+                                {localSnapshot.deductions.loanDeduction > 0 && (
+                                  <DeductionRow label="Loan EMI Recovery" amount={localSnapshot.deductions.loanDeduction} />
+                                )}
+                                {localSnapshot?.deductions?.loanRepayments?.length > 0 && (
+                                  <div className="bg-slate-50 border-t border-slate-200 p-3 space-y-2 text-xs text-slate-700">
+                                    <div className="flex justify-between font-bold text-slate-800 border-b border-slate-200/80 pb-1.5 text-[11px]">
+                                      <span>💳 Multi-Loan Repayment Allocation</span>
+                                      <span>Total: {fmtMoney(localSnapshot.deductions.loanDeduction)}</span>
+                                    </div>
+                                    <div className="space-y-1.5 text-[10px]">
+                                      {localSnapshot.deductions.loanRepayments.map((lr, idx) => (
+                                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded border border-slate-200 shadow-2xs">
+                                          <div className="font-semibold text-slate-900">{lr.loanReference || `Loan #${idx + 1}`}</div>
+                                          <div className="text-right">
+                                            <div className="font-bold text-emerald-700">Applied: {fmtMoney(lr.amountApplied)}</div>
+                                            <div className="text-slate-500">Remaining: {fmtMoney(lr.remainingBalance)}</div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );
@@ -2046,6 +2982,159 @@ const PayrollProcessing = () => {
           </div>
         );
       })()}
+
+      {/* Full & Final Settlement (F&F) Modal */}
+      {fnfEmployee && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-200">
+            <div className="bg-amber-600 px-6 py-4 text-white flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-base flex items-center gap-2">
+                  📜 Full & Final (F&F) Settlement
+                </h3>
+                <p className="text-xs text-amber-100 mt-0.5">
+                  {fnfEmployee.firstName} {fnfEmployee.lastName} ({fnfEmployee.employeeId})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFnfEmployee(null)}
+                className="text-white/80 hover:text-white text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleProcessFnf} className="p-6 space-y-4 text-xs text-slate-700">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-900 leading-relaxed">
+                Processing F&F settlement will calculate gratuity (if tenure &ge; 5 yrs), notice period recovery/shortfall, leave encashment, outstanding loan balance recovery, and mark the employee status as terminated.
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Last Working Day</label>
+                <input
+                  type="date"
+                  required
+                  value={fnfEmployee.dateOfLeaving ? new Date(fnfEmployee.dateOfLeaving).toISOString().split('T')[0] : new Date(year, month - 1, new Date(year, month, 0).getDate()).toISOString().split('T')[0]}
+                  onChange={(e) => {
+                    const d = e.target.value;
+                    setFnfEmployee({ ...fnfEmployee, dateOfLeaving: d });
+                  }}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold"
+                />
+              </div>
+
+              {/* Period-specific earnings inputs — shown only when relevant to the employee's comp type */}
+              {(() => {
+                const compType = resolveCompensationTypeClient(fnfEmployee);
+                const isHourlyType = compType === 'hourly' || compType === 'timesheet_based';
+                const isPieceRate = compType === 'piece_rate';
+                if (!isHourlyType && !isPieceRate) return null;
+                return (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-3">
+                    <p className="text-[11px] font-bold text-blue-800">Final Period Work Input</p>
+                    {isHourlyType && (
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">Hours Worked in Final Period</label>
+                        <input
+                          type="number" min="0" step="0.5"
+                          placeholder="0"
+                          value={fnfForm.hoursWorked}
+                          onChange={(e) => setFnfForm({ ...fnfForm, hoursWorked: e.target.value })}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                        />
+                        <p className="text-[10px] text-slate-500 mt-0.5">Leave blank to use the stored default from the employee record.</p>
+                      </div>
+                    )}
+                    {isPieceRate && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Units Produced</label>
+                          <input
+                            type="number" min="0"
+                            placeholder="1"
+                            value={fnfForm.unitsProduced}
+                            onChange={(e) => setFnfForm({ ...fnfForm, unitsProduced: e.target.value })}
+                            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Rate Per Unit (override)</label>
+                          <input
+                            type="number" min="0"
+                            placeholder="From rate card"
+                            value={fnfForm.ratePerUnit}
+                            onChange={(e) => setFnfForm({ ...fnfForm, ratePerUnit: e.target.value })}
+                            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Notice Required (Days)</label>
+                  <input
+                    type="number" min="0"
+                    value={fnfForm.noticePeriodRequiredDays}
+                    onChange={(e) => setFnfForm({ ...fnfForm, noticePeriodRequiredDays: Number(e.target.value) || 0 })}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Notice Served (Days)</label>
+                  <input
+                    type="number" min="0"
+                    value={fnfForm.noticePeriodServedDays}
+                    onChange={(e) => setFnfForm({ ...fnfForm, noticePeriodServedDays: Number(e.target.value) || 0 })}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Leave Encashment Days</label>
+                <input
+                  type="number" min="0" step="0.5"
+                  value={fnfForm.leaveEncashmentDays}
+                  onChange={(e) => setFnfForm({ ...fnfForm, leaveEncashmentDays: Number(e.target.value) || 0 })}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Settlement Comments / Notes</label>
+                <textarea
+                  rows="2"
+                  placeholder="Optional exit notes..."
+                  value={fnfForm.comments}
+                  onChange={(e) => setFnfForm({ ...fnfForm, comments: e.target.value })}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setFnfEmployee(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={processingFnf}
+                  className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold disabled:opacity-50"
+                >
+                  {processingFnf ? 'Processing F&F...' : 'Finalize & Process F&F'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -2057,20 +3146,28 @@ const SummaryCard = ({ label, value }) => (
   </div>
 );
 
-const EditableMoneyCell = ({ value, onChange, disabled = false }) => (
-  <td className="px-4 py-2.5">
-    {disabled ? (
-      <div className="text-xs text-gray-700 whitespace-nowrap">{fmtMoney(value)}</div>
-    ) : (
-      <input
-        type="number"
-        min="0"
-        value={value ?? 0}
-        onChange={(e) => onChange?.(e.target.value)}
-        className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium"
-      />
-    )}
-  </td>
-);
+const EditableMoneyCell = ({ value, onChange, disabled = false, notApplicable = false }) => {
+  const numVal = Number(value) || 0;
+  const showNA = notApplicable || (disabled && numVal === 0);
+
+  return (
+    <td className="px-4 py-2.5">
+      {showNA ? (
+        <span className="text-xs text-slate-400 font-medium italic">N/A</span>
+      ) : disabled ? (
+        <div className="text-xs text-gray-700 whitespace-nowrap">{fmtMoney(numVal)}</div>
+      ) : (
+        <input
+          type="number"
+          min="0"
+          placeholder="N/A"
+          value={value !== undefined && value !== null && value !== '' ? value : ''}
+          onChange={(e) => onChange?.(e.target.value)}
+          className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium focus:ring-1 focus:ring-blue-500 focus:outline-none"
+        />
+      )}
+    </td>
+  );
+};
 
 export default PayrollProcessing;
