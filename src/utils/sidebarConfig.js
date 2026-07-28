@@ -4,7 +4,6 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
     title: 'Overview',
     items: [
       { id: 'dashboard', label: 'Dashboard', path: '/dashboard', iconName: 'FaThLarge' },
-      { id: 'tax_dashboard', label: 'Tax Dashboard', path: '/tax-dashboard', iconName: 'FaChartBar' },
       { id: 'bank_statement', label: 'Bank Statement', path: '/bank-statement', iconName: 'FaUniversity' }
     ]
   },
@@ -108,7 +107,7 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
   }
 ];
 
-const LOCAL_STORAGE_KEY = 'mbf_sidebar_layout_v6';
+const LOCAL_STORAGE_KEY = 'mbf_sidebar_layout_v7';
 
 /**
  * Merges a parsed custom layout from localStorage with the absolute default layout,
