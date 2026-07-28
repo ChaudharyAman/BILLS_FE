@@ -52,6 +52,7 @@ const CashFlowStatement = lazy(() => import('./pages/CashFlowStatement'));
 const ProjectManager = lazy(() => import('./pages/ProjectManager'));
 const ProjectDashboard = lazy(() => import('./pages/ProjectDashboard'));
 const Settings = lazy(() => import('./pages/Settings'));
+const BusinessUnitManagement = lazy(() => import('./pages/BusinessUnitManagement'));
 const Subscription = lazy(() => import('./pages/Subscription'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const BankStatementDashboard = lazy(() => import('./pages/BankStatementDashboard'));
@@ -287,6 +288,7 @@ function App() {
                     <Route path="/recurring" element={<RecurringTransactions />} />
                     <Route path="/projects" element={<ProjectManager />} />
                     <Route path="/projects/dashboard" element={<ProjectDashboard />} />
+                    <Route path="/business-units" element={<BusinessUnitManagement />} />
 
                     <Route path="/reports" element={<Navigate to="/dashboard" replace />} />
 

@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fa6';
 import api from '../api/axios';
 import { Link } from 'react-router-dom';
+import TaxDashboard from './TaxDashboard';
 
 const fmt = (v, d = 0) =>
   `₹${(Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: d, maximumFractionDigits: d })}`;
@@ -146,6 +147,12 @@ export default function FinancialDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState('overview');
+  const [businessUnits, setBusinessUnits] = useState([]);
+  const [businessUnitFilter, setBusinessUnitFilter] = useState('');
+
+  useEffect(() => {
+    api.get('/business-units?status=active').then(r => setBusinessUnits(r.data || [])).catch(() => {});
+  }, []);
 
   const [payrollSummary, setPayrollSummary] = useState(null);
   const [payrollLoadingState, setPayrollLoadingState] = useState(false);
@@ -372,12 +379,16 @@ export default function FinancialDashboard() {
       }
     }
 
+    if (businessUnitFilter) {
+      params.businessUnit = businessUnitFilter;
+    }
+
     api.get(`/reports/tax-dashboard?${new URLSearchParams(params)}`, { signal: ctrl.signal })
       .then(r => setData(r.data))
       .catch(e => { if (e.name !== 'CanceledError' && e.name !== 'AbortError') setError(e.response?.data?.message || 'Failed to load'); })
       .finally(() => setLoading(false));
     return () => ctrl.abort();
-  }, [activeTab, customMonth, customRange.startDate, customRange.endDate, refreshKey]);
+  }, [activeTab, customMonth, customRange.startDate, customRange.endDate, businessUnitFilter, refreshKey]);
 
   const s = data?.summary || {};
   const gst = data?.gst || {};
@@ -478,6 +489,24 @@ export default function FinancialDashboard() {
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Business Unit Selector */}
+              <div className="flex items-center">
+                <select
+                  value={businessUnitFilter}
+                  onChange={(e) => setBusinessUnitFilter(e.target.value)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer shadow-sm ${
+                    darkMode 
+                      ? 'bg-slate-800/90 border-slate-700 text-slate-200 focus:border-indigo-500' 
+                      : 'bg-white border-slate-200/90 text-slate-700 focus:border-indigo-600'
+                  }`}
+                >
+                  <option value="">All Business Units</option>
+                  {businessUnits.map(bu => (
+                    <option key={bu._id} value={bu._id}>{bu.name} ({bu.code})</option>
+                  ))}
+                </select>
               </div>
 
               {/* Custom Month/Date picker box */}
@@ -789,67 +818,10 @@ export default function FinancialDashboard() {
             </div>
           )}
 
-          {/* ══ GST ══ */}
+          {/* ══ GST (Exact Tax Dashboard Component Integration) ══ */}
           {tab === 'gst' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-rise-in">
-              <GW>
-                <SLabel>GST Summary</SLabel>
-                <div className="grid grid-cols-2 gap-3 mb-5">
-                  {[
-                    { l: 'GST Liability', v: gst.liability, c: '#ec4899' },
-                    { l: 'GST Credit', v: gst.credit, c: '#10b981' },
-                    { l: 'Net GST Payable', v: gst.netPayable, c: '#6366f1' },
-                    { l: 'Combined Tax Outflow', v: s.netTaxPayable, c: '#f59e0b' },
-                  ].map(m => (
-                    <div key={m.l} className="glass-water-inner p-3">
-                      <div className="text-[10px] text-gray-400 font-bold uppercase mb-1">{m.l}</div>
-                      <div className="text-xl font-extrabold" style={{ color: m.c }}>{fmt(m.v)}</div>
-                    </div>
-                  ))}
-                </div>
-                <SLabel>GST Split</SLabel>
-                <div className="space-y-3">
-                  <ProgBar label="CGST" value={gst.cgst} total={gst.liability} color="#6366f1" />
-                  <ProgBar label="SGST" value={gst.sgst} total={gst.liability} color="#06b6d4" />
-                  <ProgBar label="IGST" value={gst.igst} total={gst.liability} color="#10b981" />
-                </div>
-              </GW>
-
-              <GW>
-                <SLabel>GST Component Radial</SLabel>
-                <div className="h-56">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadialBarChart innerRadius="30%" outerRadius="90%" data={radialData} startAngle={180} endAngle={-180}>
-                      <RadialBar dataKey="value" cornerRadius={6} label={{ position: 'insideStart', fill: '#fff', fontSize: 10, fontWeight: 'bold' }} />
-                      <Tooltip content={<TTip />} />
-                      <Legend iconSize={10} wrapperStyle={{ fontSize: 11, color: '#6b7280' }} />
-                    </RadialBarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="glass-water-inner p-3 mt-3">
-                  <div className="text-[11px] text-indigo-500 font-bold mb-1">💡 RCM Note</div>
-                  <div className="text-[11px] text-gray-500 leading-relaxed">
-                    Invoices with Reverse Charge exclude GST from their grand total. Tax here reflects full recorded GST for GSTR filing.
-                  </div>
-                </div>
-              </GW>
-
-              <GW className="lg:col-span-2">
-                <SLabel>Revenue vs Expenses — Monthly</SLabel>
-                <div className="h-52">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={trend} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                      <CartesianGrid stroke="rgba(99,102,241,0.08)" vertical={false} />
-                      <XAxis dataKey="month" stroke="#9ca3af" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
-                      <YAxis stroke="#9ca3af" tickLine={false} axisLine={false} tickFormatter={formatYAxis} tick={{ fontSize: 11 }} />
-                      <Tooltip content={<TTip />} />
-                      <Legend wrapperStyle={{ fontSize: 11, color: '#6b7280' }} />
-                      <Bar dataKey="revenue" name="Revenue" fill="#10b981" opacity={0.8} radius={[4, 4, 0, 0]} maxBarSize={26} />
-                      <Bar dataKey="expenses" name="Expenses" fill="#6366f1" opacity={0.8} radius={[4, 4, 0, 0]} maxBarSize={26} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </GW>
+            <div className="animate-rise-in font-sans">
+              <TaxDashboard isEmbedded={true} />
             </div>
           )}
 
