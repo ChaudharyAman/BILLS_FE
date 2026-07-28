@@ -708,7 +708,7 @@ export default function FinancialDashboard() {
           <div className="flex gap-2 mb-5 w-full">
             {[
               { id: 'overview', label: 'Overview', icon: FaChartPie },
-              { id: 'gst', label: 'GST', icon: FaReceipt },
+              { id: 'gst', label: 'GST/TDS', icon: FaReceipt },
               { id: 'ledger', label: 'Ledger', icon: FaBook },
               { id: 'analytics', label: 'Analytics', icon: FaChartLine },
               { id: 'payroll', label: 'Payroll', icon: FaBriefcase }
