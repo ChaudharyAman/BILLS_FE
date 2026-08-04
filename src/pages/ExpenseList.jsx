@@ -25,6 +25,8 @@ const ExpenseList = () => {
 
   // Filters & Sorting State
   const [statusFilter, setStatusFilter] = useState('');
+  const [businessUnitFilter, setBusinessUnitFilter] = useState('');
+  const [businessUnits, setBusinessUnits] = useState([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [sortBy, setSortBy] = useState('date');
@@ -36,21 +38,26 @@ const ExpenseList = () => {
   const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
 
   useEffect(() => {
+    api.get('/business-units?status=active').then(res => setBusinessUnits(res.data || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchData();
     }, 300);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm]);
+  }, [searchTerm, businessUnitFilter]);
 
   useEffect(() => {
     setPage(1);
-  }, [filterType, rowsPerPage]);
+  }, [filterType, rowsPerPage, businessUnitFilter]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const expenseParams = new URLSearchParams({ limit: 1000, search: searchTerm });
       if (categoryFilter) expenseParams.set('category', categoryFilter);
+      if (businessUnitFilter) expenseParams.set('businessUnit', businessUnitFilter);
       expenseParams.set('excludeCategoryName', 'Payroll');
 
       const payrollParams = new URLSearchParams({ limit: 1000, search: searchTerm });
@@ -416,6 +423,20 @@ const ExpenseList = () => {
                 <option value="PAID">PAID / Paid</option>
                 <option value="UNPAID">UNPAID / Dues</option>
                 <option value="CANCELLED">CANCELLED</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col min-w-[140px]">
+              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Business Unit</span>
+              <select
+                value={businessUnitFilter}
+                onChange={(e) => { setBusinessUnitFilter(e.target.value); setPage(1); }}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+              >
+                <option value="">All Business Units</option>
+                {businessUnits.map(bu => (
+                  <option key={bu._id} value={bu._id}>{bu.name} ({bu.code})</option>
+                ))}
               </select>
             </div>
 

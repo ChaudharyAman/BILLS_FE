@@ -115,14 +115,14 @@ const normalizeInvoiceType = (value) => {
 const normalizeStatus = (value, balanceDue = 0) => {
   const text = toText(value).toUpperCase();
 
-  if (['PAID', 'PAYMENT RECEIVED'].includes(text)) return 'PAID';
+  if (['PAID', 'PAYMENT RECEIVED', 'RECEIVED'].includes(text)) return 'RECEIVED';
   if (['PARTIAL', 'PARTIALLY PAID'].includes(text)) return 'PARTIAL';
   if (['SENT'].includes(text)) return 'SENT';
   if (['DRAFT'].includes(text)) return 'DRAFT';
   if (['CANCELLED', 'CANCELED', 'VOID'].includes(text)) return 'CANCELLED';
   if (['OVERDUE', 'UNPAID', 'PENDING'].includes(text)) return 'UNPAID';
 
-  return balanceDue > 0 ? 'UNPAID' : 'PAID';
+  return balanceDue > 0 ? 'UNPAID' : 'RECEIVED';
 };
 
 const normalizeDrCr = (value) => (toText(value).toLowerCase().startsWith('cr') ? 'Cr.' : 'Dr.');

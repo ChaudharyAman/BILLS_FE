@@ -57,6 +57,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
 
   const [clients, setClients] = useState([]);
   const [itemsList, setItemsList] = useState([]);
+  const [businessUnits, setBusinessUnits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
@@ -102,6 +103,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
       date: new Date().toISOString().split('T')[0],
       validUntil: '',
       status: 'DRAFT',
+      businessUnit: '',
       placeOfSupply: '',
       items: [emptyItem()],
       shippingCharges: 0,
@@ -151,13 +153,15 @@ const QuoteForm = ({ docType = 'quote' }) => {
 
   const fetchDependencies = async () => {
     try {
-      const [cr, ir, sr] = await Promise.all([
+      const [cr, ir, sr, bur] = await Promise.all([
         api.get('/clients?limit=1000'),
         api.get('/items?limit=1000'),
         api.get('/settings'),
+        api.get('/business-units?status=active').catch(() => ({ data: [] })),
       ]);
       setClients(cr.data.data || []);
       setItemsList(ir.data.data || []);
+      setBusinessUnits(bur.data || []);
       const loadedPrefixes = {
         quote: sr.data?.quotePrefix || 'QT',
         proforma: sr.data?.proformaPrefix || 'PRF',
@@ -207,6 +211,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
         date: d.date ? d.date.split('T')[0] : '',
         validUntil: d.validUntil ? d.validUntil.split('T')[0] : '',
         status: d.status || 'DRAFT',
+        businessUnit: d.businessUnit?._id || d.businessUnit || '',
         placeOfSupply: d.placeOfSupply || '',
         items: d.items?.length ? d.items.map(it => ({
           name: it.name, description: it.description || '',
@@ -555,7 +560,7 @@ const QuoteForm = ({ docType = 'quote' }) => {
                 onChange={e => setFormData(f => ({ ...f, validUntil: e.target.value }))}
                 className={inp} />
 
-              {/* Row 3: Status + Advance Paid */}
+              {/* Row 3: Status + Business Unit */}
               <label className="text-sm text-gray-600">Status</label>
               <select value={formData.status}
                 onChange={e => {
@@ -567,10 +572,15 @@ const QuoteForm = ({ docType = 'quote' }) => {
                 className={inp}>
                 {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <label className="text-sm text-gray-600 text-right">Advance Paid</label>
-              <input type="number" min="0" step="0.01" value={formData.advancePaid}
-                onChange={e => setFormData(f => ({ ...f, advancePaid: e.target.value }))}
-                className={inp} />
+              <label className="text-sm text-gray-600 text-right">Business Unit</label>
+              <select value={formData.businessUnit || ''}
+                onChange={e => setFormData(f => ({ ...f, businessUnit: e.target.value }))}
+                className={inp}>
+                <option value="">General / Unassigned</option>
+                {businessUnits.map(bu => (
+                  <option key={bu._id} value={bu._id}>{bu.name} ({bu.code})</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

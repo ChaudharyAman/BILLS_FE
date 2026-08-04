@@ -14,6 +14,7 @@ const ExpenseForm = () => {
   const [clients, setClients] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [businessUnits, setBusinessUnits] = useState([]);
   const [budgetInfo, setBudgetInfo] = useState(null);
   const [isReady, setIsReady] = useState(false);
   const [expenseType, setExpenseType] = useState('Vendor Expense');
@@ -34,6 +35,7 @@ const ExpenseForm = () => {
     clientName: '',
     category: '',
     subCategory: '',
+    businessUnit: '',
     items: [
       { itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }
     ],
@@ -57,11 +59,12 @@ const ExpenseForm = () => {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [vRes, cRes, iRes, catRes] = await Promise.all([
+      const [vRes, cRes, iRes, catRes, buRes] = await Promise.all([
         api.get('/vendors?limit=1000'),
         api.get('/clients?limit=1000'),
         api.get('/items?limit=1000'),
-        api.get('/categories?type=expense')
+        api.get('/categories?type=expense'),
+        api.get('/business-units?status=active').catch(() => ({ data: [] })),
       ]);
       const loadedVendors = vRes.data.data || [];
       const loadedClients = cRes.data.data || [];
@@ -71,6 +74,7 @@ const ExpenseForm = () => {
       setClients(loadedClients);
       setInventory(loadedInventory);
       setCategories(loadedCategories);
+      setBusinessUnits(buRes.data || []);
 
       if (id) {
         const eRes = await api.get(`/expenses/${id}`);
@@ -114,6 +118,7 @@ const ExpenseForm = () => {
             clientName: data.client?.name || '',
             category: initialData.category,
             subCategory: data.subCategory?._id || data.subCategory || '',
+            businessUnit: data.businessUnit?._id || data.businessUnit || '',
             items: data.items?.length > 0 ? data.items : [{ itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }],
             reverseCharge: !!data.reverseCharge,
             terms: data.terms || '',
@@ -626,9 +631,26 @@ const ExpenseForm = () => {
                 </div>
               </div>
 
-              {/* Date */}
+              {/* Business Unit */}
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
-                  <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Date</span>
+                <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Business Unit</span>
+                <div className="flex-1 min-w-0">
+                  <select 
+                    className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                    value={formData.businessUnit || ''}
+                    onChange={e => setFormData(p => ({ ...p, businessUnit: e.target.value }))}
+                  >
+                    <option value="">General / Unassigned</option>
+                    {businessUnits.map(bu => (
+                      <option key={bu._id} value={bu._id}>{bu.name} ({bu.code})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Expense Date */}
+              <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
+                  <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Expense Date</span>
                   <div className="relative flex-1 min-w-0">
                     <FaCalendarAlt className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input 

@@ -335,6 +335,13 @@ const GstReport = () => {
             
             <h1 className="text-3xl font-black text-slate-950 tracking-tight flex items-center gap-3">
               {getDashboardTitle()}
+              <button
+                onClick={() => navigate('/tax-dashboard')}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 border border-indigo-500 shrink-0 cursor-pointer ml-2"
+                title="View Tax Dashboard"
+              >
+                <FaChartLine size={12} /> Tax Dashboard
+              </button>
             </h1>
           </div>
 

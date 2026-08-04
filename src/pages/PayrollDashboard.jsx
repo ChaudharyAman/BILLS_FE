@@ -738,9 +738,14 @@ const PayrollDashboard = () => {
           <h1 className="text-3xl font-bold tracking-tight">Payroll</h1>
           <p className="text-gray-500 mt-1">Track payroll processing, approvals, payments, and employee payslips</p>
         </div>
-        <Link to="/payroll/process" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold">
-          <FaPlus size={14} /> Process Payroll
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link to="/employees" className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-sm">
+            Manage Employees
+          </Link>
+          <Link to="/payroll/process" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold">
+            <FaPlus size={14} /> Process Payroll
+          </Link>
+        </div>
       </div>
 
       {/* Dynamic Approvals Hub Navigation Tabs */}

@@ -120,7 +120,7 @@ function ChartTooltip({ active, payload, label, darkMode }) {
   );
 }
 
-export default function TaxDashboard() {
+export default function TaxDashboard({ isEmbedded = false }) {
   const navigate = useNavigate();
   const monthInputRef = useRef(null);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('tax-dashboard-theme') === 'dark');
@@ -345,23 +345,24 @@ export default function TaxDashboard() {
   };
 
   return (
-    <div className={`min-h-full font-sans transition-all duration-300 pb-16`} style={dashboardBgStyle}>
-      <div className="px-4 py-6 sm:px-6">
+    <div className={`min-h-full font-sans transition-all duration-300 ${isEmbedded ? '' : 'pb-16'}`} style={isEmbedded ? {} : dashboardBgStyle}>
+      <div className={isEmbedded ? 'py-1' : 'px-4 py-6 sm:px-6'}>
         
         {/* Top Header Banner */}
-        <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className={`flex items-center gap-2 text-[10px] font-extrabold tracking-widest uppercase mb-1 ${darkMode ? 'text-[#818cf8]' : 'text-[#5b61eb]'}`}>
-              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${darkMode ? 'bg-[#818cf8]' : 'bg-[#5b61eb]'}`}></span>
-              GST REPORT CARD
+        {!isEmbedded ? (
+          <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className={`flex items-center gap-2 text-[10px] font-extrabold tracking-widest uppercase mb-1 ${darkMode ? 'text-[#818cf8]' : 'text-[#5b61eb]'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${darkMode ? 'bg-[#818cf8]' : 'bg-[#5b61eb]'}`}></span>
+                GST REPORT CARD
+              </div>
+              <h1 className={`text-3xl font-black tracking-tight ${darkMode ? 'text-white' : 'text-slate-950'}`}>
+                {getDashboardPeriodLabel()}
+              </h1>
             </div>
-            <h1 className={`text-3xl font-black tracking-tight ${darkMode ? 'text-white' : 'text-slate-950'}`}>
-              {getDashboardPeriodLabel()}
-            </h1>
-          </div>
 
-          {/* Premium Capsule Pill Selector and Sun/Moon Switcher */}
-          <div className="flex flex-wrap items-center gap-3">
+            {/* Premium Capsule Pill Selector and Sun/Moon Switcher */}
+            <div className="flex flex-wrap items-center gap-3">
             {/* Dark Mode Switcher */}
             <button
               onClick={() => {
@@ -483,6 +484,7 @@ export default function TaxDashboard() {
             </div>
           </div>
         </div>
+      ) : null}
 
         {/* Loading and Error States */}
         {loading ? (

@@ -4,7 +4,6 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
     title: 'Overview',
     items: [
       { id: 'dashboard', label: 'Dashboard', path: '/dashboard', iconName: 'FaThLarge' },
-      { id: 'tax_dashboard', label: 'Tax Dashboard', path: '/tax-dashboard', iconName: 'FaChartBar' },
       { id: 'bank_statement', label: 'Bank Statement', path: '/bank-statement', iconName: 'FaUniversity' }
     ]
   },
@@ -42,28 +41,21 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
     title: 'Operations & Assets',
     items: [
       { id: 'inventory', label: 'Inventory', path: '/items', iconName: 'FaBox' },
-      { id: 'projects', label: 'Projects', path: '/projects', iconName: 'FaProjectDiagram' }
+      { id: 'projects', label: 'Projects', path: '/projects', iconName: 'FaProjectDiagram' },
+      { id: 'business_units', label: 'Business Units', path: '/business-units', iconName: 'FaBuilding' }
     ]
   },
   {
     id: 'human_resources',
-    title: 'Human Resources',
+    title: 'Payroll',
     items: [
+      { id: 'payroll_dashboard', label: 'Dashboard', path: '/payroll', iconName: 'FaMoneyBillWave' },
       { id: 'employees', label: 'Employees', path: '/employees', iconName: 'FaUsers' },
-      {
-        id: 'payroll_group',
-        label: 'Payroll',
-        iconName: 'FaMoneyBillWave',
-        type: 'collapsible',
-        children: [
-          { id: 'payroll_dashboard', label: 'Dashboard', path: '/payroll' },
-          { id: 'payroll_process', label: 'Process Payroll', path: '/payroll/process' },
-          { id: 'payroll_calculator', label: 'Salary Calculator', path: '/payroll/calculator' },
-          { id: 'payroll_reports', label: 'Reports', path: '/payroll/reports' },
-          { id: 'payroll_settings', label: 'Settings', path: '/payroll/settings' },
-          { id: 'payroll_portal', label: 'Employee Portal (ESS)', path: '/payroll/portal' }
-        ]
-      }
+      { id: 'payroll_process', label: 'Process Payroll', path: '/payroll/process', iconName: 'FaCalculator' },
+      { id: 'payroll_calculator', label: 'Salary Calculator', path: '/payroll/calculator', iconName: 'FaCalculator' },
+      { id: 'payroll_reports', label: 'Reports', path: '/payroll/reports', iconName: 'FaChartBar' },
+      { id: 'payroll_settings', label: 'Settings', path: '/payroll/settings', iconName: 'FaCog' },
+      { id: 'payroll_portal', label: 'Employee Portal (ESS)', path: '/payroll/portal', iconName: 'FaUserTie' }
     ]
   },
   {
@@ -90,6 +82,7 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
         type: 'collapsible',
         isPremium: true,
         children: [
+          { id: 'tax_dashboard_reports', label: 'Tax Dashboard', path: '/tax-dashboard' },
           { id: 'reports_gst', label: 'GST Reports', path: '/reports/gst' },
           { id: 'reports_tds', label: 'TDS Summary', path: '/reports/tds' },
           { id: 'reports_revenue', label: 'Revenue Reports', path: '/reports/revenue' },
@@ -114,7 +107,7 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
   }
 ];
 
-const LOCAL_STORAGE_KEY = 'mbf_sidebar_layout_v2';
+const LOCAL_STORAGE_KEY = 'mbf_sidebar_layout_v7';
 
 /**
  * Merges a parsed custom layout from localStorage with the absolute default layout,

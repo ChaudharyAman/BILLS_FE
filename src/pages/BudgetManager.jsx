@@ -13,6 +13,7 @@ const getEmptyForm = () => ({
   name: '',
   category: '',
   department: '',
+  businessUnit: '',
   period: 'monthly',
   budgetAmount: 0,
   alertThreshold: 80,
@@ -26,6 +27,7 @@ const BudgetManager = () => {
   const [budgets, setBudgets] = useState([]);
   const [categories, setCategories] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [businessUnits, setBusinessUnits] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [formData, setFormData] = useState(getEmptyForm);
@@ -41,14 +43,16 @@ const BudgetManager = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [budgetRes, categoryRes, departmentRes] = await Promise.all([
+      const [budgetRes, categoryRes, departmentRes, buRes] = await Promise.all([
         api.get('/budgets?limit=100'),
         api.get('/categories?type=expense'),
         api.get('/departments'),
+        api.get('/business-units?status=active').catch(() => ({ data: [] })),
       ]);
       setBudgets(budgetRes.data.data || []);
       setCategories((categoryRes.data || []).filter(cat => !cat.parent));
       setDepartments(departmentRes.data || []);
+      setBusinessUnits(buRes.data || []);
     } catch (fetchError) {
       console.error(fetchError);
       setError(fetchError.response?.data?.message || 'Failed to load budget data');
@@ -179,6 +183,13 @@ const BudgetManager = () => {
             <select id="budget-department" value={formData.department} onChange={e => setFormData(p => ({ ...p, department: e.target.value }))} className={inputCls}>
               <option value="">None</option>
               {departments.map(dept => <option key={dept._id} value={dept._id}>{dept.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="budget-business-unit">Business Unit</label>
+            <select id="budget-business-unit" value={formData.businessUnit} onChange={e => setFormData(p => ({ ...p, businessUnit: e.target.value }))} className={inputCls}>
+              <option value="">None (General)</option>
+              {businessUnits.map(bu => <option key={bu._id} value={bu._id}>{bu.name} ({bu.code})</option>)}
             </select>
           </div>
           <div>

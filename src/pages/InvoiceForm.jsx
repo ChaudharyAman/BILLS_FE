@@ -142,6 +142,7 @@ const InvoiceForm = () => {
   const [clients, setClients] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [itemsList, setItemsList] = useState([]);
+  const [businessUnits, setBusinessUnits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
@@ -196,6 +197,7 @@ const InvoiceForm = () => {
       paymentMode: '',
       paymentTerms: 'On Receipt',
       status: 'DRAFT',
+      businessUnit: '',
       placeOfSupply: '',
       reverseCharge: false,
       items: [emptyItem()],
@@ -429,15 +431,17 @@ const InvoiceForm = () => {
 
   const fetchDependencies = async () => {
     try {
-      const [cr, ir, sr, por] = await Promise.all([
+      const [cr, ir, sr, por, bur] = await Promise.all([
         api.get('/clients?limit=1000'),
         api.get('/items?limit=1000'),
         api.get('/settings'),
-        api.get('/purchase-orders?limit=1000')
+        api.get('/purchase-orders?limit=1000'),
+        api.get('/business-units?status=active').catch(() => ({ data: [] }))
       ]);
       setClients(cr.data.data || []);
       setItemsList(ir.data.data || []);
       setPurchaseOrders(por.data.data || []);
+      setBusinessUnits(bur.data || []);
       setCompanyTaxProfile({
         state: sr.data?.address?.state || '',
         gstin: sr.data?.gstin || '',
@@ -506,6 +510,7 @@ const InvoiceForm = () => {
         paymentMode: inv.paymentMode || '',
         paymentTerms: inv.paymentTerms || 'On Receipt',
         status: inv.status || 'DRAFT',
+        businessUnit: inv.businessUnit?._id || inv.businessUnit || '',
         placeOfSupply: inv.placeOfSupply || '',
         reverseCharge: !!inv.reverseCharge,
         shippingCharges: inv.shippingCharges || 0,
@@ -1208,6 +1213,16 @@ const InvoiceForm = () => {
                 <option>Net 30</option>
                 <option>Net 45</option>
                 <option>Net 60</option>
+              </select>
+            </div>
+            <div>
+              <label className={lbl}>Business Unit</label>
+              <select className={inp} value={formData.businessUnit || ''}
+                onChange={(e) => setFormData({ ...formData, businessUnit: e.target.value })}>
+                <option value="">General / Unassigned</option>
+                {businessUnits.map(bu => (
+                  <option key={bu._id} value={bu._id}>{bu.name} ({bu.code})</option>
+                ))}
               </select>
             </div>
           </div>
