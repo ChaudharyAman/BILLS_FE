@@ -60,6 +60,7 @@ const IncomeForm = () => {
   const [clients, setClients] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [businessUnits, setBusinessUnits] = useState([]);
 
   // Form State matching Sleekbills screenshot
   const [formData, setFormData] = useState({
@@ -73,6 +74,7 @@ const IncomeForm = () => {
     clientName: '',
     category: '',
     subCategory: '',
+    businessUnit: '',
     items: [
       { itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }
     ],
@@ -108,23 +110,26 @@ const IncomeForm = () => {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [vRes, cRes, iRes, catRes, settingsRes] = await Promise.all([
+      const [vRes, cRes, iRes, catRes, settingsRes, buRes] = await Promise.all([
         api.get('/vendors?limit=1000'),
         api.get('/clients?limit=1000'),
         api.get('/items?limit=1000'),
         api.get('/categories?type=income'),
-        api.get('/settings')
+        api.get('/settings'),
+        api.get('/business-units?status=active')
       ]);
       const loadedVendors = vRes.data.data || [];
       const loadedClients = cRes.data.data || [];
       const loadedInventory = iRes.data.data || [];
       const loadedCategories = catRes.data || [];
       const settings = settingsRes.data || {};
+      const loadedBUs = buRes.data.data || [];
 
       setVendors(loadedVendors);
       setClients(loadedClients);
       setInventory(loadedInventory);
       setCategories(loadedCategories);
+      setBusinessUnits(loadedBUs);
       setCompanyTaxProfile({
         state: settings.address?.state || '',
         gstin: settings.gstin || '',
@@ -159,6 +164,7 @@ const IncomeForm = () => {
             clientName: data.client?.name || '',
             category: data.category?._id || data.category || '',
             subCategory: data.subCategory?._id || data.subCategory || '',
+            businessUnit: data.businessUnit?._id || data.businessUnit || '',
             items: data.items?.length > 0 ? data.items : [{ itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }],
             reverseCharge: !!data.reverseCharge,
             terms: data.terms || '',
@@ -422,6 +428,7 @@ const IncomeForm = () => {
         placeOfSupply: formData.placeOfSupply || '',
         category: formData.category || null,
         subCategory: formData.subCategory || null,
+        businessUnit: formData.businessUnit || null,
         reverseCharge: !!formData.reverseCharge,
         items: formData.items,
         subTotal: totals.subTotal,
@@ -642,6 +649,22 @@ const IncomeForm = () => {
                   {rootCategories.map(cat => (
                     <option key={cat._id} value={cat._id}>{cat.name}</option>
                   ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
+                <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Business Unit</span>
+                <div className="flex-1 min-w-0">
+                  <select
+                    className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                    value={formData.businessUnit}
+                    onChange={e => setFormData(p => ({ ...p, businessUnit: e.target.value }))}
+                  >
+                    <option value="">Select Business Unit</option>
+                    {businessUnits.map(bu => (
+                      <option key={bu._id} value={bu._id}>{bu.name} ({bu.code})</option>
+                    ))}
                   </select>
                 </div>
               </div>
