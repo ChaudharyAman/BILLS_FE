@@ -673,7 +673,7 @@ const PayrollProcessing = () => {
   const [rows, setRows] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [monthWorkingDays, setMonthWorkingDays] = useState(DEFAULT_PAYROLL_CONFIG.defaultWorkingDays);
+  const [monthWorkingDays, setMonthWorkingDays] = useState(() => new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate());
   const [claimsMap, setClaimsMap] = useState(new Map());
   const [existingPayrollsMap, setExistingPayrollsMap] = useState(new Map());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -820,8 +820,9 @@ const PayrollProcessing = () => {
         });
         setExistingPayrollsMap(payrollMap);
 
+        const calendarDaysInMonth = new Date(year, month, 0).getDate();
         setConfig(nextConfig);
-        setMonthWorkingDays(nextConfig.defaultWorkingDays || 26);
+        setMonthWorkingDays(calendarDaysInMonth);
         setEmployees(activeEmployees);
         setSelected(Object.fromEntries(activeEmployees.map((emp) => {
           const payroll = payrollMap.get(String(emp._id));
@@ -922,8 +923,10 @@ const PayrollProcessing = () => {
             activeDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
           }
 
-          const defaultDays = nextConfig.defaultWorkingDays || 26;
-          let proratedPaidDays = defaultDays;
+          const defaultDays = calendarDays;
+          let proratedPaidDays = (activeDays > 0 && activeDays < calendarDays)
+            ? Math.min(calendarDays, Math.max(0, activeDays))
+            : calendarDays;
 
           const initialRow = {
             compensationType: resolveCompensationTypeClient(emp),
@@ -1454,6 +1457,28 @@ const PayrollProcessing = () => {
     }
   };
 
+  const handleDownloadInputsOnly = async () => {
+    try {
+      toast.loading(`Downloading payroll inputs sheet for ${monthName(month)} ${year}...`, { id: 'inputs-sheet' });
+      const response = await api.get(`/payroll/export-inputs?month=${month}&year=${year}`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `payroll-inputs-${year}-${String(month).padStart(2, '0')}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Payroll inputs sheet downloaded successfully!', { id: 'inputs-sheet' });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to download payroll inputs sheet', { id: 'inputs-sheet' });
+    }
+  };
+
   return (
     <div className="max-w-[98%] mx-auto p-6 font-sans text-gray-900">
       {activeJobId && (
@@ -1476,26 +1501,26 @@ const PayrollProcessing = () => {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">Process Payroll</h1>
           <p className="text-xs text-gray-500 mt-1">Review proration, variable pay, and deduction inputs before generating payroll.</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-nowrap shrink-0 overflow-x-auto pb-0.5">
           <button
             type="button"
-            onClick={handleDownloadBulkZip}
-            disabled={downloadingZip}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors flex items-center gap-1"
+            onClick={handleDownloadInputsOnly}
+            className="bg-slate-700 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs shrink-0 whitespace-nowrap"
+            title="Download working days, LOP, overtime, and variable inputs as Excel"
           >
-            <FaDownload className="w-3 h-3" /> Download All (ZIP)
+            <FaDownload className="w-3 h-3" /> Download Inputs Only
           </button>
           {isHrmsEnabled && (
             <button
               type="button"
               onClick={handleSyncAttendance}
               disabled={syncingAttendance}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors"
+              className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors shrink-0 whitespace-nowrap"
             >
               {syncingAttendance ? 'Syncing...' : 'Re-sync attendance from HRMS'}
             </button>
@@ -1505,16 +1530,19 @@ const PayrollProcessing = () => {
               type="button"
               onClick={handleResetMonthPayroll}
               disabled={saving}
-              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors"
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors shrink-0 whitespace-nowrap"
             >
               Reset Month's Payroll
             </button>
           )}
-          <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white">
+          <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs bg-white font-medium shrink-0 whitespace-nowrap">
             {Array.from({ length: 12 }, (_, i) => i + 1).map((value) => <option key={value} value={value}>{monthName(value)}</option>)}
           </select>
-          <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-20 border border-gray-300 rounded-lg px-3 py-1.5 text-xs" />
-          <input type="number" value={monthWorkingDays} min="1" onChange={(e) => setMonthWorkingDays(Number(e.target.value) || 1)} className="w-28 border border-gray-300 rounded-lg px-3 py-1.5 text-xs" placeholder="Working Days" />
+          <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-18 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-medium shrink-0" />
+          <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 shrink-0 whitespace-nowrap">
+            <span className="text-[11px] text-gray-500 font-medium">Days:</span>
+            <input type="number" value={monthWorkingDays} min="1" onChange={(e) => setMonthWorkingDays(Number(e.target.value) || 1)} className="w-10 border-0 bg-transparent p-0 text-xs font-semibold text-gray-800 focus:ring-0 text-center" title="Working Days in Month" />
+          </div>
         </div>
       </div>
 
