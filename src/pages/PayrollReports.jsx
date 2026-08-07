@@ -214,6 +214,28 @@ const PayrollReports = () => {
     }
   };
 
+  const handleDownloadInputsRegister = async () => {
+    if (selectedMonths.length === 0 || selectedYears.length === 0) {
+      toast.error('Select at least one month and one year');
+      return;
+    }
+    setDownloading('payroll-inputs');
+    try {
+      for (const y of selectedYears) {
+        for (const m of selectedMonths) {
+          const monthName = new Date(0, m - 1).toLocaleString('en-US', { month: 'short' });
+          await downloadReport(`/payroll/export-inputs?month=${m}&year=${y}`, `payroll-inputs-${y}-${monthName}.xlsx`);
+        }
+      }
+      toast.success('Payroll inputs sheet(s) downloaded successfully');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to download inputs register');
+    } finally {
+      setDownloading('');
+    }
+  };
+
   const handleDownloadBankTransfer = async () => {
     if (selectedMonths.length === 0 || selectedYears.length === 0) {
       toast.error('Select at least one month and one year');
@@ -501,6 +523,12 @@ const PayrollReports = () => {
           description="Complete consolidated payroll summary sheet for all active/processed employees in the selected months and years."
           onClick={handleDownloadRegister}
           loading={downloading === 'payroll-sheet'}
+        />
+        <ReportCard
+          title="📋 Payroll Inputs Register"
+          description="Download period inputs only (working days, paid days, LOP, overtime, bonus, loan EMI overrides, reimbursements) without detailed statutory tax and net salary breakdowns."
+          onClick={handleDownloadInputsRegister}
+          loading={downloading === 'payroll-inputs'}
         />
         <ReportCard
           title="🏦 Bank Transfer Sheet"

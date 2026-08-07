@@ -621,9 +621,11 @@ const PayrollDashboard = () => {
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (exportType = 'full') => {
     try {
-      let exportUrl = `/payroll/export?month=${month}&year=${year}`;
+      const isInputs = exportType === 'inputs';
+      const endpoint = isInputs ? '/payroll/export-inputs' : '/payroll/export';
+      let exportUrl = `${endpoint}?month=${month}&year=${year}`;
       if (statusFilter && statusFilter !== 'all') {
         exportUrl += `&statusFilter=${statusFilter}`;
       }
@@ -635,10 +637,11 @@ const PayrollDashboard = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `payroll-sheet-${year}-${String(month).padStart(2, '0')}-${statusFilter}.xlsx`;
+      const prefix = isInputs ? 'payroll-inputs' : 'payroll-sheet';
+      link.download = `${prefix}-${year}-${String(month).padStart(2, '0')}-${statusFilter}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
-      toast.success('Payroll export downloaded');
+      toast.success(isInputs ? 'Payroll inputs exported successfully' : 'Payroll export downloaded');
     } catch (error) {
       console.error(error);
       toast.error('Failed to export payroll');
@@ -759,6 +762,14 @@ const PayrollDashboard = () => {
             />
           </div>
 
+          <button
+            type="button"
+            onClick={() => handleExport('inputs')}
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3.5 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-sm"
+            title="Download working days, LOP, overtime, and variable inputs as Excel"
+          >
+            <FaDownload size={13} /> Export Inputs Only
+          </button>
           <Link to="/employees" className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-sm">
             Manage Employees
           </Link>
@@ -1099,8 +1110,11 @@ const PayrollDashboard = () => {
                 <div className="flex flex-wrap items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
                   <span className="text-sm font-semibold text-blue-700">{selectedPayrolls.length} selected</span>
                   <button onClick={() => setConfirmAction({ type: 'approve' })} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">Approve Selected</button>
-                  <button onClick={handleExport} className="bg-white border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
-                    <FaDownload /> Export Excel
+                  <button onClick={() => handleExport('full')} className="bg-white border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+                    <FaDownload /> Export Full Sheet
+                  </button>
+                  <button onClick={() => handleExport('inputs')} className="bg-slate-100 border border-slate-300 text-slate-800 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+                    <FaDownload /> Export Inputs Only
                   </button>
                   <button onClick={() => setConfirmAction({
                     type: 'markPaid',
