@@ -139,10 +139,6 @@ const CategoryManagement = () => {
   };
 
   const handleDelete = async (category) => {
-    if (category?.isSystem) {
-      alert('Cannot delete system category');
-      return;
-    }
     if (!window.confirm(`Delete ${category.name}?`)) return;
     try {
       await api.delete(`/categories/${category._id}`);
@@ -255,9 +251,17 @@ const CategoryManagement = () => {
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-2">
                         {children.map(child => (
-                          <span key={child._id} className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2.5 py-1 text-xs text-gray-600">
+                          <span key={child._id} className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 pl-2.5 pr-1.5 py-1 text-xs text-gray-700 font-medium">
                             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: child.color || category.color }} />
                             {child.name}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleDelete(child); }}
+                              className="text-gray-400 hover:text-red-600 rounded-full p-0.5 hover:bg-gray-200 transition-colors ml-0.5"
+                              title={`Delete sub-category ${child.name}`}
+                            >
+                              <FaTimes size={11} />
+                            </button>
                           </span>
                         ))}
                         <button
@@ -280,9 +284,8 @@ const CategoryManagement = () => {
                         <button
                           type="button"
                           onClick={() => handleDelete(category)}
-                          disabled={category.isSystem}
-                          className={category.isSystem ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-red-600'}
-                          title={category.isSystem ? 'System categories cannot be deleted' : 'Delete'}
+                          className="text-gray-400 hover:text-red-600 transition-colors"
+                          title="Delete Category"
                         >
                           <FaTrash size={16} />
                         </button>

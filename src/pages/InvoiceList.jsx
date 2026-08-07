@@ -64,11 +64,19 @@ const InvoiceList = () => {
   // Sorting & Filtering State
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [businessUnitFilter, setBusinessUnitFilter] = useState('');
+  const [businessUnits, setBusinessUnits] = useState([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [dateTypeFilter, setDateTypeFilter] = useState('date'); // 'date' or 'dueDate'
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
+
+  useEffect(() => {
+    api.get('/business-units?status=active')
+      .then((res) => setBusinessUnits(res.data || []))
+      .catch((err) => console.error('Failed to load business units:', err));
+  }, []);
 
   // Debounced Search and Direct Filter Effect
   useEffect(() => {
@@ -76,7 +84,7 @@ const InvoiceList = () => {
       fetchInvoices();
     }, 300);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, page, rowsPerPage, statusFilter, typeFilter, startDate, endDate, dateTypeFilter, sortBy, sortOrder]);
+  }, [searchTerm, page, rowsPerPage, statusFilter, typeFilter, businessUnitFilter, startDate, endDate, dateTypeFilter, sortBy, sortOrder]);
 
   const fetchInvoices = async () => {
     try {
@@ -87,6 +95,7 @@ const InvoiceList = () => {
         search: searchTerm,
         status: statusFilter,
         invoiceType: typeFilter,
+        businessUnit: businessUnitFilter,
         startDate,
         endDate,
         dateType: dateTypeFilter,
@@ -264,6 +273,7 @@ const InvoiceList = () => {
       search: searchTerm,
       status: statusFilter,
       invoiceType: typeFilter,
+      businessUnit: businessUnitFilter,
       startDate,
       endDate,
       dateType: dateTypeFilter,
@@ -482,6 +492,22 @@ const InvoiceList = () => {
                         <option value="Excise Invoice">Excise Invoice</option>
                      </select>
                  </div>
+
+                 <div className="flex flex-col min-w-[160px]">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Business Unit</span>
+                      <select
+                         value={businessUnitFilter}
+                         onChange={(e) => { setBusinessUnitFilter(e.target.value); setPage(1); }}
+                         className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                      >
+                         <option value="">All Business Units</option>
+                         {businessUnits.map((bu) => (
+                           <option key={bu._id} value={bu._id}>
+                             {bu.name} ({bu.code})
+                           </option>
+                         ))}
+                      </select>
+                  </div>
 
                  <div className="flex flex-col min-w-[130px]">
                      <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Date Type</span>

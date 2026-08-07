@@ -31,17 +31,33 @@ const PurchaseOrderList = () => {
   try { userObj = userStr ? JSON.parse(userStr).user : null; } catch(e) {}
   const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
 
+  const [businessUnitFilter, setBusinessUnitFilter] = useState('');
+  const [businessUnits, setBusinessUnits] = useState([]);
+
+  useEffect(() => {
+    api.get('/business-units?status=active')
+      .then(res => setBusinessUnits(res.data || []))
+      .catch(err => console.error('Failed to load business units:', err));
+  }, []);
+
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchPurchaseOrders();
     }, 300);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, statusFilter, page, rowsPerPage]);
+  }, [searchTerm, statusFilter, page, rowsPerPage, businessUnitFilter]);
 
   const fetchPurchaseOrders = async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/purchase-orders?page=${page}&limit=${rowsPerPage}&search=${encodeURIComponent(searchTerm)}&status=${encodeURIComponent(statusFilter)}`);
+      const params = new URLSearchParams({
+        page,
+        limit: rowsPerPage,
+        search: searchTerm,
+        status: statusFilter,
+      });
+      if (businessUnitFilter) params.append('businessUnit', businessUnitFilter);
+      const res = await api.get(`/purchase-orders?${params.toString()}`);
       setPurchaseOrders(res.data.data || []);
       setTotalPages(res.data.totalPages || 1);
       setTotalRecords(res.data.total || 0);
@@ -209,6 +225,7 @@ const PurchaseOrderList = () => {
       search: searchTerm,
       status: statusFilter,
     });
+    if (businessUnitFilter) params.append('businessUnit', businessUnitFilter);
     const res = await api.get(`/purchase-orders?${params.toString()}`);
     let exportPurchaseOrders = res.data.data || [];
 
@@ -349,6 +366,18 @@ const PurchaseOrderList = () => {
               {STATUS_OPTIONS.map(status => (
                 <option key={status} value={status}>
                   {status === 'ALL' ? 'All Statuses' : status}
+                </option>
+              ))}
+            </select>
+            <select
+              value={businessUnitFilter}
+              onChange={(e) => { setBusinessUnitFilter(e.target.value); setPage(1); }}
+              className="min-w-[160px] border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans"
+            >
+              <option value="">All Business Units</option>
+              {businessUnits.map((bu) => (
+                <option key={bu._id} value={bu._id}>
+                  {bu.name} ({bu.code})
                 </option>
               ))}
             </select>

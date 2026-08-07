@@ -30,17 +30,32 @@ const ProformaList = () => {
   try { userObj = userStr ? JSON.parse(userStr).user : null; } catch(e) {}
   const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
 
+  const [businessUnitFilter, setBusinessUnitFilter] = useState('');
+  const [businessUnits, setBusinessUnits] = useState([]);
+
+  useEffect(() => {
+    api.get('/business-units?status=active')
+      .then(res => setBusinessUnits(res.data || []))
+      .catch(err => console.error('Failed to load business units:', err));
+  }, []);
+
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchProformas();
     }, 300);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, page, rowsPerPage]);
+  }, [searchTerm, page, rowsPerPage, businessUnitFilter]);
 
   const fetchProformas = async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/proformas?page=${page}&limit=${rowsPerPage}&search=${encodeURIComponent(searchTerm)}`);
+      const params = new URLSearchParams({
+        page,
+        limit: rowsPerPage,
+        search: searchTerm,
+      });
+      if (businessUnitFilter) params.append('businessUnit', businessUnitFilter);
+      const res = await api.get(`/proformas?${params.toString()}`);
       setProformas(res.data.data || []);
       setTotalPages(res.data.totalPages || 1);
       setTotalRecords(res.data.total || 0);
@@ -219,6 +234,7 @@ const ProformaList = () => {
       all: 'true',
       search: searchTerm,
     });
+    if (businessUnitFilter) params.append('businessUnit', businessUnitFilter);
     const res = await api.get(`/proformas?${params.toString()}`);
     const exportProformas = res.data.data || [];
 
@@ -292,11 +308,25 @@ const ProformaList = () => {
       <QuotaIndicator type="quotes" />
 
       <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-          <input type="text" placeholder="Search proformas..."
-            className="w-full max-w-sm pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setPage(1); }} />
-          <div className="text-sm text-gray-500 ml-4">Showing {displayed.length} of {totalRecords}</div>
+        <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-4 w-full max-w-xl">
+            <input type="text" placeholder="Search proformas..."
+              className="w-full max-w-sm pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setPage(1); }} />
+            <select
+              value={businessUnitFilter}
+              onChange={(e) => { setBusinessUnitFilter(e.target.value); setPage(1); }}
+              className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 text-sm transition-all cursor-pointer font-sans"
+            >
+              <option value="">All Business Units</option>
+              {businessUnits.map((bu) => (
+                <option key={bu._id} value={bu._id}>
+                  {bu.name} ({bu.code})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="text-sm text-gray-500">Showing {displayed.length} of {totalRecords}</div>
         </div>
 
         <div className="overflow-x-auto">

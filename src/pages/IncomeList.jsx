@@ -7,6 +7,15 @@ import ExportDropdown from '../components/ExportDropdown';
 import Modal from '../components/Modal';
 import PdfInvoiceImporter from '../components/PdfInvoiceImporter';
 
+const STATUS_STYLES = {
+  DRAFT: 'bg-gray-100 text-gray-700 border-gray-200',
+  PAID: 'bg-green-100 text-green-700 border-green-200',
+  RECEIVED: 'bg-green-100 text-green-700 border-green-200',
+  PARTIAL: 'bg-amber-100 text-amber-700 border-amber-200',
+  UNPAID: 'bg-red-100 text-red-700 border-red-200',
+  CANCELLED: 'bg-gray-200 text-gray-500 border-gray-300',
+};
+
 const IncomeList = () => {
   const navigate = useNavigate();
   const [incomes, setIncomes] = useState([]);
@@ -23,6 +32,8 @@ const IncomeList = () => {
   // Filters State
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [businessUnitFilter, setBusinessUnitFilter] = useState('');
+  const [businessUnits, setBusinessUnits] = useState([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
@@ -34,11 +45,17 @@ const IncomeList = () => {
   const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
 
   useEffect(() => {
+    api.get('/business-units?status=active')
+      .then(res => setBusinessUnits(res.data || []))
+      .catch(err => console.error('Failed to load business units:', err));
+  }, []);
+
+  useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchIncomes();
     }, 300);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, page, rowsPerPage, statusFilter, typeFilter, startDate, endDate, sortBy, sortOrder]);
+  }, [searchTerm, page, rowsPerPage, statusFilter, typeFilter, businessUnitFilter, startDate, endDate, sortBy, sortOrder]);
 
   const fetchIncomes = async () => {
     try {
@@ -49,6 +66,7 @@ const IncomeList = () => {
         search: searchTerm,
         status: statusFilter,
         sourceType: typeFilter,
+        businessUnit: businessUnitFilter,
         startDate,
         endDate,
         sortBy,
@@ -136,6 +154,7 @@ const IncomeList = () => {
       search: searchTerm,
       status: statusFilter,
       sourceType: typeFilter,
+      businessUnit: businessUnitFilter,
       startDate,
       endDate,
       sortBy,
@@ -257,6 +276,22 @@ const IncomeList = () => {
               </select>
             </div>
 
+            <div className="flex flex-col min-w-[160px]">
+              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Business Unit</span>
+              <select
+                value={businessUnitFilter}
+                onChange={(e) => { setBusinessUnitFilter(e.target.value); setPage(1); }}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+              >
+                <option value="">All Business Units</option>
+                {businessUnits.map((bu) => (
+                  <option key={bu._id} value={bu._id}>
+                    {bu.name} ({bu.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="flex flex-col min-w-[130px]">
               <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">From Date</span>
               <input
@@ -300,6 +335,7 @@ const IncomeList = () => {
               onClick={() => {
                 setStatusFilter('');
                 setTypeFilter('');
+                setBusinessUnitFilter('');
                 setStartDate('');
                 setEndDate('');
                 setSortBy('createdAt');
@@ -317,14 +353,14 @@ const IncomeList = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 w-12 text-center">
+                <th className="px-3.5 py-2.5 w-10 text-center">
                   <button onClick={toggleAll} className="text-gray-400 hover:text-gray-600">
-                    {selectedIds.length === incomes.length && incomes.length > 0 ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
+                    {selectedIds.length === incomes.length && incomes.length > 0 ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                   </button>
                 </th>
                 <th 
                   onClick={() => handleSort('date')}
-                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Date {renderSortIcon('date')}
@@ -332,7 +368,7 @@ const IncomeList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('incomeNumber')}
-                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Number {renderSortIcon('incomeNumber')}
@@ -340,7 +376,7 @@ const IncomeList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('vendor.name')}
-                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Party {renderSortIcon('vendor.name')}
@@ -348,7 +384,7 @@ const IncomeList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('client.name')}
-                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Reference Client {renderSortIcon('client.name')}
@@ -356,7 +392,7 @@ const IncomeList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('sourceType')}
-                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Source {renderSortIcon('sourceType')}
@@ -364,7 +400,7 @@ const IncomeList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('status')}
-                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Status {renderSortIcon('status')}
@@ -372,13 +408,13 @@ const IncomeList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('grandTotal')}
-                  className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-3.5 py-2.5 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                 >
                   <div className="flex items-center justify-end">
                     Amount {renderSortIcon('grandTotal')}
                   </div>
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider select-none">
+                <th className="px-3.5 py-2.5 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">
                   Actions
                 </th>
               </tr>
@@ -387,40 +423,40 @@ const IncomeList = () => {
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="bg-white border-b border-gray-100">
-                    <td className="px-6 py-4 text-center"><Skeleton width="18px" height="18px" className="mx-auto" /></td>
-                    <td className="px-6 py-4"><Skeleton width="80px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="100px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="140px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="100px" height="20px" /></td>
-                    <td className="px-6 py-4"><Skeleton width="70px" height="24px" className="rounded-full" /></td>
-                    <td className="px-6 py-4"><Skeleton width="80px" height="24px" className="rounded-full" /></td>
-                    <td className="px-6 py-4 text-right"><Skeleton width="80px" height="20px" className="ml-auto" /></td>
-                    <td className="px-6 py-4 text-center"><Skeleton width="100px" height="20px" className="mx-auto" /></td>
+                    <td className="px-3.5 py-2.5 text-center"><Skeleton width="16px" height="16px" className="mx-auto" /></td>
+                    <td className="px-3.5 py-2.5"><Skeleton width="70px" height="18px" /></td>
+                    <td className="px-3.5 py-2.5"><Skeleton width="90px" height="18px" /></td>
+                    <td className="px-3.5 py-2.5"><Skeleton width="130px" height="18px" /></td>
+                    <td className="px-3.5 py-2.5"><Skeleton width="90px" height="18px" /></td>
+                    <td className="px-3.5 py-2.5"><Skeleton width="60px" height="20px" className="rounded-full" /></td>
+                    <td className="px-3.5 py-2.5"><Skeleton width="70px" height="20px" className="rounded-full" /></td>
+                    <td className="px-3.5 py-2.5 text-right"><Skeleton width="70px" height="18px" className="ml-auto" /></td>
+                    <td className="px-3.5 py-2.5 text-center"><Skeleton width="80px" height="18px" className="mx-auto" /></td>
                   </tr>
                 ))
               ) : displayed.length === 0 ? (
-                <tr><td colSpan="9" className="px-6 py-12 text-center text-gray-500 text-sm">No incomes found.</td></tr>
+                <tr><td colSpan="9" className="px-3.5 py-12 text-center text-gray-500 text-sm">No incomes found.</td></tr>
               ) : displayed.map(exp => (
                 <tr key={exp._id} className="hover:bg-blue-50/50 transition-colors">
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-3.5 py-2.5 text-center">
                     <button onClick={() => toggleSelect(exp._id)} className={selectedIds.includes(exp._id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}>
-                      {selectedIds.includes(exp._id) ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
+                      {selectedIds.includes(exp._id) ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                     </button>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{fmtDate(exp.date)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3.5 py-2.5 whitespace-nowrap text-xs text-gray-500">{fmtDate(exp.date)}</td>
+                  <td className="px-3.5 py-2.5 whitespace-nowrap text-xs">
                     <Link to={getEditPath(exp)} className="text-blue-600 font-medium hover:text-blue-800 hover:underline">
                       {exp.incomeNumber}
                     </Link>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{exp.vendor?.name || exp.client?.name || '—'}</div>
+                  <td className="px-3.5 py-2.5 whitespace-nowrap max-w-[200px] truncate" title={exp.vendor?.name || exp.client?.name || ''}>
+                    <div className="text-xs font-medium text-gray-900 truncate">{exp.vendor?.name || exp.client?.name || '—'}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-3.5 py-2.5 whitespace-nowrap text-xs text-gray-500 max-w-[180px] truncate" title={exp.client?.name || ''}>
                     {exp.client?.name || '—'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                  <td className="px-3.5 py-2.5 whitespace-nowrap">
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${
                       exp.sourceType === 'invoice'
                         ? 'bg-blue-100 text-blue-700 border-blue-200'
                         : 'bg-gray-100 text-gray-700 border-gray-200'
@@ -428,22 +464,22 @@ const IncomeList = () => {
                       {exp.sourceType === 'invoice' ? 'Invoice' : 'Manual'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${STATUS_STYLES[exp.status] || STATUS_STYLES.DRAFT}`}>
+                  <td className="px-3.5 py-2.5 whitespace-nowrap">
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${STATUS_STYLES[exp.status] || STATUS_STYLES.DRAFT}`}>
                       {exp.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
+                  <td className="px-3.5 py-2.5 whitespace-nowrap text-right text-xs font-semibold text-gray-900">
                     ₹{fmt(exp.grandTotal)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <div className="flex justify-center gap-3 items-center">
+                  <td className="px-3.5 py-2.5 whitespace-nowrap text-center">
+                    <div className="flex justify-center gap-2.5 items-center">
                       <Link
                         to={getEditPath(exp)}
                         className="text-gray-400 hover:text-blue-600 transition-colors"
                         title={isInvoiceSynced(exp) ? 'Open invoice' : 'Edit'}
                       >
-                        <FaEdit size={17} />
+                        <FaEdit size={16} />
                       </Link>
                       <button 
                         onClick={() => {

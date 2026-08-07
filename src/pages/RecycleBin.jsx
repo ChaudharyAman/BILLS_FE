@@ -4,6 +4,12 @@ import { FaTrash, FaUndo, FaSearch, FaTrashRestore, FaExclamationTriangle } from
 import { toast } from 'react-hot-toast';
 import Skeleton from '../components/Skeleton';
 
+const isLocalhost = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname === '::1'
+);
+
 const TYPE_LABELS = {
   Invoice: 'Invoices',
   Quote: 'Quotes',
@@ -247,7 +253,7 @@ const RecycleBin = () => {
             View, restore, or permanently delete items that you have deleted.
           </p>
         </div>
-        {items.length > 0 && (
+        {isLocalhost && items.length > 0 && (
           <button
             type="button"
             disabled={bulkLoading}
@@ -320,14 +326,16 @@ const RecycleBin = () => {
             >
               <FaUndo size={11} /> Restore Selected ({selectedCount})
             </button>
-            <button
-              type="button"
-              disabled={bulkLoading}
-              onClick={handleBulkPermanentDelete}
-              className="bg-rose-600 hover:bg-rose-700 text-white font-semibold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
-            >
-              <FaTrash size={11} /> Delete Selected Permanently ({selectedCount})
-            </button>
+            {isLocalhost && (
+              <button
+                type="button"
+                disabled={bulkLoading}
+                onClick={handleBulkPermanentDelete}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-semibold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+              >
+                <FaTrash size={11} /> Delete Selected Permanently ({selectedCount})
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setSelectedMap({})}
@@ -452,18 +460,20 @@ const RecycleBin = () => {
                               <FaUndo size={14} />
                             )}
                           </button>
-                          <button
-                            disabled={isCurrentActionLoading}
-                            onClick={() => handlePermanentDelete(item._id, item.type)}
-                            className="inline-flex items-center justify-center p-2 rounded-lg text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
-                            title="Permanently Delete"
-                          >
-                            {isCurrentActionLoading ? (
-                              <div className="w-4 h-4 border-2 border-rose-600 border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                              <FaTrash size={14} />
-                            )}
-                          </button>
+                          {isLocalhost && (
+                            <button
+                              disabled={isCurrentActionLoading}
+                              onClick={() => handlePermanentDelete(item._id, item.type)}
+                              className="inline-flex items-center justify-center p-2 rounded-lg text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                              title="Permanently Delete"
+                            >
+                              {isCurrentActionLoading ? (
+                                <div className="w-4 h-4 border-2 border-rose-600 border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <FaTrash size={14} />
+                              )}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

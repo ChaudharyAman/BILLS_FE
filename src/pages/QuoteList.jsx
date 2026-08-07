@@ -26,6 +26,8 @@ const QuoteList = () => {
 
   // Sorting & Filtering State
   const [statusFilter, setStatusFilter] = useState('');
+  const [businessUnitFilter, setBusinessUnitFilter] = useState('');
+  const [businessUnits, setBusinessUnits] = useState([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [dateTypeFilter, setDateTypeFilter] = useState('date'); // 'date' or 'validUntil'
@@ -38,11 +40,17 @@ const QuoteList = () => {
   const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
 
   useEffect(() => {
+    api.get('/business-units?status=active')
+      .then(res => setBusinessUnits(res.data || []))
+      .catch(err => console.error('Failed to load business units:', err));
+  }, []);
+
+  useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchQuotes();
     }, 300);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, page, rowsPerPage, statusFilter, startDate, endDate, dateTypeFilter, sortBy, sortOrder]);
+  }, [searchTerm, page, rowsPerPage, statusFilter, businessUnitFilter, startDate, endDate, dateTypeFilter, sortBy, sortOrder]);
 
   const fetchQuotes = async () => {
     try {
@@ -52,6 +60,7 @@ const QuoteList = () => {
         limit: rowsPerPage,
         search: searchTerm,
         status: statusFilter,
+        businessUnit: businessUnitFilter,
         startDate,
         endDate,
         dateType: dateTypeFilter,
@@ -307,6 +316,7 @@ const QuoteList = () => {
       all: 'true',
       search: searchTerm,
       status: statusFilter,
+      businessUnit: businessUnitFilter,
       startDate,
       endDate,
       dateType: dateTypeFilter,
@@ -471,6 +481,22 @@ const QuoteList = () => {
                         <option value="CONVERTED">CONVERTED</option>
                      </select>
                  </div>
+
+                 <div className="flex flex-col min-w-[160px]">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Business Unit</span>
+                      <select
+                         value={businessUnitFilter}
+                         onChange={(e) => { setBusinessUnitFilter(e.target.value); setPage(1); }}
+                         className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                      >
+                         <option value="">All Business Units</option>
+                         {businessUnits.map((bu) => (
+                           <option key={bu._id} value={bu._id}>
+                             {bu.name} ({bu.code})
+                           </option>
+                         ))}
+                      </select>
+                  </div>
 
                  <div className="flex flex-col min-w-[130px]">
                      <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Date Type</span>

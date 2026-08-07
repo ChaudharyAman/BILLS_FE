@@ -738,7 +738,27 @@ const PayrollDashboard = () => {
           <h1 className="text-3xl font-bold tracking-tight">Payroll</h1>
           <p className="text-gray-500 mt-1">Track payroll processing, approvals, payments, and employee payslips</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Top Month & Year Period Filter */}
+          <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-1.5 shadow-sm">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Period:</span>
+            <select
+              value={month}
+              onChange={(e) => setMonth(Number(e.target.value))}
+              className="border-0 bg-transparent text-sm font-bold text-blue-600 focus:outline-none cursor-pointer"
+            >
+              {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => (
+                <option key={value} value={value}>{monthName(value)}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="w-20 border border-gray-200 rounded px-2 py-0.5 text-sm font-bold text-gray-800 text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
           <Link to="/employees" className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-sm">
             Manage Employees
           </Link>

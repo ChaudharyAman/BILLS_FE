@@ -5,7 +5,8 @@ import {
   FaWallet, FaFileInvoiceDollar, FaHandHoldingUsd, FaReceipt,
   FaFilePdf, FaLock, FaUnlock, FaPrint, FaCloudUploadAlt,
   FaCheckCircle, FaTimesCircle, FaHourglassHalf, FaCalculator,
-  FaUserCircle, FaInfoCircle, FaDownload, FaCalendarCheck
+  FaUserCircle, FaInfoCircle, FaDownload, FaCalendarCheck,
+  FaEdit, FaTrash
 } from 'react-icons/fa';
 import * as XLSX from 'xlsx';
 import api from '../api/axios';
@@ -68,6 +69,7 @@ const EmployeePortal = () => {
   
   // Modal / Form States
   const [showClaimModal, setShowClaimModal] = useState(false);
+  const [editingClaimId, setEditingClaimId] = useState(null);
   const [showLoanModal, setShowLoanModal] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [selectedSlip, setSelectedSlip] = useState(null);
@@ -447,7 +449,7 @@ const EmployeePortal = () => {
     toast.success('Salary breakup downloaded successfully');
   };
 
-  // Submit Claim
+  // Submit / Edit / Delete Claim
 
   const handleClaimSubmit = async (e) => {
     e.preventDefault();
@@ -459,19 +461,51 @@ const EmployeePortal = () => {
         return;
       }
       
-      const res = await api.post('/reimbursements', {
-        employee: employee._id,
-        category: claimDraft.category,
-        amount: amt,
-        billUrl: claimDraft.billUrl
-      });
+      if (editingClaimId) {
+        const res = await api.put(`/reimbursements/${editingClaimId}`, {
+          category: claimDraft.category,
+          amount: amt,
+          billUrl: claimDraft.billUrl
+        });
+        setClaims(claims.map(c => c._id === editingClaimId ? res.data : c));
+        toast.success('Reimbursement claim updated successfully');
+      } else {
+        const res = await api.post('/reimbursements', {
+          employee: employee._id,
+          category: claimDraft.category,
+          amount: amt,
+          billUrl: claimDraft.billUrl
+        });
+        setClaims([res.data, ...claims]);
+        toast.success('Reimbursement claim submitted successfully');
+      }
 
-      setClaims([res.data, ...claims]);
       setShowClaimModal(false);
+      setEditingClaimId(null);
       setClaimDraft({ category: 'broadband', amount: '', billUrl: '' });
-      toast.success('Reimbursement claim submitted successfully');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to submit claim');
+      toast.error(err.response?.data?.message || 'Failed to save claim');
+    }
+  };
+
+  const handleEditClaim = (claim) => {
+    setEditingClaimId(claim._id);
+    setClaimDraft({
+      category: claim.category || 'broadband',
+      amount: claim.amount || '',
+      billUrl: claim.billUrl || ''
+    });
+    setShowClaimModal(true);
+  };
+
+  const handleDeleteClaim = async (claimId) => {
+    if (!window.confirm('Are you sure you want to delete this reimbursement claim?')) return;
+    try {
+      await api.delete(`/reimbursements/${claimId}`);
+      setClaims(claims.filter(c => c._id !== claimId));
+      toast.success('Reimbursement claim deleted successfully');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete claim');
     }
   };
 
@@ -1386,7 +1420,11 @@ const EmployeePortal = () => {
                         <p className="text-xs text-slate-500">Petrol, Broadband, LTA, and other corporate wallet balances.</p>
                       </div>
                       <button
-                        onClick={() => setShowClaimModal(true)}
+                        onClick={() => {
+                          setEditingClaimId(null);
+                          setClaimDraft({ category: 'broadband', amount: '', billUrl: '' });
+                          setShowClaimModal(true);
+                        }}
                         className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-2"
                       >
                         <FaReceipt /> Submit New Claim
@@ -1402,13 +1440,14 @@ const EmployeePortal = () => {
                             <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Amount Claimed</th>
                             <th className="px-6 py-3 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">HR remarks</th>
+                            <th className="px-6 py-3 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {claims.length === 0 ? (
-                            <tr><td colSpan="5" className="px-6 py-10 text-center text-slate-400">No reimbursement claims submitted yet.</td></tr>
+                            <tr><td colSpan="6" className="px-6 py-10 text-center text-slate-400">No reimbursement claims submitted yet.</td></tr>
                           ) : claims.map((claim) => (
-                            <tr key={claim._id}>
+                            <tr key={claim._id} className="hover:bg-slate-50/60 transition-colors">
                               <td className="px-6 py-4">{formatIndianDate(claim.createdAt)}</td>
                               <td className="px-6 py-4 capitalize font-semibold">{claim.category}</td>
                               <td className="px-6 py-4 text-right font-semibold">{fmtMoney(claim.amount)}</td>
@@ -1422,6 +1461,26 @@ const EmployeePortal = () => {
                                 </span>
                               </td>
                               <td className="px-6 py-4 text-xs text-slate-500 italic">{claim.approverRemarks || '-'}</td>
+                              <td className="px-6 py-4 text-center">
+                                <div className="flex items-center justify-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditClaim(claim)}
+                                    className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-all border border-blue-200"
+                                    title="Edit Claim"
+                                  >
+                                    <FaEdit size={13} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteClaim(claim._id)}
+                                    className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-all border border-red-200"
+                                    title="Delete Claim"
+                                  >
+                                    <FaTrash size={13} />
+                                  </button>
+                                </div>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -2109,7 +2168,7 @@ const EmployeePortal = () => {
       </div>
 
       {/* ── Reimbursement Submission Modal ── */}
-      <Modal isOpen={showClaimModal} onClose={() => setShowClaimModal(false)} title="Submit Reimbursement Claim">
+      <Modal isOpen={showClaimModal} onClose={() => { setShowClaimModal(false); setEditingClaimId(null); }} title={editingClaimId ? "Edit Reimbursement Claim" : "Submit Reimbursement Claim"}>
         <form onSubmit={handleClaimSubmit} className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Claim Category</label>
@@ -2137,8 +2196,8 @@ const EmployeePortal = () => {
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setShowClaimModal(false)} className="px-4 py-2 border rounded-lg text-sm font-semibold">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold">Submit Claim</button>
+            <button type="button" onClick={() => { setShowClaimModal(false); setEditingClaimId(null); }} className="px-4 py-2 border rounded-lg text-sm font-semibold">Cancel</button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold">{editingClaimId ? 'Update Claim' : 'Submit Claim'}</button>
           </div>
         </form>
       </Modal>
