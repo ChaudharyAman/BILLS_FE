@@ -30,7 +30,7 @@ const COMPENSATION_TYPES = [
   { id: 'monthly_salary', name: 'Monthly Fixed Salary' },
   { id: 'hourly', name: 'Hourly Wage' },
   { id: 'daily_wage', name: 'Daily Wage' },
-  { id: 'weekly_salary', name: 'Weekly Salary' },
+  { id: 'weekly_salary', name: 'Weekly Rate (paid monthly)' },
   { id: 'piece_rate', name: 'Piece-Rate Pay' },
   { id: 'project_based', name: 'Project-Based Payment' },
   { id: 'milestone_based', name: 'Milestone-Based Payment' },

@@ -119,12 +119,13 @@ export const COMPENSATION_SNAPSHOT_CONFIG = {
     ],
   },
   weekly_salary: {
-    title: 'Weekly Salary Snapshot',
+    title: 'Weekly Rate Snapshot (paid monthly)',
     showComponents: false,
     showStatutory: false,
     headlineRows: (emp, preview) => [
       { label: 'Weekly Rate', value: `${fmtMoney(emp.weeklyRate)}/week`, strong: true },
       { label: 'Est. Monthly Gross (52/12 wks)', value: fmtMoney(preview.monthlyCTC) },
+      { label: 'Note', value: 'Pay is disbursed monthly — not per week.' },
       { label: 'Est. Net Take-Home', value: fmtMoney(preview.netTakeHome), strong: true },
     ],
   },
