@@ -101,6 +101,11 @@ const PayslipGeneration = () => {
         arrear: item.details || '-'
       }));
     } else {
+      // ── NOTE: Source of Truth for Compensation Row Specifications ────────────────
+      // Backend source of truth: MBB/utils/payrollMath/compensationRowSpec.js
+      // (used by payslipLineItems.js and taxWorksheet.js). If adding new compensation
+      // types or changing line item labels, update both backend & frontend fallback.
+      // ─────────────────────────────────────────────────────────────────────────────
       const compType = resolveCompensationTypeClient(slip.employeeSnapshot || emp || slip);
       const periodInput = slip.periodInput || {};
 
@@ -334,12 +339,20 @@ const PayslipGeneration = () => {
               {company.logoUrl ? (
                 <img src={company.logoUrl} alt="logo" className="h-10 object-contain max-w-[120px]" />
               ) : (
-                <span className="font-bold text-base tracking-wide text-gray-800">ResourceGateway</span>
+                <span className="font-bold text-base tracking-wide text-gray-800">
+                  {company.companyName
+                    ? company.companyName.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase()
+                    : '—'}
+                </span>
               )}
             </div>
             <div className="text-center flex-1 pr-10">
-              <h1 className="text-sm font-bold uppercase tracking-tight">{company.companyName || 'Resource Gateway Consulting Private Limited'}</h1>
-              <p className="text-[10px] text-gray-700 mt-0.5">{company.address?.line1 || 'C - 5/25, First Floor, Sector- 52'}, {company.address?.city || 'Gurgaon'}, {company.address?.state || 'Haryana'}</p>
+              <h1 className="text-sm font-bold uppercase tracking-tight">{company.companyName || ''}</h1>
+              {(company.address?.line1 || company.address?.city || company.address?.state) && (
+                <p className="text-[10px] text-gray-700 mt-0.5">
+                  {[company.address?.line1, company.address?.city, company.address?.state].filter(Boolean).join(', ')}
+                </p>
+              )}
               <h2 className="text-xs font-bold mt-2 tracking-wide text-blue-950">
                 {Boolean(slip.isFullAndFinal || slip.settlementType === 'full_and_final') ? `FINAL SETTLEMENT STATEMENT — ${payPeriod}` : `PAY SLIP FOR THE MONTH OF ${payPeriod}`}
               </h2>
@@ -368,7 +381,6 @@ const PayslipGeneration = () => {
               <div className="flex justify-between"><span className="text-gray-600">Name</span> <span className="font-bold text-right">{employeeName}</span></div>
               <div className="flex justify-between"><span className="text-gray-600">Designation</span> <span className="font-bold text-right">{employee.designation || '-'}</span></div>
               <div className="flex justify-between"><span className="text-gray-600">Department</span> <span className="font-bold text-right">{employee.department?.name || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Cost Centre</span> <span className="font-bold text-right">TaaS</span></div>
               <div className="flex justify-between"><span className="text-gray-600">DOJ</span> <span className="font-bold text-right">{fmtDate(employee.joiningDate)}</span></div>
             </div>
             
@@ -621,7 +633,7 @@ const PayslipGeneration = () => {
               <div className="border-t border-black p-2 bg-gray-50">
                 <div className="flex justify-between font-bold text-[9px]">
                   <span>LEAVE BALANCE ON MONTH END</span>
-                  <span>0.00</span>
+                  <span>{Number(slip.leaveBalance || 0).toFixed(2)}</span>
                 </div>
               </div>
             </div>

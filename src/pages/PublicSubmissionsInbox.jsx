@@ -198,10 +198,18 @@ export default function PublicSubmissionsInbox() {
     }
   };
 
-  // ── File URL (serve from backend) ─────────────────────────────────────────
-  const fileUrl = (submissionId, fileIndex) => {
-    const token = localStorage.getItem('authToken');
-    return `${import.meta.env.VITE_API_URL || ''}/api/submissions/${submissionId}/files/${fileIndex}?token=${token}`;
+  // ── File View (authenticated blob URL) ──────────────────────────────────
+  const handleViewFile = async (submissionId, fileIndex) => {
+    try {
+      const response = await api.get(`/submissions/${submissionId}/files/${fileIndex}`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' });
+      const blobUrl = window.URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+    } catch (err) {
+      toast.error('Failed to view file');
+    }
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -385,14 +393,13 @@ export default function PublicSubmissionsInbox() {
                         )}
                       </span>
                       <span className="flex-1 min-w-0 text-sm text-gray-700 truncate">{f.originalName}</span>
-                      <a
-                        href={fileUrl(selected._id, idx)}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => handleViewFile(selected._id, idx)}
                         className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 flex-shrink-0"
                       >
                         View <FaExternalLinkAlt />
-                      </a>
+                      </button>
                     </li>
                   ))}
                 </ul>
