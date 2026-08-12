@@ -90,6 +90,10 @@ const GstReport = lazyRetry(() => import('./pages/reports/GstReport'));
 const TdsSummary = lazyRetry(() => import('./pages/reports/TdsSummary'));
 const RevenueReport = lazyRetry(() => import('./pages/reports/RevenueReport'));
 
+// Accounts
+const PaymentCollection = lazyRetry(() => import('./pages/accounts/PaymentCollection'));
+const AccountStatement = lazyRetry(() => import('./pages/accounts/AccountStatement'));
+
 const AdminRoute = ({ children }) => {
   const userStr = localStorage.getItem('user');
   let role = '';

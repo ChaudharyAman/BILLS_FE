@@ -23,6 +23,7 @@ import {
   X,
   UserCheck,
   UserX,
+  Key,
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -77,6 +78,40 @@ const AdminDashboard = () => {
   // ── Confirmation Modals State ──────────────────────────────────────────────
   const [deleteConfirmUser, setDeleteConfirmUser] = useState(null);
   const [superadminConfirmUser, setSuperadminConfirmUser] = useState(null);
+
+  // ── Reset Password Modal State ─────────────────────────────────────────────
+  const [resetPasswordTarget, setResetPasswordTarget] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+
+  const handleResetPasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.trim().length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    try {
+      setIsResettingPassword(true);
+      await api.patch(`/admin/users/${resetPasswordTarget._id}/password`, {
+        newPassword: newPassword.trim(),
+      });
+      toast.success(`Password reset successfully for ${resetPasswordTarget.username || resetPasswordTarget.email}`);
+      setResetPasswordTarget(null);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      console.error('Reset password error:', err);
+      toast.error(err.response?.data?.message || 'Failed to reset password');
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
 
   // ── Audit Log State ────────────────────────────────────────────────────────
   const [auditLogs, setAuditLogs] = useState([]);
@@ -163,6 +198,8 @@ const AdminDashboard = () => {
       billingCycle: owner.subscription?.billingCycle || 'monthly',
       isActive: owner.isActive !== false,
       role: owner.role || 'user',
+      newPassword: '',
+      confirmPassword: '',
     });
     setIsDetailModalOpen(true);
 
@@ -204,18 +241,37 @@ const AdminDashboard = () => {
   const handleUpdatePlan = async () => {
     try {
       setIsUpdating(true);
+
+      if (planForm.newPassword) {
+        if (planForm.newPassword.trim().length < 6) {
+          toast.error('New password must be at least 6 characters long');
+          setIsUpdating(false);
+          return;
+        }
+        if (planForm.newPassword !== planForm.confirmPassword) {
+          toast.error('New password and confirmation do not match');
+          setIsUpdating(false);
+          return;
+        }
+        await api.patch(`/admin/users/${selectedOwner._id}/password`, {
+          newPassword: planForm.newPassword.trim(),
+        });
+      }
+
       const payload = { ...planForm };
+      delete payload.newPassword;
+      delete payload.confirmPassword;
       if (payload.plan === 'free') {
         payload.endDate = '';
       }
 
       await api.patch(`/admin/users/${selectedOwner._id}/plan`, payload);
-      toast.success('Company subscription and access updated successfully');
+      toast.success('Company settings & account updated successfully');
       setIsDetailModalOpen(false);
       fetchCompanies();
     } catch (err) {
       console.error('Update failed:', err);
-      const msg = err.response?.data?.message || 'Failed to update subscription';
+      const msg = err.response?.data?.message || 'Failed to update user';
       toast.error(msg);
     } finally {
       setIsUpdating(false);
@@ -756,6 +812,38 @@ const AdminDashboard = () => {
                         />
                       </div>
                     )}
+
+                    <div className="sm:col-span-2 pt-3 border-t border-gray-100">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-amber-50/50 p-4 rounded-xl border border-amber-100">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1 flex items-center gap-1">
+                            <Key className="w-3.5 h-3.5 text-amber-600" />
+                            Change Account Password <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                          </label>
+                          <input
+                            type="password"
+                            placeholder="New password (leave blank to keep current)"
+                            value={planForm.newPassword}
+                            onChange={(e) => setPlanForm({ ...planForm, newPassword: e.target.value })}
+                            className="w-full border rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-amber-500"
+                          />
+                        </div>
+                        {planForm.newPassword.length > 0 && (
+                          <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                              Confirm New Password
+                            </label>
+                            <input
+                              type="password"
+                              placeholder="Re-enter new password"
+                              value={planForm.confirmPassword}
+                              onChange={(e) => setPlanForm({ ...planForm, confirmPassword: e.target.value })}
+                              className="w-full border rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-amber-500"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
