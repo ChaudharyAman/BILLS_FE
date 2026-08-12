@@ -100,6 +100,7 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
       // Public Submission Inbox — shown with a badge in Layout.jsx
       { id: 'submissions_inbox', label: 'Submissions Inbox', path: '/submissions', iconName: 'FaInbox' },
       { id: 'recycle_bin', label: 'Recycle Bin', path: '/recycle-bin', iconName: 'FaTrash' },
+      { id: 'team_settings', label: 'Team & Permissions', path: '/settings/team', iconName: 'FaUsers' },
       { id: 'upgrade', label: 'Upgrade', path: '/subscription', iconName: 'FaStar', isSpecial: true },
       { id: 'settings', label: 'Settings', path: '/settings', iconName: 'FaCog' },
       { id: 'admin_panel', label: 'Admin Panel', path: '/admin', iconName: 'FaLock', isSuperAdmin: true }
