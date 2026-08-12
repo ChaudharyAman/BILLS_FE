@@ -18,7 +18,7 @@ export function usePermissions() {
     }
   }, [userStr]);
 
-  const isOwner = authData?.isOwner !== false || authData?.role === 'superadmin';
+  const isOwner = Boolean(authData?.isOwner) || authData?.role === 'superadmin';
   const permissions = authData?.permissions || {};
 
   const can = (moduleName, action = 'view') => {

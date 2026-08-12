@@ -90,9 +90,21 @@ const GstReport = lazyRetry(() => import('./pages/reports/GstReport'));
 const TdsSummary = lazyRetry(() => import('./pages/reports/TdsSummary'));
 const RevenueReport = lazyRetry(() => import('./pages/reports/RevenueReport'));
 
-// Accounts
-const PaymentCollection = lazyRetry(() => import('./pages/accounts/PaymentCollection'));
-const AccountStatement = lazyRetry(() => import('./pages/accounts/AccountStatement'));
+const AdminRoute = ({ children }) => {
+  const userStr = localStorage.getItem('user');
+  let role = '';
+  if (userStr) {
+    try {
+      const parsed = JSON.parse(userStr);
+      const user = parsed.user || parsed;
+      role = user?.role || '';
+    } catch (_) {}
+  }
+  if (role !== 'superadmin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+};
 
 function App() {
 
@@ -336,7 +348,11 @@ function App() {
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/settings/team" element={<TeamSettings />} />
                       <Route path="/settings/roles" element={<AccessRoleManagement />} />
-                      <Route path="/admin" element={<AdminDashboard />} />
+                      <Route path="/admin" element={
+                        <AdminRoute>
+                          <AdminDashboard />
+                        </AdminRoute>
+                      } />
                       <Route path="/recycle-bin" element={<RecycleBin />} />
                     </Routes>
                   </Layout>

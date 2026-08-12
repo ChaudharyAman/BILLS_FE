@@ -3,8 +3,13 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { Users, UserPlus, Shield, Mail, CheckCircle2, AlertCircle, Trash2, Edit3, Copy, ExternalLink, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import usePermissions from '../hooks/usePermissions';
 
 const TeamSettings = () => {
+  const { can, isOwner } = usePermissions();
+  const canCreate = isOwner || can('teamMembers', 'create');
+  const canEdit = isOwner || can('teamMembers', 'edit');
+  const canDelete = isOwner || can('teamMembers', 'delete');
   const [data, setData] = useState({ owner: null, teamMembers: [] });
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -134,17 +139,19 @@ const TeamSettings = () => {
           >
             <Shield className="w-4 h-4 text-indigo-600" /> Access Roles Matrix
           </Link>
-          <button
-            onClick={() => {
-              setGeneratedInviteLink('');
-              setInviteEmail('');
-              setInviteUsername('');
-              setIsInviteModalOpen(true);
-            }}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition-all flex items-center gap-2 text-sm"
-          >
-            <UserPlus className="w-4 h-4" /> Invite Team Member
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => {
+                setGeneratedInviteLink('');
+                setInviteEmail('');
+                setInviteUsername('');
+                setIsInviteModalOpen(true);
+              }}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition-all flex items-center gap-2 text-sm"
+            >
+              <UserPlus className="w-4 h-4" /> Invite Team Member
+            </button>
+          )}
         </div>
       </div>
 
@@ -227,9 +234,10 @@ const TeamSettings = () => {
                       </td>
                       <td className="px-4 py-4">
                         <select
+                          disabled={!canEdit}
                           value={member.accessRole?._id || ''}
                           onChange={(e) => handleRoleChange(member._id, e.target.value)}
-                          className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-medium focus:outline-none focus:border-indigo-500"
+                          className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-medium focus:outline-none focus:border-indigo-500 disabled:opacity-50"
                         >
                           {roles.map((r) => (
                             <option key={r._id} value={r._id}>{r.name}</option>
@@ -244,18 +252,22 @@ const TeamSettings = () => {
                       </td>
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleStatusChange(member._id, member.status)}
-                            className={`text-xs px-2.5 py-1 rounded-lg font-medium border transition-colors ${member.status === 'suspended' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'}`}
-                          >
-                            {member.status === 'suspended' ? 'Reactivate' : 'Suspend'}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteMember(member)}
-                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {canEdit && (
+                            <button
+                              onClick={() => handleStatusChange(member._id, member.status)}
+                              className={`text-xs px-2.5 py-1 rounded-lg font-medium border transition-colors ${member.status === 'suspended' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'}`}
+                            >
+                              {member.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              onClick={() => handleDeleteMember(member)}
+                              className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

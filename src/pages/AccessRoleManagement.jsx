@@ -3,6 +3,7 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { Shield, Plus, Lock, Check, Edit2, Trash2, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import usePermissions from '../hooks/usePermissions';
 
 const MODULES = [
   { id: 'expenses', label: 'Expenses' },
@@ -37,6 +38,10 @@ const MODULES = [
 const ACTIONS = ['view', 'create', 'edit', 'delete', 'approve'];
 
 const AccessRoleManagement = () => {
+  const { can, isOwner } = usePermissions();
+  const canCreate = isOwner || can('teamMembers', 'create');
+  const canDelete = isOwner || can('teamMembers', 'delete');
+
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -160,12 +165,14 @@ const AccessRoleManagement = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => handleOpenModal(null)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition-all flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" /> Create Custom Role
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => handleOpenModal(null)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition-all flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" /> Create Custom Role
+          </button>
+        )}
       </div>
 
       {/* Role Cards Grid */}
@@ -180,7 +187,7 @@ const AccessRoleManagement = () => {
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${role.isSystemRole ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-700'}`}>
                     {role.isSystemRole ? 'System Built-In' : 'Custom Role'}
                   </span>
-                  {!role.isSystemRole && (
+                  {!role.isSystemRole && canDelete && (
                     <button onClick={() => handleDeleteRole(role)} className="text-slate-400 hover:text-rose-600 p-1">
                       <Trash2 className="w-4 h-4" />
                     </button>
