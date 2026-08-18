@@ -41,6 +41,7 @@ const emptyForm = {
   color: '#2563eb',
   budgetLimit: 0,
   description: '',
+  isCogs: false,
 };
 
 const CategoryManagement = () => {
@@ -88,7 +89,7 @@ const CategoryManagement = () => {
 
   const openCreate = (parent = '') => {
     setEditingCategory(null);
-    setFormData({ ...emptyForm, type: activeTab, parent });
+    setFormData({ ...emptyForm, type: activeTab, parent, isCogs: false });
     setShowModal(true);
   };
 
@@ -102,6 +103,7 @@ const CategoryManagement = () => {
       color: category.color || '#2563eb',
       budgetLimit: category.budgetLimit || 0,
       description: category.description || '',
+      isCogs: Boolean(category.isCogs),
     });
     setShowModal(true);
   };
@@ -243,6 +245,7 @@ const CategoryManagement = () => {
                           <div className="font-semibold text-gray-900 flex items-center gap-2">
                             {category.name}
                             {category.isSystem && <span className="text-[10px] uppercase bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">System</span>}
+                            {category.isCogs && <span className="text-[10px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded">COGS</span>}
                           </div>
                           {category.description && <div className="text-xs text-gray-500 mt-0.5">{category.description}</div>}
                         </div>
@@ -254,6 +257,7 @@ const CategoryManagement = () => {
                           <span key={child._id} className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 pl-2.5 pr-1.5 py-1 text-xs text-gray-700 font-medium">
                             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: child.color || category.color }} />
                             {child.name}
+                            {child.isCogs && <span className="text-[9px] bg-amber-200 text-amber-900 px-1 rounded font-bold">COGS</span>}
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); handleDelete(child); }}
@@ -324,7 +328,7 @@ const CategoryManagement = () => {
                 <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Type</label>
                 <select
                   value={formData.type}
-                  onChange={(event) => setFormData(prev => ({ ...prev, type: event.target.value, parent: '' }))}
+                  onChange={(event) => setFormData(prev => ({ ...prev, type: event.target.value, parent: '', isCogs: false }))}
                   disabled={Boolean(editingCategory?.isSystem)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100"
                 >
@@ -346,6 +350,23 @@ const CategoryManagement = () => {
                     .map(cat => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
                 </select>
               </div>
+
+              {formData.type === 'expense' && (
+                <div className="md:col-span-2 bg-amber-50/70 border border-amber-200 rounded-xl p-3.5 flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="isCogsCheckbox"
+                    checked={Boolean(formData.isCogs)}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isCogs: e.target.checked }))}
+                    className="mt-0.5 w-4 h-4 text-amber-600 rounded border-gray-300 focus:ring-amber-500 cursor-pointer"
+                  />
+                  <label htmlFor="isCogsCheckbox" className="text-xs text-amber-950 font-medium cursor-pointer">
+                    <span className="font-bold block text-amber-900 mb-0.5">Classify as Cost of Goods Sold (COGS)</span>
+                    Mark categories like raw materials, direct labor, or manufacturing costs as COGS so they appear correctly on your Balance Sheet and P&L statements.
+                  </label>
+                </div>
+              )}
+
               <div>
                 <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Icon</label>
                 <select

@@ -70,6 +70,8 @@ const CashFlowStatement = lazyRetry(() => import('./pages/CashFlowStatement'));
 const ProjectManager = lazyRetry(() => import('./pages/ProjectManager'));
 const ProjectDashboard = lazyRetry(() => import('./pages/ProjectDashboard'));
 const Settings = lazyRetry(() => import('./pages/Settings'));
+const LiabilityManagement = lazyRetry(() => import('./pages/LiabilityManagement'));
+const AssetManagement = lazyRetry(() => import('./pages/AssetManagement'));
 const BusinessUnitManagement = lazyRetry(() => import('./pages/BusinessUnitManagement'));
 const Subscription = lazyRetry(() => import('./pages/Subscription'));
 const AdminDashboard = lazyRetry(() => import('./pages/AdminDashboard'));
@@ -312,6 +314,8 @@ function App() {
 
                       {/* Finance Setup */}
                       <Route path="/categories" element={<CategoryManagement />} />
+                      <Route path="/liabilities" element={<LiabilityManagement />} />
+                      <Route path="/assets" element={<AssetManagement />} />
                       <Route path="/employees" element={<EmployeeList />} />
                       <Route path="/employees/new" element={<EmployeeForm />} />
                       <Route path="/employees/bulk-salary-revision" element={<BulkSalaryRevision />} />

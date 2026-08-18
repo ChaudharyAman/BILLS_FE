@@ -5,8 +5,74 @@ import {
   FaArrowUp, FaArrowDown, FaUndo, FaCheckCircle, FaChevronDown, FaChevronRight, FaPlus, FaMinus, FaThLarge
 } from 'react-icons/fa';
 import * as Icons from 'react-icons/fa';
+import * as LucideIcons from 'lucide-react';
 import Skeleton from '../components/Skeleton';
 import { getSidebarLayout, saveSidebarLayout, resetSidebarLayout } from '../utils/sidebarConfig';
+
+const ICON_MAP = {
+  dashboard: LucideIcons.Home,
+  bank_statement: LucideIcons.Landmark,
+  clients: LucideIcons.Users,
+  invoices: LucideIcons.FileText,
+  quotes_proformas: LucideIcons.ClipboardList,
+  incomes: LucideIcons.TrendingUp,
+  recurring: LucideIcons.Repeat,
+  vendors: LucideIcons.Truck,
+  purchase_orders: LucideIcons.ShoppingCart,
+  expenses: LucideIcons.Receipt,
+  inventory: LucideIcons.ShoppingBag,
+  assets: LucideIcons.Landmark,
+  projects: LucideIcons.Layers,
+  business_units: LucideIcons.Building2,
+  payroll_dashboard: LucideIcons.Banknote,
+  employees: LucideIcons.Users,
+  payroll_process: LucideIcons.Calculator,
+  payroll_calculator: LucideIcons.Calculator,
+  payroll_reports: LucideIcons.BarChart3,
+  payroll_settings: LucideIcons.Settings,
+  payroll_portal: LucideIcons.UserCheck,
+  budgets: LucideIcons.Scale,
+  categories: LucideIcons.Tags,
+  liabilities: LucideIcons.CreditCard,
+  accounts_group: LucideIcons.Wallet,
+  reports_group: LucideIcons.BarChart3,
+  submissions_inbox: LucideIcons.Inbox,
+  recycle_bin: LucideIcons.Trash2,
+  team_settings: LucideIcons.Users,
+  upgrade: LucideIcons.Sparkles,
+  settings: LucideIcons.Settings,
+  admin_panel: LucideIcons.Lock,
+  FaThLarge: LucideIcons.Home,
+  FaBox: LucideIcons.ShoppingBag,
+  FaShoppingCart: LucideIcons.ShoppingCart,
+  FaShoppingBag: LucideIcons.ShoppingBag,
+  FaClock: LucideIcons.Clock,
+  FaUniversity: LucideIcons.Landmark,
+  FaLandmark: LucideIcons.Landmark,
+  FaUserTie: LucideIcons.UserCheck,
+  FaUsers: LucideIcons.Users,
+  FaChartBar: LucideIcons.BarChart3,
+  FaFolder: LucideIcons.Folder,
+  FaFileInvoice: LucideIcons.FileText,
+  FaClipboardList: LucideIcons.ClipboardList,
+  FaPlus: LucideIcons.TrendingUp,
+  FaMinus: LucideIcons.Receipt,
+  FaRedo: LucideIcons.Repeat,
+  FaTruck: LucideIcons.Truck,
+  FaBuilding: LucideIcons.Building2,
+  FaProjectDiagram: LucideIcons.Layers,
+  FaMoneyBillWave: LucideIcons.Banknote,
+  FaCalculator: LucideIcons.Calculator,
+  FaBalanceScale: LucideIcons.Scale,
+  FaTags: LucideIcons.Tags,
+  FaCreditCard: LucideIcons.CreditCard,
+  FaWallet: LucideIcons.Wallet,
+  FaInbox: LucideIcons.Inbox,
+  FaTrash: LucideIcons.Trash2,
+  FaStar: LucideIcons.Sparkles,
+  FaCog: LucideIcons.Settings,
+  FaLock: LucideIcons.Lock
+};
 
 const inputCls = 'w-full border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 text-sm';
 
@@ -801,22 +867,25 @@ const Settings = () => {
               
               {/* Miniature Sidebar Frame */}
               <div
-                className="w-full rounded-lg overflow-hidden border border-slate-700 flex flex-col h-[520px] shadow-lg shadow-slate-900/10"
-                style={{ background: '#1a2e44' }}
+                className="w-full rounded-lg overflow-hidden border border-slate-200 flex flex-col h-[520px] shadow-md bg-white text-slate-800"
               >
                 {/* Mini Header */}
-                <div className="px-3.5 py-3 border-b border-white/10 flex flex-col">
-                  <h1 className="text-[12px] font-bold text-white flex items-center gap-1.5 tracking-wide">
-                    <FaThLarge size={11} className="text-blue-400" />
-                    Flance
-                  </h1>
-                  <span className="text-[6px] text-slate-400 font-bold tracking-widest uppercase ml-[17px] mt-[0.5px]">
-                    Pro Member
-                  </span>
+                <div className="px-3.5 py-3 border-b border-slate-200/80 flex items-center gap-1.5 bg-white">
+                  <div className="w-5 h-5 rounded bg-blue-600 flex items-center justify-center text-white">
+                    <LucideIcons.LayoutGrid size={10} strokeWidth={2} />
+                  </div>
+                  <div className="flex flex-col">
+                    <h1 className="text-[11px] font-bold text-slate-800 leading-none">
+                      Flance
+                    </h1>
+                    <span className="text-[6.5px] text-blue-600 font-semibold uppercase mt-0.5">
+                      Pro Plan
+                    </span>
+                  </div>
                 </div>
 
                 {/* Mini Navigation */}
-                <div className="flex-1 py-2 overflow-y-auto no-scrollbar max-h-[440px]">
+                <div className="flex-1 py-2 overflow-y-auto sidebar-scroll max-h-[440px]">
                   {customLayout.map(section => {
                     if (section.hidden) return null;
 
@@ -825,25 +894,30 @@ const Settings = () => {
 
                     return (
                       <div key={section.id} className="mb-2">
-                        <div className="px-3.5 pt-1.5 pb-[2px] text-[7.5px] font-bold text-slate-400/80 tracking-wider uppercase">
+                        <div className="px-3 pt-1.5 pb-[2px] text-[7.5px] font-bold text-slate-400 tracking-wider uppercase">
                           {section.title}
                         </div>
                         {visibleItems.map(item => {
-                          const IconComp = Icons[item.iconName] || Icons.FaMinus;
+                          const IconComp =
+                            ICON_MAP[item.id] ||
+                            ICON_MAP[item.iconName] ||
+                            Icons[item.iconName] ||
+                            LucideIcons.ShoppingBag;
 
                           if (item.type === 'collapsible') {
                             return (
                               <div
                                 key={item.id}
-                                className="flex items-center justify-between px-3.5 py-1 text-[10px] text-slate-300 font-medium w-full"
+                                className="flex items-center justify-between px-2.5 py-1 text-[9.5px] text-slate-700 font-medium w-full hover:bg-slate-50 rounded mx-0.5"
                               >
-                                <span className="flex items-center gap-1.5">
-                                  <IconComp size={9} /> {item.label}
+                                <span className="flex items-center gap-1.5 min-w-0">
+                                  <LucideIcons.ChevronRight size={8} strokeWidth={2.2} className="text-slate-400 flex-shrink-0" />
+                                  <IconComp size={10} strokeWidth={1.8} className="text-slate-500 flex-shrink-0" />
+                                  <span className="truncate">{item.label}</span>
                                   {item.isPremium && (
-                                    <span className="text-[6px] font-bold bg-amber-500/20 text-amber-400 px-0.5 rounded uppercase">Pro</span>
+                                    <span className="text-[6px] font-bold bg-amber-100 text-amber-800 px-0.5 rounded uppercase">Pro</span>
                                   )}
                                 </span>
-                                <FaChevronRight size={7} className="text-slate-500" />
                               </div>
                             );
                           }
@@ -852,9 +926,11 @@ const Settings = () => {
                             return (
                               <div
                                 key={item.id}
-                                className="flex items-center gap-1.5 px-3.5 py-1 text-[10px] text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 font-bold w-full"
+                                className="flex items-center gap-1.5 px-2.5 py-1 text-[9.5px] bg-gradient-to-r from-amber-50 to-orange-50 text-amber-800 font-semibold border border-amber-200/50 rounded mx-0.5 my-0.5"
                               >
-                                <IconComp size={9} className="text-amber-400" /> {item.label}
+                                <span className="w-1.5 flex-shrink-0" />
+                                <IconComp size={10} strokeWidth={1.8} className="text-amber-500 flex-shrink-0" />
+                                <span className="truncate">{item.label}</span>
                               </div>
                             );
                           }
@@ -862,9 +938,11 @@ const Settings = () => {
                           return (
                             <div
                               key={item.id}
-                              className="flex items-center gap-1.5 px-3.5 py-1 text-[10px] text-slate-300 font-medium w-full"
+                              className="flex items-center gap-1.5 px-2.5 py-1 text-[9.5px] text-slate-700 hover:bg-slate-50 rounded mx-0.5 font-normal"
                             >
-                              <IconComp size={9} /> {item.label}
+                              <span className="w-1.5 flex-shrink-0" />
+                              <IconComp size={10} strokeWidth={1.8} className="text-slate-500 flex-shrink-0" />
+                              <span className="truncate">{item.label}</span>
                             </div>
                           );
                         })}
