@@ -100,6 +100,60 @@ const AccessRoleManagement = () => {
     });
   };
 
+  const handleToggleRowAll = (modId) => {
+    if (editingRole?.isSystemRole) return;
+    setPermissionsMap((prev) => {
+      const currentMod = prev[modId] || { view: false, create: false, edit: false, delete: false, approve: false };
+      const isAllChecked = ACTIONS.every((act) => Boolean(currentMod[act]));
+      const nextVal = !isAllChecked;
+      const updatedMod = {};
+      ACTIONS.forEach((act) => {
+        updatedMod[act] = nextVal;
+      });
+      return {
+        ...prev,
+        [modId]: updatedMod,
+      };
+    });
+  };
+
+  const handleSelectAllModules = () => {
+    if (editingRole?.isSystemRole) return;
+    const newMap = {};
+    MODULES.forEach((mod) => {
+      newMap[mod.id] = { view: true, create: true, edit: true, delete: true, approve: true };
+    });
+    setPermissionsMap(newMap);
+  };
+
+  const handleClearAllModules = () => {
+    if (editingRole?.isSystemRole) return;
+    const newMap = {};
+    MODULES.forEach((mod) => {
+      newMap[mod.id] = { view: false, create: false, edit: false, delete: false, approve: false };
+    });
+    setPermissionsMap(newMap);
+  };
+
+  const areAllCheckedAcrossAllModules = MODULES.every((mod) => {
+    const modPerms = permissionsMap[mod.id] || {};
+    return ACTIONS.every((act) => Boolean(modPerms[act]));
+  });
+
+  const areSomeCheckedAcrossAllModules = MODULES.some((mod) => {
+    const modPerms = permissionsMap[mod.id] || {};
+    return ACTIONS.some((act) => Boolean(modPerms[act]));
+  }) && !areAllCheckedAcrossAllModules;
+
+  const handleToggleGlobalAll = () => {
+    if (editingRole?.isSystemRole) return;
+    if (areAllCheckedAcrossAllModules) {
+      handleClearAllModules();
+    } else {
+      handleSelectAllModules();
+    }
+  };
+
   const handleSaveRole = async (e) => {
     e.preventDefault();
 
@@ -256,39 +310,96 @@ const AccessRoleManagement = () => {
               </div>
 
               {/* Permission Matrix Table */}
-              <div className="border border-slate-200 rounded-2xl overflow-hidden">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    <tr>
-                      <th className="px-4 py-3">Module</th>
-                      {ACTIONS.map((act) => (
-                        <th key={act} className="px-3 py-3 text-center capitalize">{act}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 bg-white">
-                    {MODULES.map((mod) => {
-                      const modPerms = permissionsMap[mod.id] || {};
-                      return (
-                        <tr key={mod.id} className="hover:bg-slate-50">
-                          <td className="px-4 py-3 font-medium text-slate-800 text-xs">{mod.label}</td>
-                          {ACTIONS.map((act) => (
-                            <td key={act} className="px-3 py-3 text-center">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Module Permissions Matrix</span>
+                  {!editingRole?.isSystemRole && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSelectAllModules}
+                        className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition-colors"
+                      >
+                        Grant All Permissions
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleClearAllModules}
+                        className="text-xs font-semibold text-slate-600 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg transition-colors"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-100 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <tr>
+                        <th className="px-4 py-3">Module</th>
+                        <th className="px-3 py-3 text-center bg-slate-200/50">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <input
+                              type="checkbox"
+                              disabled={editingRole?.isSystemRole}
+                              checked={areAllCheckedAcrossAllModules}
+                              ref={(el) => {
+                                if (el) el.indeterminate = areSomeCheckedAcrossAllModules;
+                              }}
+                              onChange={handleToggleGlobalAll}
+                              title="Toggle all permissions across all modules"
+                              className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:cursor-not-allowed"
+                            />
+                            <span className="text-[11px] font-bold text-slate-700">All</span>
+                          </div>
+                        </th>
+                        {ACTIONS.map((act) => (
+                          <th key={act} className="px-3 py-3 text-center capitalize">{act}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 bg-white">
+                      {MODULES.map((mod) => {
+                        const modPerms = permissionsMap[mod.id] || {};
+                        const isRowAllChecked = ACTIONS.every((act) => Boolean(modPerms[act]));
+                        const isRowSomeChecked = ACTIONS.some((act) => Boolean(modPerms[act])) && !isRowAllChecked;
+
+                        return (
+                          <tr key={mod.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-4 py-3 font-medium text-slate-800 text-xs">{mod.label}</td>
+                            <td className="px-3 py-3 text-center bg-slate-50/70 border-r border-l border-slate-100">
                               <input
                                 type="checkbox"
                                 disabled={editingRole?.isSystemRole}
-                                checked={Boolean(modPerms[act])}
-                                onChange={() => handleTogglePermission(mod.id, act)}
+                                checked={isRowAllChecked}
+                                ref={(el) => {
+                                  if (el) el.indeterminate = isRowSomeChecked;
+                                }}
+                                onChange={() => handleToggleRowAll(mod.id)}
+                                title={`Select / deselect all permissions for ${mod.label}`}
                                 className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:cursor-not-allowed"
                               />
                             </td>
-                          ))}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            {ACTIONS.map((act) => (
+                              <td key={act} className="px-3 py-3 text-center">
+                                <input
+                                  type="checkbox"
+                                  disabled={editingRole?.isSystemRole}
+                                  checked={Boolean(modPerms[act])}
+                                  onChange={() => handleTogglePermission(mod.id, act)}
+                                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:cursor-not-allowed"
+                                />
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
+
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900">
