@@ -41,6 +41,7 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
     title: 'Operations & Assets',
     items: [
       { id: 'inventory', label: 'Inventory', path: '/items', iconName: 'FaBox' },
+      { id: 'assets', label: 'Assets', path: '/assets', iconName: 'FaUniversity' },
       { id: 'projects', label: 'Projects', path: '/projects', iconName: 'FaProjectDiagram' },
       { id: 'business_units', label: 'Business Units', path: '/business-units', iconName: 'FaBuilding' }
     ]
@@ -64,6 +65,7 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
     items: [
       { id: 'budgets', label: 'Budgets', path: '/budgets', iconName: 'FaBalanceScale' },
       { id: 'categories', label: 'Categories', path: '/categories', iconName: 'FaTags' },
+      { id: 'liabilities', label: 'Liabilities & Debt', path: '/liabilities', iconName: 'FaCreditCard' },
       {
         id: 'accounts_group',
         label: 'Accounts',
@@ -100,6 +102,7 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
       // Public Submission Inbox — shown with a badge in Layout.jsx
       { id: 'submissions_inbox', label: 'Submissions Inbox', path: '/submissions', iconName: 'FaInbox' },
       { id: 'recycle_bin', label: 'Recycle Bin', path: '/recycle-bin', iconName: 'FaTrash' },
+      { id: 'team_settings', label: 'Team & Permissions', path: '/settings/team', iconName: 'FaUsers' },
       { id: 'upgrade', label: 'Upgrade', path: '/subscription', iconName: 'FaStar', isSpecial: true },
       { id: 'settings', label: 'Settings', path: '/settings', iconName: 'FaCog' },
       { id: 'admin_panel', label: 'Admin Panel', path: '/admin', iconName: 'FaLock', isSuperAdmin: true }

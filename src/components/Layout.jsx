@@ -1,16 +1,137 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  FaThLarge, FaUsers, FaBox, FaFileInvoice,
-  FaClipboardList, FaCog, FaSignOutAlt,
-  FaChevronDown, FaChevronRight, FaChevronLeft, FaMinus, FaPlus, FaStar,
-  FaChartBar, FaWallet, FaLock, FaTimes, FaTruck, FaShoppingCart, FaTags, FaMoneyBillWave, FaBalanceScale, FaRedo, FaProjectDiagram
-} from 'react-icons/fa';
+  Home,
+  Package,
+  ShoppingBag,
+  ShoppingCart,
+  Clock,
+  Landmark,
+  UserCheck,
+  Users,
+  BarChart3,
+  Folder,
+  Plus,
+  ChevronDown,
+  ChevronRight,
+  ChevronLeft,
+  LogOut,
+  Sparkles,
+  Lock,
+  X,
+  FileText,
+  ClipboardList,
+  TrendingUp,
+  Repeat,
+  Truck,
+  Receipt,
+  Layers,
+  Building2,
+  Banknote,
+  Calculator,
+  Settings as SettingsIcon,
+  Scale,
+  Tags,
+  CreditCard,
+  Wallet,
+  Inbox,
+  Trash2,
+  Shield,
+  LayoutGrid
+} from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import * as Icons from 'react-icons/fa';
 import api, { clearAuthSession } from '../api/axios';
 import { getSidebarLayout } from '../utils/sidebarConfig';
 
-const ICON_SIZE = 13;
+const ICON_SIZE = 16;
+
+// Precise icon map matching the Zoho reference icons
+const ICON_MAP = {
+  // Direct item IDs
+  dashboard: Home,
+  bank_statement: Landmark,
+  clients: Users,
+  invoices: FileText,
+  quotes_proformas: ClipboardList,
+  incomes: TrendingUp,
+  recurring: Repeat,
+  vendors: Truck,
+  purchase_orders: ShoppingCart,
+  expenses: Receipt,
+  inventory: ShoppingBag,
+  assets: Landmark,
+  projects: Layers,
+  business_units: Building2,
+  payroll_dashboard: Banknote,
+  employees: Users,
+  payroll_process: Calculator,
+  payroll_calculator: Calculator,
+  payroll_reports: BarChart3,
+  payroll_settings: SettingsIcon,
+  payroll_portal: UserCheck,
+  budgets: Scale,
+  categories: Tags,
+  liabilities: CreditCard,
+  accounts_group: Wallet,
+  reports_group: BarChart3,
+  submissions_inbox: Inbox,
+  recycle_bin: Trash2,
+  team_settings: Users,
+  upgrade: Sparkles,
+  settings: SettingsIcon,
+  admin_panel: Lock,
+
+  // Fallback mappings by Fa icon names
+  FaThLarge: Home,
+  FaHome: Home,
+  FaBox: ShoppingBag,
+  FaShoppingCart: ShoppingCart,
+  FaShoppingBag: ShoppingBag,
+  FaClock: Clock,
+  FaUniversity: Landmark,
+  FaLandmark: Landmark,
+  FaUserTie: UserCheck,
+  FaUser: UserCheck,
+  FaUsers: Users,
+  FaChartBar: BarChart3,
+  FaFolder: Folder,
+  FaFileInvoice: FileText,
+  FaClipboardList: ClipboardList,
+  FaPlus: TrendingUp,
+  FaMinus: Receipt,
+  FaRedo: Repeat,
+  FaTruck: Truck,
+  FaBuilding: Building2,
+  FaProjectDiagram: Layers,
+  FaMoneyBillWave: Banknote,
+  FaCalculator: Calculator,
+  FaBalanceScale: Scale,
+  FaTags: Tags,
+  FaCreditCard: CreditCard,
+  FaWallet: Wallet,
+  FaInbox: Inbox,
+  FaTrash: Trash2,
+  FaStar: Sparkles,
+  FaCog: SettingsIcon,
+  FaLock: Lock,
+
+  // Direct Lucide Icon Names from sidebarConfig
+  Home: Home,
+  Package: Package,
+  ShoppingCart: ShoppingCart,
+  ShoppingBag: ShoppingBag,
+  Clock: Clock,
+  Landmark: Landmark,
+  UserCheck: UserCheck,
+  BarChart3: BarChart3,
+  Folder: Folder,
+  Users: Users,
+  Settings: SettingsIcon,
+  Trash: Trash2,
+  Star: Sparkles,
+  Lock: Lock,
+};
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -210,21 +331,26 @@ const Layout = ({ children }) => {
   };
 
   const linkCls = (path) =>
-    `flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-[9px] px-[18px]'} py-[5px] text-[12px] font-medium transition-all duration-200 cursor-pointer w-full text-left relative group
+    `flex items-center ${isCollapsed ? 'justify-center px-0 py-2' : 'justify-between mx-2 my-[1px] px-2.5 py-[6.5px]'} text-[13px] rounded-[6px] transition-all duration-150 cursor-pointer w-auto text-left relative group
     ${isActive(path)
-      ? 'bg-white/10 text-white border-l-2 border-blue-400'
-      : 'text-slate-300 hover:bg-white/5 hover:text-white border-l-2 border-transparent'}`;
+      ? 'bg-[#2f70f6] text-white font-medium shadow-sm'
+      : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 font-normal'}`;
 
   const subLinkCls = (path) =>
-    `flex items-center gap-[7px] pl-[34px] pr-[18px] py-[4px] text-[11px] transition-colors w-full text-left
+    `flex items-center justify-between pl-[34px] pr-2.5 py-[5.5px] mx-2 my-[1px] text-[12.5px] rounded-[6px] transition-colors w-auto text-left group
     ${isActive(path, path === '/payroll')
-      ? 'text-white font-semibold'
-      : 'text-slate-400 hover:text-white'}`;
+      ? 'bg-[#2f70f6] text-white font-medium shadow-sm'
+      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-normal'}`;
 
-  const renderIcon = (iconName, size, className) => {
-    const IconComponent = Icons[iconName];
-    if (!IconComponent) return null;
-    return <IconComponent size={size} className={className} />;
+  const renderIcon = (item, size = 16, className = '') => {
+    const IconComp =
+      (item && ICON_MAP[item.id]) ||
+      (item && ICON_MAP[item.iconName]) ||
+      (typeof item === 'string' && (ICON_MAP[item] || Icons[item])) ||
+      (item && Icons[item.iconName]) ||
+      ShoppingBag;
+
+    return <IconComp size={size} strokeWidth={1.8} className={className} />;
   };
 
   const renderSidebarItem = (item) => {
@@ -233,7 +359,7 @@ const Layout = ({ children }) => {
     // Admin Panel super admin check
     if (item.isSuperAdmin && !isSuperAdmin) return null;
 
-    const currentIconSize = isCollapsed ? 16 : ICON_SIZE;
+    const currentIconSize = isCollapsed ? 18 : 16;
 
     // Check collapsible item
     if (item.type === 'collapsible') {
@@ -268,38 +394,50 @@ const Layout = ({ children }) => {
         }
       };
 
+      const isHighlighted = isCollapsibleActive || isOpen;
+
       return (
         <div
           key={item.id}
-          className="w-full relative group"
+          className="w-full relative group my-[1px]"
           onMouseEnter={(e) => calculatePopupStyle(item.id, e.currentTarget)}
         >
           <button
             onClick={handleToggle}
-            className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-[18px]'} py-[5px] text-[12px] font-medium transition-all duration-200 w-full border-l-2
-              ${isCollapsibleActive
-                ? 'bg-white/10 text-white border-blue-400'
-                : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'}`}
+            className={`flex items-center ${isCollapsed ? 'justify-center px-0 py-2' : 'justify-between mx-2 px-2.5 py-[6.5px]'} text-[13px] rounded-[6px] transition-all duration-150 w-auto
+              ${isHighlighted
+                ? 'bg-[#eff3fe] text-slate-900 font-medium'
+                : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 font-normal'}`}
           >
-            <span className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-[9px]'}`}>
-              {renderIcon(item.iconName, currentIconSize)}
-              {!isCollapsed && <span>{item.label}</span>}
+            <span className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2 flex-1 min-w-0'}`}>
+              {!isCollapsed && (
+                <span className="w-2.5 flex items-center justify-center flex-shrink-0">
+                  {isOpen ? (
+                    <ChevronDown size={11} strokeWidth={2.2} className={isHighlighted ? 'text-slate-600' : 'text-slate-400'} />
+                  ) : (
+                    <ChevronRight size={11} strokeWidth={2.2} className="text-slate-400" />
+                  )}
+                </span>
+              )}
+              {renderIcon(
+                item,
+                currentIconSize,
+                isHighlighted ? 'text-blue-600 flex-shrink-0' : 'text-slate-500 group-hover:text-slate-700 flex-shrink-0'
+              )}
+              {!isCollapsed && <span className="truncate text-left">{item.label}</span>}
               {!isCollapsed && item.isPremium && !hasPremiumAccess && (
-                <span className="text-[8px] font-bold bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded uppercase ml-1">Pro</span>
+                <span className="text-[8px] font-bold bg-amber-100 text-amber-800 px-1 py-0.5 rounded uppercase ml-auto">Pro</span>
               )}
             </span>
-            {!isCollapsed && (isOpen
-              ? <FaChevronDown size={10} className="text-slate-400" />
-              : <FaChevronRight size={10} className="text-slate-400" />)}
           </button>
 
           {/* Floating popup sub-menu for collapsed state */}
           {isCollapsed && (item.isPremium ? hasPremiumAccess : true) && (
             <div
-              className={`fixed ml-3 bg-[#1a2e44] rounded-lg shadow-xl border border-white/10 py-2 w-48 z-50 ${(activeDropdown === item.id) ? 'block' : 'hidden group-hover:block'}`}
+              className={`fixed ml-2 bg-white rounded-xl shadow-xl border border-slate-200 py-2 w-48 z-50 ${(activeDropdown === item.id) ? 'block' : 'hidden group-hover:block'}`}
               style={popupStyles[item.id] || { display: 'none' }}
             >
-              <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 border-b border-white/5 mb-1 uppercase tracking-wider text-left">
+              <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 border-b border-slate-100 mb-1 uppercase tracking-wider text-left">
                 {item.label}
               </div>
               {item.children.map(child => (
@@ -307,9 +445,10 @@ const Layout = ({ children }) => {
                   key={child.id}
                   to={child.path}
                   onClick={() => setActiveDropdown(null)}
-                  className={`block px-3 py-1.5 text-[11px] transition-colors text-left ${isActive(child.path) ? 'text-white font-semibold bg-white/10' : 'text-slate-300 hover:text-white hover:bg-white/5'}`}
+                  className={`flex items-center justify-between px-3 py-1.5 text-[12px] rounded-md mx-1 my-0.5 transition-colors text-left ${isActive(child.path) ? 'bg-[#2f70f6] text-white font-medium shadow-sm' : 'text-slate-700 hover:bg-slate-100 hover:text-blue-600'}`}
                 >
-                  {child.label}
+                  <span className="truncate">{child.label}</span>
+                  {isActive(child.path) && <Plus size={11} strokeWidth={2.5} className="text-white ml-2 flex-shrink-0 opacity-90" />}
                 </Link>
               ))}
             </div>
@@ -317,15 +456,19 @@ const Layout = ({ children }) => {
 
           {/* Inline submenu for expanded state */}
           {!isCollapsed && isOpen && (item.isPremium ? hasPremiumAccess : true) && (
-            <div className="bg-black/10">
+            <div className="py-0.5 space-y-[1px]">
               {item.children.map(child => {
+                const childActive = isActive(child.path, child.path === '/payroll');
                 return (
                   <Link
                     key={child.id}
                     to={child.path}
                     className={subLinkCls(child.path)}
                   >
-                    <FaMinus size={9} className="text-slate-500" /> {child.label}
+                    <span className="truncate">{child.label}</span>
+                    {childActive && (
+                      <Plus size={12} strokeWidth={2.5} className="text-white flex-shrink-0 opacity-90" />
+                    )}
                   </Link>
                 );
               })}
@@ -341,20 +484,29 @@ const Layout = ({ children }) => {
         <Link
           key={item.id}
           to={item.path}
-          className={linkCls(item.path)}
+          className={`flex items-center ${isCollapsed ? 'justify-center px-0 py-2' : 'justify-between mx-2 my-[1px] px-2.5 py-[6.5px]'} text-[13px] rounded-[6px] transition-all duration-150 cursor-pointer w-auto text-left relative group ${
+            isActive(item.path)
+              ? 'bg-[#2f70f6] text-white font-medium shadow-sm'
+              : 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-800 hover:from-amber-100 hover:to-orange-100 border border-amber-200/60 font-semibold'
+          }`}
           onMouseEnter={(e) => showTooltip(item.label, e)}
           onMouseLeave={hideTooltip}
           onClick={hideTooltip}
         >
-          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-[9px]'} text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 font-bold tracking-wide`}>
-            {renderIcon(item.iconName, currentIconSize, "text-amber-400")}
-            {!isCollapsed && <span>{item.label}</span>}
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2 flex-1 min-w-0'}`}>
+            {!isCollapsed && <span className="w-2.5 flex-shrink-0" />}
+            {renderIcon(item, currentIconSize, isActive(item.path) ? "text-white flex-shrink-0" : "text-amber-500 flex-shrink-0")}
+            {!isCollapsed && <span className="truncate">{item.label}</span>}
           </div>
+          {!isCollapsed && isActive(item.path) && (
+            <Plus size={12} strokeWidth={2.5} className="text-white flex-shrink-0 opacity-90" />
+          )}
         </Link>
       );
     }
 
     // Default item
+    const itemActive = isActive(item.path);
     return (
       <Link
         key={item.id}
@@ -364,50 +516,72 @@ const Layout = ({ children }) => {
         onMouseLeave={hideTooltip}
         onClick={hideTooltip}
       >
-        {renderIcon(item.iconName, currentIconSize)}
-        {!isCollapsed && <span>{item.label}</span>}
+        <span className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2 flex-1 min-w-0'}`}>
+          {!isCollapsed && <span className="w-2.5 flex-shrink-0" />}
+          {renderIcon(
+            item,
+            currentIconSize,
+            itemActive ? 'text-white flex-shrink-0' : 'text-slate-500 group-hover:text-slate-700 flex-shrink-0'
+          )}
+          {!isCollapsed && <span className="truncate">{item.label}</span>}
+        </span>
+        {!isCollapsed && itemActive && (
+          <Plus size={12} strokeWidth={2.5} className="text-white flex-shrink-0 opacity-90" />
+        )}
       </Link>
     );
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
+    <div className="flex h-screen overflow-hidden bg-slate-50 font-sans text-slate-800">
 
       {/* ── Sidebar ── */}
-      <aside className={`h-full flex-shrink-0 hidden md:flex flex-col relative transition-all duration-300 ease-in-out ${isCollapsed ? 'w-[64px]' : 'w-[216px]'}`}
-        style={{ background: '#1a2e44' }}>
+      <aside
+        className={`h-full flex-shrink-0 hidden md:flex flex-col relative transition-all duration-200 ease-in-out bg-white border-r border-slate-200/90 ${
+          isCollapsed ? 'w-[64px]' : 'w-[224px]'
+        }`}
+      >
 
         {/* Floating circular expand/collapse toggle button on divider */}
         <button
           onClick={toggleSidebar}
-          className="absolute -right-3 top-6 bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 w-6 h-6 rounded-full flex items-center justify-center border border-white/10 shadow-md transition-transform duration-200 z-50 cursor-pointer"
+          className="absolute -right-3 top-5 bg-white text-slate-500 hover:text-slate-900 hover:bg-slate-50 w-6 h-6 rounded-full flex items-center justify-center border border-slate-200 shadow-sm transition-all duration-200 z-50 cursor-pointer"
           title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
         >
-          {isCollapsed ? <FaChevronRight size={8} /> : <FaChevronLeft size={8} />}
+          {isCollapsed ? <ChevronRight size={12} strokeWidth={2.2} /> : <ChevronLeft size={12} strokeWidth={2.2} />}
         </button>
 
-        <div className="px-[18px] py-[16px] border-b border-white/10 flex items-center min-h-[57px]">
+        {/* Brand Header */}
+        <div className="px-3.5 py-3 border-b border-slate-200/80 flex items-center min-h-[56px] bg-white">
           {!isCollapsed ? (
-            <div className="flex flex-col">
-              <h1 className="text-[17px] font-bold text-white flex items-center gap-2 tracking-wide">
-                <FaThLarge size={18} className="text-blue-400" />
-                Flance
-              </h1>
-              {hasPremiumAccess && (
-                <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase ml-[26px] mt-[2px]">
-                  {isSuperAdmin ? 'Super Admin' : 'Pro Member'}
-                </span>
-              )}
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm">
+                  <LayoutGrid size={15} strokeWidth={2} />
+                </div>
+                <div className="flex flex-col">
+                  <h1 className="text-[15px] font-bold text-slate-800 leading-none tracking-tight">
+                    Flance
+                  </h1>
+                  {hasPremiumAccess && (
+                    <span className="text-[9px] font-semibold text-blue-600 tracking-wider uppercase mt-0.5">
+                      {isSuperAdmin ? 'Super Admin' : 'Pro Plan'}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             <div className="flex items-center justify-center w-full">
-              <FaThLarge size={20} className="text-blue-400" />
+              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm">
+                <LayoutGrid size={15} strokeWidth={2} />
+              </div>
             </div>
           )}
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 py-3 overflow-y-auto no-scrollbar">
+        {/* Nav list */}
+        <nav className="flex-1 py-2 overflow-y-auto sidebar-scroll">
           {sidebarLayout.map(section => {
             if (section.hidden) return null;
             
@@ -423,22 +597,23 @@ const Layout = ({ children }) => {
             const isSectionCollapsedState = isSectionCollapsed(section);
 
             return (
-              <div key={section.id} className="mb-2">
+              <div key={section.id} className="mb-1.5">
                 {!isCollapsed ? (
                   <button
                     onClick={() => toggleSection(section)}
-                    className="w-full flex items-center justify-between px-[18px] pt-[10px] pb-[6px] text-[9px] font-bold text-slate-400/80 hover:text-white tracking-wider uppercase transition-colors duration-150 focus:outline-none text-left"
+                    className="w-full flex items-center justify-between px-3.5 pt-2 pb-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 tracking-wider uppercase transition-colors duration-150 focus:outline-none text-left select-none"
                   >
                     <span>{section.title}</span>
-                    <FaChevronDown 
-                      size={8} 
-                      className={`transform transition-transform duration-250 ${
-                        isSectionCollapsedState ? '-rotate-90 text-slate-500' : 'text-slate-400'
+                    <ChevronDown 
+                      size={11} 
+                      strokeWidth={2.2}
+                      className={`transform transition-transform duration-200 ${
+                        isSectionCollapsedState ? '-rotate-90 text-slate-400' : 'text-slate-400'
                       }`} 
                     />
                   </button>
                 ) : (
-                  <hr className="border-t border-white/5 my-3 mx-4" />
+                  <hr className="border-t border-slate-100 my-2 mx-3" />
                 )}
                 {!isSectionCollapsedState && section.items.map(item => renderSidebarItem(item))}
               </div>
@@ -446,8 +621,20 @@ const Layout = ({ children }) => {
           })}
         </nav>
 
-        {/* Logout */}
-        <div className="border-t border-white/10 p-[10px] flex justify-center">
+        {/* Bottom Bar (APPS & Logout) */}
+        <div className="border-t border-slate-200/80 p-2 bg-slate-50/50 flex flex-col gap-1">
+          {!isCollapsed && (
+            <div className="flex items-center justify-between px-2.5 py-1">
+              <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">Apps</span>
+              <button
+                onClick={toggleSidebar}
+                className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors"
+                title="Collapse Sidebar"
+              >
+                <ChevronLeft size={12} strokeWidth={2.2} />
+              </button>
+            </div>
+          )}
           <button
             onClick={async (e) => {
               hideTooltip();
@@ -462,9 +649,9 @@ const Layout = ({ children }) => {
             onMouseEnter={(e) => showTooltip('Logout', e)}
             onMouseLeave={hideTooltip}
             data-testid="logout-button"
-            className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-[9px] px-[16px]'} py-[8px] rounded text-[12px] font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200 w-full relative group`}
+            className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-2 px-2.5'} py-1.5 rounded-md text-[12.5px] font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 transition-all duration-150 w-full`}
           >
-            <FaSignOutAlt size={isCollapsed ? 16 : ICON_SIZE} />
+            <LogOut size={isCollapsed ? 16 : 14} strokeWidth={1.8} />
             {!isCollapsed && <span>Logout</span>}
           </button>
         </div>
@@ -484,10 +671,10 @@ const Layout = ({ children }) => {
                 onClick={() => setShowPremiumModal(false)}
                 className="absolute top-4 right-4 text-white/80 hover:text-white bg-black/10 hover:bg-black/20 p-1.5 rounded-full transition-colors"
               >
-                <FaTimes size={16} />
+                <X size={16} strokeWidth={2} />
               </button>
               <div className="bg-white/20 p-4 rounded-full backdrop-blur-md shadow-inner">
-                <FaLock className="w-10 h-10 text-white" />
+                <Lock className="w-10 h-10 text-white" strokeWidth={1.8} />
               </div>
             </div>
             <div className="p-8 text-center text-slate-900">
@@ -505,7 +692,7 @@ const Layout = ({ children }) => {
               >
                 <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 bg-[length:200%_auto] group-hover:bg-[100%_auto] transition-all duration-500"></span>
                 <span className="relative flex items-center justify-center gap-2 tracking-wide">
-                  Upgrade Now <FaChevronRight className="w-3 h-3" />
+                  Upgrade Now <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.2} />
                 </span>
               </button>
 
