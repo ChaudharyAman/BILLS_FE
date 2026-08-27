@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import {
   FaSave, FaUpload, FaBuilding, FaCog, FaEye, FaEyeSlash,
-  FaArrowUp, FaArrowDown, FaUndo, FaCheckCircle, FaChevronDown, FaChevronRight, FaPlus, FaMinus, FaThLarge
+  FaArrowUp, FaArrowDown, FaUndo, FaCheckCircle, FaChevronDown, FaChevronRight, FaPlus, FaMinus, FaThLarge,
+  FaCamera, FaTrashAlt
 } from 'react-icons/fa';
 import * as Icons from 'react-icons/fa';
 import * as LucideIcons from 'lucide-react';
@@ -206,6 +207,8 @@ const Settings = () => {
     username: '',
     email: '',
     phone: '',
+    avatar: '',
+    avatarPreview: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
@@ -227,6 +230,8 @@ const Settings = () => {
           username: res.data.user?.username || '',
           email: res.data.user?.email || '',
           phone: res.data.user?.phone || '',
+          avatar: res.data.user?.avatar || '',
+          avatarPreview: res.data.user?.avatar || '',
         }));
       }
     } catch (e) { console.error(e); }
@@ -264,6 +269,32 @@ const Settings = () => {
     const reader = new FileReader();
     reader.onloadend = () => setFormData(prev => ({ ...prev, signatureUrl: reader.result }));
     reader.readAsDataURL(file);
+  };
+
+  const handleAvatarUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Profile picture must be under 5MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSoftData(prev => ({
+        ...prev,
+        avatar: reader.result,
+        avatarPreview: reader.result,
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveAvatar = () => {
+    setSoftData(prev => ({
+      ...prev,
+      avatar: '',
+      avatarPreview: '',
+    }));
   };
 
   const handleCompanySubmit = async (e) => {
@@ -310,12 +341,26 @@ const Settings = () => {
         username: softData.username,
         email: softData.email,
         phone: softData.phone,
+        avatar: softData.avatar,
       };
       if (softData.newPassword) {
         payload.currentPassword = softData.currentPassword;
         payload.newPassword = softData.newPassword;
       }
-      await api.put('/auth/profile', payload);
+      const res = await api.put('/auth/profile', payload);
+      if (res.data?.user) {
+        try {
+          const userRaw = localStorage.getItem('user');
+          if (userRaw) {
+            const parsed = JSON.parse(userRaw);
+            parsed.user = { ...parsed.user, ...res.data.user };
+            localStorage.setItem('user', JSON.stringify(parsed));
+            window.dispatchEvent(new Event('auth-sync'));
+          }
+        } catch (storageErr) {
+          console.error('Failed to sync updated user in storage', storageErr);
+        }
+      }
       setSoftData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
       alert('Account settings updated!');
     } catch (e) {
@@ -586,6 +631,63 @@ const Settings = () => {
             {/* Account Info */}
             <div>
               <h3 className="text-base font-semibold text-gray-900 mb-4">Account Information</h3>
+
+              {/* Profile Image / Avatar Uploader */}
+              <div className="mb-6 p-4 bg-slate-50 border border-slate-200/80 rounded-xl flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                <div className="relative group shrink-0">
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-md bg-gradient-to-tr from-teal-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">
+                    {softData.avatarPreview || softData.avatar ? (
+                      <img
+                        src={softData.avatarPreview || softData.avatar}
+                        alt="Profile Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{String(softData.username || 'U').charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <label
+                    htmlFor="avatar-upload-input"
+                    className="absolute inset-0 rounded-full bg-black/40 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-medium"
+                    title="Change Profile Photo"
+                  >
+                    <FaCamera size={14} className="mb-0.5" />
+                    <span>Change</span>
+                  </label>
+                  <input
+                    id="avatar-upload-input"
+                    type="file"
+                    accept="image/png, image/jpeg, image/jpg, image/webp"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
+                </div>
+
+                <div className="flex-1 text-center sm:text-left">
+                  <h4 className="text-sm font-semibold text-slate-800">Profile Photo</h4>
+                  <p className="text-xs text-slate-500 mt-0.5 mb-3">
+                    Upload your profile picture. Recommended square image (PNG, JPG, or WebP up to 5MB).
+                  </p>
+                  <div className="flex items-center justify-center sm:justify-start gap-2.5">
+                    <label
+                      htmlFor="avatar-upload-input"
+                      className="px-3 py-1.5 bg-white border border-slate-300 hover:border-teal-500 hover:text-teal-600 text-slate-700 text-xs font-medium rounded-lg shadow-sm cursor-pointer transition-colors inline-flex items-center gap-1.5"
+                    >
+                      <FaUpload size={12} /> Upload Photo
+                    </label>
+                    {(softData.avatarPreview || softData.avatar) && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveAvatar}
+                        className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-medium rounded-lg shadow-sm transition-colors inline-flex items-center gap-1.5"
+                      >
+                        <FaTrashAlt size={12} /> Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>

@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
 import { FaCalendarAlt, FaCheck, FaTimes, FaPlus } from 'react-icons/fa';
 import { buildPdfTransactionPatch } from '../utils/pdfTransactionImport';
+import AttachmentUploader from '../components/AttachmentUploader';
 
 const gstStateMap = {
   '01': 'Jammu & Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab', '04': 'Chandigarh', 
@@ -67,6 +68,7 @@ const IncomeForm = () => {
     incomeNumberPrefix: 'INC-',
     incomeNumberSuffix: '',
     date: new Date().toISOString().substring(0, 10),
+    paymentDate: '',
     paymentMethod: '',
     vendorRef: '',
     vendorName: '',
@@ -86,7 +88,8 @@ const IncomeForm = () => {
     tds_section: '',
     tds_rate: 0,
     tds_amount: 0,
-    amountPaid: 0
+    amountPaid: 0,
+    attachments: [],
   });
 
   const [companyTaxProfile, setCompanyTaxProfile] = useState({ state: '', gstin: '' });
@@ -157,6 +160,7 @@ const IncomeForm = () => {
             incomeNumberPrefix: prefix,
             incomeNumberSuffix: suffix,
             date: data.date ? new Date(data.date).toISOString().substring(0, 10) : '',
+            paymentDate: data.paymentDate ? new Date(data.paymentDate).toISOString().substring(0, 10) : '',
             paymentMethod: data.paymentMethod || '',
             vendorRef: data.vendor?.vendorRef || '',
             vendorName: data.vendor?.name || '',
@@ -166,6 +170,7 @@ const IncomeForm = () => {
             subCategory: data.subCategory?._id || data.subCategory || '',
             businessUnit: data.businessUnit?._id || data.businessUnit || '',
             items: data.items?.length > 0 ? data.items : [{ itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }],
+            attachments: data.attachments || [],
             reverseCharge: !!data.reverseCharge,
             terms: data.terms || '',
             privateNotes: data.privateNotes || '',
@@ -230,6 +235,7 @@ const IncomeForm = () => {
         clientPAN: patch.clientPAN || '',
         placeOfSupply: patch.placeOfSupply || prev.placeOfSupply,
         items: patch.items.length > 0 ? patch.items : prev.items,
+        attachments: Array.isArray(patch.attachments) && patch.attachments.length > 0 ? patch.attachments : prev.attachments,
         privateNotes: [prev.privateNotes, patch.privateNotes].filter(Boolean).join('\n'),
       }));
     } catch (e) {
@@ -439,11 +445,13 @@ const IncomeForm = () => {
         grandTotal: totals.grandTotal,
         terms: formData.terms,
         privateNotes: formData.privateNotes,
+        attachments: formData.attachments || [],
         tds_applicable: !!formData.tds_applicable,
         tds_section: formData.tds_section || '',
         tds_rate: Number(formData.tds_rate) || 0,
         tds_amount: totals.tds_amount || 0,
-        amountPaid: Number(formData.amountPaid) || 0
+        amountPaid: Number(formData.amountPaid) || 0,
+        paymentDate: formData.paymentDate || null
       };
 
       if (id) {
@@ -586,6 +594,21 @@ const IncomeForm = () => {
                           cursor: pointer;
                       }
                     `}</style>
+                  </div>
+              </div>
+
+              {/* Payment Date */}
+              <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
+                  <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Payment date</span>
+                  <div className="relative flex-1 min-w-0">
+                    <FaCalendarAlt className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input 
+                      type="date" 
+                      className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`} 
+                      style={{ WebkitAppearance: 'none' }}
+                      value={formData.paymentDate || ''}
+                      onChange={e => setFormData(p => ({ ...p, paymentDate: e.target.value }))}
+                    />
                   </div>
               </div>
 
@@ -951,12 +974,22 @@ const IncomeForm = () => {
                    </div>
                  </div>
 
-                 <div className="flex justify-between items-center px-4 pt-3 border-t border-gray-200">
+                 <div className="flex justify-between items-center px-4 pt-2 border-t border-gray-200">
                    <span className="text-sm font-bold text-[#2d4b6b]">Balance Due:</span>
                    <span className="text-sm font-bold text-[#2d4b6b]">₹ {totals.balanceDue.toFixed(2)}</span>
                  </div>
                </div>
             </div>
+          </div>
+
+          {/* Attachments Section */}
+          <div className="p-6 border-t border-gray-200">
+            <AttachmentUploader
+              attachments={formData.attachments || []}
+              onChange={(atts) => setFormData(p => ({ ...p, attachments: atts }))}
+              entityId={id}
+              entityType="incomes"
+            />
           </div>
 
           {/* Notes Section */}

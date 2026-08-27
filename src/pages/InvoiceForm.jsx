@@ -8,6 +8,7 @@ import ItemForm from './ItemForm';
 import Skeleton from '../components/Skeleton';
 import CsvUploader from '../components/CsvUploader';
 import ItemSelect from '../components/ItemSelect';
+import AttachmentUploader from '../components/AttachmentUploader';
 
 const INVOICE_TYPES = ['Invoice', 'Retail Invoice', 'Tax Invoice', 'Excise Invoice'];
 const STANDARD_TAX_RATES = [0, 5, 12, 18, 28];
@@ -194,6 +195,7 @@ const InvoiceForm = () => {
       date: new Date().toISOString().split('T')[0],
       poDate: '',
       dueDate: '',
+      paymentDate: '',
       paymentMode: '',
       paymentTerms: 'On Receipt',
       status: 'DRAFT',
@@ -233,6 +235,7 @@ const InvoiceForm = () => {
       tcs: 0,
       drCr: 'Dr.',
       purchaseOrderRef: '',
+      attachments: [],
     };
   };
 
@@ -302,6 +305,7 @@ const InvoiceForm = () => {
         customChargeLabel: pdf.customChargeLabel || prev.customChargeLabel,
         packagingCharges: pdf.packagingCharges ?? prev.packagingCharges,
         discountTotal: pdf.discountTotal || 0,
+        attachments: Array.isArray(pdf.attachments) && pdf.attachments.length > 0 ? pdf.attachments : prev.attachments,
         items: pdf.items?.length > 0
           ? pdf.items.map(item => ({
               ...emptyItem(),
@@ -507,6 +511,7 @@ const InvoiceForm = () => {
         date: fmt(inv.date),
         poDate: fmt(inv.transport?.poDate || inv.poDate),
         dueDate: fmt(inv.dueDate),
+        paymentDate: fmt(inv.paymentDate),
         paymentMode: inv.paymentMode || '',
         paymentTerms: inv.paymentTerms || 'On Receipt',
         status: inv.status || 'DRAFT',
@@ -560,6 +565,7 @@ const InvoiceForm = () => {
         tcs: inv.tcs || 0,
         drCr: inv.drCr || 'Dr.',
         purchaseOrderRef: inv.purchaseOrderRef || '',
+        attachments: inv.attachments || [],
         items: (inv.items || []).map(i => ({ 
           ...emptyItem(), 
           ...i,
@@ -1216,6 +1222,15 @@ const InvoiceForm = () => {
               </select>
             </div>
             <div>
+              <label className={lbl}>Payment Date</label>
+              <input 
+                type="date" 
+                className={inp} 
+                value={formData.paymentDate || ''}
+                onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })} 
+              />
+            </div>
+            <div>
               <label className={lbl}>Business Unit</label>
               <select className={inp} value={formData.businessUnit || ''}
                 onChange={(e) => setFormData({ ...formData, businessUnit: e.target.value })}>
@@ -1565,11 +1580,16 @@ const InvoiceForm = () => {
                 <FaPlus size={14} /> Add Advance Payment
               </button>
               {showAdvance && (
-                <div className="mt-2 pl-6 flex items-center gap-4">
+                <div className="mt-2 pl-6 flex flex-wrap items-center gap-4">
                   <div>
                     <label className="text-[10px] text-gray-500 uppercase block">Amount Paid:</label>
                     <input type="number" min="0" step="0.01" className="border border-blue-200 rounded px-2 py-1.5 text-sm w-36 outline-none bg-blue-50 focus:border-blue-500"
                       value={formData.advancePaid} onChange={(e) => setFormData({ ...formData, advancePaid: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-500 uppercase block">Payment Date:</label>
+                    <input type="date" className="border border-blue-200 rounded px-2 py-1.5 text-sm w-36 outline-none bg-blue-50 focus:border-blue-500"
+                      value={formData.paymentDate || ''} onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })} />
                   </div>
                 </div>
               )}
@@ -1867,6 +1887,16 @@ const InvoiceForm = () => {
                 onChange={(e) => setFormData({ ...formData, bankDetails: { ...formData.bankDetails, ifscCode: e.target.value } })} />
             </div>
           </div>
+        </div>
+
+        {/* ── Attachments ── */}
+        <div className="mt-8 border-t border-gray-100 pt-6">
+          <AttachmentUploader
+            attachments={formData.attachments || []}
+            onChange={(atts) => setFormData(prev => ({ ...prev, attachments: atts }))}
+            entityId={id}
+            entityType="invoices"
+          />
         </div>
 
         {/* ── Notes & Terms ── */}

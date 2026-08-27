@@ -67,6 +67,7 @@ export const buildPdfTransactionPatch = (pdf, kind, { vendors = [], clients = []
     clientPAN: pdf.clientPAN || '',
     placeOfSupply: pdf.placeOfSupply || '',
     items,
+    attachments: Array.isArray(pdf.attachments) ? pdf.attachments : [],
     privateNotes: notes.join('\n'),
   };
 };

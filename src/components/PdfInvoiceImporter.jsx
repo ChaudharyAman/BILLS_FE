@@ -210,7 +210,7 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'in
   };
 
   // ─── Save to Invoice Form ──────────────────────────────
-  const handleSaveToForm = () => {
+  const handleSaveToForm = async () => {
     if (!extractedData) return;
     const roundOff = Number(extractedData.roundOff) || 0;
     const items = (extractedData.items || []).map(item => ({
@@ -222,6 +222,27 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'in
       taxRate: item.gst || 0,
       discount: item.discount || 0,
     }));
+
+    let scannedAttachments = [];
+    if (file) {
+      try {
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+        });
+        scannedAttachments = [{
+          originalName: file.name,
+          mimeType: file.type || 'application/pdf',
+          sizeBytes: file.size,
+          base64,
+          uploadedAt: new Date().toISOString(),
+        }];
+      } catch (e) {
+        console.warn('Failed to encode scanned file attachment:', e);
+      }
+    }
 
     const commonPayload = {
       documentNumber: extractedData.invoiceNumber || '',
@@ -237,6 +258,7 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'in
       poNumber: extractedData.poNumber || '',
       poDate: extractedData.poDate || '',
       items,
+      attachments: scannedAttachments,
       subTotal: extractedData.subTotal || 0,
       taxTotal: extractedData.taxAmount || 0,
       grandTotal: extractedData.totalAmount || 0,

@@ -8,6 +8,7 @@ import ItemForm from './ItemForm';
 import Skeleton from '../components/Skeleton';
 import CsvUploader from '../components/CsvUploader';
 import ItemSelect from '../components/ItemSelect';
+import AttachmentUploader from '../components/AttachmentUploader';
 
 const parseDocumentNumberParts = (value, prefix) => {
   const raw = String(value || '').trim();
@@ -129,6 +130,7 @@ const PurchaseOrderForm = () => {
       notes: '',
       privateNotes: '',
       terms: '',
+      attachments: [],
     };
   };
 
@@ -197,6 +199,7 @@ const PurchaseOrderForm = () => {
         paymentMode: pdf.paymentMode || prev.paymentMode,
         customChargeLabel: pdf.customChargeLabel || prev.customChargeLabel,
         customChargeAmount: pdf.packagingCharges ?? prev.customChargeAmount,
+        attachments: Array.isArray(pdf.attachments) && pdf.attachments.length > 0 ? pdf.attachments : prev.attachments,
         items: pdf.items?.length > 0
           ? pdf.items.map(item => ({
               ...emptyItem(),
@@ -403,6 +406,7 @@ const PurchaseOrderForm = () => {
         notes: d.notes || '',
         privateNotes: d.privateNotes || '',
         terms: d.terms || '',
+        attachments: d.attachments || [],
       });
       if (d.shippingCharges > 0) setShowShipping(true);
       if (d.discountTotal > 0) setShowDiscountTotal(true);
@@ -1006,6 +1010,16 @@ const PurchaseOrderForm = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ── Attachments ── */}
+        <div className="px-6 py-4 border-t border-gray-200">
+          <AttachmentUploader
+            attachments={formData.attachments || []}
+            onChange={(atts) => setFormData(f => ({ ...f, attachments: atts }))}
+            entityId={id}
+            entityType="purchase-orders"
+          />
         </div>
 
         {/* ── Terms & Notes ── */}

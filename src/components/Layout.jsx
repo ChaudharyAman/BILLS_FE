@@ -11,7 +11,6 @@ import {
   Users,
   BarChart3,
   Folder,
-  Plus,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
@@ -258,9 +257,11 @@ const Layout = ({ children }) => {
   // Check user subscription tier — re-evaluated whenever syncTick changes
   let isPro = false;
   let isSuperAdmin = false;
+  let currentUser = null;
   try {
     const userStr = localStorage.getItem('user');
     const userObj = userStr ? JSON.parse(userStr).user : null;
+    currentUser = userObj;
     isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
     isSuperAdmin = userObj?.role === 'superadmin';
   } catch (e) {
@@ -334,13 +335,13 @@ const Layout = ({ children }) => {
     `flex items-center ${isCollapsed ? 'justify-center px-0 py-2' : 'justify-between mx-2 my-[1px] px-2.5 py-[6.5px]'} text-[13px] rounded-[6px] transition-all duration-150 cursor-pointer w-auto text-left relative group
     ${isActive(path)
       ? 'bg-[#2f70f6] text-white font-medium shadow-sm'
-      : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 font-normal'}`;
+      : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950 font-medium'}`;
 
   const subLinkCls = (path) =>
     `flex items-center justify-between pl-[34px] pr-2.5 py-[5.5px] mx-2 my-[1px] text-[12.5px] rounded-[6px] transition-colors w-auto text-left group
     ${isActive(path, path === '/payroll')
       ? 'bg-[#2f70f6] text-white font-medium shadow-sm'
-      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-normal'}`;
+      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-medium'}`;
 
   const renderIcon = (item, size = 16, className = '') => {
     const IconComp =
@@ -406,23 +407,23 @@ const Layout = ({ children }) => {
             onClick={handleToggle}
             className={`flex items-center ${isCollapsed ? 'justify-center px-0 py-2' : 'justify-between mx-2 px-2.5 py-[6.5px]'} text-[13px] rounded-[6px] transition-all duration-150 w-auto
               ${isHighlighted
-                ? 'bg-[#eff3fe] text-slate-900 font-medium'
-                : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 font-normal'}`}
+                ? 'bg-[#eff3fe] text-slate-950 font-medium'
+                : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950 font-medium'}`}
           >
             <span className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2 flex-1 min-w-0'}`}>
               {!isCollapsed && (
                 <span className="w-2.5 flex items-center justify-center flex-shrink-0">
                   {isOpen ? (
-                    <ChevronDown size={11} strokeWidth={2.2} className={isHighlighted ? 'text-slate-600' : 'text-slate-400'} />
+                    <ChevronDown size={11} strokeWidth={2.2} className={isHighlighted ? 'text-slate-700' : 'text-slate-500'} />
                   ) : (
-                    <ChevronRight size={11} strokeWidth={2.2} className="text-slate-400" />
+                    <ChevronRight size={11} strokeWidth={2.2} className="text-slate-500" />
                   )}
                 </span>
               )}
               {renderIcon(
                 item,
                 currentIconSize,
-                isHighlighted ? 'text-blue-600 flex-shrink-0' : 'text-slate-500 group-hover:text-slate-700 flex-shrink-0'
+                isHighlighted ? 'text-blue-600 flex-shrink-0' : 'text-slate-600 group-hover:text-slate-800 flex-shrink-0'
               )}
               {!isCollapsed && <span className="truncate text-left">{item.label}</span>}
               {!isCollapsed && item.isPremium && !hasPremiumAccess && (
@@ -437,7 +438,7 @@ const Layout = ({ children }) => {
               className={`fixed ml-2 bg-white rounded-xl shadow-xl border border-slate-200 py-2 w-48 z-50 ${(activeDropdown === item.id) ? 'block' : 'hidden group-hover:block'}`}
               style={popupStyles[item.id] || { display: 'none' }}
             >
-              <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 border-b border-slate-100 mb-1 uppercase tracking-wider text-left">
+              <div className="px-3 py-1.5 text-[11px] font-bold text-slate-600 border-b border-slate-100 mb-1 uppercase tracking-wider text-left">
                 {item.label}
               </div>
               {item.children.map(child => (
@@ -445,10 +446,9 @@ const Layout = ({ children }) => {
                   key={child.id}
                   to={child.path}
                   onClick={() => setActiveDropdown(null)}
-                  className={`flex items-center justify-between px-3 py-1.5 text-[12px] rounded-md mx-1 my-0.5 transition-colors text-left ${isActive(child.path) ? 'bg-[#2f70f6] text-white font-medium shadow-sm' : 'text-slate-700 hover:bg-slate-100 hover:text-blue-600'}`}
+                  className={`flex items-center justify-between px-3 py-1.5 text-[12px] rounded-md mx-1 my-0.5 transition-colors text-left ${isActive(child.path) ? 'bg-[#2f70f6] text-white font-medium shadow-sm' : 'text-slate-800 font-medium hover:bg-slate-100 hover:text-blue-600'}`}
                 >
                   <span className="truncate">{child.label}</span>
-                  {isActive(child.path) && <Plus size={11} strokeWidth={2.5} className="text-white ml-2 flex-shrink-0 opacity-90" />}
                 </Link>
               ))}
             </div>
@@ -458,7 +458,6 @@ const Layout = ({ children }) => {
           {!isCollapsed && isOpen && (item.isPremium ? hasPremiumAccess : true) && (
             <div className="py-0.5 space-y-[1px]">
               {item.children.map(child => {
-                const childActive = isActive(child.path, child.path === '/payroll');
                 return (
                   <Link
                     key={child.id}
@@ -466,9 +465,6 @@ const Layout = ({ children }) => {
                     className={subLinkCls(child.path)}
                   >
                     <span className="truncate">{child.label}</span>
-                    {childActive && (
-                      <Plus size={12} strokeWidth={2.5} className="text-white flex-shrink-0 opacity-90" />
-                    )}
                   </Link>
                 );
               })}
@@ -498,9 +494,6 @@ const Layout = ({ children }) => {
             {renderIcon(item, currentIconSize, isActive(item.path) ? "text-white flex-shrink-0" : "text-amber-500 flex-shrink-0")}
             {!isCollapsed && <span className="truncate">{item.label}</span>}
           </div>
-          {!isCollapsed && isActive(item.path) && (
-            <Plus size={12} strokeWidth={2.5} className="text-white flex-shrink-0 opacity-90" />
-          )}
         </Link>
       );
     }
@@ -521,13 +514,10 @@ const Layout = ({ children }) => {
           {renderIcon(
             item,
             currentIconSize,
-            itemActive ? 'text-white flex-shrink-0' : 'text-slate-500 group-hover:text-slate-700 flex-shrink-0'
+            itemActive ? 'text-white flex-shrink-0' : 'text-slate-600 group-hover:text-slate-800 flex-shrink-0'
           )}
           {!isCollapsed && <span className="truncate">{item.label}</span>}
         </span>
-        {!isCollapsed && itemActive && (
-          <Plus size={12} strokeWidth={2.5} className="text-white flex-shrink-0 opacity-90" />
-        )}
       </Link>
     );
   };
@@ -560,7 +550,7 @@ const Layout = ({ children }) => {
                   <LayoutGrid size={15} strokeWidth={2} />
                 </div>
                 <div className="flex flex-col">
-                  <h1 className="text-[15px] font-bold text-slate-800 leading-none tracking-tight">
+                  <h1 className="text-[15px] font-bold text-slate-900 leading-none tracking-tight">
                     Flance
                   </h1>
                   {hasPremiumAccess && (
@@ -601,14 +591,14 @@ const Layout = ({ children }) => {
                 {!isCollapsed ? (
                   <button
                     onClick={() => toggleSection(section)}
-                    className="w-full flex items-center justify-between px-3.5 pt-2 pb-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 tracking-wider uppercase transition-colors duration-150 focus:outline-none text-left select-none"
+                    className="w-full flex items-center justify-between px-3.5 pt-2 pb-1 text-[10.5px] font-bold text-slate-500 hover:text-slate-800 tracking-wider uppercase transition-colors duration-150 focus:outline-none text-left select-none"
                   >
                     <span>{section.title}</span>
                     <ChevronDown 
                       size={11} 
                       strokeWidth={2.2}
                       className={`transform transition-transform duration-200 ${
-                        isSectionCollapsedState ? '-rotate-90 text-slate-400' : 'text-slate-400'
+                        isSectionCollapsedState ? '-rotate-90 text-slate-500' : 'text-slate-500'
                       }`} 
                     />
                   </button>
@@ -621,11 +611,37 @@ const Layout = ({ children }) => {
           })}
         </nav>
 
-        {/* Bottom Bar (APPS & Logout) */}
-        <div className="border-t border-slate-200/80 p-2 bg-slate-50/50 flex flex-col gap-1">
+        {/* Bottom Bar (User Profile, APPS & Logout) */}
+        <div className="border-t border-slate-200/80 p-2 bg-slate-50/50 flex flex-col gap-1.5">
+          {currentUser && (
+            <Link
+              to="/settings?tab=software"
+              className={`flex items-center ${isCollapsed ? 'justify-center p-1' : 'gap-2 px-2 py-1.5'} rounded-lg hover:bg-slate-200/60 transition-colors group text-left`}
+              title="Account Settings"
+            >
+              <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-gradient-to-tr from-teal-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-xs">
+                {currentUser.avatar ? (
+                  <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span>{String(currentUser.username || 'U').charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+              {!isCollapsed && (
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-[12px] font-semibold text-slate-800 truncate leading-tight group-hover:text-blue-600">
+                    {currentUser.username}
+                  </span>
+                  <span className="text-[10px] text-slate-400 truncate">
+                    {currentUser.email}
+                  </span>
+                </div>
+              )}
+            </Link>
+          )}
+
           {!isCollapsed && (
-            <div className="flex items-center justify-between px-2.5 py-1">
-              <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">Apps</span>
+            <div className="flex items-center justify-between px-2.5 py-0.5">
+              <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">App</span>
               <button
                 onClick={toggleSidebar}
                 className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors"
@@ -649,7 +665,7 @@ const Layout = ({ children }) => {
             onMouseEnter={(e) => showTooltip('Logout', e)}
             onMouseLeave={hideTooltip}
             data-testid="logout-button"
-            className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-2 px-2.5'} py-1.5 rounded-md text-[12.5px] font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 transition-all duration-150 w-full`}
+            className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-2 px-2.5'} py-1.5 rounded-md text-[12px] font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 transition-all duration-150 w-full`}
           >
             <LogOut size={isCollapsed ? 16 : 14} strokeWidth={1.8} />
             {!isCollapsed && <span>Logout</span>}

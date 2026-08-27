@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
 import { FaCalendarAlt, FaCheck, FaTimes, FaPlus } from 'react-icons/fa';
 import { buildPdfTransactionPatch } from '../utils/pdfTransactionImport';
+import AttachmentUploader from '../components/AttachmentUploader';
 
 const ExpenseForm = () => {
   const { id } = useParams();
@@ -39,6 +40,7 @@ const ExpenseForm = () => {
     items: [
       { itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }
     ],
+    attachments: [],
     reverseCharge: false,
     terms: '',
     privateNotes: '',
@@ -120,6 +122,7 @@ const ExpenseForm = () => {
             subCategory: data.subCategory?._id || data.subCategory || '',
             businessUnit: data.businessUnit?._id || data.businessUnit || '',
             items: data.items?.length > 0 ? data.items : [{ itemRef: '', name: '', unit: '', qty: 1, rate: 0, taxRate: 0, amount: 0 }],
+            attachments: data.attachments || [],
             reverseCharge: !!data.reverseCharge,
             terms: data.terms || '',
             privateNotes: data.privateNotes || '',
@@ -182,6 +185,7 @@ const ExpenseForm = () => {
         clientPAN: patch.clientPAN || '',
         placeOfSupply: patch.placeOfSupply || prev.placeOfSupply,
         items: patch.items.length > 0 ? patch.items : prev.items,
+        attachments: Array.isArray(patch.attachments) && patch.attachments.length > 0 ? patch.attachments : prev.attachments,
         privateNotes: [prev.privateNotes, patch.privateNotes].filter(Boolean).join('\n'),
       }));
     } catch (e) {
@@ -470,6 +474,7 @@ const ExpenseForm = () => {
         grandTotal: totals.grandTotal,
         terms: formData.terms,
         privateNotes: formData.privateNotes,
+        attachments: formData.attachments || [],
         tds_applicable: formData.tds_applicable,
         tds_section: formData.tds_section,
         tds_rate: formData.tds_rate,
@@ -1070,6 +1075,16 @@ const ExpenseForm = () => {
                   </div>
                </div>
             </div>
+          </div>
+
+          {/* Attachments Section */}
+          <div className="p-6 border-t border-gray-200">
+            <AttachmentUploader
+              attachments={formData.attachments || []}
+              onChange={(atts) => setFormData(prev => ({ ...prev, attachments: atts }))}
+              entityId={id}
+              entityType="expenses"
+            />
           </div>
 
           {/* Notes Section */}

@@ -357,7 +357,20 @@ export default function PublicSubmissionsInbox() {
                 </>
               )}
             </div>
-            {selected && <StatusBadge status={selected.status} />}
+            {selected && (
+              <div className="flex items-center gap-2">
+                <StatusBadge status={selected.status} />
+                <button
+                  type="button"
+                  onClick={() => setSelected(null)}
+                  className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors ml-1"
+                  title="Close details"
+                  aria-label="Close details"
+                >
+                  <FaTimes className="text-base" />
+                </button>
+              </div>
+            )}
           </div>
 
           {loadingDetail ? (
