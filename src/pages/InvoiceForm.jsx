@@ -195,6 +195,7 @@ const InvoiceForm = () => {
       date: new Date().toISOString().split('T')[0],
       poDate: '',
       dueDate: '',
+      paymentDate: '',
       paymentMode: '',
       paymentTerms: 'On Receipt',
       status: 'DRAFT',
@@ -510,6 +511,7 @@ const InvoiceForm = () => {
         date: fmt(inv.date),
         poDate: fmt(inv.transport?.poDate || inv.poDate),
         dueDate: fmt(inv.dueDate),
+        paymentDate: fmt(inv.paymentDate),
         paymentMode: inv.paymentMode || '',
         paymentTerms: inv.paymentTerms || 'On Receipt',
         status: inv.status || 'DRAFT',
@@ -1220,6 +1222,15 @@ const InvoiceForm = () => {
               </select>
             </div>
             <div>
+              <label className={lbl}>Payment Date</label>
+              <input 
+                type="date" 
+                className={inp} 
+                value={formData.paymentDate || ''}
+                onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })} 
+              />
+            </div>
+            <div>
               <label className={lbl}>Business Unit</label>
               <select className={inp} value={formData.businessUnit || ''}
                 onChange={(e) => setFormData({ ...formData, businessUnit: e.target.value })}>
@@ -1569,11 +1580,16 @@ const InvoiceForm = () => {
                 <FaPlus size={14} /> Add Advance Payment
               </button>
               {showAdvance && (
-                <div className="mt-2 pl-6 flex items-center gap-4">
+                <div className="mt-2 pl-6 flex flex-wrap items-center gap-4">
                   <div>
                     <label className="text-[10px] text-gray-500 uppercase block">Amount Paid:</label>
                     <input type="number" min="0" step="0.01" className="border border-blue-200 rounded px-2 py-1.5 text-sm w-36 outline-none bg-blue-50 focus:border-blue-500"
                       value={formData.advancePaid} onChange={(e) => setFormData({ ...formData, advancePaid: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-500 uppercase block">Payment Date:</label>
+                    <input type="date" className="border border-blue-200 rounded px-2 py-1.5 text-sm w-36 outline-none bg-blue-50 focus:border-blue-500"
+                      value={formData.paymentDate || ''} onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })} />
                   </div>
                 </div>
               )}

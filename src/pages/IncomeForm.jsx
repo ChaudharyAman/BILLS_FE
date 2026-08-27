@@ -68,6 +68,7 @@ const IncomeForm = () => {
     incomeNumberPrefix: 'INC-',
     incomeNumberSuffix: '',
     date: new Date().toISOString().substring(0, 10),
+    paymentDate: '',
     paymentMethod: '',
     vendorRef: '',
     vendorName: '',
@@ -159,6 +160,7 @@ const IncomeForm = () => {
             incomeNumberPrefix: prefix,
             incomeNumberSuffix: suffix,
             date: data.date ? new Date(data.date).toISOString().substring(0, 10) : '',
+            paymentDate: data.paymentDate ? new Date(data.paymentDate).toISOString().substring(0, 10) : '',
             paymentMethod: data.paymentMethod || '',
             vendorRef: data.vendor?.vendorRef || '',
             vendorName: data.vendor?.name || '',
@@ -448,7 +450,8 @@ const IncomeForm = () => {
         tds_section: formData.tds_section || '',
         tds_rate: Number(formData.tds_rate) || 0,
         tds_amount: totals.tds_amount || 0,
-        amountPaid: Number(formData.amountPaid) || 0
+        amountPaid: Number(formData.amountPaid) || 0,
+        paymentDate: formData.paymentDate || null
       };
 
       if (id) {
@@ -591,6 +594,21 @@ const IncomeForm = () => {
                           cursor: pointer;
                       }
                     `}</style>
+                  </div>
+              </div>
+
+              {/* Payment Date */}
+              <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
+                  <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Payment date</span>
+                  <div className="relative flex-1 min-w-0">
+                    <FaCalendarAlt className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input 
+                      type="date" 
+                      className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`} 
+                      style={{ WebkitAppearance: 'none' }}
+                      value={formData.paymentDate || ''}
+                      onChange={e => setFormData(p => ({ ...p, paymentDate: e.target.value }))}
+                    />
                   </div>
               </div>
 
