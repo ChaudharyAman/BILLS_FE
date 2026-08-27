@@ -8,6 +8,7 @@ import ItemForm from './ItemForm';
 import Skeleton from '../components/Skeleton';
 import CsvUploader from '../components/CsvUploader';
 import ItemSelect from '../components/ItemSelect';
+import AttachmentUploader from '../components/AttachmentUploader';
 
 const INVOICE_TYPES = ['Invoice', 'Retail Invoice', 'Tax Invoice', 'Excise Invoice'];
 const STANDARD_TAX_RATES = [0, 5, 12, 18, 28];
@@ -233,6 +234,7 @@ const InvoiceForm = () => {
       tcs: 0,
       drCr: 'Dr.',
       purchaseOrderRef: '',
+      attachments: [],
     };
   };
 
@@ -302,6 +304,7 @@ const InvoiceForm = () => {
         customChargeLabel: pdf.customChargeLabel || prev.customChargeLabel,
         packagingCharges: pdf.packagingCharges ?? prev.packagingCharges,
         discountTotal: pdf.discountTotal || 0,
+        attachments: Array.isArray(pdf.attachments) && pdf.attachments.length > 0 ? pdf.attachments : prev.attachments,
         items: pdf.items?.length > 0
           ? pdf.items.map(item => ({
               ...emptyItem(),
@@ -560,6 +563,7 @@ const InvoiceForm = () => {
         tcs: inv.tcs || 0,
         drCr: inv.drCr || 'Dr.',
         purchaseOrderRef: inv.purchaseOrderRef || '',
+        attachments: inv.attachments || [],
         items: (inv.items || []).map(i => ({ 
           ...emptyItem(), 
           ...i,
@@ -1867,6 +1871,16 @@ const InvoiceForm = () => {
                 onChange={(e) => setFormData({ ...formData, bankDetails: { ...formData.bankDetails, ifscCode: e.target.value } })} />
             </div>
           </div>
+        </div>
+
+        {/* ── Attachments ── */}
+        <div className="mt-8 border-t border-gray-100 pt-6">
+          <AttachmentUploader
+            attachments={formData.attachments || []}
+            onChange={(atts) => setFormData(prev => ({ ...prev, attachments: atts }))}
+            entityId={id}
+            entityType="invoices"
+          />
         </div>
 
         {/* ── Notes & Terms ── */}
