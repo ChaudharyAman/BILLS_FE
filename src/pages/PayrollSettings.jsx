@@ -480,7 +480,7 @@ const PayrollSettings = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-4 font-sans text-gray-900 space-y-3">
+      <div className="container mx-auto p-4 font-sans text-gray-900 dark:text-slate-100 space-y-3">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-[580px] w-full" />
       </div>
@@ -488,14 +488,14 @@ const PayrollSettings = () => {
   }
 
   return (
-    <div className="container mx-auto p-4 font-sans text-gray-900">
+    <div className="container mx-auto p-4 font-sans text-gray-900 dark:text-slate-100 transition-colors">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight">Payroll Settings</h1>
-        <p className="text-gray-500 text-xs mt-0.5">Changes take effect on the next payroll run. Existing payroll records are not affected.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-slate-100">Payroll Settings</h1>
+        <p className="text-gray-500 dark:text-slate-400 text-xs mt-0.5">Changes take effect on the next payroll run. Existing payroll records are not affected.</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 mb-6">
+      <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6">
         <button
           type="button"
           onClick={() => {
@@ -504,8 +504,8 @@ const PayrollSettings = () => {
           }}
           className={`py-2 px-4 text-sm font-medium border-b-2 focus:outline-none transition-colors ${
             activeTab === 'general'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:border-gray-300 dark:hover:border-slate-700'
           }`}
         >
           General Settings
@@ -515,8 +515,8 @@ const PayrollSettings = () => {
           onClick={() => setActiveTab('roles')}
           className={`py-2 px-4 text-sm font-medium border-b-2 focus:outline-none transition-colors ${
             activeTab === 'roles'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:border-gray-300 dark:hover:border-slate-700'
           }`}
         >
           Job Roles & Pay Grades
@@ -526,13 +526,13 @@ const PayrollSettings = () => {
       {activeTab === 'general' && (
         <div className="grid grid-cols-1 gap-4">
         {/* Salary Components Section */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm p-4 transition-colors">
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-base font-bold">Salary Components</h2>
+            <h2 className="text-base font-bold text-gray-900 dark:text-slate-100">Salary Components</h2>
             <button
               type="button"
               onClick={addComponent}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-md text-xs font-semibold"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors"
             >
               + Add Component
             </button>
@@ -540,7 +540,7 @@ const PayrollSettings = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-gray-200 text-gray-500 text-[10px] font-bold uppercase tracking-wider">
+                <tr className="border-b border-gray-200 dark:border-slate-800 text-gray-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
                   <th className="py-2 px-1.5">Component Name</th>
                   <th className="py-2 px-1.5">Type</th>
                   <th className="py-2 px-1.5">Taxable</th>
@@ -550,15 +550,15 @@ const PayrollSettings = () => {
                   <th className="py-2 px-1.5 text-right">Delete</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                 {form.salaryComponents?.map((c, index) => (
-                  <tr key={index} className="hover:bg-gray-50/50">
+                  <tr key={index} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="py-1 px-1.5">
                       <input
                         type="text"
                         value={c.name}
                         onChange={(e) => updateComponent(index, 'name', e.target.value)}
-                        className="border border-gray-300 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        className="border border-gray-300 dark:border-slate-700 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
                         placeholder="Component name"
                       />
                     </td>
@@ -566,7 +566,7 @@ const PayrollSettings = () => {
                       <select
                         value={c.type}
                         onChange={(e) => updateComponent(index, 'type', e.target.value)}
-                        className="border border-gray-300 rounded-md px-2 py-1 text-xs w-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="border border-gray-300 dark:border-slate-700 rounded-md px-2 py-1 text-xs w-full bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="earning">Earning</option>
                         <option value="deduction">Deduction</option>
@@ -578,7 +578,7 @@ const PayrollSettings = () => {
                           type="checkbox"
                           checked={!!c.taxable}
                           onChange={(e) => updateComponent(index, 'taxable', e.target.checked)}
-                          className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-blue-600 focus:ring-blue-500"
                         />
                       </div>
                     </td>
@@ -586,7 +586,7 @@ const PayrollSettings = () => {
                       <select
                         value={c.linkedTo}
                         onChange={(e) => updateComponent(index, 'linkedTo', e.target.value)}
-                        className="border border-gray-300 rounded-md px-2 py-1 text-xs w-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="border border-gray-300 dark:border-slate-700 rounded-md px-2 py-1 text-xs w-full bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="ctc_percent">CTC %</option>
                         <option value="basic_percent">Basic %</option>
@@ -598,7 +598,7 @@ const PayrollSettings = () => {
                       {c.linkedTo !== 'remainder' ? (
                         <div className="relative rounded-md shadow-sm w-full">
                           {c.linkedTo === 'fixed' && (
-                            <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">
+                            <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">
                               ₹
                             </div>
                           )}
@@ -618,13 +618,13 @@ const PayrollSettings = () => {
                                 : val;
                               updateComponent(index, 'linkValue', finalVal);
                             }}
-                            className={`border border-gray-300 rounded-md py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ${
+                            className={`border border-gray-300 dark:border-slate-700 rounded-md py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 ${
                               c.linkedTo === 'fixed' ? 'pl-7 pr-2.5' : (['ctc_percent', 'basic_percent'].includes(c.linkedTo) ? 'pl-2.5 pr-7' : 'px-2.5')
                             }`}
                             placeholder="0.00"
                           />
                           {['ctc_percent', 'basic_percent'].includes(c.linkedTo) && (
-                            <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">
+                            <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">
                               %
                             </div>
                           )}
@@ -634,7 +634,7 @@ const PayrollSettings = () => {
                           type="text"
                           disabled
                           value="Calculated remainder"
-                          className="border border-gray-200 bg-gray-50 text-gray-400 rounded-md px-2.5 py-1 text-xs w-full cursor-not-allowed"
+                          className="border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/60 text-gray-400 dark:text-slate-500 rounded-md px-2.5 py-1 text-xs w-full cursor-not-allowed"
                         />
                       )}
                     </td>
@@ -642,7 +642,7 @@ const PayrollSettings = () => {
                       <select
                         value={c.frequency || 'monthly'}
                         onChange={(e) => updateComponent(index, 'frequency', e.target.value)}
-                        className="border border-gray-300 rounded-md px-2 py-1 text-xs w-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="border border-gray-300 dark:border-slate-700 rounded-md px-2 py-1 text-xs w-full bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="monthly">Monthly</option>
                         <option value="quarterly">Quarterly</option>
@@ -652,7 +652,7 @@ const PayrollSettings = () => {
                     </td>
                     <td className="py-1 px-1.5 text-right">
                       {isStatutoryOrSpecial(c.id) ? (
-                        <span className="text-gray-300 cursor-not-allowed p-1 inline-block" title="Statutory/Core components cannot be deleted">
+                        <span className="text-gray-300 dark:text-slate-600 cursor-not-allowed p-1 inline-block" title="Statutory/Core components cannot be deleted">
                           <svg className="w-4 h-4 inline-block opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
@@ -661,7 +661,7 @@ const PayrollSettings = () => {
                         <button
                           type="button"
                           onClick={() => deleteComponent(index)}
-                          className="text-red-500 hover:text-red-700 p-1"
+                          className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 transition-colors"
                           title="Delete component"
                         >
                           <svg className="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -674,7 +674,7 @@ const PayrollSettings = () => {
                 ))}
                 {(!form.salaryComponents || form.salaryComponents.length === 0) && (
                   <tr>
-                    <td colSpan="6" className="py-4 text-center text-gray-500 text-xs">
+                    <td colSpan="7" className="py-4 text-center text-gray-500 dark:text-slate-400 text-xs">
                       No components configured. Will fall back to hardcoded default rules.
                     </td>
                   </tr>
@@ -685,31 +685,31 @@ const PayrollSettings = () => {
         </div>
 
         {/* Statutory Rules & Compliance Section */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
-          <div className="flex items-center space-x-2 mb-4 pb-3 border-b border-gray-100">
-            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm p-4 transition-colors">
+          <div className="flex items-center space-x-2 mb-4 pb-3 border-b border-gray-100 dark:border-slate-800">
+            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
             <div>
-              <h2 className="text-base font-bold">Statutory Rules & Compliance</h2>
-              <p className="text-[11px] text-gray-500">Configure global statutory contribution rates, thresholds, caps and payroll defaults.</p>
+              <h2 className="text-base font-bold text-gray-900 dark:text-slate-100">Statutory Rules & Compliance</h2>
+              <p className="text-[11px] text-gray-500 dark:text-slate-400">Configure global statutory contribution rates, thresholds, caps and payroll defaults.</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Provident Fund Card */}
-            <div className="bg-gray-50/50 rounded-xl border border-gray-150 p-3 hover:border-blue-100 transition-colors">
-              <h3 className="text-xs font-bold text-gray-800 mb-2 flex items-center">
-                <span className="w-1 h-2.5 bg-blue-600 rounded-full mr-1.5"></span>
+            <div className="bg-gray-50/50 dark:bg-slate-800/50 rounded-xl border border-gray-200 dark:border-slate-700/60 p-3 hover:border-blue-100 dark:hover:border-slate-600 transition-colors">
+              <h3 className="text-xs font-bold text-gray-800 dark:text-slate-100 mb-2 flex items-center">
+                <span className="w-1 h-2.5 bg-blue-600 dark:bg-blue-400 rounded-full mr-1.5"></span>
                 Provident Fund (PF)
               </h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Calculation Type</label>
+                  <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">Calculation Type</label>
                   <select
                     value={form.pfCalculationType || 'percent'}
                     onChange={(e) => handleFieldChange('pfCalculationType', e.target.value)}
-                    className="border border-gray-300 rounded-md px-2 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    className="border border-gray-300 dark:border-slate-700 rounded-md px-2 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                   >
                     <option value="percent">Percentage of Ceiling</option>
                     <option value="fixed">Fixed Flat Amount</option>
@@ -720,31 +720,31 @@ const PayrollSettings = () => {
                   <>
                     <div>
                       <div className="flex justify-between items-center mb-0.5">
-                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Employee PF Amount</label>
-                        <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-amber-50 text-amber-700">Deducted from Salary</span>
+                        <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Employee PF Amount</label>
+                        <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60">Deducted from Salary</span>
                       </div>
                       <div className="relative rounded-md shadow-sm">
-                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">₹</div>
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">₹</div>
                         <input
                           type="number"
                           value={form.pfAmountEmployee !== undefined ? form.pfAmountEmployee : ''}
                           onChange={(e) => handleFieldChange('pfAmountEmployee', e.target.value === '' ? 0 : Number(e.target.value))}
-                          className="border border-gray-300 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          className="border border-gray-300 dark:border-slate-700 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                         />
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-0.5">
-                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Employer PF Amount</label>
-                        <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-blue-50 text-blue-700">Paid by Company</span>
+                        <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Employer PF Amount</label>
+                        <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">Paid by Company</span>
                       </div>
                       <div className="relative rounded-md shadow-sm">
-                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">₹</div>
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">₹</div>
                         <input
                           type="number"
                           value={form.pfAmountEmployer !== undefined ? form.pfAmountEmployer : ''}
                           onChange={(e) => handleFieldChange('pfAmountEmployer', e.target.value === '' ? 0 : Number(e.target.value))}
-                          className="border border-gray-300 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          className="border border-gray-300 dark:border-slate-700 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                         />
                       </div>
                     </div>
@@ -753,8 +753,8 @@ const PayrollSettings = () => {
                   <>
                     <div>
                       <div className="flex justify-between items-center mb-0.5">
-                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Employee PF Rate</label>
-                        <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-amber-50 text-amber-700">Deducted from Salary</span>
+                        <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Employee PF Rate</label>
+                        <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60">Deducted from Salary</span>
                       </div>
                       <div className="relative rounded-md shadow-sm">
                         <input
@@ -762,15 +762,15 @@ const PayrollSettings = () => {
                           step="0.01"
                           value={form.pfRate !== undefined ? Math.round(form.pfRate * 10000) / 100 : ''}
                           onChange={(e) => handleFieldChange('pfRate', e.target.value === '' ? 0 : Number(e.target.value) / 100)}
-                          className="border border-gray-300 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          className="border border-gray-300 dark:border-slate-700 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                         />
-                        <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">%</div>
+                        <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">%</div>
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-0.5">
-                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Employer PF Rate</label>
-                        <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-blue-50 text-blue-700">Paid by Company</span>
+                        <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Employer PF Rate</label>
+                        <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">Paid by Company</span>
                       </div>
                       <div className="relative rounded-md shadow-sm">
                         <input
@@ -778,20 +778,20 @@ const PayrollSettings = () => {
                           step="0.01"
                           value={form.pfEmployerRate !== undefined ? Math.round(form.pfEmployerRate * 10000) / 100 : ''}
                           onChange={(e) => handleFieldChange('pfEmployerRate', e.target.value === '' ? 0 : Number(e.target.value) / 100)}
-                          className="border border-gray-300 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          className="border border-gray-300 dark:border-slate-700 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                         />
-                        <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">%</div>
+                        <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">%</div>
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Monthly PF Salary Ceiling</label>
+                      <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">Monthly PF Salary Ceiling</label>
                       <div className="relative rounded-md shadow-sm">
-                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">₹</div>
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">₹</div>
                         <input
                           type="number"
                           value={form.pfCap !== undefined ? form.pfCap : ''}
                           onChange={(e) => handleFieldChange('pfCap', e.target.value === '' ? 0 : Number(e.target.value))}
-                          className="border border-gray-300 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          className="border border-gray-300 dark:border-slate-700 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                         />
                       </div>
                     </div>
@@ -801,16 +801,16 @@ const PayrollSettings = () => {
             </div>
 
             {/* ESI Card */}
-            <div className="bg-gray-50/50 rounded-xl border border-gray-150 p-3 hover:border-blue-100 transition-colors">
-              <h3 className="text-xs font-bold text-gray-800 mb-2 flex items-center">
-                <span className="w-1 h-2.5 bg-blue-600 rounded-full mr-1.5"></span>
+            <div className="bg-gray-50/50 dark:bg-slate-800/50 rounded-xl border border-gray-200 dark:border-slate-700/60 p-3 hover:border-blue-100 dark:hover:border-slate-600 transition-colors">
+              <h3 className="text-xs font-bold text-gray-800 dark:text-slate-100 mb-2 flex items-center">
+                <span className="w-1 h-2.5 bg-blue-600 dark:bg-blue-400 rounded-full mr-1.5"></span>
                 State Insurance (ESI)
               </h3>
               <div className="space-y-3">
                 <div>
                   <div className="flex justify-between items-center mb-0.5">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Employee ESI Rate</label>
-                    <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-amber-50 text-amber-700">Deducted from Salary</span>
+                    <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Employee ESI Rate</label>
+                    <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60">Deducted from Salary</span>
                   </div>
                   <div className="relative rounded-md shadow-sm">
                     <input
@@ -818,15 +818,15 @@ const PayrollSettings = () => {
                       step="0.01"
                       value={form.esiEmployeeRate !== undefined ? Math.round(form.esiEmployeeRate * 10000) / 100 : ''}
                       onChange={(e) => handleFieldChange('esiEmployeeRate', e.target.value === '' ? 0 : Number(e.target.value) / 100)}
-                      className="border border-gray-300 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     />
-                    <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">%</div>
+                    <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">%</div>
                   </div>
                 </div>
                 <div>
                   <div className="flex justify-between items-center mb-0.5">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Employer ESI Rate</label>
-                    <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-blue-50 text-blue-700">Paid by Company</span>
+                    <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Employer ESI Rate</label>
+                    <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">Paid by Company</span>
                   </div>
                   <div className="relative rounded-md shadow-sm">
                     <input
@@ -834,20 +834,20 @@ const PayrollSettings = () => {
                       step="0.01"
                       value={form.esiEmployerRate !== undefined ? Math.round(form.esiEmployerRate * 10000) / 100 : ''}
                       onChange={(e) => handleFieldChange('esiEmployerRate', e.target.value === '' ? 0 : Number(e.target.value) / 100)}
-                      className="border border-gray-300 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     />
-                    <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">%</div>
+                    <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">%</div>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">ESI Applicability Threshold</label>
+                  <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">ESI Applicability Threshold</label>
                   <div className="relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">₹</div>
+                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">₹</div>
                     <input
                       type="number"
                       value={form.esiBasicThreshold !== undefined ? form.esiBasicThreshold : ''}
                       onChange={(e) => handleFieldChange('esiBasicThreshold', e.target.value === '' ? 0 : Number(e.target.value))}
-                      className="border border-gray-300 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     />
                   </div>
                 </div>
@@ -855,109 +855,109 @@ const PayrollSettings = () => {
             </div>
 
             {/* LWF & Gratuity Card */}
-            <div className="bg-gray-50/50 rounded-xl border border-gray-150 p-3 hover:border-blue-100 transition-colors">
-              <h3 className="text-xs font-bold text-gray-800 mb-2 flex items-center">
-                <span className="w-1 h-2.5 bg-blue-600 rounded-full mr-1.5"></span>
+            <div className="bg-gray-50/50 dark:bg-slate-800/50 rounded-xl border border-gray-200 dark:border-slate-700/60 p-3 hover:border-blue-100 dark:hover:border-slate-600 transition-colors">
+              <h3 className="text-xs font-bold text-gray-800 dark:text-slate-100 mb-2 flex items-center">
+                <span className="w-1 h-2.5 bg-blue-600 dark:bg-blue-400 rounded-full mr-1.5"></span>
                 LWF & Gratuity
               </h3>
               <div className="space-y-3">
                 <div>
                   <div className="flex justify-between items-center mb-0.5">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Employee LWF Share</label>
-                    <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-amber-50 text-amber-700">Deducted from Salary</span>
+                    <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Employee LWF Share</label>
+                    <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60">Deducted from Salary</span>
                   </div>
                   <div className="relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">₹</div>
+                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">₹</div>
                     <input
                       type="number"
                       value={form.lwfEmployee !== undefined ? form.lwfEmployee : ''}
                       onChange={(e) => handleFieldChange('lwfEmployee', e.target.value === '' ? 0 : Number(e.target.value))}
-                      className="border border-gray-300 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     />
                   </div>
                 </div>
                 <div>
                   <div className="flex justify-between items-center mb-0.5">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Employer LWF Share</label>
-                    <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-blue-50 text-blue-700">Paid by Company</span>
+                    <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Employer LWF Share</label>
+                    <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">Paid by Company</span>
                   </div>
                   <div className="relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">₹</div>
+                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">₹</div>
                     <input
                       type="number"
                       value={form.lwfEmployer !== undefined ? form.lwfEmployer : ''}
                       onChange={(e) => handleFieldChange('lwfEmployer', e.target.value === '' ? 0 : Number(e.target.value))}
-                      className="border border-gray-300 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Gratuity Accrual Rate</label>
+                  <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">Gratuity Accrual Rate</label>
                   <div className="relative rounded-md shadow-sm">
                     <input
                       type="number"
                       step="0.0001"
                       value={form.gratuityRate !== undefined ? Math.round(form.gratuityRate * 1000000) / 10000 : ''}
                       onChange={(e) => handleFieldChange('gratuityRate', e.target.value === '' ? 0 : Number(e.target.value) / 100)}
-                      className="border border-gray-300 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     />
-                    <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">%</div>
+                    <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">%</div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* General Settings Card */}
-            <div className="bg-gray-50/50 rounded-xl border border-gray-150 p-3 hover:border-blue-100 transition-colors">
-              <h3 className="text-xs font-bold text-gray-800 mb-2 flex items-center">
-                <span className="w-1 h-2.5 bg-blue-600 rounded-full mr-1.5"></span>
+            <div className="bg-gray-50/50 dark:bg-slate-800/50 rounded-xl border border-gray-200 dark:border-slate-700/60 p-3 hover:border-blue-100 dark:hover:border-slate-600 transition-colors">
+              <h3 className="text-xs font-bold text-gray-800 dark:text-slate-100 mb-2 flex items-center">
+                <span className="w-1 h-2.5 bg-blue-600 dark:bg-blue-400 rounded-full mr-1.5"></span>
                 General Policies
               </h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Default Working Days</label>
+                  <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">Default Working Days</label>
                   <div className="relative rounded-md shadow-sm">
                     <input
                       type="number"
                       value={form.defaultWorkingDays !== undefined ? form.defaultWorkingDays : ''}
                       onChange={(e) => handleFieldChange('defaultWorkingDays', e.target.value === '' ? 0 : Number(e.target.value))}
-                      className="border border-gray-300 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Default Monthly Insurance</label>
+                  <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">Default Monthly Insurance</label>
                   <div className="relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">₹</div>
+                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">₹</div>
                     <input
                       type="number"
                       value={form.defaultInsurance !== undefined ? form.defaultInsurance : ''}
                       onChange={(e) => handleFieldChange('defaultInsurance', e.target.value === '' ? 0 : Number(e.target.value))}
-                      className="border border-gray-300 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md pl-7 pr-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">LTA Maximum Percent</label>
+                  <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">LTA Maximum Percent</label>
                   <div className="relative rounded-md shadow-sm">
                     <input
                       type="number"
                       step="0.01"
                       value={form.ltaMaxPercent !== undefined ? Math.round(form.ltaMaxPercent * 10000) / 100 : ''}
                       onChange={(e) => handleFieldChange('ltaMaxPercent', e.target.value === '' ? 0 : Number(e.target.value) / 100)}
-                      className="border border-gray-300 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md pl-2.5 pr-7 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     />
-                    <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 text-xs font-semibold">%</div>
+                    <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 dark:text-slate-500 text-xs font-semibold">%</div>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Standard Monthly Hours</label>
+                  <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">Standard Monthly Hours</label>
                   <div className="relative rounded-md shadow-sm">
                     <input
                       type="number"
                       value={form.standardMonthlyHours !== undefined ? form.standardMonthlyHours : 160}
                       onChange={(e) => handleFieldChange('standardMonthlyHours', e.target.value === '' ? 160 : Number(e.target.value))}
-                      className="border border-gray-300 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     />
                   </div>
                 </div>
@@ -966,18 +966,18 @@ const PayrollSettings = () => {
           </div>
 
           {/* Compensation Type Defaults & Overrides Section */}
-          <div className="mt-6 pt-5 border-t border-gray-100">
-            <h3 className="text-xs font-bold text-gray-800 mb-2 flex items-center">
-              <span className="w-1 h-2.5 bg-blue-600 rounded-full mr-1.5"></span>
+          <div className="mt-6 pt-5 border-t border-gray-100 dark:border-slate-800">
+            <h3 className="text-xs font-bold text-gray-800 dark:text-slate-100 mb-2 flex items-center">
+              <span className="w-1 h-2.5 bg-blue-600 dark:bg-blue-400 rounded-full mr-1.5"></span>
               Compensation Type Statutory Defaults Overrides
             </h3>
-            <p className="text-[11px] text-gray-500 mb-4">
+            <p className="text-[11px] text-gray-500 dark:text-slate-400 mb-4">
               Configure statutory defaults for each compensation type. Regular salaried types are eligible for statutory contributions by default, while freelance or contractual types are exempt. Use this table to override defaults.
             </p>
-            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+            <div className="overflow-x-auto border border-gray-200 dark:border-slate-800 rounded-lg">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider text-[9px] border-b border-gray-200">
+                  <tr className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[9px] border-b border-gray-200 dark:border-slate-800">
                     <th className="px-3 py-2">Compensation Type</th>
                     <th className="px-3 py-2 text-center">Provident Fund (PF)</th>
                     <th className="px-3 py-2 text-center">ESI Scheme</th>
@@ -986,14 +986,14 @@ const PayrollSettings = () => {
                     <th className="px-3 py-2 text-center">LWF</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
                   {COMPENSATION_TYPES.map((type) => {
                     const overrides = (form.compensationTypeDefaults || {})[type.id] || {};
                     const baseDefaults = STRATEGY_DEFAULTS[type.id] || { pfEligible: false, esiEligible: false, ptApplicable: false, gratuityEligible: false, lwfApplicable: false };
                     
                     return (
-                      <tr key={type.id} className="hover:bg-gray-50/50">
-                        <td className="px-3 py-2 font-medium text-gray-700">{type.name}</td>
+                      <tr key={type.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="px-3 py-2 font-medium text-gray-700 dark:text-slate-200">{type.name}</td>
                         {STATUTORY_FLAGS.map((flag) => {
                           const val = overrides[flag.key];
                           const baseVal = baseDefaults[flag.key];
@@ -1004,7 +1004,7 @@ const PayrollSettings = () => {
                               <select
                                 value={selectValue}
                                 onChange={(e) => handleOverrideChange(type.id, flag.key, e.target.value)}
-                                className="border border-gray-300 rounded px-1.5 py-0.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white text-gray-700"
+                                className="border border-gray-300 dark:border-slate-700 rounded px-1.5 py-0.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200"
                               >
                                 <option value="default">Default ({baseVal ? 'Eligible' : 'Exempt'})</option>
                                 <option value="true">Force Eligible</option>
@@ -1023,15 +1023,15 @@ const PayrollSettings = () => {
         </div>
 
         {/* HRMS Integration Card */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm p-4 transition-colors">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-slate-800">
             <div className="flex items-center space-x-2">
-              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
               <div>
-                <h2 className="text-base font-bold">HRMS & Attendance Integration</h2>
-                <p className="text-[11px] text-gray-500">Configure connection settings to securely sync employee directories and monthly attendance from your external multi-tenant HRMS.</p>
+                <h2 className="text-base font-bold text-gray-900 dark:text-slate-100">HRMS & Attendance Integration</h2>
+                <p className="text-[11px] text-gray-500 dark:text-slate-400">Configure connection settings to securely sync employee directories and monthly attendance from your external multi-tenant HRMS.</p>
               </div>
             </div>
             {integration.enabled && (
@@ -1054,31 +1054,31 @@ const PayrollSettings = () => {
                   id="hrms-enabled"
                   checked={integration.enabled}
                   onChange={(e) => setIntegration(prev => ({ ...prev, enabled: e.target.checked }))}
-                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                  className="h-4 w-4 text-blue-600 border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded focus:ring-blue-500 cursor-pointer"
                 />
-                <label htmlFor="hrms-enabled" className="text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer">Enable HRMS Integration</label>
+                <label htmlFor="hrms-enabled" className="text-xs font-bold text-gray-700 dark:text-slate-200 uppercase tracking-wider cursor-pointer">Enable HRMS Integration</label>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">HRMS API Base URL</label>
+                <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">HRMS API Base URL</label>
                 <input
                   type="text"
                   placeholder="https://api.myhrms.com"
                   value={integration.apiUrl}
                   onChange={(e) => setIntegration(prev => ({ ...prev, apiUrl: e.target.value }))}
-                  className="border border-gray-300 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="border border-gray-300 dark:border-slate-700 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-slate-500"
                   disabled={!integration.enabled}
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">External Tenant ID / Organisation ID</label>
+                <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">External Tenant ID / Organisation ID</label>
                 <input
                   type="text"
                   placeholder="org_12345"
                   value={integration.externalTenantId}
                   onChange={(e) => setIntegration(prev => ({ ...prev, externalTenantId: e.target.value }))}
-                  className="border border-gray-300 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="border border-gray-300 dark:border-slate-700 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-slate-500"
                   disabled={!integration.enabled}
                 />
               </div>
@@ -1086,37 +1086,37 @@ const PayrollSettings = () => {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">External API Secret Token / API Key</label>
+                <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">External API Secret Token / API Key</label>
                 <input
                   type="password"
                   placeholder="••••••••••••••••"
                   value={integration.apiKey}
                   onChange={(e) => setIntegration(prev => ({ ...prev, apiKey: e.target.value }))}
-                  className="border border-gray-300 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="border border-gray-300 dark:border-slate-700 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-slate-500"
                   disabled={!integration.enabled}
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">AES-256 Symmetric Payload Encryption Key</label>
+                <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">AES-256 Symmetric Payload Encryption Key</label>
                 <input
                   type="password"
                   placeholder="••••••••••••••••"
                   value={integration.encryptionSecret}
                   onChange={(e) => setIntegration(prev => ({ ...prev, encryptionSecret: e.target.value }))}
-                  className="border border-gray-300 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="border border-gray-300 dark:border-slate-700 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-slate-500"
                   disabled={!integration.enabled}
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">HMAC Signature Webhook Secret Verification Key</label>
+                <label className="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">HMAC Signature Webhook Secret Verification Key</label>
                 <input
                   type="password"
                   placeholder="••••••••••••••••"
                   value={integration.webhookSecret}
                   onChange={(e) => setIntegration(prev => ({ ...prev, webhookSecret: e.target.value }))}
-                  className="border border-gray-300 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="border border-gray-300 dark:border-slate-700 rounded-md px-2.5 py-1 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-slate-500"
                   disabled={!integration.enabled}
                 />
               </div>
@@ -1128,28 +1128,28 @@ const PayrollSettings = () => {
 
       {activeTab === 'general' && (
         <div className="mt-4 flex justify-end gap-3">
-          <button type="button" onClick={resetToDefaults} className="bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-4 py-2 rounded-md text-xs font-semibold">
+          <button type="button" onClick={resetToDefaults} className="bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 border border-gray-300 dark:border-slate-700 px-4 py-2 rounded-md text-xs font-semibold transition-colors">
             Reset to Defaults
           </button>
-          <button type="button" onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-xs font-semibold disabled:opacity-60">
+          <button type="button" onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-xs font-semibold disabled:opacity-60 transition-colors">
             {saving ? 'Saving...' : 'Save Settings'}
           </button>
         </div>
       )}
 
       {activeTab === 'roles' && (
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm p-5 transition-colors">
           {editingRole ? (
             /* Create / Edit Role Form */
             <form onSubmit={handleSaveRole} className="space-y-6">
-              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-                <h2 className="text-lg font-bold text-gray-800">
+              <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-3">
+                <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">
                   {editingRole._id ? 'Edit Job Role' : 'Create New Job Role'}
                 </h2>
                 <button
                   type="button"
                   onClick={() => setEditingRole(null)}
-                  className="text-gray-500 hover:text-gray-700 text-xs font-semibold flex items-center gap-1"
+                  className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 text-xs font-semibold flex items-center gap-1 transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -1162,7 +1162,7 @@ const PayrollSettings = () => {
                 {/* Left Side: General Profile Info */}
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                       Role Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -1171,12 +1171,12 @@ const PayrollSettings = () => {
                       value={editingRole.name}
                       onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
                       placeholder="e.g. Senior Software Engineer"
-                      className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                       Employment Type
                     </label>
                     <select
@@ -1210,7 +1210,7 @@ const PayrollSettings = () => {
                           } : {}),
                         }));
                       }}
-                      className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     >
                       <option value="full-time">Full Time</option>
                       <option value="part-time">Part Time</option>
@@ -1218,12 +1218,12 @@ const PayrollSettings = () => {
                       <option value="intern">Intern / Trainee</option>
                     </select>
                     {editingRole.employmentType === 'intern' && (
-                      <p className="text-[10px] text-amber-600 font-semibold mt-1">🎓 Auto-configured: flat stipend, statutory deductions disabled.</p>
+                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-1">🎓 Auto-configured: flat stipend, statutory deductions disabled.</p>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                       Compensation Model
                     </label>
                     <select
@@ -1254,7 +1254,7 @@ const PayrollSettings = () => {
                           }),
                         }));
                       }}
-                      className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     >
                       <option value="SALARIED">Salaried Employee</option>
                       <option value="CONSULTANT">Recruitment Consultant</option>
@@ -1265,18 +1265,18 @@ const PayrollSettings = () => {
                       <option value="CUSTOM">Custom Contractor</option>
                     </select>
                     {editingRole.compensationModel !== 'SALARIED' && (
-                      <p className="text-[10px] text-amber-600 font-semibold mt-1">💼 Auto-configured: Section 194J (10% TDS) applies, statutory deductions disabled.</p>
+                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-1">💼 Auto-configured: Section 194J (10% TDS) applies, statutory deductions disabled.</p>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                       Payment Basis
                     </label>
                     <select
                       value={editingRole.paymentBasis || 'MONTHLY'}
                       onChange={(e) => setEditingRole({ ...editingRole, paymentBasis: e.target.value })}
-                      className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     >
                       <option value="MONTHLY">Monthly Retainer</option>
                       <option value="PROJECT">Per Closed Project</option>
@@ -1290,7 +1290,7 @@ const PayrollSettings = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                       Description
                     </label>
                     <textarea
@@ -1298,19 +1298,19 @@ const PayrollSettings = () => {
                       onChange={(e) => setEditingRole({ ...editingRole, description: e.target.value })}
                       placeholder="Brief description of the job responsibilities and pay guidelines"
                       rows="2"
-                      className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     />
                   </div>
 
                   {/* Pay Contract Type */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                       Pay Contract Type
                     </label>
                     <select
                       value={editingRole.payType}
                       onChange={(e) => setEditingRole({ ...editingRole, payType: e.target.value })}
-                      className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     >
                       <option value="salaried">Salaried (Monthly)</option>
                       <option value="hourly">Hourly Contractor</option>
@@ -1320,20 +1320,20 @@ const PayrollSettings = () => {
                   {/* Hourly Rate — only for hourly */}
                   {editingRole.payType === 'hourly' && (
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                         Hourly Rate
                       </label>
                       <div className="relative rounded-md shadow-sm">
-                        <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 text-xs font-semibold">₹</span>
+                        <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 dark:text-slate-500 text-xs font-semibold">₹</span>
                         <input
                           type="number"
                           min="0"
                           value={editingRole.hourlyRate}
                           onChange={(e) => setEditingRole({ ...editingRole, hourlyRate: e.target.value })}
-                          className="border border-gray-300 rounded-md pl-6 pr-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          className="border border-gray-300 dark:border-slate-700 rounded-md pl-6 pr-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                         />
                       </div>
-                      <p className="text-[10px] text-gray-400 mt-1">Paid per hour logged. No salary breakdown applied.</p>
+                      <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Paid per hour logged. No salary breakdown applied.</p>
                     </div>
                   )}
 
@@ -1341,16 +1341,16 @@ const PayrollSettings = () => {
                   {editingRole.payType === 'salaried' && (
                     <>
                       {/* Salary mode toggle */}
-                      <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                      <div className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/60 px-3 py-2.5">
                         <div>
-                          <p className="text-xs font-bold text-gray-700">Use Salary Components</p>
-                          <p className="text-[10px] text-gray-500 mt-0.5">Break salary into Basic, HRA, etc. Disable for a flat monthly amount.</p>
+                          <p className="text-xs font-bold text-gray-700 dark:text-slate-200">Use Salary Components</p>
+                          <p className="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5">Break salary into Basic, HRA, etc. Disable for a flat monthly amount.</p>
                         </div>
                         <button
                           type="button"
                           onClick={() => setEditingRole({ ...editingRole, useSalaryComponents: !editingRole.useSalaryComponents })}
                           className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                            editingRole.useSalaryComponents !== false ? 'bg-blue-600' : 'bg-gray-300'
+                            editingRole.useSalaryComponents !== false ? 'bg-blue-600' : 'bg-gray-300 dark:bg-slate-700'
                           }`}
                         >
                           <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
@@ -1361,29 +1361,29 @@ const PayrollSettings = () => {
 
                       {/* Monthly CTC */}
                       <div>
-                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                        <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                           Monthly CTC
                         </label>
                         <div className="relative rounded-md shadow-sm">
-                          <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 text-xs font-semibold">₹</span>
+                          <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-400 dark:text-slate-500 text-xs font-semibold">₹</span>
                           <input
                             type="number"
                             min="0"
                             value={editingRole.monthlyCTC}
                             onChange={(e) => setEditingRole({ ...editingRole, monthlyCTC: e.target.value })}
-                            className="border border-gray-300 rounded-md pl-6 pr-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            className="border border-gray-300 dark:border-slate-700 rounded-md pl-6 pr-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                           />
                         </div>
                         {editingRole.useSalaryComponents === false && (
-                          <p className="text-[10px] text-gray-400 mt-1">Paid as a single flat amount. No component breakdown.</p>
+                          <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Paid as a single flat amount. No component breakdown.</p>
                         )}
                       </div>
 
                       {/* Basic % / HRA % — only when using components */}
                       {editingRole.useSalaryComponents !== false && (
-                        <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-3">
+                        <div className="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-slate-800 pt-3">
                           <div>
-                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                            <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                               Basic Salary % (Override)
                             </label>
                             <input
@@ -1393,12 +1393,12 @@ const PayrollSettings = () => {
                               max="100"
                               value={editingRole.basicPercent ?? ''}
                               onChange={(e) => setEditingRole({ ...editingRole, basicPercent: e.target.value })}
-                              className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                              className="border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                             />
-                            <p className="text-[10px] text-gray-400 mt-1">Leave empty to use org default.</p>
+                            <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Leave empty to use org default.</p>
                           </div>
                           <div>
-                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                            <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                               HRA % (Override)
                             </label>
                             <input
@@ -1408,9 +1408,9 @@ const PayrollSettings = () => {
                               max="100"
                               value={editingRole.hraPercent ?? ''}
                               onChange={(e) => setEditingRole({ ...editingRole, hraPercent: e.target.value })}
-                              className="border border-gray-300 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                              className="border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                             />
-                            <p className="text-[10px] text-gray-400 mt-1">Leave empty to use org default.</p>
+                            <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Leave empty to use org default.</p>
                           </div>
                         </div>
                       )}
@@ -1420,154 +1420,154 @@ const PayrollSettings = () => {
 
                 {/* Right Side: Statutory Switches — salaried only */}
                 {editingRole.payType === 'salaried' ? (
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
-                    <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider border-b border-gray-200 pb-2 flex items-center">
-                      <span className="w-1.5 h-3 bg-blue-600 rounded-full mr-2"></span>
+                  <div className="bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-xl p-4 space-y-4">
+                    <h3 className="text-xs font-bold text-gray-800 dark:text-slate-100 uppercase tracking-wider border-b border-gray-200 dark:border-slate-700 pb-2 flex items-center">
+                      <span className="w-1.5 h-3 bg-blue-600 dark:bg-blue-400 rounded-full mr-2"></span>
                       Statutory Rules & Deductions
                     </h3>
 
                     <div className="space-y-3">
                       <div className="flex items-start justify-between">
                         <div>
-                          <label className="block text-xs font-bold text-gray-700 cursor-pointer" htmlFor="pfEnabled">Enable Provident Fund (PF)</label>
-                          <p className="text-[10px] text-gray-500">Calculate employee & employer PF contributions</p>
+                          <label className="block text-xs font-bold text-gray-700 dark:text-slate-200 cursor-pointer" htmlFor="pfEnabled">Enable Provident Fund (PF)</label>
+                          <p className="text-[10px] text-gray-500 dark:text-slate-400">Calculate employee & employer PF contributions</p>
                         </div>
                         <input
                           type="checkbox"
                           id="pfEnabled"
                           checked={editingRole.pfEnabled}
                           onChange={(e) => setEditingRole({ ...editingRole, pfEnabled: e.target.checked })}
-                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
                       </div>
 
                       {editingRole.pfEnabled && (
-                        <div className="flex items-start justify-between pl-4 border-l-2 border-blue-200 py-1">
+                        <div className="flex items-start justify-between pl-4 border-l-2 border-blue-200 dark:border-blue-700 py-1">
                           <div>
-                            <label className="block text-[11px] font-semibold text-gray-600 cursor-pointer" htmlFor="includePfInCTC">Include Employer PF in CTC</label>
-                            <p className="text-[9px] text-gray-400">Employer contribution is balanced from Special Allowance</p>
+                            <label className="block text-[11px] font-semibold text-gray-600 dark:text-slate-300 cursor-pointer" htmlFor="includePfInCTC">Include Employer PF in CTC</label>
+                            <p className="text-[9px] text-gray-400 dark:text-slate-500">Employer contribution is balanced from Special Allowance</p>
                           </div>
                           <input
                             type="checkbox"
                             id="includePfInCTC"
                             checked={editingRole.includePfInCTC}
                             onChange={(e) => setEditingRole({ ...editingRole, includePfInCTC: e.target.checked })}
-                            className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            className="h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-blue-600 focus:ring-blue-500 cursor-pointer"
                           />
                         </div>
                       )}
 
-                      <div className="flex items-start justify-between border-t border-gray-150 pt-2">
+                      <div className="flex items-start justify-between border-t border-gray-150 dark:border-slate-700 pt-2">
                         <div>
-                          <label className="block text-xs font-bold text-gray-700 cursor-pointer" htmlFor="esiEnabled">Enable ESI (Health Insurance)</label>
-                          <p className="text-[10px] text-gray-500">Calculate ESIC employee & employer shares</p>
+                          <label className="block text-xs font-bold text-gray-700 dark:text-slate-200 cursor-pointer" htmlFor="esiEnabled">Enable ESI (Health Insurance)</label>
+                          <p className="text-[10px] text-gray-500 dark:text-slate-400">Calculate ESIC employee & employer shares</p>
                         </div>
                         <input
                           type="checkbox"
                           id="esiEnabled"
                           checked={editingRole.esiEnabled}
                           onChange={(e) => setEditingRole({ ...editingRole, esiEnabled: e.target.checked })}
-                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
                       </div>
 
-                      <div className="flex items-start justify-between border-t border-gray-150 pt-2">
+                      <div className="flex items-start justify-between border-t border-gray-150 dark:border-slate-700 pt-2">
                         <div>
-                          <label className="block text-xs font-bold text-gray-700 cursor-pointer" htmlFor="ptEnabled">Enable Professional Tax (PT)</label>
-                          <p className="text-[10px] text-gray-500">Apply monthly state Professional Tax deduction</p>
+                          <label className="block text-xs font-bold text-gray-700 dark:text-slate-200 cursor-pointer" htmlFor="ptEnabled">Enable Professional Tax (PT)</label>
+                          <p className="text-[10px] text-gray-500 dark:text-slate-400">Apply monthly state Professional Tax deduction</p>
                         </div>
                         <input
                           type="checkbox"
                           id="ptEnabled"
                           checked={editingRole.ptEnabled}
                           onChange={(e) => setEditingRole({ ...editingRole, ptEnabled: e.target.checked })}
-                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
                       </div>
 
-                      <div className="flex items-start justify-between border-t border-gray-150 pt-2">
+                      <div className="flex items-start justify-between border-t border-gray-150 dark:border-slate-700 pt-2">
                         <div>
-                          <label className="block text-xs font-bold text-gray-700 cursor-pointer" htmlFor="lwfEnabled">Enable Labour Welfare Fund (LWF)</label>
-                          <p className="text-[10px] text-gray-500">Apply monthly state LWF deduction</p>
+                          <label className="block text-xs font-bold text-gray-700 dark:text-slate-200 cursor-pointer" htmlFor="lwfEnabled">Enable Labour Welfare Fund (LWF)</label>
+                          <p className="text-[10px] text-gray-500 dark:text-slate-400">Apply monthly state LWF deduction</p>
                         </div>
                         <input
                           type="checkbox"
                           id="lwfEnabled"
                           checked={editingRole.lwfEnabled}
                           onChange={(e) => setEditingRole({ ...editingRole, lwfEnabled: e.target.checked })}
-                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
                       </div>
 
-                      <div className="flex items-start justify-between border-t border-gray-150 pt-2">
+                      <div className="flex items-start justify-between border-t border-gray-150 dark:border-slate-700 pt-2">
                         <div>
-                          <label className="block text-xs font-bold text-gray-700 cursor-pointer" htmlFor="gratuityEnabled">Enable Gratuity Accrual</label>
-                          <p className="text-[10px] text-gray-500">Accrue gratuity monthly based on basic salary</p>
+                          <label className="block text-xs font-bold text-gray-700 dark:text-slate-200 cursor-pointer" htmlFor="gratuityEnabled">Enable Gratuity Accrual</label>
+                          <p className="text-[10px] text-gray-500 dark:text-slate-400">Accrue gratuity monthly based on basic salary</p>
                         </div>
                         <input
                           type="checkbox"
                           id="gratuityEnabled"
                           checked={editingRole.gratuityEnabled}
                           onChange={(e) => setEditingRole({ ...editingRole, gratuityEnabled: e.target.checked })}
-                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
                       </div>
 
                       {editingRole.gratuityEnabled && (
-                        <div className="flex items-start justify-between pl-4 border-l-2 border-blue-200 py-1">
+                        <div className="flex items-start justify-between pl-4 border-l-2 border-blue-200 dark:border-blue-700 py-1">
                           <div>
-                            <label className="block text-[11px] font-semibold text-gray-600 cursor-pointer" htmlFor="includeGratuityInCTC">Include Gratuity in CTC</label>
-                            <p className="text-[9px] text-gray-400">Accrued gratuity is balanced from Special Allowance</p>
+                            <label className="block text-[11px] font-semibold text-gray-600 dark:text-slate-300 cursor-pointer" htmlFor="includeGratuityInCTC">Include Gratuity in CTC</label>
+                            <p className="text-[9px] text-gray-400 dark:text-slate-500">Accrued gratuity is balanced from Special Allowance</p>
                           </div>
                           <input
                             type="checkbox"
                             id="includeGratuityInCTC"
                             checked={editingRole.includeGratuityInCTC}
                             onChange={(e) => setEditingRole({ ...editingRole, includeGratuityInCTC: e.target.checked })}
-                            className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            className="h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-blue-600 focus:ring-blue-500 cursor-pointer"
                           />
                         </div>
                       )}
 
-                      <div className="flex items-start justify-between border-t border-gray-150 pt-2">
+                      <div className="flex items-start justify-between border-t border-gray-150 dark:border-slate-700 pt-2">
                         <div>
-                          <label className="block text-xs font-bold text-gray-700 cursor-pointer" htmlFor="roleTdsEnabled">Enable Income Tax (TDS)</label>
-                          <p className="text-[10px] text-gray-500">Apply monthly Income Tax TDS deduction</p>
+                          <label className="block text-xs font-bold text-gray-700 dark:text-slate-200 cursor-pointer" htmlFor="roleTdsEnabled">Enable Income Tax (TDS)</label>
+                          <p className="text-[10px] text-gray-500 dark:text-slate-400">Apply monthly Income Tax TDS deduction</p>
                         </div>
                         <input
                           type="checkbox"
                           id="roleTdsEnabled"
                           checked={editingRole.tdsEnabled !== false}
                           onChange={(e) => setEditingRole({ ...editingRole, tdsEnabled: e.target.checked })}
-                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                  <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl p-4 flex items-start gap-3">
                     <svg className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                      <p className="text-xs font-bold text-amber-800">Hourly Contractor</p>
-                      <p className="text-[10px] text-amber-700 mt-1 leading-relaxed">Statutory deductions (PF, ESI, PT, LWF, Gratuity) are not applicable for hourly contractors. Only the hours worked × hourly rate is paid.</p>
+                      <p className="text-xs font-bold text-amber-800 dark:text-amber-200">Hourly Contractor</p>
+                      <p className="text-[10px] text-amber-700 dark:text-amber-300 mt-1 leading-relaxed">Statutory deductions (PF, ESI, PT, LWF, Gratuity) are not applicable for hourly contractors. Only the hours worked × hourly rate is paid.</p>
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
+              <div className="flex justify-end gap-3 border-t border-gray-100 dark:border-slate-800 pt-4">
                 <button
                   type="button"
                   onClick={() => setEditingRole(null)}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-4 py-2 rounded-md text-xs font-semibold"
+                  className="bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 border border-gray-300 dark:border-slate-700 px-4 py-2 rounded-md text-xs font-semibold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-xs font-semibold"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-xs font-semibold transition-colors"
                 >
                   Save Job Role
                 </button>
@@ -1578,13 +1578,13 @@ const PayrollSettings = () => {
             <div>
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <h2 className="text-base font-bold">Job Role & Pay Grade Templates</h2>
-                  <p className="text-[11px] text-gray-500">Configure standardized roles that define pay type, statutory switches, and basic salary override defaults.</p>
+                  <h2 className="text-base font-bold text-gray-900 dark:text-slate-100">Job Role & Pay Grade Templates</h2>
+                  <p className="text-[11px] text-gray-500 dark:text-slate-400">Configure standardized roles that define pay type, statutory switches, and basic salary override defaults.</p>
                 </div>
                 <button
                   type="button"
                   onClick={handleNewRole}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-xs font-semibold"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-xs font-semibold transition-colors"
                 >
                   + Add Job Role
                 </button>
@@ -1597,14 +1597,14 @@ const PayrollSettings = () => {
                   <Skeleton className="h-8 w-full" />
                 </div>
               ) : roles.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 text-xs border border-dashed border-gray-300 rounded-lg">
+                <div className="text-center py-8 text-gray-500 dark:text-slate-400 text-xs border border-dashed border-gray-300 dark:border-slate-700 rounded-lg">
                   No Job Roles configured yet. Click "+ Add Job Role" to set up your first template.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="border-b border-gray-200 text-gray-500 text-[10px] font-bold uppercase tracking-wider">
+                      <tr className="border-b border-gray-200 dark:border-slate-800 text-gray-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
                         <th className="py-2.5 px-3">Role Name</th>
                         <th className="py-2.5 px-3">Employment Type</th>
                         <th className="py-2.5 px-3">Pay Type</th>
@@ -1613,56 +1613,61 @@ const PayrollSettings = () => {
                         <th className="py-2.5 px-3 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                       {roles.map((role) => (
-                        <tr key={role._id} className="hover:bg-gray-50/50">
-                          <td className="py-3 px-3 font-semibold text-gray-800">{role.name}</td>
+                        <tr key={role._id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                          <td className="py-3 px-3 font-semibold text-gray-800 dark:text-slate-100">{role.name}</td>
                           <td className="py-3 px-3">
                             {(() => {
                               const ET_LABELS = { 'full-time': 'Full Time', 'part-time': 'Part Time', 'contract': 'Contract', 'intern': 'Intern' };
-                              const ET_COLORS = { 'full-time': 'bg-green-100 text-green-800', 'part-time': 'bg-teal-100 text-teal-800', 'contract': 'bg-purple-100 text-purple-800', 'intern': 'bg-amber-100 text-amber-800' };
+                              const ET_COLORS = { 
+                                'full-time': 'bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800', 
+                                'part-time': 'bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800', 
+                                'contract': 'bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800', 
+                                'intern': 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800' 
+                              };
                               const et = role.employmentType || 'full-time';
-                              return <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${ET_COLORS[et] || 'bg-gray-100 text-gray-700'}`}>{ET_LABELS[et] || et}</span>;
+                              return <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${ET_COLORS[et] || 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300'}`}>{ET_LABELS[et] || et}</span>;
                             })()}
                           </td>
                           <td className="py-3 px-3">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                               role.payType === 'hourly'
-                                ? 'bg-amber-100 text-amber-800'
-                                : role.useSalaryComponents === false ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-800'
+                                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                                : role.useSalaryComponents === false ? 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400 border border-gray-200 dark:border-slate-700' : 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
                             }`}>
                               {role.payType === 'hourly' ? 'Hourly' : role.useSalaryComponents === false ? 'Flat' : 'Salaried'}
                             </span>
                           </td>
-                          <td className="py-3 px-3 font-medium text-gray-700">
+                          <td className="py-3 px-3 font-medium text-gray-700 dark:text-slate-300">
                             {role.payType === 'hourly'
                               ? `₹${(role.hourlyRate || 0).toLocaleString()}/hr`
                               : `₹${(role.monthlyCTC || 0).toLocaleString()}/mo`
                             }
                           </td>
                           <td className="py-3 px-3 space-x-1">
-                             {role.pfEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">PF</span>}
-                            {role.tdsEnabled !== false && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">TDS</span>}
-                            {role.esiEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">ESI</span>}
-                            {role.ptEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">PT</span>}
-                            {role.lwfEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">LWF</span>}
-                            {role.gratuityEnabled && <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px]">Gratuity</span>}
+                             {role.pfEnabled && <span className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 px-1.5 py-0.5 rounded text-[9px] border border-gray-200 dark:border-slate-700">PF</span>}
+                            {role.tdsEnabled !== false && <span className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 px-1.5 py-0.5 rounded text-[9px] border border-gray-200 dark:border-slate-700">TDS</span>}
+                            {role.esiEnabled && <span className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 px-1.5 py-0.5 rounded text-[9px] border border-gray-200 dark:border-slate-700">ESI</span>}
+                            {role.ptEnabled && <span className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 px-1.5 py-0.5 rounded text-[9px] border border-gray-200 dark:border-slate-700">PT</span>}
+                            {role.lwfEnabled && <span className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 px-1.5 py-0.5 rounded text-[9px] border border-gray-200 dark:border-slate-700">LWF</span>}
+                            {role.gratuityEnabled && <span className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 px-1.5 py-0.5 rounded text-[9px] border border-gray-200 dark:border-slate-700">Gratuity</span>}
                             {!role.pfEnabled && role.tdsEnabled === false && !role.esiEnabled && !role.ptEnabled && !role.lwfEnabled && !role.gratuityEnabled && (
-                              <span className="text-gray-400 italic text-[10px]">None</span>
+                              <span className="text-gray-400 dark:text-slate-500 italic text-[10px]">None</span>
                             )}
                           </td>
                           <td className="py-3 px-3 text-right space-x-2">
                             <button
                               type="button"
                               onClick={() => setEditingRole(role)}
-                              className="text-blue-600 hover:text-blue-800 font-semibold"
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold transition-colors"
                             >
                               Edit
                             </button>
                             <button
                               type="button"
                               onClick={() => handleDeleteRole(role._id)}
-                              className="text-red-600 hover:text-red-800 font-semibold"
+                              className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-semibold transition-colors"
                             >
                               Delete
                             </button>
@@ -1687,33 +1692,33 @@ const PayrollSettings = () => {
         <div className="space-y-6">
           {/* Summary Stats Cards */}
           <div className="grid grid-cols-4 gap-4">
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-center">
-              <div className="text-sm font-medium text-slate-500">Total Synced</div>
-              <div className="text-2xl font-bold text-slate-900">
+            <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg p-4 text-center">
+              <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Synced</div>
+              <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                 {(syncResult?.details?.length || 0) + (syncResult?.errors?.length || 0)}
               </div>
             </div>
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-              <div className="text-sm font-medium text-green-700">Created</div>
-              <div className="text-2xl font-bold text-green-900">{syncResult?.created || 0}</div>
+            <div className="bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800/60 rounded-lg p-4 text-center">
+              <div className="text-sm font-medium text-green-700 dark:text-green-300">Created</div>
+              <div className="text-2xl font-bold text-green-900 dark:text-green-100">{syncResult?.created || 0}</div>
             </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-              <div className="text-sm font-medium text-blue-700">Updated</div>
-              <div className="text-2xl font-bold text-blue-900">{syncResult?.updated || 0}</div>
+            <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-lg p-4 text-center">
+              <div className="text-sm font-medium text-blue-700 dark:text-blue-300">Updated</div>
+              <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{syncResult?.updated || 0}</div>
             </div>
-            <div className={`p-4 rounded-lg text-center border ${syncResult?.errors?.length > 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200'}`}>
-              <div className={`text-sm font-medium ${syncResult?.errors?.length > 0 ? 'text-red-700' : 'text-slate-500'}`}>Failed / Skipped</div>
-              <div className={`text-2xl font-bold ${syncResult?.errors?.length > 0 ? 'text-red-900' : 'text-slate-900'}`}>{syncResult?.errors?.length || 0}</div>
+            <div className={`p-4 rounded-lg text-center border ${syncResult?.errors?.length > 0 ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800/60' : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'}`}>
+              <div className={`text-sm font-medium ${syncResult?.errors?.length > 0 ? 'text-red-700 dark:text-red-300' : 'text-slate-500 dark:text-slate-400'}`}>Failed / Skipped</div>
+              <div className={`text-2xl font-bold ${syncResult?.errors?.length > 0 ? 'text-red-900 dark:text-red-100' : 'text-slate-900 dark:text-slate-100'}`}>{syncResult?.errors?.length || 0}</div>
             </div>
           </div>
 
           {/* Sync Success Table */}
           {syncResult?.details?.length > 0 && (
             <div>
-              <h4 className="text-sm font-semibold text-slate-800 mb-3">Successfully Synced Employees</h4>
-              <div className="overflow-x-auto border border-slate-200 rounded-lg max-h-96">
-                <table className="min-w-full divide-y divide-slate-200 text-xs">
-                  <thead className="bg-slate-50 text-slate-700 uppercase font-medium">
+              <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-3">Successfully Synced Employees</h4>
+              <div className="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg max-h-96">
+                <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-xs">
+                  <thead className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase font-medium">
                     <tr>
                       <th className="py-3 px-4 text-left">Employee Name & ID</th>
                       <th className="py-3 px-4 text-left">Email</th>
@@ -1723,39 +1728,39 @@ const PayrollSettings = () => {
                       <th className="py-3 px-4 text-left">Extracted Allowances</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white text-slate-600">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300">
                     {syncResult.details.map((emp) => (
-                      <tr key={emp.employeeId} className="hover:bg-slate-50">
+                      <tr key={emp.employeeId} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                         <td className="py-3 px-4">
-                          <div className="font-semibold text-slate-900">{emp.name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">{emp.employeeId}</div>
+                          <div className="font-semibold text-slate-900 dark:text-slate-100">{emp.name}</div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{emp.employeeId}</div>
                         </td>
                         <td className="py-3 px-4 font-mono text-[10px]">{emp.email}</td>
                         <td className="py-3 px-4">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">
                             {emp.roleTemplateName}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-right font-semibold text-slate-900">
+                        <td className="py-3 px-4 text-right font-semibold text-slate-900 dark:text-slate-100">
                           ₹{Number(emp.monthlyCTC).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                         </td>
                         <td className="py-3 px-4 text-center space-x-1">
-                          <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold ${emp.pfEnabled ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'}`}>
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold ${emp.pfEnabled ? 'bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
                             PF: {emp.pfEnabled ? 'ON' : 'OFF'}
                           </span>
-                          <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold ${emp.tdsEnabled !== false ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'}`}>
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold ${emp.tdsEnabled !== false ? 'bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
                             TDS: {emp.tdsEnabled !== false ? 'ON' : 'OFF'}
                           </span>
-                          <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold ${emp.esiEnabled ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'}`}>
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold ${emp.esiEnabled ? 'bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
                             ESI: {emp.esiEnabled ? 'ON' : 'OFF'}
                           </span>
                         </td>
                         <td className="py-3 px-4">
                           <div className="space-y-0.5">
                             {emp.flexiAmount > 0 && (
-                              <div className="text-[10px]"><span className="text-slate-400 font-medium">Flexi:</span> ₹{emp.flexiAmount.toLocaleString('en-IN')}</div>
+                              <div className="text-[10px]"><span className="text-slate-400 dark:text-slate-500 font-medium">Flexi:</span> ₹{emp.flexiAmount.toLocaleString('en-IN')}</div>
                             )}
-                            <div className="text-[10px]"><span className="text-slate-400 font-medium">Others:</span> {emp.customAllowances}</div>
+                            <div className="text-[10px]"><span className="text-slate-400 dark:text-slate-500 font-medium">Others:</span> {emp.customAllowances}</div>
                           </div>
                         </td>
                       </tr>
@@ -1768,15 +1773,15 @@ const PayrollSettings = () => {
 
           {/* Sync Errors List */}
           {syncResult?.errors?.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-red-800 mb-2 flex items-center">
+            <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-red-800 dark:text-red-300 mb-2 flex items-center">
                 ⚠️ Sync Failures / Skipped Records
               </h4>
               <div className="overflow-y-auto max-h-40 space-y-2 text-xs">
                 {syncResult.errors.map((err, index) => (
-                  <div key={index} className="flex justify-between border-b border-red-100 pb-1 last:border-0 last:pb-0">
-                    <span className="font-mono text-red-900 font-semibold">{err.id}</span>
-                    <span className="text-red-700">{err.error}</span>
+                  <div key={index} className="flex justify-between border-b border-red-100 dark:border-red-900/40 pb-1 last:border-0 last:pb-0">
+                    <span className="font-mono text-red-900 dark:text-red-200 font-semibold">{err.id}</span>
+                    <span className="text-red-700 dark:text-red-300">{err.error}</span>
                   </div>
                 ))}
               </div>

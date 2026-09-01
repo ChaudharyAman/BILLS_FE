@@ -241,15 +241,15 @@ const RecycleBin = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl">
+    <div className="container mx-auto px-4 py-6 max-w-7xl font-sans text-gray-900 dark:text-slate-100 transition-colors">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <FaTrash className="text-teal-600" size={28} />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-3 tracking-tight">
+            <FaTrash className="text-teal-600 dark:text-teal-400" size={28} />
             Recycle Bin
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
             View, restore, or permanently delete items that you have deleted.
           </p>
         </div>
@@ -267,25 +267,25 @@ const RecycleBin = () => {
 
 
       {/* Warning Alert Banner */}
-      <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-r-lg shadow-sm flex items-start gap-3">
+      <div className="bg-amber-50 dark:bg-amber-950/40 border-l-4 border-amber-500 p-4 mb-6 rounded-r-lg shadow-sm flex items-start gap-3">
         <FaExclamationTriangle className="text-amber-500 mt-0.5 flex-shrink-0" size={18} />
         <div>
-          <h3 className="font-semibold text-amber-800 text-sm">Caution</h3>
-          <p className="text-amber-700 text-xs mt-0.5">
+          <h3 className="font-semibold text-amber-800 dark:text-amber-300 text-sm">Caution</h3>
+          <p className="text-amber-700 dark:text-amber-400 text-xs mt-0.5">
             Restoring parent entities (e.g. Clients or Departments) is supported, but please ensure related details are verified. Permanently deleted items cannot be recovered.
           </p>
         </div>
       </div>
 
       {/* Controls: Search & Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between transition-colors">
         <div className="relative w-full md:w-80">
           <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FaSearch className="text-gray-400" size={16} />
+            <FaSearch className="text-gray-400 dark:text-slate-500" size={16} />
           </span>
           <input
             type="text"
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
             placeholder="Search deleted items..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -293,7 +293,7 @@ const RecycleBin = () => {
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-thin">
-          <span className="text-xs font-semibold text-gray-500 uppercase flex-shrink-0">Filter:</span>
+          <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase flex-shrink-0">Filter:</span>
           {distinctTypes.map(type => (
             <button
               key={type}
@@ -301,7 +301,7 @@ const RecycleBin = () => {
               className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                 selectedType === type
                   ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
-                  : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border-gray-200'
+                  : 'bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700'
               }`}
             >
               {type === 'All' ? 'All Types' : (TYPE_LABELS[type] || type)}
@@ -312,8 +312,8 @@ const RecycleBin = () => {
 
       {/* Bulk Action Toolbar Banner */}
       {selectedCount > 0 && (
-        <div className="bg-teal-50 border border-teal-200 rounded-xl p-3.5 mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm animate-in fade-in duration-150">
-          <div className="text-xs font-semibold text-teal-900 flex items-center gap-2">
+        <div className="bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 rounded-xl p-3.5 mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm animate-in fade-in duration-150">
+          <div className="text-xs font-semibold text-teal-900 dark:text-teal-200 flex items-center gap-2">
             <span className="bg-teal-600 text-white rounded-full px-2.5 py-0.5 text-[11px] font-bold">{selectedCount}</span>
             <span>item{selectedCount > 1 ? 's' : ''} selected</span>
           </div>
@@ -339,7 +339,7 @@ const RecycleBin = () => {
             <button
               type="button"
               onClick={() => setSelectedMap({})}
-              className="text-xs text-teal-700 hover:text-teal-900 underline font-medium ml-1"
+              className="text-xs text-teal-700 dark:text-teal-300 hover:text-teal-900 dark:hover:text-teal-100 underline font-medium ml-1"
             >
               Deselect All
             </button>
@@ -348,7 +348,7 @@ const RecycleBin = () => {
       )}
 
       {/* Main Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden transition-colors">
         {loading ? (
           <div className="p-6 space-y-4">
             <Skeleton className="h-8 w-full" />
@@ -358,11 +358,11 @@ const RecycleBin = () => {
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 text-gray-400 mb-4 border border-gray-100">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 mb-4 border border-gray-100 dark:border-slate-800">
               <FaTrashRestore size={24} />
             </div>
-            <h3 className="text-lg font-semibold text-gray-800">Recycle Bin is Empty</h3>
-            <p className="text-sm text-gray-500 max-w-sm mx-auto mt-1">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-100">Recycle Bin is Empty</h3>
+            <p className="text-sm text-gray-500 dark:text-slate-400 max-w-sm mx-auto mt-1">
               {searchTerm || selectedType !== 'All' 
                 ? 'No deleted items matched your search filters.' 
                 : 'Deleted items will appear here for you to restore or delete permanently.'}
@@ -372,7 +372,7 @@ const RecycleBin = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
+                <tr className="bg-gray-50 dark:bg-slate-800/60 border-b border-gray-100 dark:border-slate-800">
                   <th className="w-12 px-4 py-4 text-center">
                     <input
                       type="checkbox"
@@ -382,20 +382,20 @@ const RecycleBin = () => {
                       aria-label="Select all filtered items"
                     />
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">Item Type</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">Details</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-right">Value</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">Deleted On</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500 text-center">Actions</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">Item Type</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">Details</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 text-right">Value</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">Deleted On</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                 {filteredItems.map((item) => {
                   const key = `${item._id}_${item.type}`;
                   const isCurrentActionLoading = actionLoading === key;
                   const isSelected = Boolean(selectedMap[key]);
                   return (
-                    <tr key={key} className={`${isSelected ? 'bg-teal-50/40' : 'hover:bg-gray-50/50'} transition-colors group`}>
+                    <tr key={key} className={`${isSelected ? 'bg-teal-50/40 dark:bg-teal-950/30' : 'hover:bg-gray-50/50 dark:hover:bg-slate-800/50'} transition-colors group`}>
                       {/* Selection Checkbox */}
                       <td className="w-12 px-4 py-4 text-center whitespace-nowrap">
                         <input
@@ -409,32 +409,32 @@ const RecycleBin = () => {
 
                       {/* Badge Type */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${TYPE_COLORS[item.type] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${TYPE_COLORS[item.type] || 'bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-slate-200 border-gray-200 dark:border-slate-700'}`}>
                           {TYPE_LABELS[item.type] || item.type}
                         </span>
                       </td>
 
                       {/* Name / Description */}
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-gray-800 text-sm group-hover:text-teal-700 transition-colors">
+                        <div className="font-semibold text-gray-800 dark:text-slate-100 text-sm group-hover:text-teal-700 dark:group-hover:text-teal-300 transition-colors">
                           {item.displayName}
                         </div>
-                        <div className="text-xs text-gray-400 mt-0.5">
+                        <div className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
                           ID: {item._id}
                         </div>
                       </td>
 
                       {/* Display Amount */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-700">
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-700 dark:text-slate-200">
                         {item.amount !== null && item.amount !== undefined ? (
                           `₹${Number(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                         ) : (
-                          <span className="text-gray-300">-</span>
+                          <span className="text-gray-300 dark:text-slate-600">-</span>
                         )}
                       </td>
 
                       {/* Deleted Date */}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-400">
                         {new Date(item.deletedAt).toLocaleString('en-IN', {
                           day: '2-digit',
                           month: 'short',
@@ -451,7 +451,7 @@ const RecycleBin = () => {
                           <button
                             disabled={isCurrentActionLoading}
                             onClick={() => handleRestore(item._id, item.type)}
-                            className="inline-flex items-center justify-center p-2 rounded-lg text-teal-600 hover:bg-teal-50 border border-transparent hover:border-teal-200 transition-all cursor-pointer"
+                            className="inline-flex items-center justify-center p-2 rounded-lg text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/50 border border-transparent hover:border-teal-200 dark:hover:border-teal-800 transition-all cursor-pointer"
                             title="Restore Item"
                           >
                             {isCurrentActionLoading ? (
@@ -464,7 +464,7 @@ const RecycleBin = () => {
                             <button
                               disabled={isCurrentActionLoading}
                               onClick={() => handlePermanentDelete(item._id, item.type)}
-                              className="inline-flex items-center justify-center p-2 rounded-lg text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                              className="inline-flex items-center justify-center p-2 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-transparent hover:border-rose-200 dark:hover:border-rose-800 transition-all cursor-pointer"
                               title="Permanently Delete"
                             >
                               {isCurrentActionLoading ? (

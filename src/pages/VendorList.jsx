@@ -158,7 +158,7 @@ const VendorList = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-[1600px]"> {/* Detailed table needs more width */}
+    <div className="container mx-auto p-6 max-w-[1600px] text-slate-800 dark:text-slate-100 transition-colors"> {/* Detailed table needs more width */}
       
       {/* Header Bar */}
       <div className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 mb-6 flex flex-col md:flex-row justify-between items-center gap-4 transition-colors">

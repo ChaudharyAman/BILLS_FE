@@ -178,21 +178,21 @@ const IncomeList = () => {
   const fmt = (v) => (Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
   const STATUS_STYLES = {
-    DRAFT: 'bg-gray-100 text-gray-700 border-gray-200',
-    PAID: 'bg-green-100 text-green-700 border-green-200',
-    PARTIAL: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    UNPAID: 'bg-red-100 text-red-700 border-red-200',
-    CANCELLED: 'bg-gray-200 text-gray-500 border-gray-300',
+    DRAFT: 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700',
+    PAID: 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800/60',
+    PARTIAL: 'bg-yellow-100 dark:bg-amber-950/50 text-yellow-700 dark:text-amber-300 border-yellow-200 dark:border-amber-800/60',
+    UNPAID: 'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/60',
+    CANCELLED: 'bg-gray-200 dark:bg-slate-800 text-gray-500 dark:text-slate-400 border-gray-300 dark:border-slate-700',
   };
 
   return (
-    <div className="container mx-auto p-6 font-sans text-gray-900">
+    <div className="container mx-auto p-6 font-sans text-gray-900 dark:text-slate-100 transition-colors">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Incomes</h1>
-          <p className="text-gray-500 mt-1">Track manual income records and invoice-linked income in one place</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Incomes</h1>
+          <p className="text-gray-500 dark:text-slate-400 mt-1">Track manual income records and invoice-linked income in one place</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           {selectedIds.length > 0 && (
             <button
               onClick={handleBulkDelete}
@@ -217,7 +217,7 @@ const IncomeList = () => {
           <button
             type="button"
             onClick={() => setIsPdfScannerOpen(true)}
-            className="bg-violet-50 hover:bg-violet-100 text-violet-600 border border-violet-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+            className="bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-900/50 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
           >
             <FaFilePdf size={16} /> Scan PDF
           </button>
@@ -228,32 +228,30 @@ const IncomeList = () => {
         </div>
       </div>
 
-      <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-        {/* Table Toolbar & Filters */}
-        <div className="p-5 border-b border-gray-200 bg-gray-50/50 flex flex-col gap-4">
+      <div className="bg-white dark:bg-slate-900 shadow-sm rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden transition-colors">
+        <div className="p-5 border-b border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="relative max-w-xs w-full">
               <input 
                 type="text" 
                 placeholder="Search incomes..." 
-                className="w-full pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm font-sans"
+                className="w-full pl-3 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 shadow-sm font-sans"
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
               />
             </div>
-            <div className="text-sm text-gray-500 font-medium">
+            <div className="text-sm text-gray-500 dark:text-slate-400 font-medium">
               Showing {displayed.length} of {totalRecords} results
             </div>
           </div>
 
-          {/* Filters Bar */}
-          <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-sm">
+          <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-slate-800/80 p-4 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm text-sm">
             <div className="flex flex-col min-w-[140px]">
-              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Status</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Status</span>
               <select
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
               >
                 <option value="">All Statuses</option>
                 <option value="PAID">PAID</option>
@@ -264,11 +262,11 @@ const IncomeList = () => {
             </div>
 
             <div className="flex flex-col min-w-[150px]">
-              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Source Type</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Source Type</span>
               <select
                 value={typeFilter}
                 onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
               >
                 <option value="">All Sources</option>
                 <option value="manual">Manual Entry</option>
@@ -277,11 +275,11 @@ const IncomeList = () => {
             </div>
 
             <div className="flex flex-col min-w-[160px]">
-              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Business Unit</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Business Unit</span>
               <select
                 value={businessUnitFilter}
                 onChange={(e) => { setBusinessUnitFilter(e.target.value); setPage(1); }}
-                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
               >
                 <option value="">All Business Units</option>
                 {businessUnits.map((bu) => (
@@ -293,27 +291,27 @@ const IncomeList = () => {
             </div>
 
             <div className="flex flex-col min-w-[130px]">
-              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">From Date</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">From Date</span>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
-                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
               />
             </div>
 
             <div className="flex flex-col min-w-[130px]">
-              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">To Date</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">To Date</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
-                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
               />
             </div>
 
             <div className="flex flex-col min-w-[160px]">
-              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Sort By</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Sort By</span>
               <select
                 value={`${sortBy}-${sortOrder}`}
                 onChange={(e) => {
@@ -322,7 +320,7 @@ const IncomeList = () => {
                   setSortOrder(order);
                   setPage(1);
                 }}
-                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
               >
                 <option value="createdAt-desc">Created Date (Latest first)</option>
                 <option value="createdAt-asc">Created Date (Oldest first)</option>
@@ -342,7 +340,7 @@ const IncomeList = () => {
                 setSortOrder('desc');
                 setPage(1);
               }}
-              className="mt-5 border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-lg px-4 py-1.5 transition-colors font-medium self-end font-sans"
+              className="mt-5 border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg px-4 py-1.5 transition-colors font-medium self-end font-sans"
             >
               Reset
             </button>
@@ -350,17 +348,17 @@ const IncomeList = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+            <thead className="bg-gray-50 dark:bg-slate-800/60">
               <tr>
                 <th className="px-3.5 py-2.5 w-10 text-center">
-                  <button onClick={toggleAll} className="text-gray-400 hover:text-gray-600">
+                  <button onClick={toggleAll} className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300">
                     {selectedIds.length === incomes.length && incomes.length > 0 ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                   </button>
                 </th>
                 <th 
                   onClick={() => handleSort('date')}
-                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Date {renderSortIcon('date')}
@@ -368,7 +366,7 @@ const IncomeList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('incomeNumber')}
-                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Number {renderSortIcon('incomeNumber')}
@@ -376,7 +374,7 @@ const IncomeList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('vendor.name')}
-                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Party {renderSortIcon('vendor.name')}
@@ -384,7 +382,7 @@ const IncomeList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('client.name')}
-                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Reference Client {renderSortIcon('client.name')}
@@ -392,7 +390,7 @@ const IncomeList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('sourceType')}
-                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Source {renderSortIcon('sourceType')}
@@ -400,7 +398,7 @@ const IncomeList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('status')}
-                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-3.5 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Status {renderSortIcon('status')}
@@ -408,21 +406,21 @@ const IncomeList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('grandTotal')}
-                  className="px-3.5 py-2.5 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-3.5 py-2.5 text-right text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center justify-end">
                     Amount {renderSortIcon('grandTotal')}
                   </div>
                 </th>
-                <th className="px-3.5 py-2.5 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">
+                <th className="px-3.5 py-2.5 text-center text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-800">
               {loading ? (
                 [...Array(5)].map((_, i) => (
-                  <tr key={i} className="bg-white border-b border-gray-100">
+                  <tr key={i} className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
                     <td className="px-3.5 py-2.5 text-center"><Skeleton width="16px" height="16px" className="mx-auto" /></td>
                     <td className="px-3.5 py-2.5"><Skeleton width="70px" height="18px" /></td>
                     <td className="px-3.5 py-2.5"><Skeleton width="90px" height="18px" /></td>
@@ -435,31 +433,31 @@ const IncomeList = () => {
                   </tr>
                 ))
               ) : displayed.length === 0 ? (
-                <tr><td colSpan="9" className="px-3.5 py-12 text-center text-gray-500 text-sm">No incomes found.</td></tr>
+                <tr><td colSpan="9" className="px-3.5 py-12 text-center text-gray-500 dark:text-slate-400 text-sm">No incomes found.</td></tr>
               ) : displayed.map(exp => (
-                <tr key={exp._id} className="hover:bg-blue-50/50 transition-colors">
+                <tr key={exp._id} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="px-3.5 py-2.5 text-center">
-                    <button onClick={() => toggleSelect(exp._id)} className={selectedIds.includes(exp._id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}>
+                    <button onClick={() => toggleSelect(exp._id)} className={selectedIds.includes(exp._id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-400'}>
                       {selectedIds.includes(exp._id) ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                     </button>
                   </td>
-                  <td className="px-3.5 py-2.5 whitespace-nowrap text-xs text-gray-500">{fmtDate(exp.date)}</td>
+                  <td className="px-3.5 py-2.5 whitespace-nowrap text-xs text-gray-500 dark:text-slate-400">{fmtDate(exp.date)}</td>
                   <td className="px-3.5 py-2.5 whitespace-nowrap text-xs">
-                    <Link to={getEditPath(exp)} className="text-blue-600 font-medium hover:text-blue-800 hover:underline">
+                    <Link to={getEditPath(exp)} className="text-blue-600 dark:text-blue-400 font-medium hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
                       {exp.incomeNumber}
                     </Link>
                   </td>
                   <td className="px-3.5 py-2.5 whitespace-nowrap max-w-[200px] truncate" title={exp.vendor?.name || exp.client?.name || ''}>
-                    <div className="text-xs font-medium text-gray-900 truncate">{exp.vendor?.name || exp.client?.name || '—'}</div>
+                    <div className="text-xs font-medium text-gray-900 dark:text-slate-100 truncate">{exp.vendor?.name || exp.client?.name || '—'}</div>
                   </td>
-                  <td className="px-3.5 py-2.5 whitespace-nowrap text-xs text-gray-500 max-w-[180px] truncate" title={exp.client?.name || ''}>
+                  <td className="px-3.5 py-2.5 whitespace-nowrap text-xs text-gray-500 dark:text-slate-400 max-w-[180px] truncate" title={exp.client?.name || ''}>
                     {exp.client?.name || '—'}
                   </td>
                   <td className="px-3.5 py-2.5 whitespace-nowrap">
                     <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${
                       exp.sourceType === 'invoice'
-                        ? 'bg-blue-100 text-blue-700 border-blue-200'
-                        : 'bg-gray-100 text-gray-700 border-gray-200'
+                        ? 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60'
+                        : 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700'
                     }`}>
                       {exp.sourceType === 'invoice' ? 'Invoice' : 'Manual'}
                     </span>
@@ -469,14 +467,14 @@ const IncomeList = () => {
                       {exp.status}
                     </span>
                   </td>
-                  <td className="px-3.5 py-2.5 whitespace-nowrap text-right text-xs font-semibold text-gray-900">
+                  <td className="px-3.5 py-2.5 whitespace-nowrap text-right text-xs font-semibold text-gray-900 dark:text-slate-100">
                     ₹{fmt(exp.grandTotal)}
                   </td>
                   <td className="px-3.5 py-2.5 whitespace-nowrap text-center">
                     <div className="flex justify-center gap-2.5 items-center">
                       <Link
                         to={getEditPath(exp)}
-                        className="text-gray-400 hover:text-blue-600 transition-colors"
+                        className="text-gray-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                         title={isInvoiceSynced(exp) ? 'Open invoice' : 'Edit'}
                       >
                         <FaEdit size={16} />
@@ -491,7 +489,7 @@ const IncomeList = () => {
                           }
                           handleDelete(exp._id);
                         }} 
-                        className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`} 
+                        className={`transition-colors ${isPro ? 'text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400' : 'text-gray-300 dark:text-slate-700 hover:text-gray-500'}`} 
                         title={isPro ? (isInvoiceSynced(exp) ? "Delete invoice" : "Delete") : "Pro Feature - Upgrade to Delete"}
                       >
                         <FaTrash size={17} />
@@ -504,30 +502,30 @@ const IncomeList = () => {
           </table>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/40 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Rows per page:</span>
+            <span className="text-sm text-gray-500 dark:text-slate-400">Rows per page:</span>
             <select value={rowsPerPage} onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
-              className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+              className="border border-gray-300 dark:border-slate-700 rounded-md px-2 py-1 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
               <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option>
             </select>
           </div>
           <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-500">
-                  Page <span className="font-medium text-gray-900">{page}</span> of <span className="font-medium text-gray-900">{totalPages || 1}</span>
+              <div className="text-sm text-gray-500 dark:text-slate-400">
+                  Page <span className="font-medium text-gray-900 dark:text-slate-100">{page}</span> of <span className="font-medium text-gray-900 dark:text-slate-100">{totalPages || 1}</span>
               </div>
               <div className="flex gap-2">
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage(p => p - 1)}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-1 border border-gray-300 dark:border-slate-700 rounded-md text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Previous
                 </button>
                 <button
                   disabled={page >= totalPages}
                   onClick={() => setPage(p => p + 1)}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-1 border border-gray-300 dark:border-slate-700 rounded-md text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next
                 </button>
@@ -539,15 +537,15 @@ const IncomeList = () => {
       {/* Premium Feature Modal */}
       <Modal isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} title="Premium Feature">
         <div className="p-4 text-center">
-          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-950/50 text-yellow-600 dark:text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Upgrade to Pro</h3>
-          <p className="text-gray-500 mb-6">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-2">Upgrade to Pro</h3>
+          <p className="text-gray-500 dark:text-slate-400 mb-6">
             Deleting incomes is a premium feature. Upgrade to Pro to unlock unlimited document management.
           </p>
           <div className="flex gap-3 justify-center">
-            <button onClick={() => setShowPremiumModal(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            <button onClick={() => setShowPremiumModal(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors">
               Maybe Later
             </button>
             <Link to="/subscription" className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 rounded-xl shadow-lg shadow-yellow-500/30 transition-all flex items-center gap-2">
