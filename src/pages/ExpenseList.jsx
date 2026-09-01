@@ -305,27 +305,27 @@ const ExpenseList = () => {
   const fmt = (v) => (Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
   const STATUS_STYLES = {
-    DRAFT: 'bg-gray-100 text-gray-700 border-gray-200',
-    PAID: 'bg-green-100 text-green-700 border-green-200',
-    PARTIAL: 'bg-amber-100 text-amber-700 border-amber-200',
-    UNPAID: 'bg-red-100 text-red-700 border-red-200',
-    CANCELLED: 'bg-gray-200 text-gray-500 border-gray-300',
+    DRAFT: 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700',
+    PAID: 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800/60',
+    PARTIAL: 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60',
+    UNPAID: 'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/60',
+    CANCELLED: 'bg-gray-200 dark:bg-slate-800 text-gray-500 dark:text-slate-400 border-gray-300 dark:border-slate-700',
   };
 
   const PAYROLL_STATUS_STYLES = {
-    draft: 'bg-gray-100 text-gray-700 border-gray-200',
-    processed: 'bg-blue-100 text-blue-700 border-blue-200',
-    approved: 'bg-purple-100 text-purple-700 border-purple-200',
-    paid: 'bg-green-100 text-green-700 border-green-200',
+    draft: 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700',
+    processed: 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60',
+    approved: 'bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/60',
+    paid: 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800/60',
   };
 
   return (
-    <div className="container mx-auto p-6 font-sans text-gray-900">
+    <div className="container mx-auto p-6 font-sans text-gray-900 dark:text-slate-100 transition-colors">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Expenses</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Record and manage your company purchases, outgoings, and payroll</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Expenses</h1>
+          <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Record and manage your company purchases, outgoings, and payroll</p>
         </div>
         <div className="flex gap-3 flex-wrap">
           {selectedIds.length > 0 && (
@@ -353,23 +353,23 @@ const ExpenseList = () => {
           <button
             type="button"
             onClick={() => setIsPdfScannerOpen(true)}
-            className="bg-violet-50 hover:bg-violet-100 text-violet-600 border border-violet-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+            className="bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-900/50 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/60 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
           >
             <FaFilePdf size={16} /> Scan PDF
           </button>
           <Link to="/payroll/process"
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm">
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-semibold shadow-sm transition-all text-sm">
             <FaPlus size={16} /> Process Payroll
           </Link>
           <Link to="/expenses/new"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm">
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-semibold shadow-sm transition-all text-sm">
             <FaPlus size={16} /> New Expense
           </Link>
         </div>
       </div>
 
       {/* Tabs / Filters */}
-      <div className="flex flex-wrap border-b border-gray-200 mb-6 gap-2 bg-white px-4 py-2.5 rounded-xl border shadow-sm">
+      <div className="flex flex-wrap border-b border-gray-200 dark:border-slate-800 mb-6 gap-2 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-xl border shadow-sm transition-colors">
         {[
           { key: 'all', label: 'All Expenses' },
           { key: 'vendor', label: 'Vendor Expense' },
@@ -382,8 +382,8 @@ const ExpenseList = () => {
             onClick={() => setFilterType(tab.key)}
             className={`pb-2.5 pt-2 px-4 text-sm font-semibold border-b-2 transition-all ${
               filterType === tab.key
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-900'
+                ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100'
             }`}
           >
             {tab.label}
@@ -392,32 +392,32 @@ const ExpenseList = () => {
       </div>
 
       {/* Table Container */}
-      <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 shadow-sm rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden transition-colors">
         {/* Table Toolbar & Filters */}
-        <div className="p-5 border-b border-gray-200 bg-gray-50/50 flex flex-col gap-4">
+        <div className="p-5 border-b border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="relative max-w-xs w-full">
               <input 
                 type="text" 
                 placeholder="Search expenses and payroll..." 
-                className="w-full pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm font-sans"
+                className="w-full pl-3 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm font-sans"
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
               />
             </div>
-            <div className="text-sm text-gray-500 font-medium">
+            <div className="text-sm text-gray-500 dark:text-slate-400 font-medium">
               Showing {displayedItems.length} of {totalRecords} results
             </div>
           </div>
 
           {/* Filters Bar */}
-          <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-sm">
+          <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-slate-800 shadow-sm text-sm">
             <div className="flex flex-col min-w-[140px]">
-              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Status</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Status</span>
               <select
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
               >
                 <option value="">All Statuses</option>
                 <option value="PAID">PAID / Paid</option>
@@ -427,11 +427,11 @@ const ExpenseList = () => {
             </div>
 
             <div className="flex flex-col min-w-[140px]">
-              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Business Unit</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Business Unit</span>
               <select
                 value={businessUnitFilter}
                 onChange={(e) => { setBusinessUnitFilter(e.target.value); setPage(1); }}
-                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
               >
                 <option value="">All Business Units</option>
                 {businessUnits.map(bu => (
@@ -441,27 +441,27 @@ const ExpenseList = () => {
             </div>
 
             <div className="flex flex-col min-w-[130px]">
-              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">From Date</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">From Date</span>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
-                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
               />
             </div>
 
             <div className="flex flex-col min-w-[130px]">
-              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">To Date</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">To Date</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
-                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
               />
             </div>
 
             <div className="flex flex-col min-w-[160px]">
-              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Sort By</span>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Sort By</span>
               <select
                 value={`${sortBy}-${sortOrder}`}
                 onChange={(e) => {
@@ -470,7 +470,7 @@ const ExpenseList = () => {
                   setSortOrder(order);
                   setPage(1);
                 }}
-                className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
               >
                 <option value="date-desc">Date (Latest first)</option>
                 <option value="date-asc">Date (Oldest first)</option>
@@ -490,7 +490,7 @@ const ExpenseList = () => {
                 setSortOrder('desc');
                 setPage(1);
               }}
-              className="mt-5 border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-lg px-4 py-1.5 transition-colors font-medium self-end font-sans"
+              className="mt-5 border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg px-4 py-1.5 transition-colors font-medium self-end font-sans"
             >
               Reset
             </button>
@@ -498,28 +498,28 @@ const ExpenseList = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+            <thead className="bg-gray-50 dark:bg-slate-800/60">
               <tr>
                 <th className="px-4 py-2.5 w-12 text-center">
-                  <button onClick={toggleAll} className="text-gray-400 hover:text-gray-600">
+                  <button onClick={toggleAll} className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300">
                     {selectedIds.length === displayedItems.filter(x => x.type !== 'salary').length && displayedItems.filter(x => x.type !== 'salary').length > 0 ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
                   </button>
                 </th>
                 <th 
                   onClick={() => handleSort('date')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Date {renderSortIcon('date')}
                   </div>
                 </th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">
                   Type
                 </th>
                 <th 
                   onClick={() => handleSort('number')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Number / ID {renderSortIcon('number')}
@@ -527,7 +527,7 @@ const ExpenseList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('partyName')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Vendor / Employee {renderSortIcon('partyName')}
@@ -535,7 +535,7 @@ const ExpenseList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('clientOrMethod')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Ref Client / Method {renderSortIcon('clientOrMethod')}
@@ -543,7 +543,7 @@ const ExpenseList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('status')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Status {renderSortIcon('status')}
@@ -551,19 +551,19 @@ const ExpenseList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('amount')}
-                  className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center justify-end">
                     Amount {renderSortIcon('amount')}
                   </div>
                 </th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Actions</th>
+                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-800/60">
               {loading ? (
                 [...Array(5)].map((_, i) => (
-                  <tr key={i} className="bg-white border-b border-gray-100">
+                  <tr key={i} className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
                     <td className="px-4 py-2 text-center"><Skeleton width="18px" height="16px" className="mx-auto" /></td>
                     <td className="px-4 py-2"><Skeleton width="80px" height="16px" /></td>
                     <td className="px-4 py-2"><Skeleton width="60px" height="16px" /></td>
@@ -576,43 +576,43 @@ const ExpenseList = () => {
                   </tr>
                 ))
               ) : displayedItems.length === 0 ? (
-                <tr><td colSpan="9" className="px-4 py-8 text-center text-gray-500 text-xs">No expenses found.</td></tr>
+                <tr><td colSpan="9" className="px-4 py-8 text-center text-gray-500 dark:text-slate-400 text-xs">No expenses found.</td></tr>
               ) : displayedItems.map(item => (
-                <tr key={`${item.type}-${item.id}`} className="hover:bg-blue-50/50 transition-colors">
+                <tr key={`${item.type}-${item.id}`} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="px-4 py-2 text-center">
                     {item.type !== 'salary' ? (
-                      <button onClick={() => toggleSelect(item.id)} className={selectedIds.includes(item.id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}>
+                      <button onClick={() => toggleSelect(item.id)} className={selectedIds.includes(item.id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-400 dark:hover:text-slate-500'}>
                         {selectedIds.includes(item.id) ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
                       </button>
                     ) : (
-                      <span className="text-gray-200">—</span>
+                      <span className="text-gray-200 dark:text-slate-700">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
+                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-slate-400">
                     {item.type === 'salary' ? item.periodStr : fmtDate(item.date)}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap">
                     <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase border ${
-                      item.type === 'vendor' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                      item.type === 'category' ? 'bg-purple-50 text-purple-700 border-purple-100' :
-                      'bg-emerald-50 text-emerald-700 border-emerald-100'
+                      item.type === 'vendor' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-900/50' :
+                      item.type === 'category' ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-100 dark:border-purple-900/50' :
+                      'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-900/50'
                     }`}>
                       {item.type}
                     </span>
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap">
                     {item.type !== 'salary' ? (
-                      <Link to={`/expenses/edit/${item.id}`} className="text-blue-600 font-semibold text-xs hover:text-blue-800 hover:underline">
+                      <Link to={`/expenses/edit/${item.id}`} className="text-blue-600 dark:text-blue-400 font-semibold text-xs hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
                         {item.number}
                       </Link>
                     ) : (
-                      <span className="text-gray-500 font-mono text-xs">{item.number}</span>
+                      <span className="text-gray-500 dark:text-slate-400 font-mono text-xs">{item.number}</span>
                     )}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap">
-                    <div className="text-xs font-semibold text-gray-900">{item.partyName}</div>
+                    <div className="text-xs font-semibold text-gray-900 dark:text-slate-100">{item.partyName}</div>
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
+                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-slate-400">
                     {item.clientOrMethod}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap">
@@ -626,10 +626,10 @@ const ExpenseList = () => {
                         }`}
                         title="Click to change status"
                       >
-                        <option value="DRAFT" className="bg-white text-gray-700">DRAFT</option>
-                        <option value="PROCESSED" className="bg-white text-blue-700">PROCESSED</option>
-                        <option value="APPROVED" className="bg-white text-purple-700">APPROVED</option>
-                        <option value="PAID" className="bg-white text-green-700">PAID</option>
+                        <option value="DRAFT" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">DRAFT</option>
+                        <option value="PROCESSED" className="bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300">PROCESSED</option>
+                        <option value="APPROVED" className="bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300">APPROVED</option>
+                        <option value="PAID" className="bg-white dark:bg-slate-800 text-green-700 dark:text-green-300">PAID</option>
                       </select>
                     ) : (
                       <select
@@ -641,28 +641,28 @@ const ExpenseList = () => {
                         }`}
                         title="Click to change status"
                       >
-                        <option value="PAID" className="bg-white text-green-700">PAID</option>
-                        <option value="UNPAID" className="bg-white text-red-700">UNPAID</option>
-                        <option value="PARTIAL" className="bg-white text-amber-700">PARTIAL</option>
-                        <option value="DRAFT" className="bg-white text-gray-700">DRAFT</option>
-                        <option value="CANCELLED" className="bg-white text-gray-500">CANCELLED</option>
+                        <option value="PAID" className="bg-white dark:bg-slate-800 text-green-700 dark:text-green-300">PAID</option>
+                        <option value="UNPAID" className="bg-white dark:bg-slate-800 text-red-700 dark:text-red-300">UNPAID</option>
+                        <option value="PARTIAL" className="bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-300">PARTIAL</option>
+                        <option value="DRAFT" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">DRAFT</option>
+                        <option value="CANCELLED" className="bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400">CANCELLED</option>
                       </select>
                     )}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900">
+                  <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900 dark:text-slate-100">
                     ₹{fmt(item.amount)}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap text-center text-xs">
                     <div className="flex justify-center gap-3 items-center">
                       {item.type !== 'salary' ? (
                         <>
-                          <Link to={`/expenses/edit/${item.id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={16} /></Link>
+                          <Link to={`/expenses/edit/${item.id}`} className="text-gray-400 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="Edit"><FaEdit size={16} /></Link>
                           <button 
                             onClick={() => {
                               if (!isPro) return setShowPremiumModal(true);
                               handleDelete(item.id);
                             }} 
-                            className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`} 
+                            className={`transition-colors ${isPro ? 'text-gray-400 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-500'}`} 
                             title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
                           >
                             <FaTrash size={16} />
@@ -673,7 +673,7 @@ const ExpenseList = () => {
                           to={`/payroll/${item.id}/payslip`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-semibold hover:underline"
+                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold hover:underline"
                           title="View Payslip"
                         >
                           <FaEye size={15} /> View Payslip
@@ -687,11 +687,11 @@ const ExpenseList = () => {
           </table>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 flex flex-col md:flex-row justify-between items-center gap-4 transition-colors">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Rows per page:</span>
+            <span className="text-sm text-gray-500 dark:text-slate-400">Rows per page:</span>
             <select value={rowsPerPage} onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
-              className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+              className="border border-gray-300 dark:border-slate-700 rounded-md px-2 py-1 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
               <option value={10}>10</option>
               <option value={20}>20</option>
               <option value={50}>50</option>
@@ -699,21 +699,21 @@ const ExpenseList = () => {
             </select>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-500">
-              Page <span className="font-medium text-gray-900">{page}</span> of <span className="font-medium text-gray-900">{totalPages}</span>
+            <div className="text-sm text-gray-500 dark:text-slate-400">
+              Page <span className="font-semibold text-gray-900 dark:text-slate-200">{page}</span> of <span className="font-semibold text-gray-900 dark:text-slate-200">{totalPages}</span>
             </div>
             <div className="flex gap-2">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(p => p - 1)}
-                className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1 border border-gray-300 dark:border-slate-700 rounded-md text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Previous
               </button>
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1 border border-gray-300 dark:border-slate-700 rounded-md text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Next
               </button>
@@ -725,15 +725,15 @@ const ExpenseList = () => {
       {/* Premium Feature Modal */}
       <Modal isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} title="Premium Feature">
         <div className="p-4 text-center">
-          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-950/60 text-yellow-600 dark:text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Upgrade to Pro</h3>
-          <p className="text-gray-500 mb-6">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-2">Upgrade to Pro</h3>
+          <p className="text-gray-500 dark:text-slate-400 mb-6">
             Deleting expenses is a premium feature. Upgrade to Pro to unlock unlimited document management.
           </p>
           <div className="flex gap-3 justify-center">
-            <button onClick={() => setShowPremiumModal(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            <button onClick={() => setShowPremiumModal(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors">
               Maybe Later
             </button>
             <Link to="/subscription" className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 rounded-xl shadow-lg shadow-yellow-500/30 transition-all flex items-center gap-2">

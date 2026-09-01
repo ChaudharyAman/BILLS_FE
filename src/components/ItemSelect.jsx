@@ -48,52 +48,29 @@ const ItemSelect = ({ items = [], value, displayValue = '', onChange, onAddNew, 
   };
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
+    <div ref={containerRef} className="relative w-full">
       {/* Trigger */}
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
         data-testid={testId || undefined}
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          border: '1px solid #d1d5db',
-          borderRadius: 6,
-          padding: '6px 10px',
-          fontSize: 13,
-          background: '#fff',
-          color: selected || displayValue ? '#111827' : '#9ca3af',
-          cursor: 'pointer',
-          textAlign: 'left',
-        }}
+        className={`w-full flex items-center justify-between border border-gray-300 dark:border-slate-700 rounded-md px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 cursor-pointer text-left transition-colors ${
+          selected || displayValue ? 'text-gray-900 dark:text-slate-100' : 'text-gray-400 dark:text-slate-500'
+        }`}
       >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span className="truncate">
           {selectedLabel}
         </span>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, marginLeft: 6 }}>
-          <path d={open ? 'M2 8L6 4L10 8' : 'M2 4L6 8L10 4'} stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="flex-shrink-0 ml-1.5 text-gray-500 dark:text-slate-400">
+          <path d={open ? 'M2 8L6 4L10 8' : 'M2 4L6 8L10 4'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </button>
 
       {/* Dropdown */}
       {open && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
-          marginTop: 4,
-          background: '#fff',
-          border: '1.5px solid #3b82f6',
-          borderRadius: 8,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.13)',
-          zIndex: 9999,
-          minWidth: 220,
-        }}>
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-blue-500 dark:border-blue-500 rounded-lg shadow-xl z-50 min-w-[220px] overflow-hidden">
           {/* Search */}
-          <div style={{ padding: '8px 10px', borderBottom: '1px solid #f0f0f0' }}>
+          <div className="p-2 border-b border-gray-100 dark:border-slate-800">
             <input
               ref={searchRef}
               type="text"
@@ -101,58 +78,35 @@ const ItemSelect = ({ items = [], value, displayValue = '', onChange, onAddNew, 
               onChange={e => setSearch(e.target.value)}
               data-testid={testId ? `${testId}-search` : undefined}
               placeholder="Type to search"
-              style={{
-                width: '100%',
-                border: '1.5px solid #3b82f6',
-                borderRadius: 6,
-                padding: '5px 10px',
-                fontSize: 13,
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
+              className="w-full border border-blue-500 dark:border-blue-400 rounded-md px-2.5 py-1 text-xs outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400"
             />
           </div>
 
           {/* Item list */}
-          <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+          <div className="max-h-48 overflow-y-auto">
             {filtered.length === 0 ? (
-              <div style={{ padding: '10px 14px', fontSize: 13, color: '#9ca3af' }}>No items found</div>
+              <div className="px-3 py-2 text-xs text-gray-400 dark:text-slate-500">No items found</div>
             ) : (
               filtered.map(item => (
                 <div
                   key={item._id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '7px 10px',
-                    cursor: 'pointer',
-                    background: item._id === value ? '#64748b' : 'transparent',
-                    color: item._id === value ? '#fff' : '#111827',
-                    fontSize: 13,
-                    transition: 'background 0.13s',
-                  }}
-                  onMouseEnter={e => { if (item._id !== value) e.currentTarget.style.background = '#f3f4f6'; }}
-                  onMouseLeave={e => { if (item._id !== value) e.currentTarget.style.background = 'transparent'; }}
+                  className={`flex items-center justify-between px-2.5 py-1.5 cursor-pointer text-xs transition-colors ${
+                    item._id === value 
+                      ? 'bg-slate-600 text-white' 
+                      : 'hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-900 dark:text-slate-200'
+                  }`}
                   onClick={() => handleSelect(item)}
                 >
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                  <span className="truncate">{item.name}</span>
                   {onEdit && (
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onEdit(item); setOpen(false); setSearch(''); }}
-                      style={{
-                        background: item._id === value ? 'rgba(255,255,255,0.2)' : '#e5e7eb',
-                        border: 'none',
-                        borderRadius: 4,
-                        padding: '3px 6px',
-                        cursor: 'pointer',
-                        color: item._id === value ? '#fff' : '#6b7280',
-                        display: 'flex',
-                        alignItems: 'center',
-                        marginLeft: 6,
-                        flexShrink: 0,
-                      }}
+                      className={`ml-1.5 p-1 rounded transition-colors flex-shrink-0 ${
+                        item._id === value 
+                          ? 'bg-white/20 text-white' 
+                          : 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      }`}
                     >
                       <FaPencilAlt size={10} />
                     </button>
@@ -164,25 +118,12 @@ const ItemSelect = ({ items = [], value, displayValue = '', onChange, onAddNew, 
 
           {/* Add new item */}
           {onAddNew && (
-            <div
-              style={{ borderTop: '1px solid #f0f0f0', padding: '8px 12px' }}
-            >
+            <div className="border-t border-gray-100 dark:border-slate-800 px-3 py-2">
               <button
                 type="button"
                 onClick={() => { onAddNew(); setOpen(false); setSearch(''); }}
                 data-testid={testId ? `${testId}-add-new` : undefined}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#3b82f6',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
+                className="bg-transparent border-none text-blue-600 dark:text-blue-400 text-xs font-semibold cursor-pointer p-0 flex items-center gap-1 hover:underline"
               >
                 <FaPlus size={10} /> Add new item
               </button>

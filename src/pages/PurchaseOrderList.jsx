@@ -307,14 +307,14 @@ const PurchaseOrderList = () => {
   ];
 
   return (
-    <div className="container mx-auto p-6 font-sans text-gray-900">
+    <div className="container mx-auto p-6 font-sans text-gray-900 dark:text-slate-100 transition-colors">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Purchase Orders</h1>
-          <p className="text-gray-500 mt-1">Create and manage quotations for your vendors</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Purchase Orders</h1>
+          <p className="text-gray-500 dark:text-slate-400 mt-1">Create and manage quotations for your vendors</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           {selectedIds.length > 0 && (
             <button
               onClick={handleBulkDelete}
@@ -331,13 +331,13 @@ const PurchaseOrderList = () => {
           />
           <button
              onClick={() => setIsPdfScannerOpen(true)}
-             className="bg-violet-50 hover:bg-violet-100 text-violet-600 border border-violet-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+             className="bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-900/60 text-violet-600 dark:text-violet-300 border border-violet-200 dark:border-violet-800 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
            >
              <FaFilePdf size={16} /> Scan PDF
            </button>
           <button
              onClick={() => setIsCsvModalOpen(true)}
-             className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+             className="bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
            >
              <FaFileAlt size={16} /> Bulk Import
            </button>
@@ -352,16 +352,16 @@ const PurchaseOrderList = () => {
       <QuotaIndicator type="purchaseOrders" />
 
       {/* Table */}
-      <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-          <div className="flex w-full items-center gap-3">
+      <div className="bg-white dark:bg-slate-900 shadow-sm rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden transition-colors">
+        <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/50 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <input type="text" placeholder="Search purchaseOrders..."
-              className="w-full max-w-sm pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full sm:w-64 pl-3 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setPage(1); }} />
             <select
               value={statusFilter}
               onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-              className="min-w-[160px] border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="min-w-[140px] border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {STATUS_OPTIONS.map(status => (
                 <option key={status} value={status}>
@@ -372,7 +372,7 @@ const PurchaseOrderList = () => {
             <select
               value={businessUnitFilter}
               onChange={(e) => { setBusinessUnitFilter(e.target.value); setPage(1); }}
-              className="min-w-[160px] border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans"
+              className="min-w-[160px] border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans"
             >
               <option value="">All Business Units</option>
               {businessUnits.map((bu) => (
@@ -382,32 +382,31 @@ const PurchaseOrderList = () => {
               ))}
             </select>
           </div>
-          <div className="text-sm text-gray-500 ml-4">Showing {displayed.length} of {totalRecords}</div>
+          <div className="text-sm text-gray-500 dark:text-slate-400">Showing {displayed.length} of {totalRecords}</div>
         </div>
-
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 font-sans">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800 font-sans">
+            <thead className="bg-gray-50 dark:bg-slate-800/75">
               <tr>
                 <th className="px-4 py-2 w-10 text-center">
-                  <button onClick={toggleAll} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <button onClick={toggleAll} className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
                     {selectedIds.length === purchaseOrders.length && purchaseOrders.length > 0 ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                   </button>
                 </th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">PO No.</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">HSN/SAC</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Vendor</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Date</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Valid Until</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Status</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Amount</th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">Actions</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">PO No.</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">HSN/SAC</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">Vendor</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">Date</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">Valid Until</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">Status</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">Amount</th>
+                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-800">
               {loading ? (
                 [...Array(5)].map((_, i) => (
-                  <tr key={i} className="bg-white border-b border-gray-100">
+                  <tr key={i} className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
                     <td className="px-4 py-2 text-center"><Skeleton width="16px" height="16px" className="mx-auto" /></td>
                     <td className="px-4 py-2"><Skeleton width="80px" height="16px" /></td>
                     <td className="px-4 py-2"><Skeleton width="60px" height="16px" /></td>
@@ -423,30 +422,30 @@ const PurchaseOrderList = () => {
                   </tr>
                 ))
               ) : displayed.length === 0 ? (
-                <tr><td colSpan="9" className="px-4 py-8 text-center text-gray-500 text-xs">No purchase orders found.</td></tr>
+                <tr><td colSpan="9" className="px-4 py-8 text-center text-gray-500 dark:text-slate-400 text-xs">No purchase orders found.</td></tr>
               ) : displayed.map(q => (
-                <tr key={q._id} className="hover:bg-blue-50/50 transition-colors group">
+                <tr key={q._id} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors group">
                   <td className="px-4 py-2 text-center">
-                    <button onClick={() => toggleSelect(q._id)} className={selectedIds.includes(q._id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}>
+                    <button onClick={() => toggleSelect(q._id)} className={selectedIds.includes(q._id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-400 dark:hover:text-slate-400'}>
                       {selectedIds.includes(q._id) ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                     </button>
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap">
-                    <Link to={`/purchase-orders/${q._id}/print`} className="text-blue-600 text-xs font-semibold hover:text-blue-800 hover:underline">
+                    <Link to={`/purchase-orders/${q._id}/print`} className="text-blue-600 dark:text-blue-400 text-xs font-semibold hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
                       {q.poNumber}
                     </Link>
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
+                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-slate-400">
                     {[...new Set((q.items || []).map(it => it.hsnCode).filter(Boolean))].join(', ') || '—'}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap">
-                    <div className="text-xs font-semibold text-gray-900">{q.vendor?.name}</div>
-                    {q.vendor?.gstin && <div className="text-[10px] text-gray-400 mt-0.5">{q.vendor.gstin}</div>}
+                    <div className="text-xs font-semibold text-gray-900 dark:text-slate-100">{q.vendor?.name}</div>
+                    {q.vendor?.gstin && <div className="text-[10px] text-gray-400 dark:text-slate-500 mt-0.5">{q.vendor.gstin}</div>}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">{fmtDate(q.date)}</td>
-                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
+                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-slate-400">{fmtDate(q.date)}</td>
+                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-slate-400">
                     {q.validUntil ? (
-                      <span className={new Date(q.validUntil) < new Date() && !['BILLED', 'RECEIVED', 'CANCELLED'].includes(q.status) ? 'text-red-500 font-medium' : ''}>
+                      <span className={new Date(q.validUntil) < new Date() && !['BILLED', 'RECEIVED', 'CANCELLED'].includes(q.status) ? 'text-red-500 dark:text-red-400 font-medium' : ''}>
                         {fmtDate(q.validUntil)}
                       </span>
                     ) : '—'}
@@ -469,33 +468,33 @@ const PurchaseOrderList = () => {
                              }
                          }}
                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent transition-colors text-center appearance-none ${
-                             q.status === 'ACCEPTED' ? 'bg-green-100 text-green-700 border-green-200' :
-                             q.status === 'RECEIVED' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-                             q.status === 'SENT' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                             q.status === 'REJECTED' ? 'bg-red-100 text-red-700 border-red-200' :
-                             q.status === 'CANCELLED' ? 'bg-slate-100 text-slate-700 border-slate-200' :
-                             q.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
-                             'bg-gray-100 text-gray-700 border-gray-200'
+                             q.status === 'ACCEPTED' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-950/60 dark:text-green-300 dark:border-green-800' :
+                             q.status === 'RECEIVED' ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800' :
+                             q.status === 'SENT' ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800' :
+                             q.status === 'REJECTED' ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800' :
+                             q.status === 'CANCELLED' ? 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700' :
+                             q.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700' :
+                             'bg-gray-100 text-gray-700 border-gray-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
                          }`}
                       >
-                          <option value="DRAFT" className="bg-white text-gray-700">DRAFT</option>
-                          <option value="SENT" className="bg-white text-gray-700">SENT</option>
-                          <option value="ACCEPTED" className="bg-white text-gray-700">ACCEPTED</option>
-                          <option value="RECEIVED" className="bg-white text-gray-700">RECEIVED</option>
-                          <option value="REJECTED" className="bg-white text-gray-700">REJECTED</option>
-                          <option value="CANCELLED" className="bg-white text-gray-700">CANCELLED</option>
+                          <option value="DRAFT" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">DRAFT</option>
+                          <option value="SENT" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">SENT</option>
+                          <option value="ACCEPTED" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">ACCEPTED</option>
+                          <option value="RECEIVED" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">RECEIVED</option>
+                          <option value="REJECTED" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">REJECTED</option>
+                          <option value="CANCELLED" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">CANCELLED</option>
                       </select>
                     )}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900">
+                  <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900 dark:text-slate-100">
                     ₹{fmt(q.grandTotal)}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap text-center">
                     <div className="flex justify-center gap-2 items-center">
-                      <Link to={`/purchase-orders/${q._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View"><FaEye size={16} /></Link>
-                      <Link to={`/purchase-orders/edit/${q._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={16} /></Link>
+                      <Link to={`/purchase-orders/${q._id}/print`} className="text-gray-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="View"><FaEye size={16} /></Link>
+                      <Link to={`/purchase-orders/edit/${q._id}`} className="text-gray-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="Edit"><FaEdit size={16} /></Link>
                       {q.status !== 'BILLED' && (
-                        <button onClick={() => handleConvert(q._id)} className="text-gray-400 hover:text-purple-600 transition-colors" title="Convert to Invoice">
+                        <button onClick={() => handleConvert(q._id)} className="text-gray-400 dark:text-slate-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors" title="Convert to Invoice">
                           <FaArrowRight size={16} />
                         </button>
                       )}
@@ -504,7 +503,7 @@ const PurchaseOrderList = () => {
                           if (!isPro) return setShowPremiumModal(true);
                           handleDelete(q._id);
                         }} 
-                        className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`} 
+                        className={`transition-colors ${isPro ? 'text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-500'}`} 
                         title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
                       >
                         <FaTrash size={16} />
@@ -517,30 +516,30 @@ const PurchaseOrderList = () => {
           </table>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50 flex flex-col md:flex-row justify-between items-center gap-4 transition-colors">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Rows per page:</span>
+            <span className="text-sm text-gray-500 dark:text-slate-400">Rows per page:</span>
             <select value={rowsPerPage} onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
-              className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+              className="border border-gray-300 dark:border-slate-700 rounded-md px-2 py-1 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
               <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option>
             </select>
           </div>
           <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-500">
-                  Page <span className="font-medium text-gray-900">{page}</span> of <span className="font-medium text-gray-900">{totalPages || 1}</span>
+              <div className="text-sm text-gray-500 dark:text-slate-400">
+                  Page <span className="font-medium text-gray-900 dark:text-slate-100">{page}</span> of <span className="font-medium text-gray-900 dark:text-slate-100">{totalPages || 1}</span>
               </div>
               <div className="flex gap-2">
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage(p => p - 1)}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-1 border border-gray-300 dark:border-slate-700 rounded-md text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Previous
                 </button>
                 <button
                   disabled={page >= totalPages}
                   onClick={() => setPage(p => p + 1)}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-1 border border-gray-300 dark:border-slate-700 rounded-md text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next
                 </button>

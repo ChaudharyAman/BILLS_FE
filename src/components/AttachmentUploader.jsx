@@ -107,12 +107,12 @@ const AttachmentUploader = ({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-5 space-y-4 transition-colors">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <FaPaperclip className="text-indigo-600" />
-          <h3 className="text-sm font-semibold text-gray-800">Attachments & Scanned Files</h3>
-          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full font-medium">
+          <FaPaperclip className="text-indigo-600 dark:text-indigo-400" />
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-slate-100">Attachments & Scanned Files</h3>
+          <span className="text-xs text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-medium">
             {attachments.length} file{attachments.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -120,7 +120,7 @@ const AttachmentUploader = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+            className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg transition-colors"
           >
             <FaUpload size={11} /> Attach File
           </button>
@@ -135,8 +135,8 @@ const AttachmentUploader = ({
           onClick={() => fileInputRef.current?.click()}
           className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
             isDragging
-              ? 'border-indigo-500 bg-indigo-50/60 scale-[0.99]'
-              : 'border-gray-200 hover:border-indigo-400 bg-gray-50/50 hover:bg-indigo-50/20'
+              ? 'border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/40 scale-[0.99]'
+              : 'border-gray-200 dark:border-slate-700 hover:border-indigo-400 bg-gray-50/50 dark:bg-slate-800/40 hover:bg-indigo-50/20'
           }`}
         >
           <input
@@ -147,10 +147,10 @@ const AttachmentUploader = ({
             accept=".pdf,image/png,image/jpeg,image/jpg,image/webp"
             className="hidden"
           />
-          <p className="text-xs text-gray-600 font-medium">
-            Drag & drop scanned invoices, receipts, or bills here, or <span className="text-indigo-600 font-semibold underline">browse</span>
+          <p className="text-xs text-gray-600 dark:text-slate-300 font-medium">
+            Drag & drop scanned invoices, receipts, or bills here, or <span className="text-indigo-600 dark:text-indigo-400 font-semibold underline">browse</span>
           </p>
-          <p className="text-[11px] text-gray-400 mt-0.5">Supports PDF, PNG, JPG up to 10MB</p>
+          <p className="text-[11px] text-gray-400 dark:text-slate-400 mt-0.5">Supports PDF, PNG, JPG up to 10MB</p>
         </div>
       )}
 
@@ -163,17 +163,17 @@ const AttachmentUploader = ({
             return (
               <div
                 key={att._id || idx}
-                className="flex items-center justify-between gap-2 p-3 bg-gray-50 hover:bg-slate-100 border border-gray-200 rounded-xl transition-all"
+                className="flex items-center justify-between gap-2 p-3 bg-gray-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl transition-all"
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <div className={`p-2 rounded-lg ${isPdf ? 'bg-red-50 text-red-600' : isImg ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
+                  <div className={`p-2 rounded-lg ${isPdf ? 'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400' : isImg ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300'}`}>
                     {isPdf ? <FaFilePdf size={16} /> : isImg ? <FaImage size={16} /> : <FaFileAlt size={16} />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-gray-800 truncate" title={att.originalName}>
+                    <p className="text-xs font-semibold text-gray-800 dark:text-slate-100 truncate" title={att.originalName}>
                       {att.originalName}
                     </p>
-                    <p className="text-[10px] text-gray-400">
+                    <p className="text-[10px] text-gray-400 dark:text-slate-400">
                       {formatBytes(att.sizeBytes)} {att.base64 ? '· (Ready to save)' : ''}
                     </p>
                   </div>
@@ -185,7 +185,7 @@ const AttachmentUploader = ({
                     onClick={() => handleView(att, idx)}
                     disabled={loadingViewId === att._id}
                     title="View / Download"
-                    className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors text-xs"
+                    className="p-1.5 text-gray-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-700 rounded-md transition-colors text-xs"
                   >
                     <FaEye size={13} />
                   </button>
@@ -194,7 +194,7 @@ const AttachmentUploader = ({
                       type="button"
                       onClick={() => handleRemove(idx)}
                       title="Remove attachment"
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors text-xs"
+                      className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-slate-700 rounded-md transition-colors text-xs"
                     >
                       <FaTrash size={12} />
                     </button>

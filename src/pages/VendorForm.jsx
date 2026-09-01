@@ -308,17 +308,17 @@ const VendorForm = ({ onSuccess, onCancel }) => {
   }
 
   return (
-    <div className={`container mx-auto ${isModal ? '' : 'p-6 max-w-7xl'}`}>
+    <div className={`container mx-auto ${isModal ? '' : 'p-6 max-w-7xl'} text-slate-800 dark:text-slate-100 transition-colors`}>
       {!isModal && (
         <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-4">
             <button 
                 onClick={() => navigate('/vendors')}
-                className="text-slate-500 hover:text-slate-700 transition-colors"
+                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
             >
                 <FaArrowLeft size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">
                 {id ? 'Edit Vendor / Supplier' : 'Add New Vendor / Supplier'}
             </h1>
             </div>
@@ -329,53 +329,53 @@ const VendorForm = ({ onSuccess, onCancel }) => {
         
         {/* LEFT COLUMN - BASIC INFO */}
         <div className="w-full lg:w-1/3 space-y-4">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors">
                 <div className="space-y-4">
                     
                     {/* Client Type Toggle */}
-                    <div className="flex gap-4 p-1 bg-slate-100/50 rounded-lg w-max mb-6 border border-slate-200/60">
-                         <label className={`px-4 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wide cursor-pointer transition-all ${formData.clientType === 'Company' ? 'bg-white text-teal-700 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                    <div className="flex gap-4 p-1 bg-slate-100/50 dark:bg-slate-800/80 rounded-lg w-max mb-6 border border-slate-200/60 dark:border-slate-700">
+                         <label className={`px-4 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wide cursor-pointer transition-all ${formData.clientType === 'Company' ? 'bg-white dark:bg-slate-700 text-teal-700 dark:text-teal-300 shadow-sm border border-slate-200 dark:border-slate-600' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
                              <input type="radio" name="clientType" value="Company" checked={formData.clientType === 'Company'} onChange={handleChange} className="hidden" />
                              Company
                          </label>
-                         <label className={`px-4 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wide cursor-pointer transition-all ${formData.clientType === 'Individual' ? 'bg-white text-teal-700 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                         <label className={`px-4 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wide cursor-pointer transition-all ${formData.clientType === 'Individual' ? 'bg-white dark:bg-slate-700 text-teal-700 dark:text-teal-300 shadow-sm border border-slate-200 dark:border-slate-600' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
                              <input type="radio" name="clientType" value="Individual" checked={formData.clientType === 'Individual'} onChange={handleChange} className="hidden" />
                              Individual
                          </label>
                      </div>
 
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Vendor Relationship</label>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">Vendor Relationship</label>
                          <select name="vendorRelation" value={formData.vendorRelation} onChange={handleChange} 
-                             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all mb-4">
+                             className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all mb-4">
                              <option value="Bought From">Bought From</option>
                              <option value="Sold To">Sold To</option>
                          </select>
                     </div>
 
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">
                             Company name
                         </label>
                         <input type="text" name="name" required value={formData.name} onChange={handleChange}
                             data-testid="vendor-name"
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Phone</label>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">Phone</label>
                         <input type="text" name="phone" value={formData.phone} onChange={handleChange}
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Email</label>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">Email</label>
                         <input type="email" name="email" value={formData.email} onChange={handleChange}
                             data-testid="vendor-email"
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                     </div>
                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">GST Treatment</label>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">GST Treatment</label>
                          <select name="gstTreatment" value={formData.gstTreatment} onChange={handleChange} 
-                             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all">
+                             className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all">
                              <option value="Registered Business">Registered Business</option>
                              <option value="Consumer">Consumer</option>
                              <option value="Overseas">Overseas</option>
@@ -384,18 +384,18 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                         <div className="col-span-2">
-                            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">GSTIN</label>
+                            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">GSTIN</label>
                             <input type="text" name="gstin" value={formData.gstin} onChange={handleChange} placeholder="ex: 29ABC..."
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all uppercase" />
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all uppercase" />
                         </div>
                         <div className="flex items-end">
-                            <button type="button" onClick={fetchGstDetails} disabled={loading} className="w-full py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg border border-slate-200 hover:bg-slate-200 transition-colors disabled:opacity-50">
+                            <button type="button" onClick={fetchGstDetails} disabled={loading} className="w-full py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
                                 {loading ? 'Fetching...' : 'Fetch'}
                             </button>
                         </div>
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">PAN</label>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">PAN</label>
                         <input 
                             type="text" 
                             name="pan" 
@@ -418,8 +418,8 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                                     setPanError('');
                                 }
                             }}
-                            className={`w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all uppercase ${
-                                panError ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-teal-500/20 focus:border-teal-500'
+                            className={`w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 transition-all uppercase ${
+                                panError ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-teal-500/20 focus:border-teal-500'
                             }`} 
                         />
                         {panError && (
@@ -427,29 +427,29 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                         )}
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">TAN</label>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">TAN</label>
                         <input type="text" name="tan" value={formData.tan} onChange={handleChange}
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all uppercase" />
+                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all uppercase" />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">VAT</label>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">VAT</label>
                         <input type="text" name="vat" value={formData.vat} onChange={handleChange}
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all uppercase" />
+                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all uppercase" />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Website</label>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">Website</label>
                         <input type="text" name="website" value={formData.website} onChange={handleChange}
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Vendor Code</label>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">Vendor Code</label>
                         <input type="text" name="vendorCode" value={formData.vendorCode} onChange={handleChange}
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Currency</label>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">Currency</label>
                         <select name="currency" value={formData.currency} onChange={handleChange}
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all">
+                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all">
                             <option value="INR">INR</option>
                             <option value="USD">USD</option>
                             <option value="EUR">EUR</option>
@@ -460,32 +460,32 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                         <label className="flex items-center gap-3 cursor-pointer group">
                              <div className="relative flex items-center justify-center w-5 h-5">
                                  <input type="checkbox" name="isClient" checked={formData.isClient} onChange={handleChange} className="peer sr-only" />
-                                 <div className="w-5 h-5 border-2 border-slate-300 rounded peer-checked:bg-teal-500 peer-checked:border-teal-500 transition-all"></div>
+                                 <div className="w-5 h-5 border-2 border-slate-300 dark:border-slate-600 rounded peer-checked:bg-teal-500 peer-checked:border-teal-500 transition-all"></div>
                                  <svg className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                              </div>
-                             <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">Also use as Client</span>
+                             <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors">Also use as Client</span>
                          </label>
 
                          <label className="flex items-center gap-3 cursor-pointer group">
                              <div className="relative flex items-center justify-center w-5 h-5">
                                  <input type="checkbox" name="useForDispatch" checked={formData.useForDispatch} onChange={handleChange} className="peer sr-only" />
-                                 <div className="w-5 h-5 border-2 border-slate-300 rounded peer-checked:bg-teal-500 peer-checked:border-teal-500 transition-all"></div>
+                                 <div className="w-5 h-5 border-2 border-slate-300 dark:border-slate-600 rounded peer-checked:bg-teal-500 peer-checked:border-teal-500 transition-all"></div>
                                  <svg className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                              </div>
-                             <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">Use for Dispatch [billing address will be shown]</span>
+                             <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors">Use for Dispatch [billing address will be shown]</span>
                          </label>
                     </div>
                 </div>
             </div>
 
             {/* TDS Configuration Card */}
-             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                 <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wide">TDS Configuration</h3>
+             <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors">
+                 <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4 uppercase tracking-wide">TDS Configuration</h3>
                  <div className="space-y-4">
-                     <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200/60 shadow-sm">
+                     <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/80 rounded-lg border border-slate-200/60 dark:border-slate-700 shadow-sm">
                          <div className="flex flex-col">
-                             <span className="text-sm font-semibold text-slate-700">TDS Applicable by default</span>
-                             <span className="text-[11px] text-slate-400">Enable TDS defaults for invoices</span>
+                             <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">TDS Applicable by default</span>
+                             <span className="text-[11px] text-slate-400 dark:text-slate-500">Enable TDS defaults for invoices</span>
                          </div>
                          <button
                              type="button"
@@ -498,7 +498,7 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                                  }));
                              }}
                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                                 formData.tds_applicable ? 'bg-teal-600' : 'bg-slate-200'
+                                 formData.tds_applicable ? 'bg-teal-600' : 'bg-slate-200 dark:bg-slate-700'
                              }`}
                          >
                              <span
@@ -510,9 +510,9 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                      </div>
 
                      {formData.tds_applicable && (
-                         <div className="p-3 bg-teal-50/30 rounded-lg border border-teal-100/60 space-y-3 transition-all animate-fadeIn">
+                         <div className="p-3 bg-teal-50/30 dark:bg-teal-950/20 rounded-lg border border-teal-100/60 dark:border-teal-900/40 space-y-3 transition-all animate-fadeIn">
                              <div>
-                                 <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Default TDS Section *</label>
+                                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">Default TDS Section *</label>
                                  <select
                                      name="default_tds_section"
                                      value={formData.default_tds_section}
@@ -524,7 +524,7 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                                              default_tds_rate: sec === 'Manual' ? prev.default_tds_rate || 0 : prev.default_tds_rate
                                          }));
                                      }}
-                                     className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                                     className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
                                  >
                                      <option value="194C">194C – Contractor (1% / 2%)</option>
                                      <option value="194J">194J – Professional/Technical (10%)</option>
@@ -534,7 +534,7 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                                  </select>
                              </div>
                              <div>
-                                 <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Default TDS Rate %</label>
+                                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">Default TDS Rate %</label>
                                  <input
                                      type="number"
                                      name="default_tds_rate"
@@ -553,8 +553,8 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                                      }}
                                      className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all ${
                                          formData.default_tds_section !== 'Manual' 
-                                             ? 'bg-slate-100 text-slate-500 font-medium cursor-not-allowed border-slate-200' 
-                                             : 'bg-white border-slate-200 focus:ring-teal-500/20 focus:border-teal-500'
+                                             ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium cursor-not-allowed border-slate-200 dark:border-slate-700' 
+                                             : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus:ring-teal-500/20 focus:border-teal-500'
                                      }`}
                                  />
                              </div>
@@ -567,9 +567,9 @@ const VendorForm = ({ onSuccess, onCancel }) => {
         {/* RIGHT COLUMN - TABS & CONTENT */}
         <div className="w-full lg:w-2/3 flex flex-col gap-6">
             
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[500px] flex flex-col">
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden min-h-[500px] flex flex-col transition-colors">
                 {/* Tabs Header */}
-                <div className="flex border-b border-slate-100 bg-slate-50/50">
+                <div className="flex border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
                     {['address', 'other', 'notes', 'balance'].map((tab) => (
                         <button
                             key={tab}
@@ -577,8 +577,8 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                             onClick={() => setActiveTab(tab)}
                             className={`px-6 py-4 text-sm font-medium transition-colors relative ${
                                 activeTab === tab 
-                                ? 'text-teal-700 bg-white' 
-                                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                                ? 'text-teal-700 dark:text-teal-400 bg-white dark:bg-slate-900 font-semibold' 
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/60'
                             }`}
                         >
                             {tab === 'address' && 'Address'}
@@ -600,38 +600,38 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                         <div className="space-y-8 animate-fadeIn">
                              {/* Billing Address */}
                              <div>
-                                <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wide">Billing Address</h3>
+                                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4 uppercase tracking-wide">Billing Address</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                      <div className="md:col-span-2">
-                                        <label className="block text-xs text-slate-500 mb-1">Address Line 1</label>
+                                        <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Address Line 1</label>
                                         <input type="text" name="billingAddress.line1" value={formData.billingAddress.line1} onChange={handleChange}
-                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                      </div>
                                       <div className="md:col-span-2">
-                                        <label className="block text-xs text-slate-500 mb-1">Address Line 2</label>
+                                        <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Address Line 2</label>
                                         <input type="text" name="billingAddress.line2" value={formData.billingAddress.line2} onChange={handleChange}
-                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                      </div>
                                      <div>
-                                        <label className="block text-xs text-slate-500 mb-1">City</label>
+                                        <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">City</label>
                                         <input type="text" name="billingAddress.city" value={formData.billingAddress.city} onChange={handleChange}
-                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                      </div>
                                       <div>
-                                        <label className="block text-xs text-slate-500 mb-1">State</label>
+                                        <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">State</label>
                                         <input type="text" name="billingAddress.state" value={formData.billingAddress.state} onChange={handleChange}
                                             data-testid="vendor-billing-state"
-                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                      </div>
                                       <div>
-                                        <label className="block text-xs text-slate-500 mb-1">ZIP Code</label>
+                                        <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">ZIP Code</label>
                                         <input type="text" name="billingAddress.zip" value={formData.billingAddress.zip} onChange={handleChange}
-                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                      </div>
                                        <div>
-                                        <label className="block text-xs text-slate-500 mb-1">Country</label>
+                                        <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Country</label>
                                         <input type="text" name="billingAddress.country" value={formData.billingAddress.country} onChange={handleChange}
-                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                      </div>
                                 </div>
                              </div>
@@ -639,47 +639,47 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                              {/* Shipping Address Logic */}
                              <div>
                                 {!showShipping ? (
-                                    <button type="button" onClick={() => setShowShipping(true)} className="flex items-center gap-2 text-teal-600 text-sm font-medium hover:text-teal-700">
+                                    <button type="button" onClick={() => setShowShipping(true)} className="flex items-center gap-2 text-teal-600 dark:text-teal-400 text-sm font-medium hover:text-teal-700 dark:hover:text-teal-300">
                                         <FaPlus size={16} /> Add Shipping Address
                                     </button>
                                 ) : (
                                     <div className="animate-fadeIn">
                                         <div className="flex justify-between items-center mb-4">
-                                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Shipping Address</h3>
+                                            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">Shipping Address</h3>
                                             <button type="button" onClick={() => setShowShipping(false)} className="text-xs text-red-500 hover:text-red-700">Remove</button>
                                         </div>
                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                              <div className="md:col-span-2">
-                                                <label className="block text-xs text-slate-500 mb-1">Address Line 1</label>
+                                                <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Address Line 1</label>
                                                 <input type="text" name="shippingAddress.line1" value={formData.shippingAddress.line1} onChange={handleChange}
-                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                              </div>
                                               <div className="md:col-span-2">
-                                                <label className="block text-xs text-slate-500 mb-1">Address Line 2</label>
+                                                <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Address Line 2</label>
                                                 <input type="text" name="shippingAddress.line2" value={formData.shippingAddress.line2} onChange={handleChange}
-                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                              </div>
                                              <div>
-                                                <label className="block text-xs text-slate-500 mb-1">City</label>
+                                                <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">City</label>
                                                 <input type="text" name="shippingAddress.city" value={formData.shippingAddress.city} onChange={handleChange}
-                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                              </div>
                                               <div>
-                                                <label className="block text-xs text-slate-500 mb-1">State</label>
+                                                <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">State</label>
                                                 <input type="text" name="shippingAddress.state" value={formData.shippingAddress.state} onChange={handleChange}
-                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                              </div>
                                               <div>
-                                                <label className="block text-xs text-slate-500 mb-1">ZIP Code</label>
+                                                <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">ZIP Code</label>
                                                 <input type="text" name="shippingAddress.zip" value={formData.shippingAddress.zip} onChange={handleChange}
-                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                              </div>
                                                <div>
-                                                <label className="block text-xs text-slate-500 mb-1">Country</label>
+                                                <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Country</label>
                                                 <input type="text" name="shippingAddress.country" value={formData.shippingAddress.country} onChange={handleChange}
-                                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                              </div>
-                                        </div>
+                                         </div>
                                     </div>
                                 )}
                              </div>
@@ -691,24 +691,24 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                         <div className="space-y-6 animate-fadeIn">
                             <div className="grid grid-cols-1 gap-6">
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Facebook</label>
+                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">Facebook</label>
                                     <input type="text" name="facebook" value={formData.facebook} onChange={handleChange} 
-                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">LST</label>
+                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">LST</label>
                                     <input type="text" name="lst" value={formData.lst} onChange={handleChange} 
-                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">CST</label>
+                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">CST</label>
                                     <input type="text" name="cst" value={formData.cst} onChange={handleChange} 
-                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                 </div>
                                  <div>
-                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">D.L No.</label>
+                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">D.L No.</label>
                                     <input type="text" name="dlNo" value={formData.dlNo} onChange={handleChange} 
-                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                                 </div>
                             </div>
                         </div>
@@ -717,9 +717,9 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                     {/* NOTES TAB */}
                     {activeTab === 'notes' && (
                         <div className="animate-fadeIn h-full">
-                            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Notes</label>
+                            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">Notes</label>
                             <textarea name="notes" value={formData.notes} onChange={handleChange}
-                                className="w-full h-48 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all resize-none"
+                                className="w-full h-48 px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all resize-none"
                             ></textarea>
                         </div>
                     )}
@@ -728,14 +728,14 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                     {activeTab === 'balance' && (
                          <div className="space-y-6 animate-fadeIn">
                              <div>
-                                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Opening Balance</label>
+                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">Opening Balance</label>
                                 <input type="number" name="openingBalance" value={formData.openingBalance} onChange={handleChange}
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
+                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
                              </div>
                              <div>
-                                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase">Pending Payment</label>
+                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase">Pending Payment</label>
                                 <input type="number" name="pendingPayment" value={formData.pendingPayment} readOnly
-                                    className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-500 cursor-not-allowed" />
+                                    className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-500 dark:text-slate-400 cursor-not-allowed" />
                              </div>
                          </div>
                     )}
@@ -743,18 +743,18 @@ const VendorForm = ({ onSuccess, onCancel }) => {
             </div>
 
             {/* CONTACT PERSONS SECTION */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wide flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 transition-colors">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4 uppercase tracking-wide flex items-center gap-2">
                     <FaUser size={16} /> Contact Persons
                 </h3>
                 
                 <div className="space-y-4">
                     {/* List Existing Contacts */}
                     {formData.contacts.map((contact, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div key={index} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-100 dark:border-slate-700/80">
                              <div className="text-sm">
-                                 <span className="font-semibold text-slate-700">{contact.firstName} {contact.lastName}</span>
-                                 <div className="text-xs text-slate-500">{contact.email} • {contact.phone}</div>
+                                 <span className="font-semibold text-slate-700 dark:text-slate-200">{contact.firstName} {contact.lastName}</span>
+                                 <div className="text-xs text-slate-500 dark:text-slate-400">{contact.email} • {contact.phone}</div>
                              </div>
                              <button type="button" onClick={() => removeContact(index)} className="text-slate-400 hover:text-red-500">
                                  <FaTrash size={16} />
@@ -765,15 +765,15 @@ const VendorForm = ({ onSuccess, onCancel }) => {
                     {/* Add New Contact Form */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                         <input type="text" name="firstName" placeholder="First Name" value={newContact.firstName} onChange={handleContactChange}
-                             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                             className="px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
                         <input type="text" name="lastName" placeholder="Last Name" value={newContact.lastName} onChange={handleContactChange}
-                             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                             className="px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
                         <input type="text" name="phone" placeholder="Phone" value={newContact.phone} onChange={handleContactChange}
-                             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                             className="px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
                         <input type="email" name="email" placeholder="Email" value={newContact.email} onChange={handleContactChange}
-                             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                             className="px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
                     </div>
-                    <button type="button" onClick={addContact} className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-4">
+                    <button type="button" onClick={addContact} className="w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-4">
                         <FaPlus size={16} /> Add New Contact
                     </button>
                 </div>
@@ -782,7 +782,7 @@ const VendorForm = ({ onSuccess, onCancel }) => {
             {/* ACTION BUTTONS */}
             <div className="flex justify-end gap-3 pt-4 pb-8">
                  <button type="button" onClick={onCancel ? onCancel : () => navigate('/vendors')}
-                    className="px-6 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors shadow-sm">
+                    className="px-6 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
                      Cancel
                  </button>
                  <button type="submit" disabled={loading}

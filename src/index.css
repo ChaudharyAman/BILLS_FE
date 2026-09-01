@@ -50,6 +50,16 @@
   scrollbar-color: #cbd5e1 transparent;
 }
 
+.dark .sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+.dark .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+.dark .sidebar-scroll {
+  scrollbar-color: #334155 transparent;
+}
+
 /* ── Glass Theme ─────────────────────────────── */
 @keyframes shimmer {
   0% {

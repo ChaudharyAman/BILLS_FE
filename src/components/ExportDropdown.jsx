@@ -144,34 +144,34 @@ const ExportDropdown = ({ data, filename = 'export', columns = null, testId = ''
         onClick={() => !disabled && !isExporting && setIsOpen(!isOpen)}
         data-testid={testId || undefined}
         disabled={disabled || isExporting}
-        className="bg-white hover:bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+        className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 disabled:bg-slate-100 dark:disabled:bg-slate-900 disabled:text-slate-400 disabled:border-slate-200 dark:disabled:border-slate-800 disabled:cursor-not-allowed text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
       >
-        <FaDownload size={14} className="text-slate-400" /> 
+        <FaDownload size={14} className="text-slate-400 dark:text-slate-400" /> 
         {isExporting ? 'Exporting...' : 'Export'}
-        <FaChevronDown size={12} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <FaChevronDown size={12} className={`text-slate-400 dark:text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+        <div className="absolute right-0 mt-2 w-48 rounded-md shadow-xl bg-white dark:bg-slate-800 ring-1 ring-black/5 dark:ring-white/10 border border-slate-200 dark:border-slate-700 z-50 overflow-hidden">
           <div className="py-1" role="menu" aria-orientation="vertical">
             <button
               onClick={handleExportCSV}
               disabled={isExporting}
               data-testid={testId ? `${testId}-csv` : undefined}
-              className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 disabled:text-slate-400 disabled:bg-white flex items-center gap-2 transition-colors"
+              className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:text-slate-400 disabled:bg-white dark:disabled:bg-slate-800 flex items-center gap-2 transition-colors"
               role="menuitem"
             >
-              <FaFileCsv size={16} className="text-emerald-600" />
+              <FaFileCsv size={16} className="text-emerald-600 dark:text-emerald-400" />
               Download as CSV
             </button>
             <button
               onClick={handleExportExcel}
               disabled={isExporting}
               data-testid={testId ? `${testId}-excel` : undefined}
-              className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 disabled:text-slate-400 disabled:bg-white flex items-center gap-2 transition-colors"
+              className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:text-slate-400 disabled:bg-white dark:disabled:bg-slate-800 flex items-center gap-2 transition-colors"
               role="menuitem"
             >
-              <FaFileExcel size={16} className="text-green-600" />
+              <FaFileExcel size={16} className="text-green-600 dark:text-green-400" />
               Download as Excel
             </button>
           </div>

@@ -150,7 +150,7 @@ const ItemList = () => {
     `₹ ${(val || 0).toFixed(2)}`;
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="container mx-auto p-6 max-w-7xl text-slate-800 dark:text-slate-100 transition-colors">
 
       {/* Header */}
       <div className="flex justify-between items-center mb-5">
@@ -158,11 +158,11 @@ const ItemList = () => {
           <input
             type="text"
             placeholder="Search inventory..."
-            className="w-full pl-4 pr-10 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm"
+            className="w-full pl-4 pr-10 py-2 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm"
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
           />
-          <FaSearch className="absolute right-3 top-2.5 text-slate-400 h-4 w-4" />
+          <FaSearch className="absolute right-3 top-2.5 text-slate-400 dark:text-slate-400 h-4 w-4" />
         </div>
         <div className="flex gap-3">
           <ExportDropdown 
@@ -182,7 +182,7 @@ const ItemList = () => {
           />
           <button
             onClick={() => setIsCsvModalOpen(true)}
-            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+            className="bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
           >
             <FaUpload size={16} /> Bulk Import
           </button>
@@ -196,55 +196,55 @@ const ItemList = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors">
         {loading ? (
           <div className="p-10 text-center"><Skeleton width="100%" height="200px" /></div>
         ) : items.length === 0 ? (
           <div className="text-center py-16">
-            <FaBox size={40} className="mx-auto text-slate-300 mb-3" />
-            <p className="text-slate-500 font-medium">No inventory found</p>
+            <FaBox size={40} className="mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+            <p className="text-slate-500 dark:text-slate-400 font-medium">No inventory found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-slate-50 border-b border-slate-200">
+              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="px-4 py-3 w-10">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                      className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-teal-600 focus:ring-teal-500 dark:bg-slate-800"
                       checked={selectedItems.length === items.length && items.length > 0}
                       onChange={handleSelectAll}
                     />
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Name</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">SKU</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Price</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider text-right">Quantity</th>
-                  <th className="px-4 py-3 w-20">Actions</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">SKU</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Price</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-right">Quantity</th>
+                  <th className="px-4 py-3 w-20 text-slate-600 dark:text-slate-300 text-xs font-semibold uppercase">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {items.map((item) => (
-                  <tr key={item._id} className="hover:bg-slate-50 cursor-pointer">
+                  <tr key={item._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors">
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selectedItems.includes(item._id)}
                         onChange={() => handleSelectOne(item._id)}
-                        className="h-4 w-4 rounded"
+                        className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-teal-600 focus:ring-teal-500 dark:bg-slate-800"
                       />
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-800" onClick={() => navigate(`/items/edit/${item._id}`)}>
+                    <td className="px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400" onClick={() => navigate(`/items/edit/${item._id}`)}>
                       {item.name}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-500">{item.sku || '—'}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700 font-medium">{formatCurrency(item.salesInfo?.price || item.rate)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700 text-right font-medium">{item.openingQuantity ?? 0}</td>
+                    <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">{item.sku || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-200 font-medium">{formatCurrency(item.salesInfo?.price || item.rate)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-200 text-right font-medium">{item.openingQuantity ?? 0}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
-                        <button onClick={() => navigate(`/items/edit/${item._id}`)} className="text-blue-500 hover:text-blue-700"><FaPencilAlt size={14} /></button>
-                        <button onClick={() => handleDelete(item._id)} className="text-red-500 hover:text-red-700 text-lg">×</button>
+                        <button onClick={() => navigate(`/items/edit/${item._id}`)} className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"><FaPencilAlt size={14} /></button>
+                        <button onClick={() => handleDelete(item._id)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-lg transition-colors">×</button>
                       </div>
                     </td>
                   </tr>

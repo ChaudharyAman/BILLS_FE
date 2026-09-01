@@ -6,6 +6,7 @@ import PrivateRoute from './components/PrivateRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import api, { clearAuthSession, storeAuthSession } from './api/axios';
 import { Toaster } from 'react-hot-toast';
+import { initGlobalTheme } from './utils/theme';
 
 // Helper for resilient lazy loading with auto-reload on dynamic import failure
 const lazyRetry = (importFn) =>
@@ -118,6 +119,7 @@ function App() {
   // But Layout.jsx and other components expect `{ user: { username: 'xxx' } }`.
   // If we detect the unwrapped version, wrap it once on mount.
   useEffect(() => {
+    initGlobalTheme();
     const rawUser = localStorage.getItem('user');
     if (rawUser) {
       try {
