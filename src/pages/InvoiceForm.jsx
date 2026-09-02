@@ -849,8 +849,8 @@ const InvoiceForm = () => {
   };
 
   // ── Shared input style ────────────────────────────────────────
-  const inp = 'w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white';
-  const lbl = 'block text-xs font-medium text-gray-500 mb-1';
+  const inp = 'w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 transition-colors';
+  const lbl = 'block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1';
 
   const { cgst, sgst, igst, isInterState } = getTaxBreakdown();
   const pendingPdfClientName = formData.importSource === 'pdf' && !formData.clientRef
@@ -890,8 +890,8 @@ const InvoiceForm = () => {
   
   if (loading && id) {
       return (
-        <div className="bg-white min-h-screen pb-20">
-            <div className="border-b border-gray-200 px-8 py-3 flex justify-between items-center sticky top-0 bg-white z-20 shadow-sm">
+        <div className="bg-white dark:bg-[#090d16] min-h-screen pb-20 transition-colors">
+            <div className="border-b border-gray-200 dark:border-slate-800 px-8 py-3 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-900 z-20 shadow-sm">
                 <div className="flex items-center gap-4"><Skeleton width="150px" height="28px" /></div>
                 <div className="flex gap-3">
                     <Skeleton width="80px" height="36px" className="rounded-lg" />
@@ -924,14 +924,14 @@ const InvoiceForm = () => {
   }
 
   return (
-    <div className="bg-white min-h-screen pb-20">
+    <div className="bg-white dark:bg-[#090d16] min-h-screen pb-20 text-slate-800 dark:text-slate-100 transition-colors">
 
       {/* ── Sticky Header ── */}
-      <div className="border-b border-gray-200 px-8 py-3 flex justify-between items-center sticky top-0 bg-white z-20 shadow-sm">
+      <div className="border-b border-gray-200 dark:border-slate-800 px-8 py-3 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-900 z-20 shadow-sm transition-colors">
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-bold text-blue-900">{id ? 'Edit Invoice' : 'New Invoice'}</h1>
+          <h1 className="text-lg font-bold text-blue-900 dark:text-blue-400">{id ? 'Edit Invoice' : 'New Invoice'}</h1>
           {/* Invoice Type Tabs */}
-          <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+          <div className="flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1 gap-1">
             {INVOICE_TYPES.map(type => (
               <button
                 key={type}
@@ -939,8 +939,8 @@ const InvoiceForm = () => {
                 onClick={() => setFormData({ ...formData, invoiceType: type })}
                 className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                   invoiceType === type
-                    ? 'bg-white text-blue-700 shadow-sm border border-blue-100'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-sm border border-blue-100 dark:border-slate-700'
+                    : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                 }`}
               >
                 {type}
@@ -952,10 +952,10 @@ const InvoiceForm = () => {
           <button onClick={() => {
             localStorage.removeItem(id ? `flance_draft_invoice_edit_${id}` : 'flance_draft_invoice_new');
             navigate('/invoices');
-          }} className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-medium">
+          }} className="px-4 py-2 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 text-sm font-medium transition-colors">
             Cancel
           </button>
-          <button onClick={handleSubmit} disabled={loading} data-testid="save-invoice" className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold disabled:opacity-60">
+          <button onClick={handleSubmit} disabled={loading} data-testid="save-invoice" className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 transition-colors">
             {loading ? 'Saving...' : 'Save Invoice'}
           </button>
         </div>
@@ -1004,7 +1004,7 @@ const InvoiceForm = () => {
                 >
                   <option value="">{pendingPdfClientName ? `${pendingPdfClientName} (will be created on save)` : 'Select Client'}</option>
                   {clients.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                  <option value="_CREATE_NEW_" className="font-bold text-blue-600">+ Create New Client</option>
+                  <option value="_CREATE_NEW_" className="font-bold text-blue-600 dark:text-blue-400">+ Create New Client</option>
                 </select>
               </div>
             </div>
@@ -1025,7 +1025,7 @@ const InvoiceForm = () => {
                 <input type="checkbox" id="rc" checked={formData.reverseCharge}
                   onChange={(e) => setFormData({ ...formData, reverseCharge: e.target.checked })}
                   className="w-4 h-4 accent-blue-600" />
-                <label htmlFor="rc" className="text-sm text-gray-600 cursor-pointer">Reverse Charge Applicable</label>
+                <label htmlFor="rc" className="text-sm text-gray-600 dark:text-slate-300 cursor-pointer">Reverse Charge Applicable</label>
               </div>
             )}
           </div>
@@ -1144,11 +1144,11 @@ const InvoiceForm = () => {
               </div>
             </div>
             {formData.purchaseOrderRef && (
-              <div className="col-span-3 bg-blue-50 border border-blue-200 rounded-lg p-3 my-1 flex flex-col justify-between shadow-sm">
+              <div className="col-span-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg p-3 my-1 flex flex-col justify-between shadow-sm">
                 <div>
-                  <h4 className="text-xs font-bold text-blue-900 mb-1.5 flex justify-between">
+                  <h4 className="text-xs font-bold text-blue-900 dark:text-blue-300 mb-1.5 flex justify-between">
                     <span>Linked Purchase Order Summary</span>
-                    <span className="text-[10px] uppercase font-extrabold tracking-wider bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                    <span className="text-[10px] uppercase font-extrabold tracking-wider bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded">
                       {purchaseOrders.find(po => po._id === formData.purchaseOrderRef)?.status || 'ACTIVE'}
                     </span>
                   </h4>
@@ -1159,18 +1159,18 @@ const InvoiceForm = () => {
                     const total = currentPo.grandTotal || 0;
                     const remaining = Math.max(0, total - billed);
                     return (
-                      <div className="grid grid-cols-3 gap-4 text-xs text-blue-800">
+                      <div className="grid grid-cols-3 gap-4 text-xs text-blue-800 dark:text-blue-200">
                         <div>
-                          <span className="block text-[10px] text-blue-600 font-semibold uppercase">PO Total</span>
-                          <span className="text-sm font-bold text-blue-950">₹{total.toLocaleString()}</span>
+                          <span className="block text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase">PO Total</span>
+                          <span className="text-sm font-bold text-blue-950 dark:text-blue-100">₹{total.toLocaleString()}</span>
                         </div>
                         <div>
-                          <span className="block text-[10px] text-blue-600 font-semibold uppercase">Already Invoiced</span>
-                          <span className="text-sm font-bold text-blue-950 text-amber-700">₹{billed.toLocaleString()}</span>
+                          <span className="block text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase">Already Invoiced</span>
+                          <span className="text-sm font-bold text-blue-950 dark:text-blue-100 text-amber-700 dark:text-amber-400">₹{billed.toLocaleString()}</span>
                         </div>
                         <div>
-                          <span className="block text-[10px] text-blue-600 font-semibold uppercase">Unbilled Balance</span>
-                          <span className="text-sm font-bold text-emerald-700">₹{remaining.toLocaleString()}</span>
+                          <span className="block text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase">Unbilled Balance</span>
+                          <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">₹{remaining.toLocaleString()}</span>
                         </div>
                       </div>
                     );
@@ -1245,8 +1245,8 @@ const InvoiceForm = () => {
 
         {/* ── Excise Invoice: Manufacturer Details ── */}
         {hasExcise && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <h3 className="text-sm font-bold text-amber-800 mb-3">Manufacturer / Excise Details</h3>
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300 mb-3">Manufacturer / Excise Details</h3>
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className={lbl}>Manufacturer Name</label>
@@ -1270,11 +1270,11 @@ const InvoiceForm = () => {
         {/* ── Items Table ── */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-bold text-gray-700">{invoiceType}</h3>
+            <h3 className="text-sm font-bold text-gray-700 dark:text-slate-200">{invoiceType}</h3>
           </div>
 
           {/* Table Header */}
-          <div className={`bg-[#E8EFF5] border border-gray-200 border-b-0 rounded-t-lg px-3 py-2 text-xs font-bold text-gray-600 grid gap-2 items-center`}
+          <div className={`bg-[#E8EFF5] dark:bg-slate-800 border border-gray-200 dark:border-slate-700 border-b-0 rounded-t-lg px-3 py-2 text-xs font-bold text-gray-600 dark:text-slate-300 grid gap-2 items-center`}
             style={{ gridTemplateColumns: buildGridCols(hasHSN, hasTax, hasExcise) }}>
             <div>#</div>
             <div>Inventory Name</div>
@@ -1291,12 +1291,12 @@ const InvoiceForm = () => {
           </div>
 
           {/* Table Body */}
-          <div className="border border-gray-200 rounded-b-lg bg-white divide-y divide-gray-100">
+          <div className="border border-gray-200 dark:border-slate-700 rounded-b-lg bg-white dark:bg-slate-900 divide-y divide-gray-100 dark:divide-slate-800">
             {formData.items.map((item, index) => (
-              <div key={index} className="px-3 py-2.5 grid gap-2 items-start hover:bg-gray-50"
+              <div key={index} className="px-3 py-2.5 grid gap-2 items-start hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
                 style={{ gridTemplateColumns: buildGridCols(hasHSN, hasTax, hasExcise) }}>
 
-                <div className="text-gray-400 text-sm pt-2">{index + 1}</div>
+                <div className="text-gray-400 dark:text-slate-500 text-sm pt-2">{index + 1}</div>
 
                 {/* Item Name */}
                 <div>
@@ -1331,7 +1331,7 @@ const InvoiceForm = () => {
                 <div>
                   <input placeholder="Description"
                     data-testid={`invoice-item-description-${index}`}
-                    className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none text-gray-500"
+                    className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none text-gray-500 dark:text-slate-400 bg-white dark:bg-slate-800"
                     value={item.description} onChange={(e) => updateItem(index, 'description', e.target.value)} />
                 </div>
 
@@ -1339,14 +1339,14 @@ const InvoiceForm = () => {
                 {hasHSN && (
                   <div>
                     <input placeholder="HSN"
-                      className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"
+                      className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                       value={item.hsnCode} onChange={(e) => updateItem(index, 'hsnCode', e.target.value)} />
                   </div>
                 )}
 
                 {/* Unit */}
                 <div>
-                  <select className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white"
+                  <select className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     value={item.unit} onChange={(e) => updateItem(index, 'unit', e.target.value)}>
                     {['pcs','box','kg','g','lt','ml','ft','m','sqft','sqm','nos','set','pair','dz','bag','roll','sheet','unit'].map(u =>
                       <option key={u}>{u}</option>)}
@@ -1355,14 +1355,14 @@ const InvoiceForm = () => {
 
                 {/* Qty */}
                 <div>
-                  <input type="number" min="0" step="0.01" className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                  <input type="number" min="0" step="0.01" className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     data-testid={`invoice-item-qty-${index}`}
                     value={item.qty} onChange={(e) => updateItem(index, 'qty', e.target.value)} />
                 </div>
 
                 {/* Price */}
                 <div>
-                  <input type="number" min="0" step="0.01" className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                  <input type="number" min="0" step="0.01" className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     data-testid={`invoice-item-rate-${index}`}
                     value={item.rate} onChange={(e) => updateItem(index, 'rate', e.target.value)} />
                 </div>
@@ -1370,7 +1370,7 @@ const InvoiceForm = () => {
                 {/* Discount */}
                 <div>
                   <input type="number" min="0" max="100" placeholder="0"
-                    className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                    className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     value={item.discount} onChange={(e) => updateItem(index, 'discount', e.target.value)} />
                 </div>
 
@@ -1378,7 +1378,7 @@ const InvoiceForm = () => {
                 {hasTax && (
                   <div>
                     {!item.isCustom ? (
-                      <select className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white"
+                      <select className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                         value={String(sanitizeGstRate(item.taxRate))}
                         onChange={(e) => {
                           if (e.target.value === 'custom') {
@@ -1397,7 +1397,7 @@ const InvoiceForm = () => {
                     ) : (
                       <div className="relative">
                         <input type="text" inputMode="decimal" autoFocus placeholder="Tax %"
-                          className="w-full border border-blue-400 rounded px-2 py-1.5 text-sm bg-blue-50 outline-none pr-6"
+                          className="w-full border border-blue-400 dark:border-blue-500 rounded px-2 py-1.5 text-sm bg-blue-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 outline-none pr-6"
                           value={item.taxRate} onChange={(e) => updateItem(index, 'taxRate', clampPercentInput(e.target.value))} />
                         <button onClick={() => { const ni = [...formData.items]; ni[index] = { ...ni[index], isCustom: false, taxRate: 0 }; setFormData({ ...formData, items: ni }); }}
                           className="absolute right-1 top-2 text-gray-400 hover:text-red-500">
@@ -1413,24 +1413,24 @@ const InvoiceForm = () => {
                   <>
                     <div>
                       <input type="number" min="0" max="100" placeholder="0"
-                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                        className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                         value={item.bedPercent} onChange={(e) => updateItem(index, 'bedPercent', clampPercent(e.target.value))} />
                     </div>
                     <div>
                       <input type="number" min="0" max="100" placeholder="0"
-                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                        className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                         value={item.sedPercent} onChange={(e) => updateItem(index, 'sedPercent', clampPercent(e.target.value))} />
                     </div>
                     <div>
                       <input type="number" min="0" max="100" placeholder="0"
-                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none"
+                        className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1.5 text-sm text-right focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                         value={item.cessPercent} onChange={(e) => updateItem(index, 'cessPercent', clampPercent(e.target.value))} />
                     </div>
                   </>
                 )}
 
                 {/* Row Total */}
-                <div className="text-right pt-2 font-semibold text-gray-800 text-sm">
+                <div className="text-right pt-2 font-bold text-gray-800 dark:text-slate-100 text-sm">
                   {calcRow(item).toFixed(2)}
                 </div>
 
@@ -1446,11 +1446,11 @@ const InvoiceForm = () => {
             {/* Add Line / Bulk Add buttons */}
             <div className="px-3 py-3 flex justify-end gap-3">
               <button type="button" onClick={() => setIsCsvModalOpen(true)}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1 transition-colors">
+                className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1 transition-colors shadow-sm">
                 <FaUpload size={14} /> Bulk Add CSV
               </button>
               <button type="button" onClick={addItemRow}
-                className="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1 transition-colors">
+                className="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1 transition-colors shadow-sm">
                 <FaPlus size={14} /> Add Line
               </button>
             </div>
@@ -1472,23 +1472,23 @@ const InvoiceForm = () => {
                   if (!checked) setFormData({ ...formData, shippingCharges: 0 });
                 }}
                   className="w-4 h-4 accent-emerald-500" />
-                <span className="text-sm font-medium text-gray-700">Add Shipping Charges</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Add Shipping Charges</span>
               </label>
               {showShipping && (
                 <div className="mt-2 pl-6 flex gap-3">
                   <div className="relative w-44">
-                    <div className="border border-gray-200 rounded px-3 py-1.5 text-sm bg-white cursor-pointer flex justify-between items-center"
+                    <div className="border border-gray-200 dark:border-slate-700 rounded px-3 py-1.5 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 cursor-pointer flex justify-between items-center"
                       onClick={() => setTransportDropdown(!showTransportDropdown)}>
                       {formData.transport.mode || 'Road'}
                       <FaChevronDown size={14} className="text-gray-400" />
                     </div>
                     {showTransportDropdown && (
-                      <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg p-2">
+                      <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded shadow-lg p-2">
                         <input type="text" placeholder="Search..." autoFocus
-                          className="w-full border border-gray-200 rounded px-2 py-1 text-xs mb-2 outline-none"
+                          className="w-full border border-gray-200 dark:border-slate-700 rounded px-2 py-1 text-xs mb-2 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                           value={transportSearch} onChange={(e) => setTransportSearch(e.target.value)} />
                         {['Road','Rail','Air','Ship'].filter(o => o.toLowerCase().includes(transportSearch.toLowerCase())).map(o => (
-                          <div key={o} className={`px-2 py-1 text-sm rounded cursor-pointer ${formData.transport.mode === o ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`}
+                          <div key={o} className={`px-2 py-1 text-sm rounded cursor-pointer ${formData.transport.mode === o ? 'bg-blue-500 text-white' : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-800 dark:text-slate-200'}`}
                             onClick={() => { setFormData({ ...formData, transport: { ...formData.transport, mode: o } }); setTransportDropdown(false); }}>
                             {o}
                           </div>
@@ -1496,7 +1496,7 @@ const InvoiceForm = () => {
                       </div>
                     )}
                   </div>
-                  <input type="number" min="0" step="0.01" placeholder="Amount" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500"
+                  <input type="number" min="0" step="0.01" placeholder="Amount" className="border border-gray-200 dark:border-slate-700 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     value={formData.shippingCharges} onChange={(e) => setFormData({ ...formData, shippingCharges: e.target.value })} />
                 </div>
               )}
@@ -1511,13 +1511,13 @@ const InvoiceForm = () => {
                   if (!checked) setFormData({ ...formData, discountTotal: 0 });
                 }}
                   className="w-4 h-4 accent-emerald-500" />
-                <span className="text-sm font-medium text-gray-700">Add Discount on Total</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Add Discount on Total</span>
               </label>
               {showDiscountTotal && (
                 <div className="mt-2 pl-6">
-                  <input type="number" min="0" step="0.01" placeholder="0" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500"
+                  <input type="number" min="0" step="0.01" placeholder="0" className="border border-gray-200 dark:border-slate-700 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     value={formData.discountTotal} onChange={(e) => setFormData({ ...formData, discountTotal: e.target.value })} />
-                  <p className="text-[10px] text-gray-400 mt-1">Note: Enabling this may affect GSTR-1 report accuracy.</p>
+                  <p className="text-[10px] text-gray-400 dark:text-slate-400 mt-1">Note: Enabling this may affect GSTR-1 report accuracy.</p>
                 </div>
               )}
             </div>
@@ -1537,17 +1537,17 @@ const InvoiceForm = () => {
                   }
                 }}
                   className="w-4 h-4 accent-emerald-500" />
-                <span className="text-sm font-medium text-gray-700">Apply Discount to All Items</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Apply Discount to All Items</span>
               </label>
               {showDiscountToAll && (
                 <div className="mt-2 pl-6 flex items-center gap-2">
-                  <input type="number" placeholder="%" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-28 outline-none focus:border-blue-500"
+                  <input type="number" placeholder="%" className="border border-gray-200 dark:border-slate-700 rounded px-3 py-1.5 text-sm w-28 outline-none focus:border-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     value={discountToAll}
                     onChange={(e) => {
                       setDiscountToAll(e.target.value);
                       setFormData({ ...formData, items: formData.items.map(i => ({ ...i, discount: e.target.value })) });
                     }} />
-                  <span className="text-sm text-gray-500">%</span>
+                  <span className="text-sm text-gray-500 dark:text-slate-400">%</span>
                 </div>
               )}
             </div>
@@ -1561,13 +1561,13 @@ const InvoiceForm = () => {
                   if (!checked) setFormData({ ...formData, packagingCharges: 0 });
                 }}
                   className="w-4 h-4 accent-emerald-500" />
-                <span className="text-sm font-medium text-gray-700">Add Custom Amount</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Add Custom Amount</span>
               </label>
               {showCustomAmount && (
                 <div className="mt-2 pl-6 flex gap-3">
-                  <input type="text" placeholder="Label" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-44 outline-none focus:border-blue-500"
+                  <input type="text" placeholder="Label" className="border border-gray-200 dark:border-slate-700 rounded px-3 py-1.5 text-sm w-44 outline-none focus:border-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     value={formData.customChargeLabel} onChange={(e) => setFormData({ ...formData, customChargeLabel: e.target.value })} />
-                  <input type="number" step="0.01" placeholder="Amount" className="border border-gray-200 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500"
+                  <input type="number" step="0.01" placeholder="Amount" className="border border-gray-200 dark:border-slate-700 rounded px-3 py-1.5 text-sm w-40 outline-none focus:border-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                     value={formData.packagingCharges} onChange={(e) => setFormData({ ...formData, packagingCharges: e.target.value })} />
                 </div>
               )}
@@ -1576,19 +1576,19 @@ const InvoiceForm = () => {
             {/* Advance */}
             <div>
               <button type="button" onClick={() => setShowAdvance(!showAdvance)}
-                className="text-blue-500 text-sm font-medium flex items-center gap-1 hover:text-blue-700">
+                className="text-blue-500 dark:text-blue-400 text-sm font-medium flex items-center gap-1 hover:text-blue-700 dark:hover:text-blue-300">
                 <FaPlus size={14} /> Add Advance Payment
               </button>
               {showAdvance && (
                 <div className="mt-2 pl-6 flex flex-wrap items-center gap-4">
                   <div>
-                    <label className="text-[10px] text-gray-500 uppercase block">Amount Paid:</label>
-                    <input type="number" min="0" step="0.01" className="border border-blue-200 rounded px-2 py-1.5 text-sm w-36 outline-none bg-blue-50 focus:border-blue-500"
+                    <label className="text-[10px] text-gray-500 dark:text-slate-400 uppercase block">Amount Paid:</label>
+                    <input type="number" min="0" step="0.01" className="border border-blue-200 dark:border-blue-800 rounded px-2 py-1.5 text-sm w-36 outline-none bg-blue-50 dark:bg-blue-950/40 text-gray-900 dark:text-slate-100 focus:border-blue-500"
                       value={formData.advancePaid} onChange={(e) => setFormData({ ...formData, advancePaid: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[10px] text-gray-500 uppercase block">Payment Date:</label>
-                    <input type="date" className="border border-blue-200 rounded px-2 py-1.5 text-sm w-36 outline-none bg-blue-50 focus:border-blue-500"
+                    <label className="text-[10px] text-gray-500 dark:text-slate-400 uppercase block">Payment Date:</label>
+                    <input type="date" className="border border-blue-200 dark:border-blue-800 rounded px-2 py-1.5 text-sm w-36 outline-none bg-blue-50 dark:bg-blue-950/40 text-gray-900 dark:text-slate-100 focus:border-blue-500"
                       value={formData.paymentDate || ''} onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })} />
                   </div>
                 </div>
@@ -1596,7 +1596,7 @@ const InvoiceForm = () => {
             </div>
 
             {/* TDS Configuration Card */}
-            <div className="pt-3 pb-2 border-t border-gray-100 mt-2 space-y-3">
+            <div className="pt-3 pb-2 border-t border-gray-100 dark:border-slate-800 mt-2 space-y-3">
               {/* TDS suggestion alert for GSTIN clients */}
               {(() => {
                 const selectedClient = clients.find(c => c._id === formData.clientRef);
@@ -1605,8 +1605,8 @@ const InvoiceForm = () => {
                 
                 if (hasGstin && !tdsEnabled) {
                   return (
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-2 text-xs text-blue-800 animate-fadeIn my-2 shadow-sm">
-                      <span className="font-bold flex-shrink-0 bg-blue-200 text-blue-800 px-1.5 py-0.5 rounded uppercase text-[10px]">Suggestion</span>
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg flex items-start gap-2 text-xs text-blue-800 dark:text-blue-300 animate-fadeIn my-2 shadow-sm">
+                      <span className="font-bold flex-shrink-0 bg-blue-200 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 px-1.5 py-0.5 rounded uppercase text-[10px]">Suggestion</span>
                       <div className="flex-1">
                         <span>This client has a GSTIN. Enable <strong>Client will deduct TDS</strong> to configure TDS defaults.</span>
                         {isPro && (
@@ -1621,7 +1621,7 @@ const InvoiceForm = () => {
                                 tdsRate: prev.tdsRate || selectedClient.tds_default_rate || selectedClient.default_tds_rate || 10
                               }));
                             }}
-                            className="ml-2 underline font-bold hover:text-blue-900 focus:outline-none"
+                            className="ml-2 underline font-bold hover:text-blue-900 dark:hover:text-blue-200 focus:outline-none"
                           >
                             Enable TDS Now
                           </button>
@@ -1633,10 +1633,10 @@ const InvoiceForm = () => {
                 return null;
               })()}
 
-              <div className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-200/60 shadow-sm">
+              <div className="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-slate-800/70 rounded-lg border border-gray-200/60 dark:border-slate-700 shadow-sm">
                 <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-gray-700">Client will deduct TDS</span>
-                  <span className="text-[11px] text-gray-400">Apply TDS Receivable credit as an asset</span>
+                  <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">Client will deduct TDS</span>
+                  <span className="text-[11px] text-gray-400 dark:text-slate-400">Apply TDS Receivable credit as an asset</span>
                 </div>
                 <button
                   type="button"
@@ -1656,7 +1656,7 @@ const InvoiceForm = () => {
                     }));
                   }}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    (formData.client_will_deduct_tds || formData.tdsApplicable) ? 'bg-blue-600' : 'bg-gray-200'
+                    (formData.client_will_deduct_tds || formData.tdsApplicable) ? 'bg-blue-600' : 'bg-gray-200 dark:bg-slate-700'
                   } ${!isPro ? 'opacity-60' : ''}`}
                 >
                   <span
@@ -1668,7 +1668,7 @@ const InvoiceForm = () => {
               </div>
 
               {(formData.client_will_deduct_tds || formData.tdsApplicable) && (
-                <div className="p-3 bg-blue-50/30 rounded-lg border border-blue-100 grid grid-cols-1 gap-3 sm:grid-cols-3 transition-all">
+                <div className="p-3 bg-blue-50/30 dark:bg-slate-800/80 rounded-lg border border-blue-100 dark:border-slate-700 grid grid-cols-1 gap-3 sm:grid-cols-3 transition-all">
                   <div>
                     <label className={lbl}>TDS Section *</label>
                     <select
@@ -1697,7 +1697,7 @@ const InvoiceForm = () => {
                       step="0.01"
                       min="0"
                       max="100"
-                      className={`${inp} ${formData.tdsSection !== 'Manual' ? 'bg-gray-50 text-gray-500 font-medium cursor-not-allowed' : ''}`}
+                      className={`${inp} ${formData.tdsSection !== 'Manual' ? 'bg-gray-50 dark:bg-slate-700 text-gray-500 dark:text-slate-400 font-medium cursor-not-allowed' : ''}`}
                       value={formData.tdsRate}
                       readOnly={formData.tdsSection !== 'Manual'}
                       onChange={(e) => {
@@ -1715,7 +1715,7 @@ const InvoiceForm = () => {
                     <label className={lbl}>TDS Receivable Amount (₹)</label>
                     <input
                       type="text"
-                      className={`${inp} bg-gray-50 text-gray-500 font-semibold cursor-not-allowed`}
+                      className={`${inp} bg-gray-50 dark:bg-slate-700 text-gray-500 dark:text-slate-400 font-semibold cursor-not-allowed`}
                       value={Number(formData.tds).toFixed(2)}
                       readOnly
                     />
@@ -1725,9 +1725,9 @@ const InvoiceForm = () => {
 
               {/* TCS Collection */}
               <div>
-                <label className={lbl}>TCS Collection {!isPro && <span className="text-[10px] font-bold text-amber-500 bg-amber-50 px-1 rounded ml-1 border border-amber-200 uppercase tracking-tighter">Pro</span>}</label>
+                <label className={lbl}>TCS Collection {!isPro && <span className="text-[10px] font-bold text-amber-500 bg-amber-50 dark:bg-amber-950/60 px-1 rounded ml-1 border border-amber-200 dark:border-amber-800 uppercase tracking-tighter">Pro</span>}</label>
                 <input type="number" placeholder="Amount"
-                  value={formData.tcs} onChange={(e) => setFormData({ ...formData, tcs: e.target.value })} disabled={!isPro} onClick={() => !isPro && setShowPremiumModal(true)} className={`${inp} ${!isPro ? "opacity-50 cursor-not-allowed bg-gray-50" : ""}`} />
+                  value={formData.tcs} onChange={(e) => setFormData({ ...formData, tcs: e.target.value })} disabled={!isPro} onClick={() => !isPro && setShowPremiumModal(true)} className={`${inp} ${!isPro ? "opacity-50 cursor-not-allowed bg-gray-50 dark:bg-slate-800" : ""}`} />
               </div>
             </div>
             
@@ -1747,97 +1747,97 @@ const InvoiceForm = () => {
 
           {/* Right: Totals */}
           <div className="col-span-5">
-            <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 space-y-2">
+            <div className="bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700 p-4 space-y-2 transition-colors">
               {formData.reverseCharge && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 text-[11px] rounded-lg p-2.5 font-medium flex flex-col gap-0.5 mb-2 leading-relaxed">
-                  <span className="font-bold flex items-center gap-1 text-[12px] text-amber-900">⚠️ Reverse Charge Mechanism (RCM)</span>
+                <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-[11px] rounded-lg p-2.5 font-medium flex flex-col gap-0.5 mb-2 leading-relaxed">
+                  <span className="font-bold flex items-center gap-1 text-[12px] text-amber-900 dark:text-amber-200">⚠️ Reverse Charge Mechanism (RCM)</span>
                   <span>GST is calculated but not added to the payable Grand Total. The customer is liable to pay GST directly to the government.</span>
                 </div>
               )}
-              <div className="flex justify-between text-sm text-gray-600">
+              <div className="flex justify-between text-sm text-gray-600 dark:text-slate-400">
                 <span>Subtotal</span>
-                <span className="font-semibold">₹ {getSubTotal().toFixed(2)}</span>
+                <span className="font-semibold text-gray-900 dark:text-slate-100">₹ {getSubTotal().toFixed(2)}</span>
               </div>
 
               {hasTax && isInterState && (
-                <div className="flex justify-between text-sm text-gray-600">
+                <div className="flex justify-between text-sm text-gray-600 dark:text-slate-400">
                   <span>IGST</span>
-                  <span>₹ {igst.toFixed(2)}</span>
+                  <span className="text-gray-900 dark:text-slate-100">₹ {igst.toFixed(2)}</span>
                 </div>
               )}
               {hasTax && !isInterState && (
                 <>
-                  <div className="flex justify-between text-sm text-gray-600">
+                  <div className="flex justify-between text-sm text-gray-600 dark:text-slate-400">
                     <span>CGST</span>
-                    <span>₹ {cgst.toFixed(2)}</span>
+                    <span className="text-gray-900 dark:text-slate-100">₹ {cgst.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-sm text-gray-600">
+                  <div className="flex justify-between text-sm text-gray-600 dark:text-slate-400">
                     <span>SGST</span>
-                    <span>₹ {sgst.toFixed(2)}</span>
+                    <span className="text-gray-900 dark:text-slate-100">₹ {sgst.toFixed(2)}</span>
                   </div>
                 </>
               )}
               {hasExcise && getExciseTotal() > 0 && (
-                <div className="flex justify-between text-sm text-gray-600">
+                <div className="flex justify-between text-sm text-gray-600 dark:text-slate-400">
                   <span>Excise Duty</span>
-                  <span>₹ {getExciseTotal().toFixed(2)}</span>
+                  <span className="text-gray-900 dark:text-slate-100">₹ {getExciseTotal().toFixed(2)}</span>
                 </div>
               )}
 
               {showShipping && Number(formData.shippingCharges) > 0 && (
-                <div className="flex justify-between text-sm text-gray-600">
+                <div className="flex justify-between text-sm text-gray-600 dark:text-slate-400">
                   <span>Shipping</span>
-                  <span>₹ {Number(formData.shippingCharges).toFixed(2)}</span>
+                  <span className="text-gray-900 dark:text-slate-100">₹ {Number(formData.shippingCharges).toFixed(2)}</span>
                 </div>
               )}
               {showCustomAmount && Number(formData.packagingCharges) !== 0 && (
-                <div className="flex justify-between text-sm text-gray-600">
+                <div className="flex justify-between text-sm text-gray-600 dark:text-slate-400">
                   <span>{formData.customChargeLabel}</span>
-                  <span>₹ {Number(formData.packagingCharges).toFixed(2)}</span>
+                  <span className="text-gray-900 dark:text-slate-100">₹ {Number(formData.packagingCharges).toFixed(2)}</span>
                 </div>
               )}
               {showDiscountTotal && Number(formData.discountTotal) > 0 && (
-                <div className="flex justify-between text-sm text-red-500">
+                <div className="flex justify-between text-sm text-red-500 dark:text-red-400">
                   <span>Discount on Total</span>
                   <span>- ₹ {Number(formData.discountTotal).toFixed(2)}</span>
                 </div>
               )}
               {Number(formData.tcs) > 0 && (
-                <div className="flex justify-between text-sm text-gray-600">
+                <div className="flex justify-between text-sm text-gray-600 dark:text-slate-400">
                   <span>TCS Collected</span>
-                  <span>+ ₹ {Number(formData.tcs).toFixed(2)}</span>
+                  <span className="text-gray-900 dark:text-slate-100">+ ₹ {Number(formData.tcs).toFixed(2)}</span>
                 </div>
               )}
 
               {(formData.client_will_deduct_tds || formData.tdsApplicable) && (
-                <div className="flex justify-between text-sm text-gray-600">
+                <div className="flex justify-between text-sm text-gray-600 dark:text-slate-400">
                   <span>Invoice Total</span>
-                  <span>₹ {getGrandTotal().toFixed(2)}</span>
+                  <span className="text-gray-900 dark:text-slate-100">₹ {getGrandTotal().toFixed(2)}</span>
                 </div>
               )}
               {(formData.client_will_deduct_tds || formData.tdsApplicable) && (
-                <div className="flex justify-between text-sm text-red-500 font-medium">
+                <div className="flex justify-between text-sm text-red-500 dark:text-red-400 font-medium">
                   <span>TDS Receivable ({formData.tdsSection}):</span>
                   <span>- ₹ {Number(formData.tds).toFixed(2)}</span>
                 </div>
               )}
 
-              <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
-                <span className="text-base font-bold text-gray-800">
+              <div className="border-t border-gray-200 dark:border-slate-700 pt-3 flex justify-between items-center">
+                <span className="text-base font-bold text-gray-800 dark:text-slate-100">
                   {(formData.client_will_deduct_tds || formData.tdsApplicable) ? "You will receive" : "Grand Total"}
                 </span>
-                <span className="text-lg font-bold text-blue-700">
+                <span className="text-lg font-bold text-blue-700 dark:text-blue-400">
                   ₹ {(getGrandTotal() - ((formData.client_will_deduct_tds || formData.tdsApplicable) ? Number(formData.tds) : 0)).toFixed(2)}
                 </span>
               </div>
 
               {Number(formData.advancePaid) > 0 && (
                 <>
-                  <div className="flex justify-between text-sm text-emerald-600">
+                  <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-400">
                     <span>Advance Paid</span>
                     <span>- ₹ {Number(formData.advancePaid).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-sm font-bold text-gray-800 border-t border-gray-200 pt-2">
+                  <div className="flex justify-between text-sm font-bold text-gray-800 dark:text-slate-100 border-t border-gray-200 dark:border-slate-700 pt-2">
                     <span>Balance Due</span>
                     <span>₹ {Math.max(0, getGrandTotal() - Number(formData.advancePaid) - Number(formData.tds)).toFixed(2)}</span>
                   </div>
@@ -1848,40 +1848,40 @@ const InvoiceForm = () => {
         </div>
 
         {/* ── Bank Details ── */}
-        <div className="mt-8 border-t border-gray-100 pt-6">
-          <label className="block text-xs font-bold text-gray-600 mb-4 uppercase tracking-wider">Bank Details</label>
+        <div className="mt-8 border-t border-gray-100 dark:border-slate-800 pt-6">
+          <label className="block text-xs font-bold text-gray-600 dark:text-slate-300 mb-4 uppercase tracking-wider">Bank Details</label>
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase">Account Holder Name</label>
-              <input type="text" className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
+              <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-400 mb-1 uppercase">Account Holder Name</label>
+              <input type="text" className="w-full border border-gray-200 dark:border-slate-700 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                 placeholder="Account Holder Name"
                 value={formData.bankDetails?.accountName} 
                 onChange={(e) => setFormData({ ...formData, bankDetails: { ...formData.bankDetails, accountName: e.target.value } })} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase">Bank Name</label>
-              <input type="text" className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
+              <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-400 mb-1 uppercase">Bank Name</label>
+              <input type="text" className="w-full border border-gray-200 dark:border-slate-700 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                 placeholder="Bank Name"
                 value={formData.bankDetails?.bankName} 
                 onChange={(e) => setFormData({ ...formData, bankDetails: { ...formData.bankDetails, bankName: e.target.value } })} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase">Account Number</label>
-              <input type="text" className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
+              <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-400 mb-1 uppercase">Account Number</label>
+              <input type="text" className="w-full border border-gray-200 dark:border-slate-700 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                 placeholder="Account Number"
                 value={formData.bankDetails?.accountNumber} 
                 onChange={(e) => setFormData({ ...formData, bankDetails: { ...formData.bankDetails, accountNumber: e.target.value } })} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase">Branch Name</label>
-              <input type="text" className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
+              <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-400 mb-1 uppercase">Branch Name</label>
+              <input type="text" className="w-full border border-gray-200 dark:border-slate-700 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                 placeholder="Branch Name"
                 value={formData.bankDetails?.branch} 
                 onChange={(e) => setFormData({ ...formData, bankDetails: { ...formData.bankDetails, branch: e.target.value } })} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase">IFSC Code</label>
-              <input type="text" className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none"
+              <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-400 mb-1 uppercase">IFSC Code</label>
+              <input type="text" className="w-full border border-gray-200 dark:border-slate-700 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                 placeholder="IFSC Code"
                 value={formData.bankDetails?.ifscCode} 
                 onChange={(e) => setFormData({ ...formData, bankDetails: { ...formData.bankDetails, ifscCode: e.target.value } })} />
@@ -1890,7 +1890,7 @@ const InvoiceForm = () => {
         </div>
 
         {/* ── Attachments ── */}
-        <div className="mt-8 border-t border-gray-100 pt-6">
+        <div className="mt-8 border-t border-gray-100 dark:border-slate-800 pt-6">
           <AttachmentUploader
             attachments={formData.attachments || []}
             onChange={(atts) => setFormData(prev => ({ ...prev, attachments: atts }))}
@@ -1900,16 +1900,16 @@ const InvoiceForm = () => {
         </div>
 
         {/* ── Notes & Terms ── */}
-        <div className="grid grid-cols-2 gap-6 mt-8 border-t border-gray-100 pt-6">
+        <div className="grid grid-cols-2 gap-6 mt-8 border-t border-gray-100 dark:border-slate-800 pt-6">
           <div>
-            <label className="block text-xs font-bold text-gray-600 mb-2">Terms &amp; Conditions</label>
-            <textarea className="w-full border border-gray-200 rounded p-2 text-sm focus:border-blue-500 outline-none h-24 resize-none"
+            <label className="block text-xs font-bold text-gray-600 dark:text-slate-300 mb-2">Terms &amp; Conditions</label>
+            <textarea className="w-full border border-gray-200 dark:border-slate-700 rounded p-2 text-sm focus:border-blue-500 outline-none h-24 resize-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
               placeholder="Enter terms and conditions..."
               value={formData.terms} onChange={(e) => setFormData({ ...formData, terms: e.target.value })} />
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-600 mb-2">Private Notes (not shown to client)</label>
-            <textarea className="w-full border border-gray-200 rounded p-2 text-sm focus:border-blue-500 outline-none h-24 resize-none"
+            <label className="block text-xs font-bold text-gray-600 dark:text-slate-300 mb-2">Private Notes (not shown to client)</label>
+            <textarea className="w-full border border-gray-200 dark:border-slate-700 rounded p-2 text-sm focus:border-blue-500 outline-none h-24 resize-none bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
               placeholder="Enter private notes..."
               value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} />
           </div>
@@ -1954,22 +1954,22 @@ const InvoiceForm = () => {
           subtitle="Ensure columns like Name, Qty, Rate, Tax are present."
         />
         <div className="mt-4 flex justify-end">
-          <button type="button" onClick={() => setIsCsvModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg">Cancel</button>
+          <button type="button" onClick={() => setIsCsvModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg">Cancel</button>
         </div>
       </Modal>
 
       {/* Premium Feature Modal */}
       <Modal isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} title="Premium Feature limit reached">
         <div className="p-4 text-center">
-          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-950/60 text-yellow-600 dark:text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Upgrade to Pro</h3>
-          <p className="text-gray-500 mb-6">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-2">Upgrade to Pro</h3>
+          <p className="text-gray-500 dark:text-slate-400 mb-6">
             {premiumMessage || "You've reached a limit on the free plan. Upgrade to Pro to unlock unlimited documents and edits."}
           </p>
           <div className="flex gap-3 justify-center">
-            <button onClick={() => setShowPremiumModal(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            <button onClick={() => setShowPremiumModal(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors">
               Maybe Later
             </button>
             <button onClick={() => navigate('/subscription')} className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 rounded-xl shadow-lg shadow-yellow-500/30 transition-all flex items-center gap-2">

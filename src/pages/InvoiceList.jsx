@@ -317,15 +317,15 @@ const InvoiceList = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 font-sans text-gray-900">
+    <div className="container mx-auto p-6 font-sans text-gray-900 dark:text-slate-100 transition-colors">
       
       {/* Header & Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Invoices</h1>
-            <p className="text-gray-500 mt-1">Manage and track your invoice history</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Invoices</h1>
+            <p className="text-gray-500 dark:text-slate-400 mt-1">Manage and track your invoice history</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
            <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
              <ExportDropdown 
                 disabled={!isPro}
@@ -377,7 +377,7 @@ const InvoiceList = () => {
            
            <button
               onClick={() => setIsPdfScannerOpen(true)}
-              className="bg-violet-50 hover:bg-violet-100 text-violet-600 border border-violet-200 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+              className="bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-900/50 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/60 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
             >
               <FaFilePdf size={16} /> Scan PDF
             </button>
@@ -386,8 +386,8 @@ const InvoiceList = () => {
               onClick={() => isPro ? setIsCsvModalOpen(true) : setShowPremiumModal(true)}
               className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm ${
                 isPro 
-                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200' 
-                  : 'bg-gray-50 text-gray-400 border border-gray-200 opacity-70 cursor-not-allowed'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60' 
+                  : 'bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 border border-gray-200 dark:border-slate-700 opacity-70 cursor-not-allowed'
               }`}
             >
               <FaFileAlt size={16} /> Bulk Import
@@ -412,20 +412,20 @@ const InvoiceList = () => {
             </div>
 
             {typeMenuOpen && (
-              <div className="absolute right-0 mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+              <div className="absolute right-0 mt-1 w-72 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden">
                 {DOC_TYPES.map(({ section, items }) => (
                   <div key={section}>
-                    <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-gray-100">
+                    <div className="px-4 py-2 text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider bg-gray-50 dark:bg-slate-900/80 border-b border-gray-100 dark:border-slate-700">
                       {section}
                     </div>
                     {items.map(({ label, desc, path }) => (
                       <button
                         key={label}
                         onClick={() => { navigate(path); setTypeMenuOpen(false); }}
-                        className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors group border-b border-gray-50 last:border-0"
+                        className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-slate-700/60 transition-colors group border-b border-gray-50 dark:border-slate-700/40 last:border-0"
                       >
-                        <div className="text-sm font-semibold text-gray-800 group-hover:text-blue-700">{label}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">{desc}</div>
+                        <div className="text-sm font-semibold text-gray-800 dark:text-slate-100 group-hover:text-blue-700 dark:group-hover:text-blue-400">{label}</div>
+                        <div className="text-xs text-gray-400 dark:text-slate-400 mt-0.5">{desc}</div>
                       </button>
                     ))}
                   </div>
@@ -440,33 +440,33 @@ const InvoiceList = () => {
       <QuotaIndicator type="invoices" />
 
       {/* Modern Table Section */}
-      <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 shadow-sm rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden transition-colors">
         
         {/* Table Toolbar & Filters */}
-        <div className="p-5 border-b border-gray-200 bg-gray-50/50 flex flex-col gap-4">
+        <div className="p-5 border-b border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 flex flex-col gap-4">
              <div className="flex flex-wrap items-center justify-between gap-4">
                  <div className="relative max-w-xs w-full">
                      <input 
                         type="text" 
                         placeholder="Search invoices..." 
-                        className="w-full pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm font-sans"
+                        className="w-full pl-3 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm font-sans"
                         value={searchTerm}
                         onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                      />
                  </div>
-                 <div className="text-sm text-gray-500 font-medium">
+                 <div className="text-sm text-gray-500 dark:text-slate-400 font-medium">
                      Showing {displayedInvoices.length} of {totalRecords} results
                  </div>
              </div>
 
              {/* Filters Bar */}
-             <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-sm">
+             <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-slate-800 shadow-sm text-sm">
                  <div className="flex flex-col min-w-[140px]">
-                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Status</span>
+                     <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Status</span>
                      <select
                         value={statusFilter}
                         onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                        className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
                      >
                         <option value="">All Statuses</option>
                         <option value="DRAFT">DRAFT</option>
@@ -479,11 +479,11 @@ const InvoiceList = () => {
                  </div>
 
                  <div className="flex flex-col min-w-[150px]">
-                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Type</span>
+                     <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Type</span>
                      <select
                         value={typeFilter}
                         onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                        className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
                      >
                         <option value="">All Types</option>
                         <option value="Tax Invoice">Tax Invoice</option>
@@ -494,11 +494,11 @@ const InvoiceList = () => {
                  </div>
 
                  <div className="flex flex-col min-w-[160px]">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Business Unit</span>
+                      <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Business Unit</span>
                       <select
                          value={businessUnitFilter}
                          onChange={(e) => { setBusinessUnitFilter(e.target.value); setPage(1); }}
-                         className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                         className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
                       >
                          <option value="">All Business Units</option>
                          {businessUnits.map((bu) => (
@@ -510,11 +510,11 @@ const InvoiceList = () => {
                   </div>
 
                  <div className="flex flex-col min-w-[130px]">
-                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Date Type</span>
+                     <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Date Type</span>
                      <select
                         value={dateTypeFilter}
                         onChange={(e) => { setDateTypeFilter(e.target.value); setPage(1); }}
-                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                        className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
                      >
                         <option value="date">Issue Date</option>
                         <option value="dueDate">Due Date</option>
@@ -522,27 +522,27 @@ const InvoiceList = () => {
                  </div>
 
                  <div className="flex flex-col min-w-[130px]">
-                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">From Date</span>
+                     <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">From Date</span>
                      <input
                         type="date"
                         value={startDate}
                         onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
-                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                        className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
                      />
                  </div>
 
                  <div className="flex flex-col min-w-[130px]">
-                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">To Date</span>
+                     <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">To Date</span>
                      <input
                         type="date"
                         value={endDate}
                         onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
-                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                        className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
                      />
                  </div>
 
                  <div className="flex flex-col min-w-[160px]">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Sort By</span>
+                      <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Sort By</span>
                       <select
                          value={`${sortBy}-${sortOrder}`}
                          onChange={(e) => {
@@ -551,7 +551,7 @@ const InvoiceList = () => {
                              setSortOrder(order);
                              setPage(1);
                          }}
-                         className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                         className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
                       >
                          <option value="createdAt-desc">Created (Latest first)</option>
                          <option value="createdAt-asc">Created (Oldest first)</option>
@@ -577,7 +577,7 @@ const InvoiceList = () => {
                             setSortOrder('desc');
                             setPage(1);
                         }}
-                        className="self-end px-4 py-2 border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+                        className="self-end px-4 py-2 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-700 dark:hover:text-red-300 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer"
                      >
                         Clear Filters
                      </button>
@@ -586,17 +586,17 @@ const InvoiceList = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 font-sans">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800 font-sans">
+            <thead className="bg-gray-50 dark:bg-slate-800/60">
               <tr>
                 <th className="px-4 py-2 w-10 text-center">
-                  <button onClick={toggleSelectAll} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <button onClick={toggleSelectAll} className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
                     {selectedInvoices.length === invoices.length && invoices.length > 0 ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                   </button>
                 </th>
                 <th 
                   onClick={() => handleSort('invoiceNo')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Invoice {renderSortIcon('invoiceNo')}
@@ -604,7 +604,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('invoiceType')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Type {renderSortIcon('invoiceType')}
@@ -612,7 +612,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('clientName')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Client {renderSortIcon('clientName')}
@@ -620,7 +620,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('date')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Date {renderSortIcon('date')}
@@ -628,7 +628,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('dueDate')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Due Date {renderSortIcon('dueDate')}
@@ -636,7 +636,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('status')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Status {renderSortIcon('status')}
@@ -644,7 +644,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('grandTotal')}
-                  className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center justify-end">
                     Amount {renderSortIcon('grandTotal')}
@@ -652,21 +652,21 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('balanceDue')}
-                  className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center justify-end">
                     Balance {renderSortIcon('balanceDue')}
                   </div>
                 </th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">
+                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-800/60">
               {loading ? (
                 [...Array(5)].map((_, i) => (
-                  <tr key={i} className="bg-white border-b border-gray-100">
+                  <tr key={i} className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
                      <td className="px-4 py-2 text-center"><Skeleton width="16px" height="16px" className="mx-auto" /></td>
                      <td className="px-4 py-2"><Skeleton width="80px" height="16px" /></td>
                      <td className="px-4 py-2"><Skeleton width="60px" height="16px" /></td>
@@ -683,51 +683,51 @@ const InvoiceList = () => {
                   </tr>
                 ))
               ) : displayedInvoices.length === 0 ? (
-                <tr><td colSpan="10" className="px-4 py-8 text-center text-gray-500 text-xs">No invoices found.</td></tr>
+                <tr><td colSpan="10" className="px-4 py-8 text-center text-gray-500 dark:text-slate-400 text-xs">No invoices found.</td></tr>
               ) : (
                 displayedInvoices.map((inv) => {
                   const displayBalance = (inv.grandTotal || 0) - (inv.advancePaid || 0);
                   return (
-                    <tr key={inv._id} className="hover:bg-blue-50/50 transition-colors group">
+                    <tr key={inv._id} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors group">
                       <td className="px-4 py-2 text-center">
-                        <button onClick={() => toggleSelect(inv._id)} className={`${selectedInvoices.includes(inv._id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}`}>
+                        <button onClick={() => toggleSelect(inv._id)} className={`${selectedInvoices.includes(inv._id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-400 dark:hover:text-slate-500'}`}>
                            {selectedInvoices.includes(inv._id) ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                        </button>
                       </td>
                       
                       {/* Invoice No */}
                       <td className="px-4 py-2 whitespace-nowrap">
-                          <Link to={`/invoices/${inv._id}/print`} className="text-blue-600 text-xs font-semibold hover:text-blue-800 hover:underline">
+                          <Link to={`/invoices/${inv._id}/print`} className="text-blue-600 dark:text-blue-400 text-xs font-semibold hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
                               {inv.invoiceNo}
                           </Link>
                       </td>
                       {/* Type */}
                       <td className="px-4 py-2 whitespace-nowrap">
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900/50">
                               {inv.invoiceType || 'Tax Invoice'}
                           </span>
                       </td>
                       
                       {/* Client */}
                       <td className="px-4 py-2 whitespace-nowrap">
-                          <div className="text-xs font-semibold text-gray-900">{inv.client?.name}</div>
-                          {inv.client?.gstin && <div className="text-[10px] text-gray-400 mt-0.5">{inv.client.gstin}</div>}
+                          <div className="text-xs font-semibold text-gray-900 dark:text-slate-100">{inv.client?.name}</div>
+                          {inv.client?.gstin && <div className="text-[10px] text-gray-400 dark:text-slate-400 mt-0.5">{inv.client.gstin}</div>}
                       </td>
-  
+   
                       {/* Date */}
-                      <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
+                      <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-slate-400">
                           {formatDate(inv.date)}
                       </td>
-  
+   
                       {/* Due Date */}
-                      <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
+                      <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-slate-400">
                           {inv.dueDate ? (
                             <span className={new Date(inv.dueDate) < new Date() && displayBalance > 0 ? 'text-red-500 font-medium font-sans' : ''}>
                               {formatDate(inv.dueDate)}
                             </span>
                           ) : '—'}
                       </td>
-  
+   
                       {/* Status */}
                       <td className="px-4 py-2 whitespace-nowrap">
                           <select
@@ -742,44 +742,44 @@ const InvoiceList = () => {
                                  }
                              }}
                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent transition-colors text-center appearance-none ${
-                                 (inv.status === 'RECEIVED' || inv.status === 'PAID' || (!inv.status && Number(displayBalance) === 0)) ? 'bg-green-100 text-green-700 border-green-200' :
-                                 inv.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
-                                 (inv.status === 'SENT' || (!inv.status && Number(displayBalance) > 0)) ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                                 inv.status === 'OVERDUE' ? 'bg-red-100 text-red-700 border-red-200' :
-                                 inv.status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                                 inv.status === 'UNPAID' ? 'bg-orange-100 text-orange-700 border-orange-200' :
-                                 inv.status === 'CANCELLED' ? 'bg-red-100 text-red-700 border-red-200' :
-                                 'bg-blue-100 text-blue-700 border-blue-200'
+                                 (inv.status === 'RECEIVED' || inv.status === 'PAID' || (!inv.status && Number(displayBalance) === 0)) ? 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800/60' :
+                                 inv.status === 'DRAFT' ? 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700' :
+                                 (inv.status === 'SENT' || (!inv.status && Number(displayBalance) > 0)) ? 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60' :
+                                 inv.status === 'OVERDUE' ? 'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/60' :
+                                 inv.status === 'PARTIAL' ? 'bg-yellow-100 dark:bg-amber-950/50 text-yellow-700 dark:text-amber-300 border-yellow-200 dark:border-amber-800/60' :
+                                 inv.status === 'UNPAID' ? 'bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800/60' :
+                                 inv.status === 'CANCELLED' ? 'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/60' :
+                                 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60'
                              }`}
                           >
-                              <option value="DRAFT" className="bg-white text-gray-700">DRAFT</option>
-                              <option value="SENT" className="bg-white text-gray-700">SENT</option>
-                              <option value="UNPAID" className="bg-white text-gray-700">UNPAID</option>
-                              <option value="PARTIAL" className="bg-white text-gray-700">PARTIAL</option>
-                              <option value="RECEIVED" className="bg-white text-gray-700">RECEIVED</option>
-                              <option value="CANCELLED" className="bg-white text-gray-700">CANCELLED</option>
+                              <option value="DRAFT" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">DRAFT</option>
+                              <option value="SENT" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">SENT</option>
+                              <option value="UNPAID" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">UNPAID</option>
+                              <option value="PARTIAL" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">PARTIAL</option>
+                              <option value="RECEIVED" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">RECEIVED</option>
+                              <option value="CANCELLED" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">CANCELLED</option>
                           </select>
                       </td>
-  
+   
                       {/* Amount */}
-                      <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900">
+                      <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900 dark:text-slate-100">
                           ₹{inv.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
-  
+   
                       {/* Balance */}
                       <td className="px-4 py-2 whitespace-nowrap text-right text-xs">
-                          <span className={displayBalance > 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>
+                          <span className={displayBalance > 0 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-green-600 dark:text-green-400 font-bold'}>
                               ₹{displayBalance?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
                       </td>
-  
+   
                       {/* Actions */}
                       <td className="px-4 py-2 whitespace-nowrap text-center text-xs font-medium">
                           <div className="flex justify-center gap-3">
-                              <Link to={`/invoices/${inv._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View">
+                              <Link to={`/invoices/${inv._id}/print`} className="text-gray-400 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="View">
                                   <FaEye size={16} />
                               </Link>
-                              <Link to={`/invoices/edit/${inv._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit">
+                              <Link to={`/invoices/edit/${inv._id}`} className="text-gray-400 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="Edit">
                                   <FaEdit size={16} />
                               </Link>
                               <button 
@@ -797,7 +797,7 @@ const InvoiceList = () => {
                                           }
                                       }
                                   }} 
-                                  className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`}
+                                  className={`transition-colors ${isPro ? 'text-gray-400 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-500'}`}
                                   title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
                               >
                                   <FaTrash size={16} />
@@ -813,14 +813,14 @@ const InvoiceList = () => {
         </div>
         
         {/* Footer / Pagination */}
-         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+         <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 flex flex-col md:flex-row justify-between items-center gap-4 transition-colors">
            
            <div className="flex items-center gap-2">
-               <span className="text-sm text-gray-500">Rows per page:</span>
+               <span className="text-sm text-gray-500 dark:text-slate-400">Rows per page:</span>
                <select 
                  value={rowsPerPage}
                  onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
-                 className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                 className="border border-gray-300 dark:border-slate-700 rounded-md px-2 py-1 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                >
                  <option value={10}>10</option>
                  <option value={20}>20</option>
@@ -830,21 +830,21 @@ const InvoiceList = () => {
            </div>
            
            <div className="flex items-center gap-4">
-               <div className="text-sm text-gray-500">
-                   Page <span className="font-medium text-gray-900">{page}</span> of <span className="font-medium text-gray-900">{totalPages || 1}</span>
+               <div className="text-sm text-gray-500 dark:text-slate-400">
+                   Page <span className="font-semibold text-gray-900 dark:text-slate-200">{page}</span> of <span className="font-semibold text-gray-900 dark:text-slate-200">{totalPages || 1}</span>
                </div>
                <div className="flex gap-2">
                  <button
                    disabled={page <= 1}
                    onClick={() => setPage(p => p - 1)}
-                   className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                   className="px-3 py-1 border border-gray-300 dark:border-slate-700 rounded-md text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                  >
                    Previous
                  </button>
                  <button
                    disabled={page >= totalPages}
                    onClick={() => setPage(p => p + 1)}
-                   className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                   className="px-3 py-1 border border-gray-300 dark:border-slate-700 rounded-md text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                  >
                    Next
                  </button>
@@ -872,7 +872,7 @@ const InvoiceList = () => {
                 type="button"
                 onClick={resetImportModal}
                 disabled={isImporting}
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -881,58 +881,58 @@ const InvoiceList = () => {
         ) : (
           <div className="space-y-5">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <div className="border border-slate-200 rounded-lg p-3">
+              <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-3 bg-white dark:bg-slate-800">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Parsed</div>
-                <div className="text-xl font-bold text-slate-900">{parsedImportInvoices.length}</div>
+                <div className="text-xl font-bold text-slate-900 dark:text-slate-100">{parsedImportInvoices.length}</div>
               </div>
-              <div className="border border-green-200 bg-green-50 rounded-lg p-3">
-                <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Imported</div>
-                <div className="text-xl font-bold text-green-700">{importResult?.imported ?? 0}</div>
+              <div className="border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/40 rounded-lg p-3">
+                <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider">Imported</div>
+                <div className="text-xl font-bold text-green-700 dark:text-green-300">{importResult?.imported ?? 0}</div>
               </div>
-              <div className="border border-blue-200 bg-blue-50 rounded-lg p-3">
-                <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Updated</div>
-                <div className="text-xl font-bold text-blue-700">{importResult?.updated ?? 0}</div>
+              <div className="border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 rounded-lg p-3">
+                <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Updated</div>
+                <div className="text-xl font-bold text-blue-700 dark:text-blue-300">{importResult?.updated ?? 0}</div>
               </div>
-              <div className="border border-amber-200 bg-amber-50 rounded-lg p-3">
-                <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Skipped</div>
-                <div className="text-xl font-bold text-amber-700">{importResult?.skipped ?? 0}</div>
+              <div className="border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 rounded-lg p-3">
+                <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Skipped</div>
+                <div className="text-xl font-bold text-amber-700 dark:text-amber-300">{importResult?.skipped ?? 0}</div>
               </div>
-              <div className="border border-red-200 bg-red-50 rounded-lg p-3">
-                <div className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Failed</div>
-                <div className="text-xl font-bold text-red-700">{importResult?.failed ?? 0}</div>
+              <div className="border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 rounded-lg p-3">
+                <div className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Failed</div>
+                <div className="text-xl font-bold text-red-700 dark:text-red-300">{importResult?.failed ?? 0}</div>
               </div>
             </div>
 
             {importResult?.message && (
-              <div className="text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+              <div className="text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3">
                 {importResult.message}
               </div>
             )}
 
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
+            <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
               <div className="overflow-x-auto max-h-[48vh]">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead className="bg-slate-50 sticky top-0 z-10">
+                <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+                  <thead className="bg-slate-50 dark:bg-slate-800 sticky top-0 z-10">
                     <tr>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Row</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Invoice</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Final No</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Client</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Date</th>
-                      <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500">Amount</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Result</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Reason</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Row</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Invoice</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Final No</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Client</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Date</th>
+                      <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Amount</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Result</th>
+                      <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Reason</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-slate-100">
+                  <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
                     {buildImportOutcomeRows().map((row) => (
-                      <tr key={row._importRowId} className="hover:bg-slate-50">
-                        <td className="px-4 py-3 text-slate-500">{row.row}</td>
-                        <td className="px-4 py-3 font-semibold text-slate-800">{row.invoiceNo || 'Auto'}</td>
-                        <td className="px-4 py-3 font-semibold text-slate-800">{row.finalInvoiceNo}</td>
-                        <td className="px-4 py-3 text-slate-700">{row.clientName}</td>
-                        <td className="px-4 py-3 text-slate-600">{row.date ? formatDate(row.date) : '—'}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-slate-800">
+                      <tr key={row._importRowId} className="hover:bg-slate-50 dark:hover:bg-slate-800">
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{row.row}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-100">{row.invoiceNo || 'Auto'}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-100">{row.finalInvoiceNo}</td>
+                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{row.clientName}</td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{row.date ? formatDate(row.date) : '—'}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-slate-800 dark:text-slate-100">
                           ₹{Number(row.importedGrandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                         <td className="px-4 py-3">
@@ -940,7 +940,7 @@ const InvoiceList = () => {
                             {row.outcome}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-slate-600 min-w-[220px]">{row.reason || 'Ready to import'}</td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 min-w-[220px]">{row.reason || 'Ready to import'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -953,7 +953,7 @@ const InvoiceList = () => {
                 type="button"
                 onClick={() => { setParsedImportInvoices([]); setImportResult(null); }}
                 disabled={isImporting}
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg disabled:opacity-50"
               >
                 Upload Another File
               </button>
@@ -961,7 +961,7 @@ const InvoiceList = () => {
                 type="button"
                 onClick={resetImportModal}
                 disabled={isImporting}
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg disabled:opacity-50"
               >
                 Close
               </button>
@@ -983,15 +983,15 @@ const InvoiceList = () => {
       {/* Premium Feature Modal */}
       <Modal isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} title="Premium Feature">
         <div className="p-4 text-center">
-          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-950/60 text-yellow-600 dark:text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Upgrade to Pro</h3>
-          <p className="text-gray-500 mb-6">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-2">Upgrade to Pro</h3>
+          <p className="text-gray-500 dark:text-slate-400 mb-6">
             Deleting invoices is a premium feature. Upgrade to Pro to unlock unlimited document management, including deleting and an unlimited edit quota.
           </p>
           <div className="flex gap-3 justify-center">
-            <button onClick={() => setShowPremiumModal(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            <button onClick={() => setShowPremiumModal(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors">
               Maybe Later
             </button>
             <Link to="/subscription" className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 rounded-xl shadow-lg shadow-yellow-500/30 transition-all flex items-center gap-2">

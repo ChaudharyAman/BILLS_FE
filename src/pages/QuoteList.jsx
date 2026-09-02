@@ -346,14 +346,14 @@ const QuoteList = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 font-sans text-gray-900">
+    <div className="container mx-auto p-6 font-sans text-gray-900 dark:text-slate-100 transition-colors">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Quotes</h1>
-          <p className="text-gray-500 mt-1">Create and manage quotations for your clients</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Quotes</h1>
+          <p className="text-gray-500 dark:text-slate-400 mt-1">Create and manage quotations for your clients</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           {selectedIds.length > 0 && (
             <button
               onClick={handleBulkDelete}
@@ -428,8 +428,8 @@ const QuoteList = () => {
               onClick={() => isPro ? setIsCsvModalOpen(true) : setShowPremiumModal(true)}
               className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm ${
                 isPro 
-                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200' 
-                  : 'bg-gray-50 text-gray-400 border border-gray-200 opacity-70 cursor-not-allowed'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
+                  : 'bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 border border-gray-200 dark:border-slate-700 opacity-70 cursor-not-allowed'
               }`}
             >
               <FaFileAlt size={16} /> Bulk Import
@@ -445,33 +445,33 @@ const QuoteList = () => {
       <QuotaIndicator type="quotes" />
 
       {/* Table */}
-      <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 shadow-sm rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden transition-colors">
         
         {/* Table Toolbar & Filters */}
-        <div className="p-5 border-b border-gray-200 bg-gray-50/50 flex flex-col gap-4">
+        <div className="p-5 border-b border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/50 flex flex-col gap-4">
              <div className="flex flex-wrap items-center justify-between gap-4">
                  <div className="relative max-w-xs w-full">
                      <input 
                         type="text" 
                         placeholder="Search quotes..." 
-                        className="w-full pl-3 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm font-sans"
+                        className="w-full pl-3 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 shadow-sm font-sans"
                         value={searchTerm}
                         onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                      />
                  </div>
-                 <div className="text-sm text-gray-500 font-medium">
+                 <div className="text-sm text-gray-500 dark:text-slate-400 font-medium">
                      Showing {displayed.length} of {totalRecords} results
                  </div>
              </div>
 
              {/* Filters Bar */}
-             <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-sm">
+             <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-slate-800/80 p-4 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm text-sm">
                  <div className="flex flex-col min-w-[140px]">
-                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Status</span>
+                     <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Status</span>
                      <select
                         value={statusFilter}
                         onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                        className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 dark:text-slate-200 transition-all cursor-pointer font-sans"
                      >
                         <option value="">All Statuses</option>
                         <option value="DRAFT">DRAFT</option>
@@ -483,11 +483,11 @@ const QuoteList = () => {
                  </div>
 
                  <div className="flex flex-col min-w-[160px]">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Business Unit</span>
+                      <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Business Unit</span>
                       <select
                          value={businessUnitFilter}
                          onChange={(e) => { setBusinessUnitFilter(e.target.value); setPage(1); }}
-                         className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                         className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 dark:text-slate-200 transition-all cursor-pointer font-sans"
                       >
                          <option value="">All Business Units</option>
                          {businessUnits.map((bu) => (
@@ -499,11 +499,11 @@ const QuoteList = () => {
                   </div>
 
                  <div className="flex flex-col min-w-[130px]">
-                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Date Type</span>
+                     <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Date Type</span>
                      <select
                         value={dateTypeFilter}
                         onChange={(e) => { setDateTypeFilter(e.target.value); setPage(1); }}
-                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                        className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 dark:text-slate-200 transition-all cursor-pointer font-sans"
                      >
                         <option value="date">Issue Date</option>
                         <option value="validUntil">Valid Until</option>
@@ -511,27 +511,27 @@ const QuoteList = () => {
                  </div>
 
                  <div className="flex flex-col min-w-[130px]">
-                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">From Date</span>
+                     <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">From Date</span>
                      <input
                         type="date"
                         value={startDate}
                         onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
-                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                        className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 dark:text-slate-200 transition-all cursor-pointer font-sans"
                      />
                  </div>
 
                  <div className="flex flex-col min-w-[130px]">
-                     <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">To Date</span>
+                     <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">To Date</span>
                      <input
                         type="date"
                         value={endDate}
                         onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
-                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                        className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 dark:text-slate-200 transition-all cursor-pointer font-sans"
                      />
                  </div>
 
                   <div className="flex flex-col min-w-[160px]">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 tracking-wider">Sort By</span>
+                      <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Sort By</span>
                       <select
                          value={`${sortBy}-${sortOrder}`}
                          onChange={(e) => {
@@ -540,7 +540,7 @@ const QuoteList = () => {
                              setSortOrder(order);
                              setPage(1);
                          }}
-                         className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 transition-all cursor-pointer font-sans"
+                         className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-700 dark:text-slate-200 transition-all cursor-pointer font-sans"
                       >
                          <option value="createdAt-desc">Created (Latest first)</option>
                          <option value="createdAt-asc">Created (Oldest first)</option>
@@ -565,7 +565,7 @@ const QuoteList = () => {
                             setSortOrder('desc');
                             setPage(1);
                         }}
-                        className="self-end px-4 py-2 border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+                        className="self-end px-4 py-2 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer"
                      >
                         Clear Filters
                      </button>
@@ -574,17 +574,17 @@ const QuoteList = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 font-sans">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800 font-sans">
+            <thead className="bg-gray-50 dark:bg-slate-800/75">
               <tr>
                 <th className="px-4 py-2 w-10 text-center">
-                  <button onClick={toggleAll} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <button onClick={toggleAll} className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
                     {selectedIds.length === quotes.length && quotes.length > 0 ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                   </button>
                 </th>
                 <th 
                   onClick={() => handleSort('quoteNo')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Quote No. {renderSortIcon('quoteNo')}
@@ -592,7 +592,7 @@ const QuoteList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('clientName')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Client {renderSortIcon('clientName')}
@@ -600,7 +600,7 @@ const QuoteList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('date')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Date {renderSortIcon('date')}
@@ -608,7 +608,7 @@ const QuoteList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('validUntil')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Valid Until {renderSortIcon('validUntil')}
@@ -616,7 +616,7 @@ const QuoteList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('status')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Status {renderSortIcon('status')}
@@ -624,21 +624,21 @@ const QuoteList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('grandTotal')}
-                  className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                  className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors select-none group"
                 >
                   <div className="flex items-center justify-end">
                     Amount {renderSortIcon('grandTotal')}
                   </div>
                 </th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider select-none">
+                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-800">
               {loading ? (
                 [...Array(5)].map((_, i) => (
-                  <tr key={i} className="bg-white border-b border-gray-100">
+                  <tr key={i} className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
                     <td className="px-4 py-2 text-center"><Skeleton width="16px" height="16px" className="mx-auto" /></td>
                     <td className="px-4 py-2"><Skeleton width="80px" height="16px" /></td>
                     <td className="px-4 py-2"><Skeleton width="120px" height="16px" /></td>
@@ -650,28 +650,28 @@ const QuoteList = () => {
                   </tr>
                 ))
               ) : displayed.length === 0 ? (
-                <tr><td colSpan="8" className="px-4 py-8 text-center text-gray-500 text-xs">No quotes found.</td></tr>
+                <tr><td colSpan="8" className="px-4 py-8 text-center text-gray-500 dark:text-slate-400 text-xs">No quotes found.</td></tr>
               ) : (
                 displayed.map(q => (
-                  <tr key={q._id} className="hover:bg-blue-50/50 transition-colors group">
+                  <tr key={q._id} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors group">
                     <td className="px-4 py-2 text-center">
-                      <button onClick={() => toggleSelect(q._id)} className={selectedIds.includes(q._id) ? 'text-blue-600' : 'text-gray-300 hover:text-gray-400'}>
+                      <button onClick={() => toggleSelect(q._id)} className={selectedIds.includes(q._id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-400 dark:hover:text-slate-400'}>
                         {selectedIds.includes(q._id) ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
                       </button>
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap">
-                      <Link to={`/quotes/${q._id}/print`} className="text-blue-600 text-xs font-semibold hover:text-blue-800 hover:underline">
+                      <Link to={`/quotes/${q._id}/print`} className="text-blue-600 dark:text-blue-400 text-xs font-semibold hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
                         {q.quoteNo}
                       </Link>
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap">
-                      <div className="text-xs font-semibold text-gray-900">{q.client?.name}</div>
-                      {q.client?.gstin && <div className="text-[10px] text-gray-400 mt-0.5">{q.client.gstin}</div>}
+                      <div className="text-xs font-semibold text-gray-900 dark:text-slate-100">{q.client?.name}</div>
+                      {q.client?.gstin && <div className="text-[10px] text-gray-400 dark:text-slate-500 mt-0.5">{q.client.gstin}</div>}
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">{fmtDate(q.date)}</td>
-                    <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
+                    <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-slate-400">{fmtDate(q.date)}</td>
+                    <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-slate-400">
                       {q.validUntil ? (
-                        <span className={new Date(q.validUntil) < new Date() && q.status !== 'CONVERTED' ? 'text-red-500 font-medium' : ''}>
+                        <span className={new Date(q.validUntil) < new Date() && q.status !== 'CONVERTED' ? 'text-red-500 dark:text-red-400 font-medium' : ''}>
                           {fmtDate(q.validUntil)}
                         </span>
                       ) : '—'}
@@ -694,33 +694,33 @@ const QuoteList = () => {
                                }
                            }}
                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent transition-colors text-center appearance-none ${
-                               q.status === 'ACCEPTED' ? 'bg-green-100 text-green-700 border-green-200' :
-                               q.status === 'SENT' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                               q.status === 'REJECTED' ? 'bg-red-100 text-red-700 border-red-200' :
-                               q.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
-                               'bg-gray-100 text-gray-700 border-gray-200'
+                               q.status === 'ACCEPTED' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-950/60 dark:text-green-300 dark:border-green-800' :
+                               q.status === 'SENT' ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800' :
+                               q.status === 'REJECTED' ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800' :
+                               q.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700' :
+                               'bg-gray-100 text-gray-700 border-gray-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
                            }`}
                         >
-                            <option value="DRAFT" className="bg-white text-gray-700">DRAFT</option>
-                            <option value="SENT" className="bg-white text-gray-700">SENT</option>
-                            <option value="ACCEPTED" className="bg-white text-gray-700">ACCEPTED</option>
-                            <option value="REJECTED" className="bg-white text-gray-700">REJECTED</option>
+                            <option value="DRAFT" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">DRAFT</option>
+                            <option value="SENT" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">SENT</option>
+                            <option value="ACCEPTED" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">ACCEPTED</option>
+                            <option value="REJECTED" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">REJECTED</option>
                         </select>
                       )}
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900">
+                    <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900 dark:text-slate-100">
                       ₹{fmt(q.grandTotal)}
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap text-center">
                       <div className="flex justify-center gap-2 items-center">
-                        <Link to={`/quotes/${q._id}/print`} className="text-gray-400 hover:text-blue-600 transition-colors" title="View"><FaEye size={16} /></Link>
+                        <Link to={`/quotes/${q._id}/print`} className="text-gray-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="View"><FaEye size={16} /></Link>
                         {q.status !== 'CONVERTED' ? (
-                          <Link to={`/quotes/edit/${q._id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit"><FaEdit size={16} /></Link>
+                          <Link to={`/quotes/edit/${q._id}`} className="text-gray-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="Edit"><FaEdit size={16} /></Link>
                         ) : (
-                          <span className="text-gray-200 cursor-not-allowed" title="Converted quotations cannot be edited"><FaEdit size={16} /></span>
+                          <span className="text-gray-200 dark:text-slate-700 cursor-not-allowed" title="Converted quotations cannot be edited"><FaEdit size={16} /></span>
                         )}
                         {q.status !== 'CONVERTED' && (
-                          <button onClick={() => handleConvert(q._id)} className="text-gray-400 hover:text-purple-600 transition-colors" title="Convert to Invoice">
+                          <button onClick={() => handleConvert(q._id)} className="text-gray-400 dark:text-slate-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors" title="Convert to Invoice">
                             <FaArrowRight size={16} />
                           </button>
                         )}
@@ -729,7 +729,7 @@ const QuoteList = () => {
                             if (!isPro) return setShowPremiumModal(true);
                             handleDelete(q._id);
                           }} 
-                          className={`transition-colors ${isPro ? 'text-gray-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`} 
+                          className={`transition-colors ${isPro ? 'text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-500'}`} 
                           title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
                         >
                           <FaTrash size={16} />
@@ -743,11 +743,11 @@ const QuoteList = () => {
           </table>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4 text-sans">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50 flex flex-col md:flex-row justify-between items-center gap-4 text-sans transition-colors">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Rows per page:</span>
+            <span className="text-sm text-gray-500 dark:text-slate-400">Rows per page:</span>
             <select value={rowsPerPage} onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
-              className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+              className="border border-gray-300 dark:border-slate-700 rounded-md px-2 py-1 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
               <option value={10}>10</option>
               <option value={20}>20</option>
               <option value={50}>50</option>
@@ -755,21 +755,21 @@ const QuoteList = () => {
             </select>
           </div>
           <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-500">
-                  Page <span className="font-medium text-gray-900">{page}</span> of <span className="font-medium text-gray-900">{totalPages || 1}</span>
+              <div className="text-sm text-gray-500 dark:text-slate-400">
+                  Page <span className="font-medium text-gray-900 dark:text-slate-100">{page}</span> of <span className="font-medium text-gray-900 dark:text-slate-100">{totalPages || 1}</span>
               </div>
               <div className="flex gap-2">
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage(p => p - 1)}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-1 border border-gray-300 dark:border-slate-700 rounded-md text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Previous
                 </button>
                 <button
                   disabled={page >= totalPages}
                   onClick={() => setPage(p => p + 1)}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-1 border border-gray-300 dark:border-slate-700 rounded-md text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next
                 </button>
@@ -793,7 +793,7 @@ const QuoteList = () => {
               subtitle="Group rows by 'Quote No'. Columns must include 'Client Name', 'Item Name', 'Qty', 'Rate'."
             />
             <div className="mt-4 flex justify-end">
-              <button type="button" onClick={resetImportModal} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50">
+              <button type="button" onClick={resetImportModal} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg disabled:opacity-50">
                 Cancel
               </button>
             </div>
@@ -802,11 +802,11 @@ const QuoteList = () => {
           <div className="space-y-5">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {[
-                ['Parsed', parsedImportQuotes.length, 'border-slate-200 text-slate-900 bg-white'],
-                ['Imported', importResult?.imported ?? 0, 'border-green-200 text-green-700 bg-green-50'],
-                ['Updated', importResult?.updated ?? 0, 'border-blue-200 text-blue-700 bg-blue-50'],
-                ['Skipped', importResult?.skipped ?? 0, 'border-amber-200 text-amber-700 bg-amber-50'],
-                ['Failed', importResult?.failed ?? 0, 'border-red-200 text-red-700 bg-red-50'],
+                ['Parsed', parsedImportQuotes.length, 'border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800'],
+                ['Imported', importResult?.imported ?? 0, 'border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40'],
+                ['Updated', importResult?.updated ?? 0, 'border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40'],
+                ['Skipped', importResult?.skipped ?? 0, 'border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40'],
+                ['Failed', importResult?.failed ?? 0, 'border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40'],
               ].map(([label, value, cls]) => (
                 <div key={label} className={`border rounded-lg p-3 ${cls}`}>
                   <div className="text-[10px] font-bold uppercase tracking-wider opacity-75">{label}</div>
@@ -814,28 +814,28 @@ const QuoteList = () => {
                 </div>
               ))}
             </div>
-            {importResult?.message && <div className="text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">{importResult.message}</div>}
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
+            {importResult?.message && <div className="text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3">{importResult.message}</div>}
+            <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
               <div className="overflow-x-auto max-h-[48vh]">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead className="bg-slate-50 sticky top-0 z-10">
+                <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+                  <thead className="bg-slate-50 dark:bg-slate-800 sticky top-0 z-10">
                     <tr>
                       {['Row', 'Quote', 'Final No', 'Client', 'Date', 'Amount', 'Result', 'Reason'].map((header) => (
-                        <th key={header} className={`px-4 py-3 text-${header === 'Amount' ? 'right' : 'left'} text-[10px] font-bold uppercase tracking-wider text-slate-500`}>{header}</th>
+                        <th key={header} className={`px-4 py-3 text-${header === 'Amount' ? 'right' : 'left'} text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400`}>{header}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-slate-100">
+                  <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
                     {buildImportOutcomeRows().map((row) => (
-                      <tr key={row._importRowId} className="hover:bg-slate-50">
-                        <td className="px-4 py-3 text-slate-500">{row.row}</td>
-                        <td className="px-4 py-3 font-semibold text-slate-800">{row.quoteNo || 'Auto'}</td>
-                        <td className="px-4 py-3 font-semibold text-slate-800">{row.finalNo}</td>
-                        <td className="px-4 py-3 text-slate-700">{row.clientName}</td>
-                        <td className="px-4 py-3 text-slate-600">{row.date ? fmtDate(row.date) : '—'}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-slate-800">₹{fmt(row.importedGrandTotal || row.grandTotal)}</td>
+                      <tr key={row._importRowId} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{row.row}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">{row.quoteNo || 'Auto'}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">{row.finalNo}</td>
+                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{row.clientName}</td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{row.date ? fmtDate(row.date) : '—'}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-slate-800 dark:text-slate-200">₹{fmt(row.importedGrandTotal || row.grandTotal)}</td>
                         <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded-full border text-xs font-semibold ${importOutcomeClass(row.outcome)}`}>{row.outcome}</span></td>
-                        <td className="px-4 py-3 text-slate-600 min-w-[220px]">{row.reason || 'Ready to import'}</td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 min-w-[220px]">{row.reason || 'Ready to import'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -843,9 +843,9 @@ const QuoteList = () => {
               </div>
             </div>
             <div className="flex flex-wrap justify-end gap-3">
-              <button type="button" onClick={() => { setParsedImportQuotes([]); setImportResult(null); }} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50">Upload Another File</button>
-              <button type="button" onClick={resetImportModal} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg disabled:opacity-50">Close</button>
-              {!importResult && <button type="button" onClick={handleImportParsedQuotes} disabled={isImporting} className="px-5 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50">{isImporting ? 'Importing...' : `Import ${parsedImportQuotes.length} Quotes`}</button>}
+              <button type="button" onClick={() => { setParsedImportQuotes([]); setImportResult(null); }} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg disabled:opacity-50">Upload Another File</button>
+              <button type="button" onClick={resetImportModal} disabled={isImporting} className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-lg disabled:opacity-50">Close</button>
+              {!importResult && <button type="button" onClick={handleImportParsedQuotes} disabled={isImporting} className="px-5 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50"> {isImporting ? 'Importing...' : `Import ${parsedImportQuotes.length} Quotes`}</button>}
             </div>
           </div>
         )}
@@ -854,15 +854,15 @@ const QuoteList = () => {
       {/* Premium Feature Modal */}
       <Modal isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} title="Premium Feature">
         <div className="p-4 text-center">
-          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-950/60 text-yellow-600 dark:text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Upgrade to Pro</h3>
-          <p className="text-gray-500 mb-6">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-2">Upgrade to Pro</h3>
+          <p className="text-gray-500 dark:text-slate-400 mb-6">
             Deleting quotes is a premium feature. Upgrade to Pro to unlock unlimited document management, including deleting and an unlimited edit quota.
           </p>
           <div className="flex gap-3 justify-center">
-            <button onClick={() => setShowPremiumModal(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+            <button onClick={() => setShowPremiumModal(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors">
               Maybe Later
             </button>
             <Link to="/subscription" className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 rounded-xl shadow-lg shadow-yellow-500/30 transition-all flex items-center gap-2">

@@ -229,32 +229,32 @@ const BalanceSheet = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 font-sans text-slate-900 bg-slate-50/50 min-h-screen">
+    <div className="container mx-auto p-6 font-sans text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-transparent min-h-screen transition-colors">
       {/* Header Banner */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-6">
         <div>
-          <h1 className="text-4xl font-extrabold text-slate-950 tracking-tight flex items-center gap-3">
+          <h1 className="text-4xl font-extrabold text-slate-950 dark:text-slate-100 tracking-tight flex items-center gap-3">
             <span className="p-2.5 bg-gradient-to-tr from-indigo-650 to-indigo-500 rounded-xl text-white shadow-md shadow-indigo-100">
               <FaBalanceScale size={24} />
             </span>
             Balance Sheet
           </h1>
-          <p className="text-slate-500 mt-2 text-sm font-medium max-w-xl leading-relaxed">
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm font-medium max-w-xl leading-relaxed">
             A comprehensive statement of verified assets, obligations, and shareholder equity backed by single-source ledger entries.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
           {/* Year Filter */}
-          <div className="bg-white border border-slate-200/80 px-2.5 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 whitespace-nowrap">
-            <FaCalendarAlt className="text-slate-400" size={12} />
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 px-2.5 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 whitespace-nowrap">
+            <FaCalendarAlt className="text-slate-400 dark:text-slate-500" size={12} />
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer"
+              className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
             >
               {[currentYearNow + 1, currentYearNow, currentYearNow - 1, currentYearNow - 2, currentYearNow - 3].map((yr) => (
-                <option key={yr} value={yr}>
+                <option key={yr} value={yr} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
                   FY {yr}
                 </option>
               ))}
@@ -262,11 +262,11 @@ const BalanceSheet = () => {
           </div>
 
           {/* View Switcher Pills */}
-          <div className="bg-white border border-slate-200/80 p-0.5 rounded-xl shadow-xs flex items-center gap-0.5 whitespace-nowrap">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-0.5 rounded-xl shadow-xs flex items-center gap-0.5 whitespace-nowrap">
             <button
               onClick={() => setViewMode('comparative')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                viewMode === 'comparative' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                viewMode === 'comparative' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               Comparative Statement
@@ -274,7 +274,7 @@ const BalanceSheet = () => {
             <button
               onClick={() => setViewMode('standard')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                viewMode === 'standard' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                viewMode === 'standard' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               Standard Balance Sheet
@@ -284,7 +284,7 @@ const BalanceSheet = () => {
           {/* Export PDF */}
           <button
             onClick={() => window.print()}
-            className="flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer print:hidden whitespace-nowrap"
+            className="flex items-center justify-center gap-1.5 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer print:hidden whitespace-nowrap"
           >
             <FaDownload size={11} />
             <span>Export PDF</span>
@@ -294,24 +294,24 @@ const BalanceSheet = () => {
 
       {/* Onboarding / Setup Status Checklist Widget */}
       {setupStatus && !setupStatus.isFullyConfigured && !isChecklistDismissed && (
-        <div className="bg-white border border-indigo-100 rounded-2xl p-5 mb-8 shadow-xs relative print:hidden">
+        <div className="bg-white dark:bg-slate-900 border border-indigo-100 dark:border-slate-800 rounded-2xl p-5 mb-8 shadow-xs relative print:hidden">
           <button
             onClick={() => setIsChecklistDismissed(true)}
-            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 cursor-pointer"
             title="Dismiss checklist"
           >
             <FaTimes size={14} />
           </button>
 
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 flex items-center justify-center font-bold">
               <FaTasks size={14} />
             </div>
             <div>
-              <h3 className="font-extrabold text-sm text-slate-900">
+              <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
                 Balance Sheet Setup Progress ({setupStatus.completedCount} of {setupStatus.totalCount} completed)
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Complete these initial configurations to populate every line item with genuine audit-backed accounting data.
               </p>
             </div>
@@ -320,18 +320,18 @@ const BalanceSheet = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mt-4">
             {/* Step 1: Equity */}
             <div className={`p-3 rounded-xl border flex flex-col justify-between ${
-              setupStatus.steps.equity ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50 border-slate-200'
+              setupStatus.steps.equity ? 'bg-emerald-50/50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
             }`}>
               <div>
                 <div className="flex items-center justify-between text-xs font-bold mb-1">
                   <span>1. Equity Records</span>
-                  {setupStatus.steps.equity ? <FaCheck className="text-emerald-600" size={11} /> : <span className="text-amber-600 text-[10px]">Pending</span>}
+                  {setupStatus.steps.equity ? <FaCheck className="text-emerald-600 dark:text-emerald-400" size={11} /> : <span className="text-amber-600 dark:text-amber-400 text-[10px]">Pending</span>}
                 </div>
-                <p className="text-[11px] text-slate-500">Common stock & paid-in capital</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Common stock & paid-in capital</p>
               </div>
               <button
                 onClick={() => openEquitySetup('common_stock_issued')}
-                className="mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800 text-left cursor-pointer"
+                className="mt-3 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-left cursor-pointer"
               >
                 {setupStatus.steps.equity ? 'Add more →' : 'Record equity →'}
               </button>
@@ -339,18 +339,18 @@ const BalanceSheet = () => {
 
             {/* Step 2: COGS Categories */}
             <div className={`p-3 rounded-xl border flex flex-col justify-between ${
-              setupStatus.steps.cogsCategories ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50 border-slate-200'
+              setupStatus.steps.cogsCategories ? 'bg-emerald-50/50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
             }`}>
               <div>
                 <div className="flex items-center justify-between text-xs font-bold mb-1">
                   <span>2. COGS Categories</span>
-                  {setupStatus.steps.cogsCategories ? <FaCheck className="text-emerald-600" size={11} /> : <span className="text-amber-600 text-[10px]">Pending</span>}
+                  {setupStatus.steps.cogsCategories ? <FaCheck className="text-emerald-600 dark:text-emerald-400" size={11} /> : <span className="text-amber-600 dark:text-amber-400 text-[10px]">Pending</span>}
                 </div>
-                <p className="text-[11px] text-slate-500">Flag expense categories as COGS</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Flag expense categories as COGS</p>
               </div>
               <button
                 onClick={() => navigate('/categories')}
-                className="mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800 text-left cursor-pointer"
+                className="mt-3 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-left cursor-pointer"
               >
                 {setupStatus.steps.cogsCategories ? 'Manage categories →' : 'Set up COGS →'}
               </button>
@@ -358,18 +358,18 @@ const BalanceSheet = () => {
 
             {/* Step 3: Fixed Assets */}
             <div className={`p-3 rounded-xl border flex flex-col justify-between ${
-              setupStatus.steps.fixedAssets ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50 border-slate-200'
+              setupStatus.steps.fixedAssets ? 'bg-emerald-50/50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
             }`}>
               <div>
                 <div className="flex items-center justify-between text-xs font-bold mb-1">
                   <span>3. Fixed Assets</span>
-                  {setupStatus.steps.fixedAssets ? <FaCheck className="text-emerald-600" size={11} /> : <span className="text-amber-600 text-[10px]">Pending</span>}
+                  {setupStatus.steps.fixedAssets ? <FaCheck className="text-emerald-600 dark:text-emerald-400" size={11} /> : <span className="text-amber-600 dark:text-amber-400 text-[10px]">Pending</span>}
                 </div>
-                <p className="text-[11px] text-slate-500">Track equipment & depreciation</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Track equipment & depreciation</p>
               </div>
               <button
                 onClick={() => navigate('/assets')}
-                className="mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800 text-left cursor-pointer"
+                className="mt-3 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-left cursor-pointer"
               >
                 {setupStatus.steps.fixedAssets ? 'View assets →' : 'Add fixed asset →'}
               </button>
@@ -377,18 +377,18 @@ const BalanceSheet = () => {
 
             {/* Step 4: Liabilities */}
             <div className={`p-3 rounded-xl border flex flex-col justify-between ${
-              setupStatus.steps.liabilityCategorization ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50 border-slate-200'
+              setupStatus.steps.liabilityCategorization ? 'bg-emerald-50/50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
             }`}>
               <div>
                 <div className="flex items-center justify-between text-xs font-bold mb-1">
                   <span>4. Debt & Liabilities</span>
-                  {setupStatus.steps.liabilityCategorization ? <FaCheck className="text-emerald-600" size={11} /> : <span className="text-amber-600 text-[10px]">Pending</span>}
+                  {setupStatus.steps.liabilityCategorization ? <FaCheck className="text-emerald-600 dark:text-emerald-400" size={11} /> : <span className="text-amber-600 dark:text-amber-400 text-[10px]">Pending</span>}
                 </div>
-                <p className="text-[11px] text-slate-500">Long-term debt & loans</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Long-term debt & loans</p>
               </div>
               <button
                 onClick={() => navigate('/liabilities')}
-                className="mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800 text-left cursor-pointer"
+                className="mt-3 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-left cursor-pointer"
               >
                 {setupStatus.steps.liabilityCategorization ? 'View debt →' : 'Add liability →'}
               </button>
@@ -396,18 +396,18 @@ const BalanceSheet = () => {
 
             {/* Step 5: Interest Expense */}
             <div className={`p-3 rounded-xl border flex flex-col justify-between ${
-              setupStatus.steps.interestExpenseCategory ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50 border-slate-200'
+              setupStatus.steps.interestExpenseCategory ? 'bg-emerald-50/50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
             }`}>
               <div>
                 <div className="flex items-center justify-between text-xs font-bold mb-1">
                   <span>5. Interest Expense</span>
-                  {setupStatus.steps.interestExpenseCategory ? <FaCheck className="text-emerald-600" size={11} /> : <span className="text-amber-600 text-[10px]">Pending</span>}
+                  {setupStatus.steps.interestExpenseCategory ? <FaCheck className="text-emerald-600 dark:text-emerald-400" size={11} /> : <span className="text-amber-600 dark:text-amber-400 text-[10px]">Pending</span>}
                 </div>
-                <p className="text-[11px] text-slate-500">Record loan interest expenses</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Record loan interest expenses</p>
               </div>
               <button
                 onClick={() => navigate('/categories')}
-                className="mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800 text-left cursor-pointer"
+                className="mt-3 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-left cursor-pointer"
               >
                 {setupStatus.steps.interestExpenseCategory ? 'View categories →' : 'Set up interest category →'}
               </button>
@@ -421,7 +421,7 @@ const BalanceSheet = () => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60">
+              <div key={i} className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
                 <Skeleton width="100px" height="14px" className="mb-4" />
                 <Skeleton width="60%" height="32px" className="mb-2" />
                 <Skeleton width="80%" height="12px" />
@@ -430,7 +430,7 @@ const BalanceSheet = () => {
           </div>
         </>
       ) : error ? (
-        <div className="bg-white border border-red-200 rounded-2xl shadow-sm p-8 text-center text-red-650 font-bold mb-8">
+        <div className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-800 rounded-2xl shadow-sm p-8 text-center text-red-650 dark:text-red-400 font-bold mb-8">
           {error}
         </div>
       ) : report ? (
@@ -438,11 +438,11 @@ const BalanceSheet = () => {
           {/* Double-Entry Balancing Warning / Audit Banner */}
           <div className={`flex items-start gap-4 border rounded-2xl p-5 mb-8 shadow-sm transition-all ${
             isBalanced 
-              ? 'bg-emerald-50/40 border-emerald-250 text-emerald-950 shadow-emerald-50' 
-              : 'bg-rose-50/60 border-rose-300 text-rose-950 shadow-rose-50'
+              ? 'bg-emerald-50/40 dark:bg-emerald-950/40 border-emerald-250 dark:border-emerald-900/60 text-emerald-950 dark:text-emerald-200 shadow-emerald-50 dark:shadow-none' 
+              : 'bg-rose-50/60 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900/60 text-rose-950 dark:text-rose-200 shadow-rose-50 dark:shadow-none'
           }`}>
             <span className={`w-10 h-10 rounded-xl flex items-center justify-center font-black shrink-0 ${
-              isBalanced ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+              isBalanced ? 'bg-emerald-100 dark:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300' : 'bg-rose-100 dark:bg-rose-900/80 text-rose-700 dark:text-rose-300'
             }`}>
               {isBalanced ? <FaCheckCircle size={18} /> : <FaExclamationTriangle size={18} />}
             </span>
@@ -450,7 +450,7 @@ const BalanceSheet = () => {
               <h3 className="font-bold text-base flex items-center justify-between">
                 <span>{isBalanced ? 'Double-Entry Audit Balanced' : 'Data Integrity Warning: Balance Sheet Unbalanced'}</span>
                 {!isBalanced && (
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-200 text-rose-800 font-extrabold uppercase tracking-wide">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-200 dark:bg-rose-900/60 text-rose-800 dark:text-rose-300 font-extrabold uppercase tracking-wide">
                     Difference: {fmtMoney(discrepancy)}
                   </span>
                 )}
@@ -465,29 +465,29 @@ const BalanceSheet = () => {
 
           {/* COMPARATIVE STATEMENT VIEW */}
           {viewMode === 'comparative' && (
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-8 mb-12 max-w-5xl mx-auto print:shadow-none print:border-0 font-sans">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm p-8 mb-12 max-w-5xl mx-auto print:shadow-none print:border-0 font-sans">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm font-medium border-collapse">
                       <thead>
-                        <tr className="border-b-2 border-slate-950 text-slate-950 font-bold">
+                        <tr className="border-b-2 border-slate-950 dark:border-slate-700 text-slate-950 dark:text-slate-100 font-bold">
                           <th className="py-2.5 pr-6 underline underline-offset-4 font-bold text-base">Category</th>
                           <th className="py-2.5 px-4 text-right underline underline-offset-4 font-bold whitespace-nowrap">{priorYearLabel}</th>
                           <th className="py-2.5 px-4 text-right underline underline-offset-4 font-bold whitespace-nowrap">{currentYearLabel}</th>
-                          <th className="py-2.5 pl-4 text-left font-bold text-xs uppercase tracking-wider text-slate-400 print:hidden">Data Source</th>
+                          <th className="py-2.5 pl-4 text-left font-bold text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 print:hidden">Data Source</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 text-slate-800">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
                         {categoriesList.map((row) => {
                           const isUnavailable = row.source?.type === 'unavailable' || (row.priorYear === null && row.currentYear === null);
 
                           return (
-                            <tr key={row.category} className="hover:bg-slate-50/60 transition-colors">
+                            <tr key={row.category} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/60 transition-colors">
                               <td className="py-2 pr-6 font-semibold flex items-center gap-1.5">
                                 <span>{row.category}</span>
                                 {row.source?.description && (
                                   <span 
                                     title={row.source.description} 
-                                    className="text-slate-400 hover:text-indigo-600 cursor-help print:hidden text-xs"
+                                    className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-help print:hidden text-xs"
                                   >
                                     <FaInfoCircle size={11} />
                                   </span>
@@ -501,7 +501,7 @@ const BalanceSheet = () => {
                                 ) : (
                                   <button
                                     onClick={() => handleRowSetupAction(row.category)}
-                                    className="text-slate-500 hover:text-indigo-600 italic text-[11px] bg-slate-100 hover:bg-indigo-50 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                                    className="text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 italic text-[11px] bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 px-2 py-0.5 rounded cursor-pointer transition-colors"
                                   >
                                     — Set up required
                                   </button>
@@ -511,13 +511,13 @@ const BalanceSheet = () => {
                               {/* Current Year */}
                               <td className="py-2 px-4 text-right font-mono text-xs">
                                 {row.currentYear !== null && row.currentYear !== undefined ? (
-                                  <span className="font-semibold text-slate-900">
+                                  <span className="font-semibold text-slate-900 dark:text-slate-100">
                                     {Number(row.currentYear).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </span>
                                 ) : (
                                   <button
                                     onClick={() => handleRowSetupAction(row.category)}
-                                    className="text-slate-500 hover:text-indigo-600 italic text-[11px] bg-slate-100 hover:bg-indigo-50 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                                    className="text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 italic text-[11px] bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 px-2 py-0.5 rounded cursor-pointer transition-colors"
                                   >
                                     — Set up required
                                   </button>
@@ -525,16 +525,16 @@ const BalanceSheet = () => {
                               </td>
 
                               {/* Source Info Badge */}
-                              <td className="py-2 pl-4 text-xs text-slate-500 print:hidden">
+                              <td className="py-2 pl-4 text-xs text-slate-500 dark:text-slate-400 print:hidden">
                                 {isUnavailable ? (
                                   <span 
                                     onClick={() => handleRowSetupAction(row.category)}
-                                    className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1 cursor-pointer hover:bg-amber-100 transition-colors"
+                                    className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors"
                                   >
                                     <FaInfoCircle size={10} /> {row.source?.reason || 'Not configured'}
                                   </span>
                                 ) : (
-                                  <span className="text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md font-mono">
+                                  <span className="text-[11px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md font-mono">
                                     {row.source?.model || 'Ledger'}
                                   </span>
                                 )}
@@ -547,8 +547,8 @@ const BalanceSheet = () => {
                   </div>
 
                   {/* Cash Change Question & Interactive Submission Box */}
-                  <div className="mt-10 pt-6 border-t border-slate-200 max-w-xl print:hidden">
-                    <p className="text-sm font-bold text-slate-900 mb-3">
+                  <div className="mt-10 pt-6 border-t border-slate-200 dark:border-slate-800 max-w-xl print:hidden">
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-3">
                       What is the firm's total change in cash from the prior year to the current year?
                     </p>
                     <form onSubmit={handleCalculateSubmit} className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -557,22 +557,22 @@ const BalanceSheet = () => {
                         value={userAnswer}
                         onChange={(e) => setUserAnswer(e.target.value)}
                         placeholder="Enter amount (e.g. 5200)"
-                        className="bg-white border border-slate-300 rounded-lg px-3.5 py-1.5 text-sm font-mono outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 w-64 shadow-inner"
+                        className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg px-3.5 py-1.5 text-sm font-mono outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 w-64 shadow-inner"
                       />
                       <button
                         type="submit"
-                        className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs"
+                        className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs"
                       >
                         Submit
                       </button>
                     </form>
-                    <p className="text-[11px] text-slate-500 italic mt-2">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 italic mt-2">
                       Answer format: Number: Round to: 0 decimal places. (Actual change: {fmtMoney(actualCashChange)})
                     </p>
 
                     {answerFeedback && (
                       <div className={`mt-3 p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
-                        answerFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                        answerFeedback.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60' : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60'
                       }`}>
                         <span>{answerFeedback.message}</span>
                       </div>
@@ -580,13 +580,13 @@ const BalanceSheet = () => {
                   </div>
 
                   {/* PDF Footnotes Section */}
-                  <div className="mt-8 pt-4 border-t border-slate-200 text-[11px] text-slate-500">
-                    <div className="font-bold text-slate-700 mb-1">Source & Audit Footnotes:</div>
+                  <div className="mt-8 pt-4 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
+                    <div className="font-bold text-slate-700 dark:text-slate-300 mb-1">Source & Audit Footnotes:</div>
                     <ul className="list-disc pl-4 space-y-0.5">
                       <li>Cash is computed from verified CashAccount opening balances and signed CashLedgerEntry transactions.</li>
                       <li>Receivables and Payables reflect outstanding invoice and vendor balances as of period end.</li>
                       {categoriesList.filter(c => c.source?.type === 'unavailable').map(c => (
-                        <li key={c.category} className="text-amber-850">
+                        <li key={c.category} className="text-amber-850 dark:text-amber-400">
                           <strong>{c.category}</strong>: {c.source.reason}
                         </li>
                       ))}
@@ -625,11 +625,11 @@ const BalanceSheet = () => {
               </div>
 
               {/* Dual Ledger Breakdown Container */}
-              <div className="bg-white shadow-sm hover:shadow-md transition-all duration-300 rounded-2xl border border-slate-200/80 overflow-hidden mb-12 p-8 print:shadow-none print:border-0">
+              <div className="bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all duration-300 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden mb-12 p-8 print:shadow-none print:border-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   
                   {/* Assets Panel (Left Column) */}
-                  <div className="border border-slate-250/70 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  <div className="border border-slate-250/70 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                     <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-4 font-bold text-white flex justify-between items-center">
                       <span className="flex items-center gap-2">
                         <FaUniversity size={14} className="text-blue-400" /> Assets
@@ -641,18 +641,18 @@ const BalanceSheet = () => {
                         <EmptyPanelRows message="No assets recorded for this period." />
                       ) : (
                         assetsRows.map(([label, value]) => (
-                          <div key={label} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 px-2 rounded-lg transition-colors capitalize">
-                            <span className="text-slate-600 font-semibold text-sm flex items-center gap-2">
+                          <div key={label} className="flex justify-between items-center py-2 border-b border-slate-50 dark:border-slate-800 last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 px-2 rounded-lg transition-colors capitalize">
+                            <span className="text-slate-600 dark:text-slate-300 font-semibold text-sm flex items-center gap-2">
                               <FaRegFileAlt className="text-slate-400" size={11} />
                               {label}
                             </span>
-                            <span className="font-bold text-sm text-slate-950">{fmtMoney(value)}</span>
+                            <span className="font-bold text-sm text-slate-950 dark:text-slate-100">{fmtMoney(value)}</span>
                           </div>
                         ))
                       )}
-                      <div className="border-t-2 border-dashed border-slate-200 pt-4 flex justify-between items-center font-black text-slate-900 bg-slate-50/50 p-3 rounded-xl mt-4">
+                      <div className="border-t-2 border-dashed border-slate-200 dark:border-slate-700 pt-4 flex justify-between items-center font-black text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-800/50 p-3 rounded-xl mt-4">
                         <span className="text-sm">Total Assets</span>
-                        <span className="text-sm text-indigo-700">{fmtMoney(totalAssets)}</span>
+                        <span className="text-sm text-indigo-600 dark:text-indigo-400">{fmtMoney(totalAssets)}</span>
                       </div>
                     </div>
                   </div>
@@ -661,7 +661,7 @@ const BalanceSheet = () => {
                   <div className="space-y-6">
                     
                     {/* Liabilities Sub-Panel */}
-                    <div className="border border-slate-250/70 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                    <div className="border border-slate-250/70 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                       <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-4 font-bold text-white flex justify-between items-center">
                         <span className="flex items-center gap-2">
                           <FaCreditCard size={14} className="text-amber-400" /> Liabilities
@@ -673,24 +673,24 @@ const BalanceSheet = () => {
                           <EmptyPanelRows message="No liabilities recorded for this period." />
                         ) : (
                           liabilitiesRows.map(([label, value]) => (
-                            <div key={label} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 px-2 rounded-lg transition-colors capitalize">
-                              <span className="text-slate-600 font-semibold text-sm flex items-center gap-2">
+                            <div key={label} className="flex justify-between items-center py-2 border-b border-slate-50 dark:border-slate-800 last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 px-2 rounded-lg transition-colors capitalize">
+                              <span className="text-slate-600 dark:text-slate-300 font-semibold text-sm flex items-center gap-2">
                                 <FaRegFileAlt className="text-slate-400" size={11} />
                                 {label}
                               </span>
-                              <span className="font-bold text-sm text-slate-950">{fmtMoney(value)}</span>
+                              <span className="font-bold text-sm text-slate-950 dark:text-slate-100">{fmtMoney(value)}</span>
                             </div>
                           ))
                         )}
-                        <div className="border-t-2 border-dashed border-slate-200 pt-4 flex justify-between items-center font-black text-slate-900 bg-slate-50/50 p-3 rounded-xl mt-4">
+                        <div className="border-t-2 border-dashed border-slate-200 dark:border-slate-700 pt-4 flex justify-between items-center font-black text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-800/50 p-3 rounded-xl mt-4">
                           <span className="text-sm">Total Liabilities</span>
-                          <span className="text-sm text-amber-700">{fmtMoney(totalLiabilities)}</span>
+                          <span className="text-sm text-amber-600 dark:text-amber-400">{fmtMoney(totalLiabilities)}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Equity Sub-Panel */}
-                    <div className="border border-slate-250/70 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-emerald-50/10">
+                    <div className="border border-slate-250/70 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-emerald-50/10 dark:bg-emerald-950/10">
                       <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-4 font-bold text-white flex justify-between items-center">
                         <span className="flex items-center gap-2">
                           <FaShieldAlt size={14} className="text-emerald-400" /> Shareholder Equity
@@ -698,16 +698,16 @@ const BalanceSheet = () => {
                         <span className="text-xs font-medium text-slate-400">Net Business Worth</span>
                       </div>
                       <div className="p-5">
-                        <div className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 px-2 rounded-lg transition-colors capitalize">
-                          <span className="text-slate-600 font-semibold text-sm flex items-center gap-2">
+                        <div className="flex justify-between items-center py-2 border-b border-slate-50 dark:border-slate-800 last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 px-2 rounded-lg transition-colors capitalize">
+                          <span className="text-slate-600 dark:text-slate-300 font-semibold text-sm flex items-center gap-2">
                             <FaRegFileAlt className="text-slate-400" size={11} />
                             Accumulated Retained Earnings
                           </span>
-                          <span className="font-bold text-sm text-slate-950">{fmtMoney(equity)}</span>
+                          <span className="font-bold text-sm text-slate-950 dark:text-slate-100">{fmtMoney(equity)}</span>
                         </div>
-                        <div className="border-t-2 border-dashed border-slate-200 pt-4 flex justify-between items-center font-black text-slate-900 bg-slate-100/60 p-3 rounded-xl mt-4">
+                        <div className="border-t-2 border-dashed border-slate-200 dark:border-slate-700 pt-4 flex justify-between items-center font-black text-slate-900 dark:text-slate-100 bg-slate-100/60 dark:bg-slate-800/60 p-3 rounded-xl mt-4">
                           <span className="text-sm">Total Owner Equity</span>
-                          <span className="text-sm text-emerald-700">{fmtMoney(equity)}</span>
+                          <span className="text-sm text-emerald-600 dark:text-emerald-400">{fmtMoney(equity)}</span>
                         </div>
                       </div>
                     </div>
@@ -724,34 +724,34 @@ const BalanceSheet = () => {
       {/* QUICK EQUITY TRANSACTION MODAL */}
       {isEquityModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 relative">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 relative">
             <button
               onClick={() => setIsEquityModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              className="absolute top-4 right-4 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 p-1 cursor-pointer"
             >
               <FaTimes size={16} />
             </button>
 
-            <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2 mb-1">
-              <FaShieldAlt className="text-emerald-600" /> Record Equity Transaction
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2 mb-1">
+              <FaShieldAlt className="text-emerald-600 dark:text-emerald-400" /> Record Equity Transaction
             </h3>
-            <p className="text-xs text-slate-500 mb-5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
               Add genuine paid-in capital or common stock to populate shareholder equity lines on your balance sheet.
             </p>
 
             {equityModalError && (
-              <div className="mb-4 p-3 bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl">
+              <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold rounded-xl">
                 {equityModalError}
               </div>
             )}
 
             <form onSubmit={handleEquitySubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Transaction Type</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Transaction Type</label>
                 <select
                   value={equityForm.type}
                   onChange={(e) => setEquityForm({ ...equityForm, type: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-indigo-600 focus:bg-white"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800"
                 >
                   <option value="owner_contribution">Owner / Shareholder Contribution</option>
                   <option value="share_issuance">Share Issuance (Auto-calculates Common Stock & APIC)</option>
@@ -765,7 +765,7 @@ const BalanceSheet = () => {
                 <>
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Shares</label>
+                      <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Shares</label>
                       <input
                         type="number"
                         required
@@ -774,11 +774,11 @@ const BalanceSheet = () => {
                         placeholder="e.g. 1000"
                         value={equityForm.shares}
                         onChange={(e) => setEquityForm({ ...equityForm, shares: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-indigo-600 focus:bg-white"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Price / Share (₹)</label>
+                      <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Price / Share (₹)</label>
                       <input
                         type="number"
                         required
@@ -787,11 +787,11 @@ const BalanceSheet = () => {
                         placeholder="e.g. 100"
                         value={equityForm.pricePerShare}
                         onChange={(e) => setEquityForm({ ...equityForm, pricePerShare: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-indigo-600 focus:bg-white"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Par Value (₹)</label>
+                      <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Par Value (₹)</label>
                       <input
                         type="number"
                         required
@@ -800,23 +800,23 @@ const BalanceSheet = () => {
                         placeholder="e.g. 10"
                         value={equityForm.parValue}
                         onChange={(e) => setEquityForm({ ...equityForm, parValue: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-indigo-600 focus:bg-white"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800"
                       />
                     </div>
                   </div>
 
                   {/* Live Split Calculation Box */}
                   {Number(equityForm.shares) > 0 && Number(equityForm.pricePerShare) > 0 && (
-                    <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 text-xs space-y-1">
-                      <div className="font-bold text-emerald-950 flex justify-between">
+                    <div className="bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl p-3 text-xs space-y-1">
+                      <div className="font-bold text-emerald-950 dark:text-emerald-200 flex justify-between">
                         <span>Total Capital Proceeds:</span>
                         <span>{fmtMoney((Number(equityForm.shares) || 0) * (Number(equityForm.pricePerShare) || 0))}</span>
                       </div>
-                      <div className="text-slate-600 flex justify-between text-[11px]">
+                      <div className="text-slate-600 dark:text-slate-300 flex justify-between text-[11px]">
                         <span>➜ Common Stock (Par):</span>
                         <span>{fmtMoney(Math.min((Number(equityForm.shares) || 0) * (Number(equityForm.pricePerShare) || 0), (Number(equityForm.shares) || 0) * (Number(equityForm.parValue) || 10)))}</span>
                       </div>
-                      <div className="text-slate-600 flex justify-between text-[11px]">
+                      <div className="text-slate-600 dark:text-slate-300 flex justify-between text-[11px]">
                         <span>➜ Additional Paid-in Capital (APIC):</span>
                         <span>{fmtMoney(Math.max(0, ((Number(equityForm.shares) || 0) * (Number(equityForm.pricePerShare) || 0)) - ((Number(equityForm.shares) || 0) * (Number(equityForm.parValue) || 10))))}</span>
                       </div>
@@ -825,7 +825,7 @@ const BalanceSheet = () => {
                 </>
               ) : (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     {equityForm.type === 'owner_distribution' ? 'Distribution Amount (₹)' : 'Contribution Amount (₹)'}
                   </label>
                   <input
@@ -836,30 +836,30 @@ const BalanceSheet = () => {
                     placeholder="e.g. 50000"
                     value={equityForm.amount}
                     onChange={(e) => setEquityForm({ ...equityForm, amount: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-sm font-mono outline-none focus:border-indigo-600 focus:bg-white"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3.5 py-2 text-sm font-mono outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Transaction Date</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Transaction Date</label>
                 <input
                   type="date"
                   required
                   value={equityForm.date}
                   onChange={(e) => setEquityForm({ ...equityForm, date: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs outline-none focus:border-indigo-600 focus:bg-white"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3.5 py-2 text-xs outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Notes / Reference (Optional)</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Notes / Reference (Optional)</label>
                 <input
                   type="text"
                   placeholder="e.g. Founder initial capital deposit"
                   value={equityForm.notes}
                   onChange={(e) => setEquityForm({ ...equityForm, notes: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs outline-none focus:border-indigo-600 focus:bg-white"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3.5 py-2 text-xs outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800"
                 />
               </div>
 
@@ -867,7 +867,7 @@ const BalanceSheet = () => {
                 <button
                   type="button"
                   onClick={() => setIsEquityModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -887,42 +887,42 @@ const BalanceSheet = () => {
       {/* QUICK ACCRUAL ENTRY MODAL */}
       {isAccrualModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 relative">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 relative">
             <button
               onClick={() => setIsAccrualModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              className="absolute top-4 right-4 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 p-1 cursor-pointer"
             >
               <FaTimes size={16} />
             </button>
 
-            <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2 mb-1">
-              <FaCreditCard className="text-indigo-600" /> Record Accrual Entry
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2 mb-1">
+              <FaCreditCard className="text-indigo-600 dark:text-indigo-400" /> Record Accrual Entry
             </h3>
-            <p className="text-xs text-slate-500 mb-5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
               Record recognized obligations and unbilled expenses to accurately populate the Accruals balance sheet line.
             </p>
 
             {accrualModalError && (
-              <div className="mb-4 p-3 bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl">
+              <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold rounded-xl">
                 {accrualModalError}
               </div>
             )}
 
             <form onSubmit={handleAccrualSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Unbilled December Electricity & Utilities"
                   value={accrualForm.description}
                   onChange={(e) => setAccrualForm({ ...accrualForm, description: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs outline-none focus:border-indigo-600 focus:bg-white"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3.5 py-2 text-xs outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Accrual Amount (₹)</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Accrual Amount (₹)</label>
                 <input
                   type="number"
                   required
@@ -931,27 +931,27 @@ const BalanceSheet = () => {
                   placeholder="e.g. 15000"
                   value={accrualForm.amount}
                   onChange={(e) => setAccrualForm({ ...accrualForm, amount: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-sm font-mono outline-none focus:border-indigo-600 focus:bg-white"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3.5 py-2 text-sm font-mono outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Accrual Date</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Accrual Date</label>
                 <input
                   type="date"
                   required
                   value={accrualForm.date}
                   onChange={(e) => setAccrualForm({ ...accrualForm, date: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs outline-none focus:border-indigo-600 focus:bg-white"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3.5 py-2 text-xs outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Status</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Status</label>
                 <select
                   value={accrualForm.status}
                   onChange={(e) => setAccrualForm({ ...accrualForm, status: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-indigo-600 focus:bg-white"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800"
                 >
                   <option value="accrued">Accrued (Active Obligation)</option>
                   <option value="settled">Settled</option>
@@ -960,13 +960,13 @@ const BalanceSheet = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Notes (Optional)</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Notes (Optional)</label>
                 <input
                   type="text"
                   placeholder="e.g. Estimate based on historical monthly billing"
                   value={accrualForm.notes}
                   onChange={(e) => setAccrualForm({ ...accrualForm, notes: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs outline-none focus:border-indigo-600 focus:bg-white"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-3.5 py-2 text-xs outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800"
                 />
               </div>
 
@@ -974,7 +974,7 @@ const BalanceSheet = () => {
                 <button
                   type="button"
                   onClick={() => setIsAccrualModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -995,7 +995,7 @@ const BalanceSheet = () => {
 };
 
 const EmptyPanelRows = ({ message }) => (
-  <div className="py-8 text-center text-slate-400 text-sm font-semibold flex items-center justify-center gap-2 bg-slate-50/40 border border-dashed border-slate-200 rounded-xl">
+  <div className="py-8 text-center text-slate-400 dark:text-slate-500 text-sm font-semibold flex items-center justify-center gap-2 bg-slate-50/40 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
     <FaInbox size={14} />
     <span>{message}</span>
   </div>
@@ -1004,31 +1004,31 @@ const EmptyPanelRows = ({ message }) => (
 const StatCard = ({ title, amount, color, icon: Icon, subtitle, isGrand = false }) => {
   const THEME_MAP = {
     blue: {
-      accent: 'bg-blue-605',
-      iconContainer: 'bg-blue-50 text-blue-600 border-blue-100',
-      amountText: 'text-blue-900',
+      accent: 'bg-blue-600',
+      iconContainer: 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-900/60',
+      amountText: 'text-blue-900 dark:text-blue-300',
     },
     amber: {
       accent: 'bg-amber-500',
-      iconContainer: 'bg-amber-50 text-amber-600 border-amber-100',
-      amountText: 'text-amber-900',
+      iconContainer: 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-900/60',
+      amountText: 'text-amber-900 dark:text-amber-300',
     },
     emerald: {
       accent: 'bg-emerald-600',
-      iconContainer: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-      amountText: 'text-emerald-900',
+      iconContainer: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-900/60',
+      amountText: 'text-emerald-900 dark:text-emerald-300',
     },
   };
 
   const currentTheme = THEME_MAP[color] || THEME_MAP.blue;
 
   return (
-    <div className="relative overflow-hidden p-6 bg-white rounded-2xl border border-slate-200/70 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between min-h-[148px]">
+    <div className="relative overflow-hidden p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between min-h-[148px]">
       <div className={`absolute top-0 left-0 w-full h-[3.5px] ${currentTheme.accent}`}></div>
 
       <div>
         <div className="flex items-center justify-between gap-3 mb-2">
-          <span className="text-xs font-bold tracking-wider text-slate-450 uppercase">{title}</span>
+          <span className="text-xs font-bold tracking-wider text-slate-450 dark:text-slate-400 uppercase">{title}</span>
           {Icon && (
             <span className={`w-8 h-8 rounded-lg border flex items-center justify-center ${currentTheme.iconContainer}`}>
               <Icon size={14} />
@@ -1036,14 +1036,14 @@ const StatCard = ({ title, amount, color, icon: Icon, subtitle, isGrand = false 
           )}
         </div>
 
-        <div className={`text-3xl font-black ${isGrand ? 'text-slate-950 font-black' : currentTheme.amountText} tracking-tight`}>
+        <div className={`text-3xl font-black ${isGrand ? 'text-slate-950 dark:text-slate-100 font-black' : currentTheme.amountText} tracking-tight`}>
           <span className="text-lg font-bold text-slate-400 mr-0.5">₹</span>
           {Number(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
       </div>
 
       {subtitle && (
-        <span className="text-[11px] text-slate-400 font-semibold mt-3 flex items-center gap-1">
+        <span className="text-[11px] text-slate-400 dark:text-slate-400 font-semibold mt-3 flex items-center gap-1">
           {subtitle}
         </span>
       )}

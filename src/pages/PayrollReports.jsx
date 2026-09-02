@@ -42,82 +42,82 @@ const MultiSelect = ({ label, options, selected, onChange, placeholder = "Select
 
   return (
     <div className="relative select-none" ref={containerRef}>
-      <label className="block text-xs font-bold uppercase tracking-wider text-indigo-400 mb-2">{label}</label>
+      <label className="block text-xs font-bold uppercase tracking-wider text-indigo-500 dark:text-indigo-400 mb-2">{label}</label>
 
       {/* Trigger Area */}
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full border border-white/60 rounded-xl px-3.5 py-2.5 text-sm bg-white/90 text-gray-900 font-semibold cursor-pointer focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all flex items-center justify-between min-h-[46px]"
+        className="w-full border border-gray-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 font-semibold cursor-pointer focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all flex items-center justify-between min-h-[46px]"
       >
         <div className="flex flex-wrap gap-1.5 max-h-[80px] overflow-y-auto no-scrollbar py-0.5">
           {selected.length === 0 ? (
-            <span className="text-gray-500 font-medium">{placeholder}</span>
+            <span className="text-gray-400 dark:text-slate-500 font-medium">{placeholder}</span>
           ) : (
             selected.map(val => {
               const opt = options.find(o => o.value === val);
               return (
                 <span
                   key={val}
-                  className="inline-flex items-center gap-1 bg-indigo-100 text-indigo-900 px-2 py-0.5 rounded-lg text-xs font-bold border border-indigo-300 shadow-sm"
+                  className="inline-flex items-center gap-1 bg-indigo-100 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-300 px-2 py-0.5 rounded-lg text-xs font-bold border border-indigo-300 dark:border-indigo-800 shadow-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleOption(val);
                   }}
                 >
                   {opt ? opt.label : val}
-                  <button className="hover:text-indigo-900 font-bold focus:outline-none ml-1 text-xs">&times;</button>
+                  <button className="hover:text-indigo-900 dark:hover:text-indigo-100 font-bold focus:outline-none ml-1 text-xs">&times;</button>
                 </span>
               );
             })
           )}
         </div>
-        <span className="text-gray-500 ml-2 select-none text-[10px] font-bold">
+        <span className="text-gray-400 dark:text-slate-500 ml-2 select-none text-[10px] font-bold">
           {isOpen ? '▲' : '▼'}
         </span>
       </div>
 
       {/* Options Dropdown Menu - Solid High Contrast Background */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-white border border-gray-300 rounded-2xl shadow-2xl overflow-hidden animate-rise-in max-h-[300px] flex flex-col">
+        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-rise-in max-h-[300px] flex flex-col">
           {/* Action Header Controls */}
-          <div className="p-2.5 border-b border-gray-200 flex items-center justify-between text-xs bg-slate-50 select-none">
+          <div className="p-2.5 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-900 select-none">
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); selectAll(); }}
-                className="text-indigo-700 hover:text-indigo-900 font-extrabold px-2 py-1 rounded-lg hover:bg-indigo-50 transition-all duration-150"
+                className="text-indigo-700 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 font-extrabold px-2 py-1 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-all duration-150"
               >
                 Select All
               </button>
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); deselectAll(); }}
-                className="text-slate-700 hover:text-slate-900 font-extrabold px-2 py-1 rounded-lg hover:bg-slate-100 transition-all duration-150"
+                className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 font-extrabold px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-150"
               >
                 Clear
               </button>
             </div>
-            <span className="text-slate-700 font-extrabold bg-slate-100 px-2 py-0.5 rounded-md">{selected.length} selected</span>
+            <span className="text-slate-700 dark:text-slate-300 font-extrabold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">{selected.length} selected</span>
           </div>
 
           {/* Search box if enabled */}
           {searchable && (
-            <div className="p-2 border-b border-gray-200 bg-white">
+            <div className="p-2 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
               <input
                 type="text"
                 placeholder="Search..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs bg-slate-50 outline-none focus:border-indigo-500 focus:bg-white transition-all font-bold text-gray-900"
+                className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 outline-none focus:border-indigo-500 text-gray-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all font-bold"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
           )}
 
           {/* Scrolling Options Panel */}
-          <div className="overflow-y-auto flex-1 no-scrollbar p-1 max-h-[200px] bg-white">
+          <div className="overflow-y-auto flex-1 no-scrollbar p-1 max-h-[200px] bg-white dark:bg-slate-800">
             {filteredOptions.length === 0 ? (
-              <div className="p-3 text-center text-xs text-slate-500 font-bold">No options found</div>
+              <div className="p-3 text-center text-xs text-slate-500 dark:text-slate-400 font-bold">No options found</div>
             ) : (
               filteredOptions.map(opt => {
                 const isChecked = selected.includes(opt.value);
@@ -127,7 +127,7 @@ const MultiSelect = ({ label, options, selected, onChange, placeholder = "Select
                     onClick={(e) => { e.stopPropagation(); toggleOption(opt.value); }}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${isChecked
                       ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'text-slate-900 hover:bg-slate-100 bg-white'
+                      : 'text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 bg-white dark:bg-slate-800'
                       }`}
                   >
                     <input
@@ -473,17 +473,17 @@ const PayrollReports = () => {
   }
 
   return (
-    <div className="glass-water-bg min-h-full p-4 sm:p-6 font-sans">
+    <div className="min-h-full p-4 sm:p-6 font-sans text-slate-900 dark:text-slate-100 transition-colors">
       {/* Header */}
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between animate-rise-in">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-800">Payroll Reports</h1>
-          <p className="text-gray-400 text-sm mt-1">Generate month-end payroll sheets, bank transfer files, and compliance registers.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-slate-100 tracking-tight">Payroll Reports</h1>
+          <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">Generate month-end payroll sheets, bank transfer files, and compliance registers.</p>
         </div>
       </div>
 
       {/* Premium Multi-Select Control Panel Card */}
-      <div className="glass-water-card p-5 mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-rise-in relative z-30">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-5 mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-rise-in relative z-30 transition-colors">
         <div className="relative">
           <MultiSelect
             label="Select Month"
@@ -580,10 +580,10 @@ const PayrollReports = () => {
 };
 
 const ReportCard = ({ title, description, onClick, loading, actions }) => (
-  <div className="glass-water-card p-6 flex flex-col justify-between hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group">
+  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md p-6 flex flex-col justify-between hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 group">
     <div>
-      <h2 className="text-lg font-extrabold text-gray-800 group-hover:text-indigo-600 transition-colors duration-300">{title}</h2>
-      <p className="mt-2 text-xs text-gray-400 font-semibold leading-relaxed min-h-[40px]">{description}</p>
+      <h2 className="text-lg font-extrabold text-gray-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">{title}</h2>
+      <p className="mt-2 text-xs text-gray-500 dark:text-slate-400 font-semibold leading-relaxed min-h-[40px]">{description}</p>
     </div>
     <div className="mt-5 space-y-2">
       {actions ? (
@@ -592,19 +592,19 @@ const ReportCard = ({ title, description, onClick, loading, actions }) => (
             key={idx}
             onClick={act.onClick}
             disabled={act.loading}
-            className={`w-full active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all duration-250 disabled:opacity-60 ${
+            className={`w-full active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all duration-250 disabled:opacity-60 cursor-pointer ${
               act.variant === 'secondary'
-                ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'
+                ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
                 : act.variant === 'accent'
-                ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
-                : 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-100'
+                ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20'
+                : 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/20'
             }`}
           >
             <FaDownload className="text-[10px]" /> {act.loading ? 'Generating...' : act.label}
           </button>
         ))
       ) : (
-        <button onClick={onClick} disabled={loading} className="w-full bg-indigo-500 hover:bg-indigo-600 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-indigo-100 disabled:opacity-60 transition-all duration-200">
+        <button onClick={onClick} disabled={loading} className="w-full bg-indigo-500 hover:bg-indigo-600 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 disabled:opacity-60 transition-all duration-200 cursor-pointer">
           <FaDownload className="text-[10px]" /> {loading ? 'Generating Excel...' : 'Export Excel Sheet'}
         </button>
       )}

@@ -621,7 +621,7 @@ const EmployeePortal = () => {
   if (loading) {
     return (
       <div className="container mx-auto p-6 space-y-6">
-        <div className="flex justify-between items-center bg-white p-6 rounded-2xl border">
+        <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
           <Skeleton className="h-10 w-64" />
           <Skeleton className="h-10 w-48" />
         </div>
@@ -638,10 +638,10 @@ const EmployeePortal = () => {
 
   if (employees.length === 0) {
     return (
-      <div className="container mx-auto p-12 text-center bg-white rounded-3xl border border-gray-200 shadow-sm max-w-2xl">
+      <div className="container mx-auto p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-gray-200 dark:border-slate-800 shadow-sm max-w-2xl">
         <FaWallet size={48} className="mx-auto text-blue-500 mb-4" />
-        <h2 className="text-2xl font-bold text-gray-800">No Active Employees Registered</h2>
-        <p className="text-gray-500 mt-2">Before testing the Employee Self-Service portal, please add active employees under the Employee module.</p>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-slate-100">No Active Employees Registered</h2>
+        <p className="text-gray-500 dark:text-slate-400 mt-2">Before testing the Employee Self-Service portal, please add active employees under the Employee module.</p>
         <Link to="/employees/new" className="mt-6 inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow-sm">
           Add First Employee
         </Link>
@@ -759,7 +759,7 @@ const EmployeePortal = () => {
     .reduce((sum, l) => sum + l.remainingBalance, 0);
 
   return (
-    <div className="container mx-auto p-4 md:p-6 space-y-6 font-sans text-gray-900">
+    <div className="container mx-auto p-4 md:p-6 space-y-6 font-sans text-gray-900 dark:text-slate-100">
       
       {/* ── Dynamic Simulator Ribbon ── */}
       <div className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white rounded-2xl shadow-xl px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -805,38 +805,38 @@ const EmployeePortal = () => {
           {/* ── Metric Highlights ── */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-              <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">Monthly CTC</div>
-              <div className="text-2xl font-black mt-2 text-slate-800">{fmtMoney(employee.monthlyCTC)}</div>
-              <div className="text-[10px] text-emerald-600 font-medium mt-1">₹{(employee.monthlyCTC * 12).toLocaleString('en-IN')} Annual CTC</div>
-              <div className="absolute right-4 bottom-4 text-blue-100"><FaWallet size={40} /></div>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
+              <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-400">Monthly CTC</div>
+              <div className="text-2xl font-black mt-2 text-slate-800 dark:text-slate-100">{fmtMoney(employee.monthlyCTC)}</div>
+              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1">₹{(employee.monthlyCTC * 12).toLocaleString('en-IN')} Annual CTC</div>
+              <div className="absolute right-4 bottom-4 text-blue-100 dark:text-blue-950/40"><FaWallet size={40} /></div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-              <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">Net Take-Home (Est.)</div>
-              <div className="text-2xl font-black mt-2 text-emerald-600">{fmtMoney(salaryStructure?.netTakeHome)}</div>
-              <span className={`inline-block mt-1 text-[9px] font-bold px-2 py-0.5 rounded-full ${employee.taxRegime === 'new' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
+              <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-400">Net Take-Home (Est.)</div>
+              <div className="text-2xl font-black mt-2 text-emerald-600 dark:text-emerald-400">{fmtMoney(salaryStructure?.netTakeHome)}</div>
+              <span className={`inline-block mt-1 text-[9px] font-bold px-2 py-0.5 rounded-full ${employee.taxRegime === 'new' ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800' : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'}`}>
                 {employee.taxRegime === 'new' ? 'New Tax Regime' : 'Old Tax Regime'}
               </span>
-              <div className="absolute right-4 bottom-4 text-emerald-100"><FaFileInvoiceDollar size={40} /></div>
+              <div className="absolute right-4 bottom-4 text-emerald-100 dark:text-emerald-950/40"><FaFileInvoiceDollar size={40} /></div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-              <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">Loans Outstanding</div>
-              <div className="text-2xl font-black mt-2 text-slate-800">{fmtMoney(totalLoanBalance)}</div>
-              <div className="text-[10px] text-slate-500 mt-1">EMI: {fmtMoney(activeEMISum)}/month</div>
-              <div className="absolute right-4 bottom-4 text-amber-100"><FaHandHoldingUsd size={40} /></div>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
+              <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-400">Loans Outstanding</div>
+              <div className="text-2xl font-black mt-2 text-slate-800 dark:text-slate-100">{fmtMoney(totalLoanBalance)}</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">EMI: {fmtMoney(activeEMISum)}/month</div>
+              <div className="absolute right-4 bottom-4 text-amber-100 dark:text-amber-950/40"><FaHandHoldingUsd size={40} /></div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-              <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">Reimbursement Claims</div>
-              <div className="text-2xl font-black mt-2 text-slate-800">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
+              <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-400">Reimbursement Claims</div>
+              <div className="text-2xl font-black mt-2 text-slate-800 dark:text-slate-100">
                 {claims.filter(c => c.status === 'pending').length} Pending
               </div>
-              <div className="text-[10px] text-slate-500 mt-1">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                 Approved: {fmtMoney(claims.filter(c => c.status === 'approved').reduce((sum, c) => sum + c.amount, 0))}
               </div>
-              <div className="absolute right-4 bottom-4 text-purple-100"><FaReceipt size={40} /></div>
+              <div className="absolute right-4 bottom-4 text-purple-100 dark:text-purple-950/40"><FaReceipt size={40} /></div>
             </div>
 
           </div>
@@ -845,8 +845,8 @@ const EmployeePortal = () => {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             
             {/* Sidebar navigation */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm h-fit space-y-1">
-              <div className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Portal Menu</div>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm h-fit space-y-1">
+              <div className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 mb-2">Portal Menu</div>
               <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<FaWallet />} label="CTC Breakup & Regime" />
               <TabButton active={activeTab === 'declarations'} onClick={() => setActiveTab('declarations')} icon={<FaCalculator />} label="Tax & Declarations" />
               <TabButton active={activeTab === 'claims'} onClick={() => setActiveTab('claims')} icon={<FaReceipt />} label="Reimbursements" />
@@ -864,22 +864,22 @@ const EmployeePortal = () => {
                 <div className="space-y-6">
                   
                   {/* Regime Compare Panel */}
-                  <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                       <div>
-                        <h2 className="text-lg font-bold text-slate-800">Regime Selection (FY 2026-27)</h2>
-                        <p className="text-xs text-slate-500">Choose the optimal tax scheme. Standard deductions applied automatically.</p>
+                        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Regime Selection (FY 2026-27)</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Choose the optimal tax scheme. Standard deductions applied automatically.</p>
                       </div>
-                      <div className="flex bg-slate-100 p-1.5 rounded-xl border">
+                      <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
                         <button
                           onClick={() => handleRegimeChange('new')}
-                          className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${employee.taxRegime === 'new' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                          className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${employee.taxRegime === 'new' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                         >
                           New Regime
                         </button>
                         <button
                           onClick={() => handleRegimeChange('old')}
-                          className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${employee.taxRegime === 'old' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                          className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${employee.taxRegime === 'old' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                         >
                           Old Regime
                         </button>
@@ -887,62 +887,62 @@ const EmployeePortal = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className={`p-5 rounded-2xl border transition-all ${employee.taxRegime === 'new' ? 'bg-indigo-50/50 border-indigo-200' : 'bg-slate-50/50 border-slate-200'}`}>
-                        <h3 className="font-extrabold text-sm text-indigo-900 mb-4 flex items-center justify-between">
+                      <div className={`p-5 rounded-2xl border transition-all ${employee.taxRegime === 'new' ? 'bg-indigo-50/50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800/60' : 'bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800'}`}>
+                        <h3 className="font-extrabold text-sm text-indigo-900 dark:text-indigo-200 mb-4 flex items-center justify-between">
                           New Regime {employee.taxRegime === 'new' && <span className="bg-indigo-600 text-[9px] text-white px-2.5 py-0.5 rounded-full font-bold uppercase">Active</span>}
                         </h3>
                         <div className="space-y-2 text-xs">
-                          <div className="flex justify-between"><span className="text-slate-500">Gross Estimated Salary:</span><span className="font-semibold">{fmtMoney(salaryStructure?.totalEarnings)}</span></div>
-                          <div className="flex justify-between"><span className="text-slate-500">Standard Deduction:</span><span className="font-semibold">{fmtMoney(salaryStructure?.taxDetails.newRegime.standardDeduction)}</span></div>
-                          <div className="flex justify-between"><span className="text-slate-500">Taxable Income:</span><span className="font-semibold">{fmtMoney(salaryStructure?.taxDetails.newRegime.netTaxableIncome)}</span></div>
-                          <div className="flex justify-between border-t border-indigo-100 pt-2 font-bold"><span className="text-slate-700">Projected Monthly TDS:</span><span className="text-indigo-700">{fmtMoney(salaryStructure?.taxDetails.newRegime.monthlyTax)}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Gross Estimated Salary:</span><span className="font-semibold text-slate-800 dark:text-slate-200">{fmtMoney(salaryStructure?.totalEarnings)}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Standard Deduction:</span><span className="font-semibold text-slate-800 dark:text-slate-200">{fmtMoney(salaryStructure?.taxDetails.newRegime.standardDeduction)}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Taxable Income:</span><span className="font-semibold text-slate-800 dark:text-slate-200">{fmtMoney(salaryStructure?.taxDetails.newRegime.netTaxableIncome)}</span></div>
+                          <div className="flex justify-between border-t border-indigo-100 dark:border-indigo-900/60 pt-2 font-bold"><span className="text-slate-700 dark:text-slate-300">Projected Monthly TDS:</span><span className="text-indigo-700 dark:text-indigo-300">{fmtMoney(salaryStructure?.taxDetails.newRegime.monthlyTax)}</span></div>
                         </div>
                       </div>
 
-                      <div className={`p-5 rounded-2xl border transition-all ${employee.taxRegime === 'old' ? 'bg-amber-50/50 border-amber-200' : 'bg-slate-50/50 border-slate-200'}`}>
-                        <h3 className="font-extrabold text-sm text-amber-900 mb-4 flex items-center justify-between">
+                      <div className={`p-5 rounded-2xl border transition-all ${employee.taxRegime === 'old' ? 'bg-amber-50/50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/60' : 'bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800'}`}>
+                        <h3 className="font-extrabold text-sm text-amber-900 dark:text-amber-200 mb-4 flex items-center justify-between">
                           Old Regime {employee.taxRegime === 'old' && <span className="bg-amber-600 text-[9px] text-white px-2.5 py-0.5 rounded-full font-bold uppercase">Active</span>}
                         </h3>
                         <div className="space-y-2 text-xs">
-                          <div className="flex justify-between"><span className="text-slate-500">Gross Estimated Salary:</span><span className="font-semibold">{fmtMoney(salaryStructure?.totalEarnings)}</span></div>
-                          <div className="flex justify-between"><span className="text-slate-500">Standard &amp; Custom Deductions:</span><span className="font-semibold">{fmtMoney(salaryStructure?.taxDetails.oldRegime.totalDeductions)}</span></div>
-                          <div className="flex justify-between"><span className="text-slate-500">Taxable Income:</span><span className="font-semibold">{fmtMoney(salaryStructure?.taxDetails.oldRegime.netTaxableIncome)}</span></div>
-                          <div className="flex justify-between border-t border-amber-100 pt-2 font-bold"><span className="text-slate-700">Projected Monthly TDS:</span><span className="text-amber-700">{fmtMoney(salaryStructure?.taxDetails.oldRegime.monthlyTax)}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Gross Estimated Salary:</span><span className="font-semibold text-slate-800 dark:text-slate-200">{fmtMoney(salaryStructure?.totalEarnings)}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Standard &amp; Custom Deductions:</span><span className="font-semibold text-slate-800 dark:text-slate-200">{fmtMoney(salaryStructure?.taxDetails.oldRegime.totalDeductions)}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Taxable Income:</span><span className="font-semibold text-slate-800 dark:text-slate-200">{fmtMoney(salaryStructure?.taxDetails.oldRegime.netTaxableIncome)}</span></div>
+                          <div className="flex justify-between border-t border-amber-100 dark:border-amber-900/60 pt-2 font-bold"><span className="text-slate-700 dark:text-slate-300">Projected Monthly TDS:</span><span className="text-amber-700 dark:text-amber-300">{fmtMoney(salaryStructure?.taxDetails.oldRegime.monthlyTax)}</span></div>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* CTC Salary Structure Breakup */}
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                       <div>
-                        <h2 className="text-lg font-bold text-slate-800">Master CTC Compensation Structure</h2>
-                        <p className="text-xs text-slate-500">Monthly components projected under statutory regulations.</p>
+                        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Master CTC Compensation Structure</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Monthly components projected under statutory regulations.</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs bg-slate-100 border px-3 py-1 rounded-xl text-slate-600 font-semibold">
+                        <span className="text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1 rounded-xl text-slate-600 dark:text-slate-300 font-semibold">
                           Monthly CTC: {fmtMoney(employee.monthlyCTC)}
                         </span>
                         <button
                           type="button"
                           onClick={handleDownloadBreakup}
-                          className="bg-white border border-gray-300 hover:bg-gray-50 text-blue-600 px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold shadow-sm"
+                          className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold shadow-sm transition-colors"
                         >
                           <FaDownload size={10} /> Download Breakup
                         </button>
                       </div>
                     </div>
 
-                    <table className="w-full text-sm text-slate-700">
+                    <table className="w-full text-sm text-slate-700 dark:text-slate-200">
                       <thead>
-                        <tr className="bg-slate-55 border-b border-slate-200">
-                          <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Salary Component</th>
-                          <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Monthly Projection</th>
-                          <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Annual Equivalent</th>
+                        <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800">
+                          <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Salary Component</th>
+                          <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Monthly Projection</th>
+                          <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Annual Equivalent</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {allEarningComponents.map((c) => {
                           const val = getMasterComponentValue(salaryStructure, c.id);
                           const shouldShow = ['basic', 'hra', 'special'].includes(c.id) || val > 0;
@@ -965,10 +965,10 @@ const EmployeePortal = () => {
                         })}
                         {salaryStructure?.employerNPS > 0 && <StructureRow label="Employer NPS Contribution" val={salaryStructure?.employerNPS} />}
                         
-                        <tr className="bg-slate-50/50 font-bold border-t border-b border-slate-200">
-                          <td className="px-6 py-3 text-slate-900">Gross Salary (Total Earnings)</td>
-                          <td className="px-6 py-3 text-right text-slate-900">{fmtMoney(salaryStructure?.totalEarnings)}</td>
-                          <td className="px-6 py-3 text-right text-slate-900">₹{(salaryStructure?.totalEarnings * 12).toLocaleString('en-IN')}</td>
+                        <tr className="bg-slate-50/50 dark:bg-slate-800/40 font-bold border-t border-b border-slate-200 dark:border-slate-800">
+                          <td className="px-6 py-3 text-slate-900 dark:text-slate-100">Gross Salary (Total Earnings)</td>
+                          <td className="px-6 py-3 text-right text-slate-900 dark:text-slate-100">{fmtMoney(salaryStructure?.totalEarnings)}</td>
+                          <td className="px-6 py-3 text-right text-slate-900 dark:text-slate-100">₹{(salaryStructure?.totalEarnings * 12).toLocaleString('en-IN')}</td>
                         </tr>
 
                         <StructureRow label={config?.pfCalculationType === 'fixed' ? "Employer PF (Fixed)" : "Employer PF (12% of Basic)"} val={salaryStructure?.pfEmployer} isContribution />
@@ -977,11 +977,11 @@ const EmployeePortal = () => {
                         {salaryStructure?.lwfEmployer > 0 && <StructureRow label="Labor Welfare Fund (Employer)" val={salaryStructure?.lwfEmployer} isContribution />}
                         <StructureRow label="Corporate Medical Insurance" val={salaryStructure?.insurance} isContribution />
 
-                        <tr className="bg-slate-900 text-white font-bold">
+                        <tr className="bg-slate-900 dark:bg-slate-950 text-white font-bold border-t border-slate-700 dark:border-slate-800">
                           <td className="px-6 py-4">Total Employer Cost (Stated CTC)</td>
                           <td className="px-6 py-4 text-right">{fmtMoney(salaryStructure?.grossTotalSalary)}</td>
                           <td className="px-6 py-4 text-right">₹{(salaryStructure?.grossTotalSalary * 12).toLocaleString('en-IN')}</td>
-        </tr>
+                        </tr>
                       </tbody>
                     </table>
                   </div>
@@ -998,13 +998,13 @@ const EmployeePortal = () => {
 
                 return (
                   <div className="space-y-6">
-                    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                      <div className="flex justify-between items-start border-b border-slate-100 pb-4 mb-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                      <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
                         <div>
-                          <h2 className="text-lg font-bold text-slate-800">Form 12BB Investment & Tax Declarations</h2>
-                          <p className="text-xs text-slate-500">Provide projections for Section 80C, 80D, Sec 24b, and monthly rent details.</p>
+                          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Form 12BB Investment &amp; Tax Declarations</h2>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Provide projections for Section 80C, 80D, Sec 24b, and monthly rent details.</p>
                         </div>
-                        <span className="bg-blue-100 text-blue-800 text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full border border-blue-200">
+                        <span className="bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full border border-blue-200 dark:border-blue-800">
                           FY 2026-27 Projections
                         </span>
                       </div>
@@ -1012,10 +1012,10 @@ const EmployeePortal = () => {
                       <form onSubmit={handleDeclarationSubmit} className="space-y-6">
                         {/* Tax Regime Selector */}
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Tax Regime Preference</label>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Tax Regime Preference</label>
                           <div className="flex gap-4">
-                            <label className={`flex items-center gap-3 cursor-pointer border rounded-xl px-4 py-3 hover:bg-slate-50 transition-colors w-1/2 ${
-                              decForm.taxRegime === 'new' ? 'border-blue-500 bg-blue-50/20' : 'border-slate-200 bg-white'
+                            <label className={`flex items-center gap-3 cursor-pointer border rounded-xl px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors w-1/2 ${
+                              decForm.taxRegime === 'new' ? 'border-blue-500 bg-blue-50/20 dark:bg-blue-950/40' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40'
                             }`}>
                               <input
                                 type="radio"
@@ -1023,15 +1023,15 @@ const EmployeePortal = () => {
                                 value="new"
                                 checked={decForm.taxRegime === 'new'}
                                 onChange={() => handleDecFormChange('taxRegime', 'new')}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300"
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600"
                               />
                               <div>
-                                <span className="text-sm font-bold text-slate-800">New Tax Regime</span>
-                                <p className="text-[10px] text-slate-500">Lower tax slabs, standard deduction of ₹75,000</p>
+                                <span className="text-sm font-bold text-slate-800 dark:text-slate-100">New Tax Regime</span>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400">Lower tax slabs, standard deduction of ₹75,000</p>
                               </div>
                             </label>
-                            <label className={`flex items-center gap-3 cursor-pointer border rounded-xl px-4 py-3 hover:bg-slate-50 transition-colors w-1/2 ${
-                              decForm.taxRegime === 'old' ? 'border-blue-500 bg-blue-50/20' : 'border-slate-200 bg-white'
+                            <label className={`flex items-center gap-3 cursor-pointer border rounded-xl px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors w-1/2 ${
+                              decForm.taxRegime === 'old' ? 'border-blue-500 bg-blue-50/20 dark:bg-blue-950/40' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40'
                             }`}>
                               <input
                                 type="radio"
@@ -1039,11 +1039,11 @@ const EmployeePortal = () => {
                                 value="old"
                                 checked={decForm.taxRegime === 'old'}
                                 onChange={() => handleDecFormChange('taxRegime', 'old')}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300"
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600"
                               />
                               <div>
-                                <span className="text-sm font-bold text-slate-800">Old Tax Regime</span>
-                                <p className="text-[10px] text-slate-500">Allows multiple deductions (80C, 80D, HRA exemption)</p>
+                                <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Old Tax Regime</span>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400">Allows multiple deductions (80C, 80D, HRA exemption)</p>
                               </div>
                             </label>
                           </div>
@@ -1051,15 +1051,15 @@ const EmployeePortal = () => {
 
                         {/* Monthly Rent and Metro residency */}
                         {decForm.taxRegime === 'old' && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
                             <div>
-                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Monthly Rent Paid (₹)</label>
+                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Monthly Rent Paid (₹)</label>
                               <input
                                 type="number"
                                 min="0"
                                 value={decForm.rentPaidMonthly || ''}
                                 onChange={(e) => handleDecFormChange('rentPaidMonthly', Number(e.target.value) || 0)}
-                                className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
                                 placeholder="e.g. 15000"
                               />
                             </div>
@@ -1071,11 +1071,11 @@ const EmployeePortal = () => {
                                     type="checkbox"
                                     checked={!!decForm.isMetroCity}
                                     onChange={(e) => handleDecFormChange('isMetroCity', e.target.checked)}
-                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    className="h-4 w-4 rounded border-gray-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
                                   />
                                   <div>
-                                    <span className="text-sm font-bold text-slate-800">Metro City Resident</span>
-                                    <p className="text-[10px] text-slate-500">Delhi, Mumbai, Kolkata, or Chennai (50% HRA exempt, else 40%)</p>
+                                    <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Metro City Resident</span>
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">Delhi, Mumbai, Kolkata, or Chennai (50% HRA exempt, else 40%)</p>
                                   </div>
                                 </label>
                               </div>
@@ -1084,78 +1084,78 @@ const EmployeePortal = () => {
                         )}
 
                         {/* Section 80C */}
-                        <div className="border-t border-slate-100 pt-4 space-y-4">
+                        <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-4">
                           <div className="flex justify-between items-center">
                             <div>
-                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Section 80C (Max ₹1,50,000)</label>
-                              <p className="text-[10px] text-slate-400">Sum of sub-investments: EPF, PPF, ELSS, LIC, Home Loan Principal</p>
+                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Section 80C (Max ₹1,50,000)</label>
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500">Sum of sub-investments: EPF, PPF, ELSS, LIC, Home Loan Principal</p>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-extrabold text-slate-800">Total: ₹{(decForm.section80C || 0).toLocaleString('en-IN')}</span>
-                              <span className="text-xs text-slate-400">/ 1,50,000</span>
+                              <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100">Total: ₹{(decForm.section80C || 0).toLocaleString('en-IN')}</span>
+                              <span className="text-xs text-slate-400 dark:text-slate-500">/ 1,50,000</span>
                             </div>
                           </div>
                           
-                          <div className="w-full bg-slate-100 rounded-full h-2">
+                          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
                             <div
                               className={`h-2 rounded-full transition-all duration-300 ${decForm.section80C >= 150000 ? 'bg-emerald-500' : 'bg-blue-500'}`}
                               style={{ width: `${Math.min((decForm.section80C / 150000) * 100, 100)}%` }}
                             ></div>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-slate-50/50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 mb-1">EPF (₹)</label>
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">EPF (₹)</label>
                               <input
                                 type="number"
                                 min="0"
                                 value={decForm.epf || ''}
                                 onChange={(e) => handleDecFormChange('epf', Number(e.target.value) || 0)}
-                                className="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                                className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
                                 placeholder="0"
                               />
                             </div>
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 mb-1">PPF (₹)</label>
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">PPF (₹)</label>
                               <input
                                 type="number"
                                 min="0"
                                 value={decForm.ppf || ''}
                                 onChange={(e) => handleDecFormChange('ppf', Number(e.target.value) || 0)}
-                                className="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                                className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
                                 placeholder="0"
                               />
                             </div>
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 mb-1">ELSS (₹)</label>
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">ELSS (₹)</label>
                               <input
                                 type="number"
                                 min="0"
                                 value={decForm.elss || ''}
                                 onChange={(e) => handleDecFormChange('elss', Number(e.target.value) || 0)}
-                                className="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                                className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
                                 placeholder="0"
                               />
                             </div>
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 mb-1">LIC Premium (₹)</label>
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">LIC Premium (₹)</label>
                               <input
                                 type="number"
                                 min="0"
                                 value={decForm.lic || ''}
                                 onChange={(e) => handleDecFormChange('lic', Number(e.target.value) || 0)}
-                                className="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                                className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
                                 placeholder="0"
                               />
                             </div>
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 mb-1">Home Loan (₹)</label>
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Home Loan (₹)</label>
                               <input
                                 type="number"
                                 min="0"
                                 value={decForm.homeLoanPrincipal || ''}
                                 onChange={(e) => handleDecFormChange('homeLoanPrincipal', Number(e.target.value) || 0)}
-                                className="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                                className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
                                 placeholder="0"
                               />
                             </div>
@@ -1163,67 +1163,67 @@ const EmployeePortal = () => {
                         </div>
 
                         {/* Section 80D, 24b, 80CCD, Other Exemptions */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
                           <div>
                             <div className="flex justify-between mb-1">
-                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Section 80D (Health Insurance - Max ₹25K)</label>
-                              <span className="text-xs text-slate-400">Max: ₹25,000</span>
+                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Section 80D (Health Insurance - Max ₹25K)</label>
+                              <span className="text-xs text-slate-400 dark:text-slate-500">Max: ₹25,000</span>
                             </div>
                             <input
                               type="number"
                               min="0"
                               value={decForm.section80D || ''}
                               onChange={(e) => handleDecFormChange('section80D', Number(e.target.value) || 0)}
-                              className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                              className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
                               placeholder="Health insurance premium"
                             />
                           </div>
 
                           <div>
                             <div className="flex justify-between mb-1">
-                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Section 24(b) (Home Loan Interest - Max ₹2L)</label>
-                              <span className="text-xs text-slate-400">Max: ₹2,00,000</span>
+                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Section 24(b) (Home Loan Interest - Max ₹2L)</label>
+                              <span className="text-xs text-slate-400 dark:text-slate-500">Max: ₹2,00,000</span>
                             </div>
                             <input
                               type="number"
                               min="0"
                               value={decForm.section24b || ''}
                               onChange={(e) => handleDecFormChange('section24b', Number(e.target.value) || 0)}
-                              className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                              className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
                               placeholder="Annual home loan interest"
                             />
                           </div>
 
                           <div>
                             <div className="flex justify-between mb-1">
-                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Section 80CCD(1B) (NPS - Max ₹50K)</label>
-                              <span className="text-xs text-slate-400">Max: ₹50,000</span>
+                              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Section 80CCD(1B) (NPS - Max ₹50K)</label>
+                              <span className="text-xs text-slate-400 dark:text-slate-500">Max: ₹50,000</span>
                             </div>
                             <input
                               type="number"
                               min="0"
                               value={decForm.section80CCD1B || ''}
                               onChange={(e) => handleDecFormChange('section80CCD1B', Number(e.target.value) || 0)}
-                              className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                              className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
                               placeholder="Additional NPS contribution"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Other Allowable Exemptions</label>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Other Allowable Exemptions</label>
                             <input
                               type="number"
                               min="0"
                               value={decForm.otherExemptions || ''}
                               onChange={(e) => handleDecFormChange('otherExemptions', Number(e.target.value) || 0)}
-                              className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                              className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
                               placeholder="Other tax exemptions"
                             />
                           </div>
                         </div>
 
                         {/* Premium Drag and Drop Upload Zone */}
-                        <div className="border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-2xl p-6 bg-slate-50 text-center transition-all">
+                        <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 rounded-2xl p-6 bg-slate-50 dark:bg-slate-800/40 text-center transition-all">
                           <input
                             type="file"
                             id="bill-upload"
@@ -1236,11 +1236,11 @@ const EmployeePortal = () => {
                             }}
                           />
                           <label htmlFor="bill-upload" className="cursor-pointer space-y-2 block">
-                            <FaCloudUploadAlt size={40} className="mx-auto text-slate-400" />
-                            <div className="text-sm font-semibold text-slate-700">Drag &amp; drop investment receipts/proofs here</div>
-                            <div className="text-xs text-slate-400">PDF, PNG, JPG accepted (Max 5MB)</div>
+                            <FaCloudUploadAlt size={40} className="mx-auto text-slate-400 dark:text-slate-500" />
+                            <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">Drag &amp; drop investment receipts/proofs here</div>
+                            <div className="text-xs text-slate-400 dark:text-slate-500">PDF, PNG, JPG accepted (Max 5MB)</div>
                             {uploadedFileName && (
-                              <div className="mt-3 text-xs bg-emerald-100 border border-emerald-300 text-emerald-800 px-3 py-1 rounded-full inline-block">
+                              <div className="mt-3 text-xs bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 px-3 py-1 rounded-full inline-block">
                                 Attached: {uploadedFileName}
                               </div>
                             )}
@@ -1249,8 +1249,8 @@ const EmployeePortal = () => {
 
                         {/* LIVE TAX COMPARISON WIDGET */}
                         {liveSalaryStructure?.taxDetails && (
-                          <div className="border-t border-slate-100 pt-6 mt-6">
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-600 mb-4 flex items-center gap-2">
+                          <div className="border-t border-slate-100 dark:border-slate-800 pt-6 mt-6">
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-4 flex items-center gap-2">
                               <span className="bg-emerald-500 text-white rounded-full p-1 text-[10px]"><FaCalculator /></span>
                               Live Tax Regime Comparison
                             </h3>
@@ -1259,27 +1259,27 @@ const EmployeePortal = () => {
                               {/* New Regime Card */}
                               <div className={`relative p-5 rounded-2xl border transition-all ${
                                 lowerRegime === 'new'
-                                  ? 'bg-emerald-50/40 border-emerald-300 shadow-md ring-1 ring-emerald-300'
-                                  : 'bg-slate-50/50 border-slate-200 shadow-sm'
+                                  ? 'bg-emerald-50/40 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800/60 shadow-md ring-1 ring-emerald-300 dark:ring-emerald-800/60'
+                                  : 'bg-slate-50/50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 shadow-sm'
                               }`}>
                                 {lowerRegime === 'new' && (
                                   <span className="absolute top-4 right-4 bg-emerald-600 text-[10px] text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm">
                                     ✓ Recommended
                                   </span>
                                 )}
-                                <h4 className="font-extrabold text-sm text-slate-800 mb-3 uppercase tracking-wider">New Regime</h4>
+                                <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 mb-3 uppercase tracking-wider">New Regime</h4>
                                 <div className="space-y-2 text-xs">
                                   <div className="flex justify-between">
-                                    <span className="text-slate-500">Net Taxable Income:</span>
-                                    <span className="font-semibold text-slate-800">{fmtMoney(liveSalaryStructure.taxDetails.newRegime.netTaxableIncome)}</span>
+                                    <span className="text-slate-500 dark:text-slate-400">Net Taxable Income:</span>
+                                    <span className="font-semibold text-slate-800 dark:text-slate-200">{fmtMoney(liveSalaryStructure.taxDetails.newRegime.netTaxableIncome)}</span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-slate-500">Annual Tax Liability:</span>
-                                    <span className="font-semibold text-slate-800">{fmtMoney(liveSalaryStructure.taxDetails.newRegime.annualTax)}</span>
+                                    <span className="text-slate-500 dark:text-slate-400">Annual Tax Liability:</span>
+                                    <span className="font-semibold text-slate-800 dark:text-slate-200">{fmtMoney(liveSalaryStructure.taxDetails.newRegime.annualTax)}</span>
                                   </div>
-                                  <div className="flex justify-between border-t border-slate-100 pt-2 font-bold text-sm">
-                                    <span className="text-slate-700">Monthly TDS:</span>
-                                    <span className="text-slate-900">{fmtMoney(liveSalaryStructure.taxDetails.newRegime.monthlyTax)}</span>
+                                  <div className="flex justify-between border-t border-slate-100 dark:border-slate-800 pt-2 font-bold text-sm">
+                                    <span className="text-slate-700 dark:text-slate-300">Monthly TDS:</span>
+                                    <span className="text-slate-900 dark:text-slate-100">{fmtMoney(liveSalaryStructure.taxDetails.newRegime.monthlyTax)}</span>
                                   </div>
                                 </div>
                               </div>
@@ -1287,42 +1287,42 @@ const EmployeePortal = () => {
                               {/* Old Regime Card */}
                               <div className={`relative p-5 rounded-2xl border transition-all ${
                                 lowerRegime === 'old'
-                                  ? 'bg-emerald-50/40 border-emerald-300 shadow-md ring-1 ring-emerald-300'
-                                  : 'bg-slate-50/50 border-slate-200 shadow-sm'
+                                  ? 'bg-emerald-50/40 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800/60 shadow-md ring-1 ring-emerald-300 dark:ring-emerald-800/60'
+                                  : 'bg-slate-50/50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 shadow-sm'
                               }`}>
                                 {lowerRegime === 'old' && (
                                   <span className="absolute top-4 right-4 bg-emerald-600 text-[10px] text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm">
                                     ✓ Recommended
                                   </span>
                                 )}
-                                <h4 className="font-extrabold text-sm text-slate-800 mb-3 uppercase tracking-wider">Old Regime</h4>
+                                <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 mb-3 uppercase tracking-wider">Old Regime</h4>
                                 <div className="space-y-2 text-xs">
                                   <div className="flex justify-between">
-                                    <span className="text-slate-500">Total Deductions:</span>
-                                    <span className="font-semibold text-emerald-600">- {fmtMoney(liveSalaryStructure.taxDetails.oldRegime.totalDeductions)}</span>
+                                    <span className="text-slate-500 dark:text-slate-400">Total Deductions:</span>
+                                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">- {fmtMoney(liveSalaryStructure.taxDetails.oldRegime.totalDeductions)}</span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-slate-500">Net Taxable Income:</span>
-                                    <span className="font-semibold text-slate-800">{fmtMoney(liveSalaryStructure.taxDetails.oldRegime.netTaxableIncome)}</span>
+                                    <span className="text-slate-500 dark:text-slate-400">Net Taxable Income:</span>
+                                    <span className="font-semibold text-slate-800 dark:text-slate-200">{fmtMoney(liveSalaryStructure.taxDetails.oldRegime.netTaxableIncome)}</span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-slate-500">Annual Tax Liability:</span>
-                                    <span className="font-semibold text-slate-800">{fmtMoney(liveSalaryStructure.taxDetails.oldRegime.annualTax)}</span>
+                                    <span className="text-slate-500 dark:text-slate-400">Annual Tax Liability:</span>
+                                    <span className="font-semibold text-slate-800 dark:text-slate-200">{fmtMoney(liveSalaryStructure.taxDetails.oldRegime.annualTax)}</span>
                                   </div>
-                                  <div className="flex justify-between border-t border-slate-100 pt-2 font-bold text-sm">
-                                    <span className="text-slate-700">Monthly TDS:</span>
-                                    <span className="text-slate-900">{fmtMoney(liveSalaryStructure.taxDetails.oldRegime.monthlyTax)}</span>
+                                  <div className="flex justify-between border-t border-slate-100 dark:border-slate-800 pt-2 font-bold text-sm">
+                                    <span className="text-slate-700 dark:text-slate-300">Monthly TDS:</span>
+                                    <span className="text-slate-900 dark:text-slate-100">{fmtMoney(liveSalaryStructure.taxDetails.oldRegime.monthlyTax)}</span>
                                   </div>
                                 </div>
                               </div>
                             </div>
 
                             {monthlySavings > 0 && (
-                              <div className="mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold">
+                              <div className="mt-4 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-xs text-emerald-800 dark:text-emerald-300 font-semibold">
                                   <span>💡</span>
                                   <span>
-                                    You save <span className="text-sm font-bold text-emerald-950">{fmtMoney(monthlySavings)}/month</span> ({fmtMoney(monthlySavings * 12)}/year) by choosing the {lowerRegime === 'new' ? 'New' : 'Old'} Regime!
+                                    You save <span className="text-sm font-bold text-emerald-950 dark:text-emerald-200">{fmtMoney(monthlySavings)}/month</span> ({fmtMoney(monthlySavings * 12)}/year) by choosing the {lowerRegime === 'new' ? 'New' : 'Old'} Regime!
                                   </span>
                                 </div>
                                 {decForm.taxRegime !== lowerRegime && (
@@ -1340,11 +1340,11 @@ const EmployeePortal = () => {
                         )}
 
                         {/* Form Submit & Print Buttons */}
-                        <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+                        <div className="flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">
                           <button
                             type="button"
                             onClick={() => triggerPrintWindow('form12bb_print_template')}
-                            className="border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold px-5 py-2.5 rounded-xl text-sm flex items-center gap-2"
+                            className="border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm flex items-center gap-2 transition-colors"
                           >
                             <FaPrint /> Print Form 12BB
                           </button>
@@ -1364,11 +1364,11 @@ const EmployeePortal = () => {
               {/* Tab 3: Reimbursements */}
               {activeTab === 'claims' && (
                 <div className="space-y-6">
-                  <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                    <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
                       <div>
-                        <h2 className="text-lg font-bold text-slate-800">Monthly Reimbursement Claims</h2>
-                        <p className="text-xs text-slate-500">Petrol, Broadband, LTA, and other corporate wallet balances.</p>
+                        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Monthly Reimbursement Claims</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Petrol, Broadband, LTA, and other corporate wallet balances.</p>
                       </div>
                       <button
                         onClick={() => {
@@ -1383,41 +1383,41 @@ const EmployeePortal = () => {
                     </div>
 
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-slate-700">
+                      <table className="w-full text-sm text-slate-700 dark:text-slate-200">
                         <thead>
-                          <tr className="bg-slate-50 border-b border-slate-200">
-                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Date Submitted</th>
-                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Category</th>
-                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Amount Claimed</th>
-                            <th className="px-6 py-3 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">HR remarks</th>
-                            <th className="px-6 py-3 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Actions</th>
+                          <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800">
+                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Date Submitted</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Category</th>
+                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Amount Claimed</th>
+                            <th className="px-6 py-3 text-center text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">HR remarks</th>
+                            <th className="px-6 py-3 text-center text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {claims.length === 0 ? (
-                            <tr><td colSpan="6" className="px-6 py-10 text-center text-slate-400">No reimbursement claims submitted yet.</td></tr>
+                            <tr><td colSpan="6" className="px-6 py-10 text-center text-slate-400 dark:text-slate-500">No reimbursement claims submitted yet.</td></tr>
                           ) : claims.map((claim) => (
-                            <tr key={claim._id} className="hover:bg-slate-50/60 transition-colors">
+                            <tr key={claim._id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/50 transition-colors">
                               <td className="px-6 py-4">{formatIndianDate(claim.createdAt)}</td>
                               <td className="px-6 py-4 capitalize font-semibold">{claim.category}</td>
                               <td className="px-6 py-4 text-right font-semibold">{fmtMoney(claim.amount)}</td>
                               <td className="px-6 py-4 text-center">
                                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase inline-flex items-center gap-1.5
-                                  ${claim.status === 'approved' ? 'bg-green-100 text-green-800' : claim.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
+                                  ${claim.status === 'approved' ? 'bg-green-100 dark:bg-emerald-950/60 text-green-800 dark:text-emerald-300 border border-green-200 dark:border-emerald-800' : claim.status === 'rejected' ? 'bg-red-100 dark:bg-rose-950/60 text-red-800 dark:text-rose-300 border border-red-200 dark:border-rose-800' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'}`}>
                                   {claim.status === 'approved' && <FaCheckCircle size={10} />}
                                   {claim.status === 'rejected' && <FaTimesCircle size={10} />}
                                   {claim.status === 'pending' && <FaHourglassHalf size={10} />}
                                   {claim.status}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-xs text-slate-500 italic">{claim.approverRemarks || '-'}</td>
+                              <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400 italic">{claim.approverRemarks || '-'}</td>
                               <td className="px-6 py-4 text-center">
                                 <div className="flex items-center justify-center gap-2">
                                   <button
                                     type="button"
                                     onClick={() => handleEditClaim(claim)}
-                                    className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-all border border-blue-200"
+                                    className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-all border border-blue-200 dark:border-blue-800"
                                     title="Edit Claim"
                                   >
                                     <FaEdit size={13} />
@@ -1425,7 +1425,7 @@ const EmployeePortal = () => {
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteClaim(claim._id)}
-                                    className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-all border border-red-200"
+                                    className="p-1.5 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition-all border border-red-200 dark:border-red-800"
                                     title="Delete Claim"
                                   >
                                     <FaTrash size={13} />
@@ -1446,11 +1446,11 @@ const EmployeePortal = () => {
               {activeTab === 'loans' && (
                 <div className="space-y-6">
                   
-                  <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                    <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
                       <div>
-                        <h2 className="text-lg font-bold text-slate-800">Loans &amp; Salary Advances</h2>
-                        <p className="text-xs text-slate-500">Track active loans, outstanding liability balances, and monthly deductions.</p>
+                        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Loans &amp; Salary Advances</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Track active loans, outstanding liability balances, and monthly deductions.</p>
                       </div>
                       <button
                         onClick={() => setShowLoanModal(true)}
@@ -1461,28 +1461,28 @@ const EmployeePortal = () => {
                     </div>
 
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-slate-700">
+                      <table className="w-full text-sm text-slate-700 dark:text-slate-200">
                         <thead>
-                          <tr className="bg-slate-50 border-b border-slate-200">
-                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Date Requested</th>
-                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Principal Amount</th>
-                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Monthly EMI</th>
-                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Remaining Balance</th>
-                            <th className="px-6 py-3 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                          <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800">
+                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Date Requested</th>
+                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Principal Amount</th>
+                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Monthly EMI</th>
+                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Remaining Balance</th>
+                            <th className="px-6 py-3 text-center text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Status</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {loans.length === 0 ? (
-                            <tr><td colSpan="5" className="px-6 py-10 text-center text-slate-400">No loan or salary advance requests found.</td></tr>
+                            <tr><td colSpan="5" className="px-6 py-10 text-center text-slate-400 dark:text-slate-500">No loan or salary advance requests found.</td></tr>
                           ) : loans.map((loan) => (
                             <tr key={loan._id}>
                               <td className="px-6 py-4">{formatIndianDate(loan.createdAt)}</td>
                               <td className="px-6 py-4 text-right font-semibold">{fmtMoney(loan.principalAmount)}</td>
                               <td className="px-6 py-4 text-right font-semibold">{fmtMoney(loan.emiAmount)}</td>
-                              <td className="px-6 py-4 text-right font-bold text-slate-800">{fmtMoney(loan.remainingBalance)}</td>
+                              <td className="px-6 py-4 text-right font-bold text-slate-800 dark:text-slate-100">{fmtMoney(loan.remainingBalance)}</td>
                               <td className="px-6 py-4 text-center">
                                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase inline-flex items-center gap-1.5
-                                  ${loan.status === 'active' ? 'bg-green-100 text-green-800' : loan.status === 'closed' ? 'bg-indigo-100 text-indigo-800' : loan.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
+                                  ${loan.status === 'active' ? 'bg-green-100 dark:bg-emerald-950/60 text-green-800 dark:text-emerald-300 border border-green-200 dark:border-emerald-800' : loan.status === 'closed' ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800' : loan.status === 'rejected' ? 'bg-red-100 dark:bg-rose-950/60 text-red-800 dark:text-rose-300 border border-red-200 dark:border-rose-800' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'}`}>
                                   {loan.status === 'active' && <FaCheckCircle size={10} />}
                                   {loan.status === 'closed' && <FaCheckCircle size={10} />}
                                   {loan.status === 'rejected' && <FaTimesCircle size={10} />}
@@ -1505,32 +1505,32 @@ const EmployeePortal = () => {
               {activeTab === 'payslips' && (
                 <div className="space-y-6">
                   
-                  <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                    <h2 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-4 mb-6">Historical Payslips</h2>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                    <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">Historical Payslips</h2>
 
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-slate-700">
+                      <table className="w-full text-sm text-slate-700 dark:text-slate-200">
                         <thead>
-                          <tr className="bg-slate-55 border-b border-slate-200">
-                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Payroll Period</th>
-                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Gross Total Salary</th>
-                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Total Deductions</th>
-                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Net Take-Home</th>
-                            <th className="px-6 py-3 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Action</th>
+                          <tr className="bg-slate-55 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800">
+                            <th className="px-6 py-3 text-left text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Payroll Period</th>
+                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Gross Total Salary</th>
+                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Total Deductions</th>
+                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Net Take-Home</th>
+                            <th className="px-6 py-3 text-center text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-center text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Action</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {payrolls.length === 0 ? (
-                            <tr><td colSpan="6" className="px-6 py-10 text-center text-slate-400">No payslips generated yet for this employee.</td></tr>
+                            <tr><td colSpan="6" className="px-6 py-10 text-center text-slate-400 dark:text-slate-500">No payslips generated yet for this employee.</td></tr>
                           ) : payrolls.map((payroll) => (
                             <tr key={payroll._id}>
-                              <td className="px-6 py-4 font-bold text-slate-800">
+                              <td className="px-6 py-4 font-bold text-slate-800 dark:text-slate-100">
                                 {new Date(0, payroll.month - 1).toLocaleString('en-US', { month: 'long' })} {payroll.year}
                               </td>
                               <td className="px-6 py-4 text-right">{fmtMoney(payroll.totalPayable || payroll.earnings?.totalEarnings)}</td>
-                              <td className="px-6 py-4 text-right text-red-600">{fmtMoney(payroll.deductions?.totalDeductions)}</td>
-                              <td className="px-6 py-4 text-right font-black text-emerald-600">{fmtMoney(payroll.netSalary)}</td>
+                              <td className="px-6 py-4 text-right text-red-600 dark:text-red-400">{fmtMoney(payroll.deductions?.totalDeductions)}</td>
+                              <td className="px-6 py-4 text-right font-black text-emerald-600 dark:text-emerald-400">{fmtMoney(payroll.netSalary)}</td>
                               <td className="px-6 py-4 text-center">
                                 <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${payrollStatusClass[payroll.status] || payrollStatusClass.draft}`}>
                                   {payroll.status}
@@ -1542,7 +1542,7 @@ const EmployeePortal = () => {
                                     setSelectedSlip(payroll);
                                     setShowUnlockModal(true);
                                   }}
-                                  className="text-indigo-600 hover:text-indigo-900 hover:underline inline-flex items-center gap-1 font-bold text-xs"
+                                  className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 hover:underline inline-flex items-center gap-1 font-bold text-xs"
                                 >
                                   <FaLock size={10} /> Open Locked PDF
                                 </button>
@@ -1561,11 +1561,11 @@ const EmployeePortal = () => {
               {activeTab === 'form16' && (
                 <div className="space-y-6">
                   
-                  <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                    <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
                       <div>
-                        <h2 className="text-lg font-bold text-slate-800">Form 16 Certificate Preview</h2>
-                        <p className="text-xs text-slate-500">Annual statement of salary paid and tax deducted at source under Sec 203.</p>
+                        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Form 16 Certificate Preview</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Annual statement of salary paid and tax deducted at source under Sec 203.</p>
                       </div>
                       <button
                         onClick={() => window.print()}
@@ -2039,11 +2039,11 @@ const EmployeePortal = () => {
       <Modal isOpen={showClaimModal} onClose={() => { setShowClaimModal(false); setEditingClaimId(null); }} title={editingClaimId ? "Edit Reimbursement Claim" : "Submit Reimbursement Claim"}>
         <form onSubmit={handleClaimSubmit} className="space-y-4">
           <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Claim Category</label>
+            <label className="text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1.5 inline-block">Claim Category</label>
             <select
               value={claimDraft.category}
               onChange={(e) => setClaimDraft({ ...claimDraft, category: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
             >
               <option value="broadband">Broadband / Internet</option>
               <option value="petrol">Petrol Reimbursement</option>
@@ -2053,18 +2053,18 @@ const EmployeePortal = () => {
             </select>
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Claim Amount</label>
+            <label className="text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1.5 inline-block">Claim Amount</label>
             <input
               type="number"
               value={claimDraft.amount}
               onChange={(e) => setClaimDraft({ ...claimDraft, amount: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
               placeholder="Enter claimed amount"
               required
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => { setShowClaimModal(false); setEditingClaimId(null); }} className="px-4 py-2 border rounded-lg text-sm font-semibold">Cancel</button>
+            <button type="button" onClick={() => { setShowClaimModal(false); setEditingClaimId(null); }} className="px-4 py-2 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-semibold transition-colors">Cancel</button>
             <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold">{editingClaimId ? 'Update Claim' : 'Submit Claim'}</button>
           </div>
         </form>
@@ -2074,38 +2074,38 @@ const EmployeePortal = () => {
       <Modal isOpen={showLoanModal} onClose={() => setShowLoanModal(false)} title="Request Salary Advance/Loan">
         <form onSubmit={handleLoanSubmit} className="space-y-4">
           <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Principal Amount</label>
+            <label className="text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1.5 inline-block">Principal Amount</label>
             <input
               type="number"
               value={loanDraft.principalAmount}
               onChange={(e) => setLoanDraft({ ...loanDraft, principalAmount: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
               placeholder="Total advance required"
               required
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Desired Monthly EMI</label>
+            <label className="text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1.5 inline-block">Desired Monthly EMI</label>
             <input
               type="number"
               value={loanDraft.emiAmount}
               onChange={(e) => setLoanDraft({ ...loanDraft, emiAmount: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
               placeholder="Target repayment amount per month"
               required
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Reason / Remarks</label>
+            <label className="text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1.5 inline-block">Reason / Remarks</label>
             <textarea
               value={loanDraft.reason}
               onChange={(e) => setLoanDraft({ ...loanDraft, reason: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm min-h-24"
+              className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg px-3 py-2 text-sm min-h-24 focus:ring-2 focus:ring-blue-400 focus:outline-none"
               placeholder="Reason for advance"
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setShowLoanModal(false)} className="px-4 py-2 border rounded-lg text-sm font-semibold">Cancel</button>
+            <button type="button" onClick={() => setShowLoanModal(false)} className="px-4 py-2 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-semibold transition-colors">Cancel</button>
             <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold">Submit Request</button>
           </div>
         </form>
@@ -2119,15 +2119,15 @@ const EmployeePortal = () => {
         setPasswordError(false);
       }} title="🔒 Unlock Encrypted PDF Payslip">
         <form onSubmit={handleUnlockPayslip} className="space-y-4">
-          <div className="bg-slate-50 border rounded-xl p-4 text-[11px] leading-relaxed text-slate-600">
-            <span className="font-bold block text-slate-800 mb-1 flex items-center gap-1"><FaInfoCircle /> PDF Password Encryption Policy:</span>
+          <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
+            <span className="font-bold block text-slate-800 dark:text-slate-100 mb-1 flex items-center gap-1"><FaInfoCircle /> PDF Password Encryption Policy:</span>
             Your corporate payslips are protected in compliance with regulatory standards.
             <div className="mt-1 font-mono">Password Format: First 4 characters of your name in UPPERCASE + DDMM of your birth date.</div>
-            <div className="mt-1 italic">E.g., if employee is "Tomar Singh" and Birth Date is 15th Aug 1995, enter <span className="font-bold text-slate-900 font-mono">TOMA1508</span>.</div>
+            <div className="mt-1 italic">E.g., if employee is "Tomar Singh" and Birth Date is 15th Aug 1995, enter <span className="font-bold text-slate-900 dark:text-slate-100 font-mono">TOMA1508</span>.</div>
           </div>
           
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-1 inline-block">Enter PDF Password</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-slate-300 mb-1 inline-block">Enter PDF Password</label>
             <input
               type="password"
               value={unlockPassword}
@@ -2135,7 +2135,7 @@ const EmployeePortal = () => {
                 setUnlockPassword(e.target.value);
                 setPasswordError(false);
               }}
-              className={`w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono ${passwordError ? 'border-red-500 animate-pulse' : 'border-gray-300'}`}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 ${passwordError ? 'border-red-500 animate-pulse' : 'border-gray-300 dark:border-slate-700'}`}
               placeholder="e.g. TOMA1508"
               required
             />
@@ -2154,7 +2154,7 @@ const EmployeePortal = () => {
                 setUnlockPassword('');
                 setPasswordError(false);
               }}
-              className="px-4 py-2 border rounded-xl text-sm font-semibold"
+              className="px-4 py-2 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-semibold transition-colors"
             >
               Cancel
             </button>
@@ -2176,23 +2176,23 @@ const TabButton = ({ active, onClick, icon, label }) => (
   <button
     onClick={onClick}
     className={`w-full text-left flex items-center gap-3 px-4 py-3 text-xs font-bold rounded-xl transition-all
-      ${active ? 'bg-indigo-950 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+      ${active ? 'bg-indigo-950 dark:bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'}`}
   >
-    <span className={active ? 'text-indigo-400' : 'text-slate-400'}>{icon}</span>
+    <span className={active ? 'text-indigo-400 dark:text-white' : 'text-slate-400 dark:text-slate-400'}>{icon}</span>
     <span>{label}</span>
   </button>
 );
 
 const StructureRow = ({ label, val, isContribution, isSpecial }) => (
-  <tr className={`hover:bg-slate-50 transition-colors ${isContribution ? 'bg-slate-50/20 text-slate-500 text-xs' : 'text-slate-700'}`}>
+  <tr className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${isContribution ? 'bg-slate-50/20 dark:bg-slate-800/20 text-slate-500 dark:text-slate-400 text-xs' : 'text-slate-700 dark:text-slate-200'}`}>
     <td className="px-6 py-2.5">
       <div className="flex items-center gap-2">
-        {isContribution && <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block" />}
+        {isContribution && <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 inline-block" />}
         {label}
       </div>
     </td>
-    <td className={`px-6 py-2.5 text-right font-semibold ${isSpecial ? 'text-indigo-600' : ''}`}>{fmtMoney(val)}</td>
-    <td className="px-6 py-2.5 text-right text-slate-400">₹{(val * 12).toLocaleString('en-IN')}</td>
+    <td className={`px-6 py-2.5 text-right font-semibold ${isSpecial ? 'text-indigo-600 dark:text-indigo-400' : ''}`}>{fmtMoney(val)}</td>
+    <td className="px-6 py-2.5 text-right text-slate-400 dark:text-slate-500">₹{(val * 12).toLocaleString('en-IN')}</td>
   </tr>
 );
 

@@ -499,10 +499,9 @@ const ExpenseForm = () => {
   };
 
   // --- Sleekbills UI Theme Classes ---
-  // Using pure white backgrounds, subtle gray borders, left-aligned bold labels, green submit buttons
-  const inputBaseCls = "w-full border border-gray-200 rounded text-sm px-3 py-2 text-gray-700 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans";
-  const labelCls = "text-xs font-semibold text-gray-600 tracking-wide mb-1.5 inline-block";
-  const rowBorder = "border-b border-gray-200";
+  const inputBaseCls = "w-full border border-gray-200 dark:border-slate-700 rounded text-sm px-3 py-2 text-gray-700 dark:text-slate-100 bg-white dark:bg-slate-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans transition-colors";
+  const labelCls = "text-xs font-semibold text-gray-600 dark:text-slate-300 tracking-wide mb-1.5 inline-block";
+  const rowBorder = "border-b border-gray-200 dark:border-slate-800";
   const rootCategories = categories.filter(cat => !cat.parent);
   const subCategories = categories.filter(cat => (cat.parent?._id || cat.parent) === formData.category);
   const budgetRemaining = budgetInfo ? Number(budgetInfo.remainingAmount) || 0 : null;
@@ -511,18 +510,18 @@ const ExpenseForm = () => {
   const payableBalance = Math.max(payableAmount - (Number(formData.amountPaid) || 0), 0);
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-[#f3f6f9] py-8">
+    <div className="min-h-[calc(100vh-64px)] bg-[#f3f6f9] dark:bg-[#090d16] py-8 text-slate-800 dark:text-slate-100 transition-colors">
       <div className="max-w-6xl mx-auto px-4 md:px-8">
         
-        <form onSubmit={handleSave} className="bg-white shadow-sm border border-gray-200 rounded font-sans overflow-hidden">
+        <form onSubmit={handleSave} className="bg-white dark:bg-slate-900 shadow-sm border border-gray-200 dark:border-slate-800 rounded font-sans overflow-hidden transition-colors">
           
           {/* Header Title */}
-          <div className="bg-white px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h1 className="text-lg font-bold text-[#2d4b6b]">
+          <div className="bg-white dark:bg-slate-900 px-6 py-4 border-b border-gray-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors">
+            <h1 className="text-lg font-bold text-[#2d4b6b] dark:text-blue-400">
               {id ? 'Edit Expense' : 'Add New Expense'}
             </h1>
             {/* Expense Type Tabs */}
-            <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+            <div className="flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1 gap-1">
               {['Vendor Expense', 'Category Expense'].map(type => (
                 <button
                   key={type}
@@ -541,8 +540,8 @@ const ExpenseForm = () => {
                   }}
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                     expenseType === type
-                      ? 'bg-white text-blue-700 shadow-sm border border-blue-100'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-sm border border-blue-100 dark:border-slate-700'
+                      : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                   }`}
                 >
                   {type}
@@ -552,10 +551,10 @@ const ExpenseForm = () => {
           </div>
 
           {/* Top Info Section */}
-          <div className={`flex flex-col md:flex-row bg-[#fdfdfd] ${rowBorder}`}>
+          <div className={`flex flex-col md:flex-row bg-[#fdfdfd] dark:bg-slate-900/60 ${rowBorder}`}>
             {/* Vendor Col */}
             {expenseType === 'Vendor Expense' && (
-              <div className="w-full md:w-1/3 p-6 border-r border-gray-200">
+              <div className="w-full md:w-1/3 p-6 border-r border-gray-200 dark:border-slate-800">
                 <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                   <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Vendor name</span>
                   <div className="flex-1 min-w-0">
@@ -582,7 +581,7 @@ const ExpenseForm = () => {
                       ))}
                     </select>
                     {!formData.vendorRef && formData.vendorName && (
-                      <p className="mt-1 text-xs text-amber-600">Scanned: {formData.vendorName}</p>
+                      <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">Scanned: {formData.vendorName}</p>
                     )}
                   </div>
                 </div>
@@ -597,10 +596,10 @@ const ExpenseForm = () => {
               {/* Number */}
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Number</span>
-                <div className="flex-1 min-w-0 flex gap-2 items-center text-gray-500 font-bold">
+                <div className="flex-1 min-w-0 flex gap-2 items-center text-gray-500 dark:text-slate-400 font-bold">
                   <input 
                     type="text" 
-                    className="w-24 border border-gray-200 rounded text-sm px-3 py-2 text-gray-900 text-center uppercase focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans bg-[#f8f9fa] shadow-sm font-normal" 
+                    className="w-24 border border-gray-200 dark:border-slate-700 rounded text-sm px-3 py-2 text-gray-900 dark:text-slate-100 text-center uppercase focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans bg-[#f8f9fa] dark:bg-slate-800 shadow-sm font-normal" 
                     value={formData.expenseNumberPrefix.replace(/-$/, '')} 
                     onChange={e => setFormData(p => ({ ...p, expenseNumberPrefix: e.target.value }))}
                   />
@@ -608,7 +607,7 @@ const ExpenseForm = () => {
                   <input 
                     type="text" 
                     data-testid="expense-number-suffix"
-                    className="w-full min-w-0 flex-1 border border-gray-200 rounded text-sm px-3 py-2 text-gray-900 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans bg-[#f8f9fa] shadow-sm font-normal" 
+                    className="w-full min-w-0 flex-1 border border-gray-200 dark:border-slate-700 rounded text-sm px-3 py-2 text-gray-900 dark:text-slate-100 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans bg-[#f8f9fa] dark:bg-slate-800 shadow-sm font-normal" 
                     value={formData.expenseNumberSuffix}
                     onChange={e => setFormData(p => ({ ...p, expenseNumberSuffix: e.target.value }))}
                     placeholder="e.g. 4567"
@@ -622,7 +621,7 @@ const ExpenseForm = () => {
                 <div className="flex-1 min-w-0">
                   <select 
                   data-testid="expense-payment-method"
-                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                  className={`${inputBaseCls} bg-[#f8f9fa] dark:bg-slate-800 shadow-sm w-full`}
                   value={formData.paymentMethod}
                   onChange={e => setFormData(p => ({ ...p, paymentMethod: e.target.value }))}
                 >
@@ -641,7 +640,7 @@ const ExpenseForm = () => {
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Business Unit</span>
                 <div className="flex-1 min-w-0">
                   <select 
-                    className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                    className={`${inputBaseCls} bg-[#f8f9fa] dark:bg-slate-800 shadow-sm w-full`}
                     value={formData.businessUnit || ''}
                     onChange={e => setFormData(p => ({ ...p, businessUnit: e.target.value }))}
                   >
@@ -657,26 +656,15 @@ const ExpenseForm = () => {
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                   <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Expense Date</span>
                   <div className="relative flex-1 min-w-0">
-                    <FaCalendarAlt className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <FaCalendarAlt className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-400 pointer-events-none" />
                     <input 
                       type="date" 
-                      className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`} 
+                      className={`${inputBaseCls} bg-[#f8f9fa] dark:bg-slate-800 shadow-sm w-full`} 
                       style={{ WebkitAppearance: 'none' }}
                       value={formData.date}
                       onChange={e => setFormData(p => ({ ...p, date: e.target.value }))}
                       required
                     />
-                    <style jsx>{`
-                      input[type="date"]::-webkit-calendar-picker-indicator {
-                          opacity: 0;
-                          width: 100%;
-                          height: 100%;
-                          position: absolute;
-                          top: 0;
-                          left: 0;
-                          cursor: pointer;
-                      }
-                    `}</style>
                   </div>
               </div>
 
@@ -684,10 +672,10 @@ const ExpenseForm = () => {
               <div className="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-4">
                   <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Due date</span>
                   <div className="relative flex-1 min-w-0">
-                    <FaCalendarAlt className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <FaCalendarAlt className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-400 pointer-events-none" />
                     <input
                       type="date"
-                      className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                      className={`${inputBaseCls} bg-[#f8f9fa] dark:bg-slate-800 shadow-sm w-full`}
                       value={formData.dueDate}
                       onChange={e => setFormData(p => ({ ...p, dueDate: e.target.value }))}
                     />
@@ -702,7 +690,7 @@ const ExpenseForm = () => {
                   type="number"
                   min="0"
                   step="0.01"
-                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                  className={`${inputBaseCls} bg-[#f8f9fa] dark:bg-slate-800 shadow-sm w-full`}
                   value={formData.amountPaid}
                   onChange={e => setFormData(p => ({ ...p, amountPaid: Number(e.target.value) || 0 }))}
                   placeholder="0.00"
@@ -715,7 +703,7 @@ const ExpenseForm = () => {
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Status</span>
                 <div className="flex-1 min-w-0">
                   <select
-                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                  className={`${inputBaseCls} bg-[#f8f9fa] dark:bg-slate-800 shadow-sm w-full`}
                   value={formData.status}
                   onChange={e => {
                     const nextStatus = e.target.value;
@@ -744,7 +732,7 @@ const ExpenseForm = () => {
                   <div className="flex-1 min-w-0">
                     <select 
                       data-testid="expense-ref-vendor-select"
-                      className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                      className={`${inputBaseCls} bg-[#f8f9fa] dark:bg-slate-800 shadow-sm w-full`}
                       value={formData.vendorRef}
                       onChange={e => {
                         const vendor = vendors.find(v => v._id === e.target.value);
@@ -770,7 +758,7 @@ const ExpenseForm = () => {
                 <div className="flex-1 min-w-0">
                   <select 
                     data-testid="expense-client-select"
-                    className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                    className={`${inputBaseCls} bg-[#f8f9fa] dark:bg-slate-800 shadow-sm w-full`}
                     value={formData.clientRef}
                     onChange={e => {
                       const client = clients.find(c => c._id === e.target.value);
@@ -783,7 +771,7 @@ const ExpenseForm = () => {
                     ))}
                   </select>
                   {!formData.clientRef && formData.clientName && (
-                    <p className="mt-1 text-xs text-amber-600">Scanned: {formData.clientName}</p>
+                    <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">Scanned: {formData.clientName}</p>
                   )}
                 </div>
               </div>
@@ -792,7 +780,7 @@ const ExpenseForm = () => {
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Category</span>
                 <div className="flex-1 min-w-0">
                   <select
-                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                  className={`${inputBaseCls} bg-[#f8f9fa] dark:bg-slate-800 shadow-sm w-full`}
                   value={formData.category}
                   onChange={e => setFormData(p => ({ ...p, category: e.target.value, subCategory: '' }))}
                 >
@@ -808,7 +796,7 @@ const ExpenseForm = () => {
                 <span className={`${labelCls} !mb-0 w-[110px] shrink-0`}>Sub-category</span>
                 <div className="flex-1 min-w-0">
                   <select
-                  className={`${inputBaseCls} bg-[#f8f9fa] shadow-sm w-full`}
+                  className={`${inputBaseCls} bg-[#f8f9fa] dark:bg-slate-800 shadow-sm w-full`}
                   value={formData.subCategory}
                   onChange={e => setFormData(p => ({ ...p, subCategory: e.target.value }))}
                   disabled={!formData.category || subCategories.length === 0}
@@ -822,10 +810,10 @@ const ExpenseForm = () => {
               </div>
 
               {budgetInfo && (
-                <div className="md:col-span-2 rounded border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                <div className="md:col-span-2 rounded border border-blue-100 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 px-4 py-3 text-sm text-blue-800 dark:text-blue-300">
                   Budget remaining: <span className="font-bold">₹{budgetRemaining.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
                   {budgetExceededBy > 0 && (
-                    <div className="mt-1 text-amber-700 font-semibold">
+                    <div className="mt-1 text-amber-700 dark:text-amber-300 font-semibold">
                       This will exceed your budget by ₹{budgetExceededBy.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </div>
                   )}
@@ -836,12 +824,12 @@ const ExpenseForm = () => {
           </div>
 
           {/* Section Sub-header */}
-          <div className="bg-white px-6 py-3 font-bold text-sm text-[#2d4b6b] border-b border-gray-200 pt-6">
+          <div className="bg-white dark:bg-slate-900 px-6 py-3 font-bold text-sm text-[#2d4b6b] dark:text-blue-400 border-b border-gray-200 dark:border-slate-800 pt-6 transition-colors">
             Expense
           </div>
 
           {/* Table Headers */}
-          <div className="bg-[#e9ecef] flex px-6 py-2.5 text-xs font-bold text-[#495057] uppercase tracking-wide">
+          <div className="bg-[#e9ecef] dark:bg-slate-800/80 flex px-6 py-2.5 text-xs font-bold text-[#495057] dark:text-slate-300 uppercase tracking-wide transition-colors">
             <div className="flex-1 min-w-[300px]">Item Name</div>
             <div className="w-24 px-2">Unit</div>
             <div className="w-24 px-2">QTY</div>
@@ -928,7 +916,7 @@ const ExpenseForm = () => {
                 </div>
 
                 {/* Total Text */}
-                <div className="w-full md:w-32 text-right text-sm font-semibold text-gray-700 mt-2 md:mt-0 px-2 flex items-center justify-end md:justify-between">
+                <div className="w-full md:w-32 text-right text-sm font-bold text-gray-700 dark:text-slate-200 mt-2 md:mt-0 px-2 flex items-center justify-end md:justify-between">
                   <span>₹{item.amount.toFixed(2)}</span>
                   {idx === formData.items.length - 1 && (
                     <button 
@@ -945,33 +933,33 @@ const ExpenseForm = () => {
           </div>
 
           {/* Middle Band: Reverse Charge and Subtotals */}
-          <div className="border-t border-b border-gray-200 flex flex-col md:flex-row justify-between">
+          <div className="border-t border-b border-gray-200 dark:border-slate-800 flex flex-col md:flex-row justify-between transition-colors">
             {/* Reverse Charge & TDS Configuration */}
             <div className="p-6 md:w-1/2 space-y-6">
               <label className="flex items-center gap-3 cursor-pointer group">
                 <input 
                   type="checkbox" 
-                  className="w-5 h-5 rounded border-gray-300 text-green-500 focus:ring-green-500 cursor-pointer"
+                  className="w-5 h-5 rounded border-gray-300 dark:border-slate-700 text-green-500 focus:ring-green-500 cursor-pointer dark:bg-slate-800"
                   checked={!!formData.reverseCharge}
                   onChange={(e) => setFormData(p => ({...p, reverseCharge: e.target.checked}))}
                 />
-                <span className="text-sm font-medium text-gray-400 group-hover:text-gray-600 transition-colors">
+                <span className="text-sm font-medium text-gray-400 group-hover:text-gray-600 dark:group-hover:text-slate-300 transition-colors">
                   Subject to reverse charge
                 </span>
               </label>
 
               {/* TDS Config Card */}
-              <div className="bg-slate-50/50 rounded-xl border border-gray-200/80 p-4 space-y-4 max-w-md shadow-sm">
+              <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-gray-200/80 dark:border-slate-700 p-4 space-y-4 max-w-md shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">TDS Applicable</span>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">TDS Applicable</span>
                     <span className="text-[10px] text-slate-400">Deduct tax at source from vendor payment</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, tds_applicable: !prev.tds_applicable }))}
                     className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      formData.tds_applicable ? 'bg-[#48c774]' : 'bg-gray-200'
+                      formData.tds_applicable ? 'bg-[#48c774]' : 'bg-gray-200 dark:bg-slate-700'
                     }`}
                   >
                     <span
@@ -983,11 +971,11 @@ const ExpenseForm = () => {
                 </div>
 
                 {formData.tds_applicable && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-150 animate-fadeIn">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-150 dark:border-slate-700 animate-fadeIn">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-650 uppercase mb-1">TDS Section *</label>
+                      <label className="block text-[10px] font-bold text-slate-650 dark:text-slate-300 uppercase mb-1">TDS Section *</label>
                       <select
-                        className="w-full border border-gray-200 rounded text-xs px-2.5 py-1.5 outline-none focus:border-green-500 bg-white"
+                        className="w-full border border-gray-200 dark:border-slate-700 rounded text-xs px-2.5 py-1.5 outline-none focus:border-green-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
                         value={formData.tds_section}
                         onChange={(e) => setFormData(prev => ({ ...prev, tds_section: e.target.value }))}
                       >
@@ -1000,14 +988,14 @@ const ExpenseForm = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-650 uppercase mb-1">TDS Rate %</label>
+                      <label className="block text-[10px] font-bold text-slate-650 dark:text-slate-300 uppercase mb-1">TDS Rate %</label>
                       <input
                         type="number"
                         step="0.01"
                         min="0"
                         max="100"
-                        className={`w-full border border-gray-200 rounded text-xs px-2.5 py-1.5 outline-none focus:border-green-500 ${
-                          formData.tds_section !== 'Manual' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white'
+                        className={`w-full border border-gray-200 dark:border-slate-700 rounded text-xs px-2.5 py-1.5 outline-none focus:border-green-500 ${
+                          formData.tds_section !== 'Manual' ? 'bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-slate-400 cursor-not-allowed' : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100'
                         }`}
                         value={formData.tds_rate}
                         readOnly={formData.tds_section !== 'Manual'}
@@ -1019,10 +1007,10 @@ const ExpenseForm = () => {
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block text-[10px] font-bold text-slate-650 uppercase mb-1">TDS Amount (₹)</label>
+                      <label className="block text-[10px] font-bold text-slate-650 dark:text-slate-300 uppercase mb-1">TDS Amount (₹)</label>
                       <input
                         type="text"
-                        className="w-full border border-gray-200 rounded text-xs px-2.5 py-1.5 outline-none bg-gray-100 text-gray-400 font-semibold cursor-not-allowed"
+                        className="w-full border border-gray-200 dark:border-slate-700 rounded text-xs px-2.5 py-1.5 outline-none bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-400 font-semibold cursor-not-allowed"
                         value={Number(formData.tds_amount).toFixed(2)}
                         readOnly
                       />
@@ -1036,40 +1024,40 @@ const ExpenseForm = () => {
             <div className="p-6 md:w-1/2 xl:w-1/3">
                <div className="space-y-3">
                  {!!formData.reverseCharge && (
-                   <div className="bg-amber-50 border border-amber-200 text-amber-800 text-[10px] rounded-lg p-2.5 font-medium flex flex-col gap-0.5 mb-2 mx-4 leading-relaxed animate-fade-in">
-                     <span className="font-bold flex items-center gap-1 text-[11px] text-amber-900">⚠️ Reverse Charge Active</span>
-                     <span className="text-gray-600">GST is calculated but not added to the payable Total. The customer is liable to pay GST directly to the government.</span>
+                   <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-[10px] rounded-lg p-2.5 font-medium flex flex-col gap-0.5 mb-2 mx-4 leading-relaxed animate-fade-in">
+                     <span className="font-bold flex items-center gap-1 text-[11px] text-amber-900 dark:text-amber-200">⚠️ Reverse Charge Active</span>
+                     <span className="text-gray-600 dark:text-slate-400">GST is calculated but not added to the payable Total. The customer is liable to pay GST directly to the government.</span>
                    </div>
                  )}
-                  <div className="flex justify-between items-center px-4 text-xs font-semibold text-slate-500">
+                  <div className="flex justify-between items-center px-4 text-xs font-semibold text-slate-500 dark:text-slate-400">
                     <span>Expense (Base):</span>
-                    <span className="text-slate-700">₹ {totals.subTotal.toFixed(2)}</span>
+                    <span className="text-slate-700 dark:text-slate-200">₹ {totals.subTotal.toFixed(2)}</span>
                   </div>
                   {totals.taxTotal > 0 && (
-                    <div className="flex justify-between items-center px-4 text-xs font-semibold text-slate-500">
+                    <div className="flex justify-between items-center px-4 text-xs font-semibold text-slate-500 dark:text-slate-400">
                       <span>GST:</span>
-                      <span className="text-slate-700">₹ {totals.taxTotal.toFixed(2)}</span>
+                      <span className="text-slate-700 dark:text-slate-200">₹ {totals.taxTotal.toFixed(2)}</span>
                     </div>
                   )}
                   {formData.tds_applicable && (
-                    <div className="flex justify-between items-center px-4 text-xs font-bold text-red-500">
+                    <div className="flex justify-between items-center px-4 text-xs font-bold text-red-500 dark:text-red-400">
                       <span>TDS @ {formData.tds_rate}% ({formData.tds_section}):</span>
                       <span>-₹ {formData.tds_amount.toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="bg-[#f2f9f5] flex justify-between items-center px-4 py-3 rounded border border-[#e1eee6]">
-                    <span className="text-sm font-bold text-[#28a745]">
+                  <div className="bg-[#f2f9f5] dark:bg-emerald-950/30 flex justify-between items-center px-4 py-3 rounded border border-[#e1eee6] dark:border-emerald-800/40">
+                    <span className="text-sm font-bold text-[#28a745] dark:text-emerald-400">
                       {formData.tds_applicable ? "Net Pay Vendor:" : "Total:"}
                     </span>
-                    <span className="text-sm font-bold text-[#28a745]">
+                    <span className="text-sm font-bold text-[#28a745] dark:text-emerald-400">
                       ₹ {formData.net_vendor_payment.toFixed(2)}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center px-4 text-xs font-semibold text-slate-500">
+                  <div className="flex justify-between items-center px-4 text-xs font-semibold text-slate-500 dark:text-slate-400">
                     <span>Amount Paid:</span>
-                    <span className="text-slate-700">₹ {(Number(formData.amountPaid) || 0).toFixed(2)}</span>
+                    <span className="text-slate-700 dark:text-slate-200">₹ {(Number(formData.amountPaid) || 0).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center px-4 text-sm font-bold text-[#2d4b6b] border-t border-dashed border-gray-200 pt-2.5">
+                  <div className="flex justify-between items-center px-4 text-sm font-bold text-[#2d4b6b] dark:text-blue-400 border-t border-dashed border-gray-200 dark:border-slate-800 pt-2.5">
                     <span>Balance Due:</span>
                     <span>₹ {Math.max(0, formData.net_vendor_payment - (Number(formData.amountPaid) || 0)).toFixed(2)}</span>
                   </div>
@@ -1078,7 +1066,7 @@ const ExpenseForm = () => {
           </div>
 
           {/* Attachments Section */}
-          <div className="p-6 border-t border-gray-200">
+          <div className="p-6 border-t border-gray-200 dark:border-slate-800">
             <AttachmentUploader
               attachments={formData.attachments || []}
               onChange={(atts) => setFormData(prev => ({ ...prev, attachments: atts }))}
@@ -1090,19 +1078,19 @@ const ExpenseForm = () => {
           {/* Notes Section */}
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <label className={`${labelCls} text-gray-500`}>Terms & Conditions</label>
+              <label className={`${labelCls} text-gray-500 dark:text-slate-400`}>Terms & Conditions</label>
               <textarea 
                 rows="4"
-                className={`${inputBaseCls} resize-y text-gray-600`}
+                className={`${inputBaseCls} resize-y text-gray-600 dark:text-slate-300`}
                 value={formData.terms}
                 onChange={e => setFormData(p => ({...p, terms: e.target.value}))}
               ></textarea>
             </div>
             <div>
-              <label className={`${labelCls} text-gray-500`}>Private notes (not shown to vendor)</label>
+              <label className={`${labelCls} text-gray-500 dark:text-slate-400`}>Private notes (not shown to vendor)</label>
               <textarea 
                 rows="4"
-                className={`${inputBaseCls} resize-y text-gray-600`}
+                className={`${inputBaseCls} resize-y text-gray-600 dark:text-slate-300`}
                 value={formData.privateNotes}
                 onChange={e => setFormData(p => ({...p, privateNotes: e.target.value}))}
               ></textarea>
@@ -1110,7 +1098,7 @@ const ExpenseForm = () => {
           </div>
 
           {/* Action Footer */}
-          <div className="p-6 bg-[#fdfdfd] border-t border-gray-200 flex gap-3">
+          <div className="p-6 bg-[#fdfdfd] dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 flex gap-3 transition-colors">
              <button 
                type="submit" 
                disabled={loading}
@@ -1122,7 +1110,7 @@ const ExpenseForm = () => {
              <button 
                type="button" 
                onClick={() => navigate('/expenses')}
-               className="bg-[#e9ecef] hover:bg-[#d6dadd] text-[#555] px-6 py-2.5 rounded font-semibold text-sm transition-colors"
+               className="bg-[#e9ecef] dark:bg-slate-800 hover:bg-[#d6dadd] dark:hover:bg-slate-700 text-[#555] dark:text-slate-300 px-6 py-2.5 rounded font-semibold text-sm transition-colors"
              >
                Cancel
              </button>

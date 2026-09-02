@@ -308,7 +308,7 @@ const GstReport = () => {
   };
 
   return (
-    <div className="min-h-screen font-sans text-slate-800 transition-all duration-300 pb-16" style={dashboardBgStyle}>
+    <div className="min-h-screen font-sans text-slate-800 dark:text-slate-100 bg-slate-50/50 dark:bg-transparent transition-all duration-300 pb-16">
       <div className="container mx-auto px-6 pt-8">
         
         {/* Banner Alert for Demo Mode */}
@@ -316,7 +316,7 @@ const GstReport = () => {
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-950 px-5 py-3 rounded-2xl mb-8 shadow-sm"
+            className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-950 dark:text-amber-200 px-5 py-3 rounded-2xl mb-8 shadow-sm"
           >
             <FaInfoCircle className="text-amber-500 shrink-0" size={18} />
             <div className="text-xs font-semibold leading-relaxed">
@@ -328,12 +328,12 @@ const GstReport = () => {
         {/* Top Header Banner */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
           <div>
-            <div className="flex items-center gap-2.5 text-[10px] font-extrabold text-indigo-650 tracking-wider uppercase mb-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>
+            <div className="flex items-center gap-2.5 text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 tracking-wider uppercase mb-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400 animate-pulse"></span>
               GST ANALYTICS
             </div>
             
-            <h1 className="text-3xl font-black text-slate-950 tracking-tight flex items-center gap-3">
+            <h1 className="text-3xl font-black text-slate-950 dark:text-slate-100 tracking-tight flex items-center gap-3">
               {getDashboardTitle()}
               <button
                 onClick={() => navigate('/tax-dashboard')}
@@ -346,33 +346,33 @@ const GstReport = () => {
           </div>
 
           {/* Date Filter Widget */}
-          <div className="w-full lg:w-auto flex flex-col md:flex-row md:items-center gap-3 bg-white/70 backdrop-blur-md p-2.5 rounded-2xl shadow-sm border border-slate-200/50">
-            <div className="flex items-center gap-2 px-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
-              <FaCalendarAlt className="text-indigo-500" /> Filters
+          <div className="w-full lg:w-auto flex flex-col md:flex-row md:items-center gap-3 bg-white/70 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 backdrop-blur-md p-2.5 rounded-2xl shadow-sm">
+            <div className="flex items-center gap-2 px-2 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <FaCalendarAlt className="text-indigo-500 dark:text-indigo-400" /> Filters
             </div>
 
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
               <button
                 onClick={() => handlePreset('this-month')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${currentPreset === 'this-month' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-650 hover:text-slate-900'}`}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${currentPreset === 'this-month' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
               >
                 This Month
               </button>
               <button
                 onClick={() => handlePreset('3-months')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${currentPreset === '3-months' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-655 hover:text-slate-900'}`}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${currentPreset === '3-months' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
               >
                 3 Months
               </button>
               <button
                 onClick={() => handlePreset('6-months')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${currentPreset === '6-months' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-655 hover:text-slate-900'}`}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${currentPreset === '6-months' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
               >
                 6 Months
               </button>
               {currentPreset === 'custom' && (
                 <button
-                  className="px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-50 text-indigo-600 shadow-sm transition-all"
+                  className="px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 shadow-sm transition-all"
                   disabled
                 >
                   Custom
@@ -382,20 +382,20 @@ const GstReport = () => {
                 <button
                   onClick={() => handlePreset('clear')}
                   title="Reset Filters"
-                  className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+                  className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40"
                 >
                   <FaUndoAlt size={11} />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2 border-t md:border-t-0 md:border-l border-slate-200/80 pt-2 md:pt-0 md:pl-3 relative">
-              <div className="relative flex items-center justify-between gap-3 bg-white border border-slate-200/85 rounded-xl px-4 py-2.5 hover:border-indigo-400 transition-colors w-44 cursor-pointer">
+            <div className="flex items-center gap-2 border-t md:border-t-0 md:border-l border-slate-200/80 dark:border-slate-800 pt-2 md:pt-0 md:pl-3 relative">
+              <div className="relative flex items-center justify-between gap-3 bg-white dark:bg-slate-800 border border-slate-200/85 dark:border-slate-700 rounded-xl px-4 py-2.5 hover:border-indigo-400 transition-colors w-44 cursor-pointer">
                 <div className="flex items-center gap-2">
-                  <FaCalendarAlt className="text-indigo-600" size={13} />
-                  <span className="text-xs font-extrabold text-slate-700">{getMonthPickerLabel()}</span>
+                  <FaCalendarAlt className="text-indigo-600 dark:text-indigo-400" size={13} />
+                  <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200">{getMonthPickerLabel()}</span>
                 </div>
-                <svg className="w-4 h-4 text-slate-900 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="w-4 h-4 text-slate-900 dark:text-slate-200 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                   <line x1="16" y1="2" x2="16" y2="6"></line>
                   <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -410,7 +410,7 @@ const GstReport = () => {
               </div>
             </div>
 
-            <div className="flex justify-end pt-2 md:pt-0 border-t md:border-t-0 md:border-l border-slate-200/80 md:pl-2">
+            <div className="flex justify-end pt-2 md:pt-0 border-t md:border-t-0 md:border-l border-slate-200/80 dark:border-slate-800 md:pl-2">
               <ExportDropdown
                 data={data?.details || []}
                 filename={`GST_Detailed_Report_${startDate || 'All'}_to_${endDate || 'All'}`}
@@ -429,9 +429,9 @@ const GstReport = () => {
               />
             </div>
             
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-full">
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-800/60 rounded-full">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
-              <span className="text-[10px] font-black text-emerald-700 tracking-wide uppercase">Live</span>
+              <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-300 tracking-wide uppercase">Live</span>
             </div>
           </div>
         </div>
@@ -440,7 +440,7 @@ const GstReport = () => {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-250/60">
+              <div key={i} className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-250/60 dark:border-slate-800">
                 <Skeleton width="100px" height="14px" className="mb-4" />
                 <Skeleton width="60%" height="32px" className="mb-2" />
                 <Skeleton width="80%" height="12px" />
@@ -493,10 +493,10 @@ const GstReport = () => {
           <motion.div 
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="lg:col-span-5 bg-white/70 border border-white/50 backdrop-blur-md p-6 rounded-2xl shadow-sm flex flex-col justify-between"
+            className="lg:col-span-5 bg-white/70 dark:bg-slate-900 border border-white/50 dark:border-slate-800 backdrop-blur-md p-6 rounded-2xl shadow-sm flex flex-col justify-between"
           >
             <div>
-              <h3 className="text-sm font-black text-slate-800 tracking-tight uppercase">Invoice split</h3>
+              <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 tracking-tight uppercase">Invoice split</h3>
             </div>
             
             <div className="flex flex-row items-center justify-between gap-4 py-4 min-h-[160px]">
@@ -521,7 +521,7 @@ const GstReport = () => {
                 </ResponsiveContainer>
                 {/* Center total label overlay */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-2xl font-black text-slate-900 leading-none">{totalCount}</span>
+                  <span className="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">{totalCount}</span>
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">total</span>
                 </div>
               </div>
@@ -534,10 +534,10 @@ const GstReport = () => {
                     <div key={idx} className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }}></span>
-                        <span className="font-bold text-slate-650">{item.name}</span>
+                        <span className="font-bold text-slate-650 dark:text-slate-300">{item.name}</span>
                       </div>
                       <div className="text-right">
-                        <span className="font-black text-slate-900 mr-2">{item.value}</span>
+                        <span className="font-black text-slate-900 dark:text-slate-100 mr-2">{item.value}</span>
                         <span className="text-[10px] font-bold text-slate-400">{percent}%</span>
                       </div>
                     </div>
@@ -552,30 +552,30 @@ const GstReport = () => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="lg:col-span-7 bg-white/70 border border-white/50 backdrop-blur-md p-6 rounded-2xl shadow-sm flex flex-col justify-between"
+            className="lg:col-span-7 bg-white/70 dark:bg-slate-900 border border-white/50 dark:border-slate-800 backdrop-blur-md p-6 rounded-2xl shadow-sm flex flex-col justify-between"
           >
             <div>
-              <h3 className="text-sm font-black text-slate-800 tracking-tight uppercase">Output vs input by GST slab</h3>
+              <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 tracking-tight uppercase">Output vs input by GST slab</h3>
             </div>
 
             <div className="w-full h-44 py-2 mt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={slabChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
                   <XAxis 
                     dataKey="name" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} 
+                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} 
                   />
                   <YAxis 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fill: '#64748b', fontSize: 9, fontWeight: 700 }}
+                    tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 700 }}
                     tickFormatter={(val) => `₹${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
                   />
                   <Tooltip 
-                    contentStyle={{ background: '#0f172a', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
+                    contentStyle={{ background: '#0f172a', borderRadius: '12px', border: '1px solid #334155', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
                     formatter={(value) => [`₹${fmt(value)}`, '']}
                   />
                   <Bar dataKey="Output" fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={30} />
@@ -591,13 +591,13 @@ const GstReport = () => {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white/70 border border-white/50 backdrop-blur-md rounded-2xl shadow-sm p-6 mb-8 flex flex-col"
+          className="bg-white/70 dark:bg-slate-900 border border-white/50 dark:border-slate-800 backdrop-blur-md rounded-2xl shadow-sm p-6 mb-8 flex flex-col"
         >
           {/* Trend Title and Legend */}
           <div className="flex flex-row justify-between items-center mb-6">
-            <h3 className="text-sm font-black text-slate-800 tracking-tight uppercase">6-month trend</h3>
+            <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 tracking-tight uppercase">6-month trend</h3>
             
-            <div className="flex items-center gap-4 text-xs font-bold text-slate-655">
+            <div className="flex items-center gap-4 text-xs font-bold text-slate-600 dark:text-slate-300">
               <div className="flex items-center gap-1.5">
                 <span className="w-3.5 h-0.5 bg-red-500 inline-block"></span>
                 <span>Output</span>
@@ -617,21 +617,21 @@ const GstReport = () => {
           <div className="w-full h-44 mb-6">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
                 <XAxis 
                   dataKey="month" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} 
+                  tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} 
                 />
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 9, fontWeight: 700 }}
+                  tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 700 }}
                   tickFormatter={(val) => `₹${val >= 100000 ? `${(val / 100000).toFixed(0)}L` : `${val / 1000}k`}`}
                 />
                 <Tooltip 
-                  contentStyle={{ background: '#0f172a', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
+                  contentStyle={{ background: '#0f172a', borderRadius: '12px', border: '1px solid #334155', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
                   formatter={(value) => [`₹${fmt(value)}`, '']}
                 />
                 <Line 
@@ -664,55 +664,55 @@ const GstReport = () => {
           </div>
 
           {/* Underneath Horizontal Metrics Indicators */}
-          <div className="grid grid-cols-2 md:grid-cols-4 border-t border-slate-200/80 pt-5 gap-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 border-t border-slate-200/80 dark:border-slate-800 pt-5 gap-y-4">
             <HorizontalSubMetric
               title="ITC utilisation"
               value={`${activeData?.metrics?.itcUtilisation}%`}
-              valueColor="text-emerald-600"
+              valueColor="text-emerald-600 dark:text-emerald-400"
             />
             <HorizontalSubMetric
               title="IGST credit"
               value={`₹${fmt(activeData?.metrics?.igstCredit)}`}
-              valueColor="text-indigo-650"
+              valueColor="text-indigo-600 dark:text-indigo-400"
             />
             <HorizontalSubMetric
               title="CGST+SGST"
               value={`₹${fmt(activeData?.metrics?.cgstSgstCredit)}`}
-              valueColor="text-indigo-650"
+              valueColor="text-indigo-600 dark:text-indigo-400"
             />
             <HorizontalSubMetric
               title="Credit / output"
               value={`${activeData?.metrics?.creditOutputRatio}%`}
-              valueColor="text-amber-600"
+              valueColor="text-amber-600 dark:text-amber-400"
             />
           </div>
         </motion.div>
 
         {/* Info Callout */}
-        <div className="flex items-start gap-3 bg-white/50 backdrop-blur-sm border border-slate-200/50 rounded-2xl p-4 mb-8">
-          <FaInfoCircle className="text-indigo-500 mt-0.5 shrink-0" size={16} />
-          <div className="text-xs text-slate-700 leading-relaxed font-medium">
+        <div className="flex items-start gap-3 bg-white/50 dark:bg-indigo-950/40 backdrop-blur-sm border border-slate-200/50 dark:border-indigo-900/60 rounded-2xl p-4 mb-8">
+          <FaInfoCircle className="text-indigo-500 dark:text-indigo-400 mt-0.5 shrink-0" size={16} />
+          <div className="text-xs text-slate-700 dark:text-indigo-200 leading-relaxed font-medium">
             <strong>Tax Ledger Rules Summary:</strong> IGST applies to inter-state and export sales. CGST and SGST represent the divided revenues for intra-state operations. Credit/Debit outputs automatically resolve GSTR-3B filings against purchase ledger balances.
           </div>
         </div>
 
         {/* Granular Table Ledger Container */}
-        <div className="bg-white shadow-sm hover:shadow-md transition-shadow duration-300 rounded-2xl border border-slate-200/80 overflow-hidden mb-12">
-          <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-50/40">
+        <div className="bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden mb-12">
+          <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-50/40 dark:bg-slate-800/40">
             <div>
-              <h3 className="font-bold text-slate-900 text-lg">Detailed Transactions</h3>
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-lg">Detailed Transactions</h3>
               <p className="text-slate-400 text-xs mt-0.5 font-semibold">Individual ledger entries matching report dates</p>
             </div>
-            <div className="text-xs font-extrabold text-slate-500 bg-slate-200/50 rounded-full px-3 py-1 flex items-center gap-1.5">
+            <div className="text-xs font-extrabold text-slate-500 dark:text-slate-300 bg-slate-200/50 dark:bg-slate-800 rounded-full px-3 py-1 flex items-center gap-1.5">
               <FaCheckCircle size={10} className="text-emerald-500 animate-pulse" />
               {data?.details?.length || 0} Invoice{data?.details?.length === 1 ? '' : 's'} recorded
             </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-150">
+            <table className="min-w-full divide-y divide-slate-150 dark:divide-slate-800">
               <thead>
-                <tr className="bg-slate-900 border-b border-slate-800 text-slate-100">
+                <tr className="bg-slate-900 dark:bg-slate-800 border-b border-slate-800 dark:border-slate-700 text-slate-100">
                   <th scope="col" className="px-6 py-4 text-left text-xs font-extrabold uppercase tracking-wider rounded-tl-2xl">Invoice & Date</th>
                   <th scope="col" className="px-6 py-4 text-left text-xs font-extrabold uppercase tracking-wider">Client Details</th>
                   <th scope="col" className="px-6 py-4 text-right text-xs font-extrabold uppercase tracking-wider">Taxable Value</th>
@@ -723,10 +723,10 @@ const GstReport = () => {
                   <th scope="col" className="px-6 py-4 text-right text-xs font-extrabold uppercase tracking-wider rounded-tr-2xl">Grand Total</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-slate-100">
+              <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
                 {loading ? (
                   [...Array(4)].map((_, i) => (
-                    <tr key={i} className="bg-white border-b border-slate-50">
+                    <tr key={i} className="bg-white dark:bg-slate-900 border-b border-slate-50 dark:border-slate-800">
                       <td className="px-6 py-4"><Skeleton width="110px" height="18px" /><Skeleton width="70px" height="12px" className="mt-1.5" /></td>
                       <td className="px-6 py-4"><Skeleton width="130px" height="18px" /><Skeleton width="85px" height="12px" className="mt-1.5" /></td>
                       <td className="px-6 py-4"><Skeleton width="70px" height="18px" className="ml-auto" /></td>
@@ -741,11 +741,11 @@ const GstReport = () => {
                   <tr>
                     <td colSpan="8" className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-3.5">
+                        <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 mb-3.5">
                           <FaInbox size={20} />
                         </div>
-                        <h4 className="font-bold text-slate-900 text-sm">No Live Transactions Available</h4>
-                        <p className="text-slate-455 text-xs mt-1.5 leading-relaxed font-semibold">
+                        <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">No Live Transactions Available</h4>
+                        <p className="text-slate-455 dark:text-slate-400 text-xs mt-1.5 leading-relaxed font-semibold">
                           There are no actual GST transactions recorded in the selected period. Toggle your dates or add invoices in the Invoice Form.
                         </p>
                       </div>
@@ -754,62 +754,62 @@ const GstReport = () => {
                 ) : (
                   <>
                     {data.details.map((row, idx) => (
-                      <tr key={idx} onClick={() => navigate(`/invoices/edit/${row._id}`)} className="hover:bg-slate-50/60 transition-all duration-150 group cursor-pointer">
+                      <tr key={idx} onClick={() => navigate(`/invoices/edit/${row._id}`)} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/60 transition-all duration-150 group cursor-pointer">
                         <td className="px-6 py-4.5 whitespace-nowrap">
-                          <div className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{row.invoiceNo}</div>
-                          <div className="text-[11px] font-bold text-slate-400 mt-1 flex items-center gap-1.5">
-                            <FaCalendarAlt size={10} className="text-slate-350" />
+                          <div className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{row.invoiceNo}</div>
+                          <div className="text-[11px] font-bold text-slate-400 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+                            <FaCalendarAlt size={10} className="text-slate-400" />
                             {new Date(row.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                           </div>
                         </td>
                         <td className="px-6 py-4.5 whitespace-nowrap">
-                          <div className="text-sm font-bold text-slate-900 leading-snug">{row.clientName || 'N/A'}</div>
-                          <div className="text-[10px] font-extrabold text-indigo-650 bg-indigo-50 border border-indigo-100/50 rounded px-1.5 py-0.5 mt-1 inline-block uppercase tracking-wider">
+                          <div className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-snug">{row.clientName || 'N/A'}</div>
+                          <div className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100/50 dark:border-indigo-800/60 rounded px-1.5 py-0.5 mt-1 inline-block uppercase tracking-wider">
                             State: {row.clientState || 'N/A'}
                           </div>
                         </td>
-                        <td className="px-6 py-4.5 whitespace-nowrap text-right text-sm font-bold text-slate-700">
+                        <td className="px-6 py-4.5 whitespace-nowrap text-right text-sm font-bold text-slate-700 dark:text-slate-200">
                           ₹{fmtDecimal(row.taxableAmount)}
                         </td>
-                        <td className="px-6 py-4.5 whitespace-nowrap text-right text-sm font-semibold text-slate-500">
+                        <td className="px-6 py-4.5 whitespace-nowrap text-right text-sm font-semibold text-slate-500 dark:text-slate-400">
                           {row.cgst > 0 ? `₹${fmtDecimal(row.cgst)}` : '—'}
                         </td>
-                        <td className="px-6 py-4.5 whitespace-nowrap text-right text-sm font-semibold text-slate-500">
+                        <td className="px-6 py-4.5 whitespace-nowrap text-right text-sm font-semibold text-slate-500 dark:text-slate-400">
                           {row.sgst > 0 ? `₹${fmtDecimal(row.sgst)}` : '—'}
                         </td>
-                        <td className="px-6 py-4.5 whitespace-nowrap text-right text-sm font-semibold text-slate-500">
+                        <td className="px-6 py-4.5 whitespace-nowrap text-right text-sm font-semibold text-slate-500 dark:text-slate-400">
                           {row.igst > 0 ? `₹${fmtDecimal(row.igst)}` : '—'}
                         </td>
-                        <td className="px-6 py-4.5 whitespace-nowrap text-right text-sm text-red-605 font-bold bg-red-50/10">
+                        <td className="px-6 py-4.5 whitespace-nowrap text-right text-sm text-red-600 dark:text-red-400 font-bold bg-red-50/10 dark:bg-red-950/20">
                           ₹{fmtDecimal(row.totalTax)}
                         </td>
-                        <td className="px-6 py-4.5 whitespace-nowrap text-right text-sm font-black text-slate-900 bg-slate-50/40">
+                        <td className="px-6 py-4.5 whitespace-nowrap text-right text-sm font-black text-slate-900 dark:text-slate-100 bg-slate-50/40 dark:bg-slate-800/40">
                           ₹{fmtDecimal(row.grandTotal)}
                         </td>
                       </tr>
                     ))}
 
                     {/* Summary Aggregates Row */}
-                    <tr className="bg-slate-50 border-t-2 border-slate-900 font-extrabold text-slate-900">
-                      <td colSpan="2" className="px-6 py-4.5 text-left text-xs uppercase tracking-wider font-black text-slate-955">
+                    <tr className="bg-slate-50 dark:bg-slate-800 border-t-2 border-slate-900 dark:border-slate-700 font-extrabold text-slate-900 dark:text-slate-100">
+                      <td colSpan="2" className="px-6 py-4.5 text-left text-xs uppercase tracking-wider font-black text-slate-950 dark:text-slate-100">
                         Total Ledger Page Aggregates
                       </td>
-                      <td className="px-6 py-4.5 text-right text-sm font-black text-slate-950">
+                      <td className="px-6 py-4.5 text-right text-sm font-black text-slate-950 dark:text-slate-100">
                         ₹{fmtDecimal(pageTotals.taxable)}
                       </td>
-                      <td className="px-6 py-4.5 text-right text-sm font-extrabold text-slate-650">
+                      <td className="px-6 py-4.5 text-right text-sm font-extrabold text-slate-650 dark:text-slate-300">
                         ₹{fmtDecimal(pageTotals.cgst)}
                       </td>
-                      <td className="px-6 py-4.5 text-right text-sm font-extrabold text-slate-650">
+                      <td className="px-6 py-4.5 text-right text-sm font-extrabold text-slate-650 dark:text-slate-300">
                         ₹{fmtDecimal(pageTotals.sgst)}
                       </td>
-                      <td className="px-6 py-4.5 text-right text-sm font-extrabold text-slate-650">
+                      <td className="px-6 py-4.5 text-right text-sm font-extrabold text-slate-650 dark:text-slate-300">
                         ₹{fmtDecimal(pageTotals.igst)}
                       </td>
-                      <td className="px-6 py-4.5 text-right text-sm font-black text-red-700 bg-red-50/30">
+                      <td className="px-6 py-4.5 text-right text-sm font-black text-red-700 dark:text-red-400 bg-red-50/30 dark:bg-red-950/30">
                         ₹{fmtDecimal(pageTotals.tax)}
                       </td>
-                      <td className="px-6 py-4.5 text-right text-sm font-black text-slate-955 bg-slate-100/50">
+                      <td className="px-6 py-4.5 text-right text-sm font-black text-slate-955 dark:text-slate-100 bg-slate-100/50 dark:bg-slate-800">
                         ₹{fmtDecimal(pageTotals.grand)}
                       </td>
                     </tr>
@@ -829,22 +829,22 @@ const StatCard = ({ title, prefix = '', value, subtext, accentColor, subtextType
   const ACCENT_COLORS = {
     indigo: {
       border: 'border-t-indigo-500',
-      iconBg: 'bg-indigo-50 text-indigo-650',
+      iconBg: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-650 dark:text-indigo-300',
       bar: 'bg-indigo-500'
     },
     rose: {
       border: 'border-t-rose-500',
-      iconBg: 'bg-rose-50 text-rose-650',
+      iconBg: 'bg-rose-50 dark:bg-rose-950/60 text-rose-650 dark:text-rose-300',
       bar: 'bg-rose-500'
     },
     emerald: {
       border: 'border-t-emerald-500',
-      iconBg: 'bg-emerald-50 text-emerald-650',
+      iconBg: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-650 dark:text-emerald-300',
       bar: 'bg-emerald-500'
     },
     amber: {
       border: 'border-t-amber-500',
-      iconBg: 'bg-amber-50 text-amber-650',
+      iconBg: 'bg-amber-50 dark:bg-amber-950/60 text-amber-650 dark:text-amber-300',
       bar: 'bg-amber-500'
     }
   };
@@ -855,13 +855,13 @@ const StatCard = ({ title, prefix = '', value, subtext, accentColor, subtextType
   const isUp = String(subtext).includes('↑');
   const isDown = String(subtext).includes('↓');
   
-  let subtextStyleCls = 'text-slate-400';
+  let subtextStyleCls = 'text-slate-400 dark:text-slate-400';
   if (subtextType === 'rose') {
-    subtextStyleCls = 'text-rose-500 font-bold';
+    subtextStyleCls = 'text-rose-500 dark:text-rose-400 font-bold';
   } else if (subtextType === 'emerald') {
-    subtextStyleCls = 'text-emerald-500 font-bold';
+    subtextStyleCls = 'text-emerald-500 dark:text-emerald-400 font-bold';
   } else if (subtextType === 'amber') {
-    subtextStyleCls = 'text-amber-500 font-bold';
+    subtextStyleCls = 'text-amber-500 dark:text-amber-400 font-bold';
   }
 
   return (
@@ -869,12 +869,12 @@ const StatCard = ({ title, prefix = '', value, subtext, accentColor, subtextType
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className={`relative overflow-hidden bg-white/75 border-t-[3.5px] ${currentTheme.border} border-x border-b border-slate-200/50 backdrop-blur-md rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[110px]`}
+      className={`relative overflow-hidden bg-white/75 dark:bg-slate-900 border-t-[3.5px] ${currentTheme.border} border-x border-b border-slate-200/50 dark:border-slate-800 backdrop-blur-md rounded-2xl p-5 shadow-sm flex flex-col justify-between min-h-[110px]`}
     >
       <div>
-        <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">{title}</span>
+        <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-400">{title}</span>
         
-        <div className="text-3xl font-black tracking-tight text-slate-900 mt-2.5 flex items-baseline">
+        <div className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100 mt-2.5 flex items-baseline">
           {prefix && <span className="text-xl font-bold text-slate-400 mr-0.5">{prefix}</span>}
           <span>{value}</span>
         </div>
@@ -892,8 +892,8 @@ const StatCard = ({ title, prefix = '', value, subtext, accentColor, subtextType
 // Horizontal detailed submetrics
 const HorizontalSubMetric = ({ title, value, valueColor }) => {
   return (
-    <div className="px-5 border-r border-slate-200/70 last:border-0 text-center md:text-left">
-      <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">{title}</span>
+    <div className="px-5 border-r border-slate-200/70 dark:border-slate-800 last:border-0 text-center md:text-left">
+      <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-400">{title}</span>
       <div className={`text-xl font-black mt-1.5 tracking-tight ${valueColor}`}>{value}</div>
     </div>
   );

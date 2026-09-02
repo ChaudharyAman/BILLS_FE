@@ -116,12 +116,12 @@ const ItemForm = ({ isModal, onSuccess }) => {
         <div className="container mx-auto p-6 max-w-5xl">
             <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-4"><Skeleton width="150px" height="32px" /></div>
-                <div className="bg-white rounded-lg border p-1 flex gap-1">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-1 flex gap-1">
                     <Skeleton width="100px" height="36px" />
                     <Skeleton width="100px" height="36px" />
                 </div>
             </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-8">
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 mb-8">
                     {[...Array(6)].map((_, i) => (
                         <div key={i} className="col-span-1">
@@ -132,13 +132,13 @@ const ItemForm = ({ isModal, onSuccess }) => {
                 </div>
                 <div className="mb-8">
                     <Skeleton width="100px" height="24px" className="mb-4" />
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 dark:bg-slate-800/50 p-4 rounded-lg">
                         {[...Array(4)].map((_, i) => <div key={i}><Skeleton width="80px" height="16px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>)}
                     </div>
                 </div>
                 <div className="mb-8">
                     <Skeleton width="120px" height="24px" className="mb-4" />
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 dark:bg-slate-800/50 p-4 rounded-lg">
                         {[...Array(4)].map((_, i) => <div key={i}><Skeleton width="80px" height="16px" className="mb-1" /><Skeleton width="100%" height="40px" /></div>)}
                     </div>
                 </div>
@@ -148,37 +148,37 @@ const ItemForm = ({ isModal, onSuccess }) => {
   }
 
   return (
-    <div className={isModal ? "" : "container mx-auto p-6 max-w-5xl"}>
+    <div className={isModal ? "" : "container mx-auto p-6 max-w-5xl text-slate-800 dark:text-slate-100 transition-colors"}>
       {!isModal && (
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/items')}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 transition-colors"
           >
             <FaArrowLeft size={24} />
           </button>
-          <h1 className="text-2xl font-bold text-gray-800">{id ? 'Edit Inventory' : 'New Inventory'}</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">{id ? 'Edit Inventory' : 'New Inventory'}</h1>
         </div>
         
         {/* Tabs */}
-        <div className="bg-white rounded-lg border p-1 flex">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-1 flex shadow-sm">
           <button
             onClick={() => handleTabChange('Goods')}
-            className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-colors ${
               activeTab === 'Goods' 
-                ? 'bg-gray-100 text-gray-900 shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' 
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
           >
             PRODUCT
           </button>
           <button
             onClick={() => handleTabChange('Service')}
-            className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-colors ${
               activeTab === 'Service' 
-                ? 'bg-gray-100 text-gray-900 shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' 
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
           >
             SERVICE
@@ -188,41 +188,41 @@ const ItemForm = ({ isModal, onSuccess }) => {
       )}
 
       {isModal && (
-        <div className="mb-4 bg-gray-50 rounded-lg p-1 flex justify-center border">
+        <div className="mb-4 bg-gray-50 dark:bg-slate-800/60 rounded-lg p-1 flex justify-center border border-gray-200 dark:border-slate-700">
           <button type="button" onClick={() => handleTabChange('Goods')}
-            className={`flex-1 py-1.5 rounded-md text-xs font-bold uppercase transition-colors ${activeTab === 'Goods' ? 'bg-white text-blue-600 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}>
+            className={`flex-1 py-1.5 rounded-md text-xs font-bold uppercase transition-colors ${activeTab === 'Goods' ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-sm border border-gray-200 dark:border-slate-700' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'}`}>
             Product
           </button>
           <button type="button" onClick={() => handleTabChange('Service')}
-            className={`flex-1 py-1.5 rounded-md text-xs font-bold uppercase transition-colors ${activeTab === 'Service' ? 'bg-white text-blue-600 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}>
+            className={`flex-1 py-1.5 rounded-md text-xs font-bold uppercase transition-colors ${activeTab === 'Service' ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-sm border border-gray-200 dark:border-slate-700' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'}`}>
             Service
           </button>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className={`${isModal ? "" : "bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-8"}`}>
+      <form onSubmit={handleSubmit} className={`${isModal ? "" : "bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden p-8 transition-colors"}`}>
         
         {/* General Info Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 mb-8">
           <div className="col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Name *</label>
             <input
               type="text"
               name="name"
               required
               data-testid="item-name"
-              className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border"
+              className="w-full border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border outline-none"
               value={formData.name}
               onChange={handleChange}
             />
           </div>
           
           <div className="col-span-1">
-             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Description</label>
              <textarea
                 name="description"
                 rows="1"
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border"
+                className="w-full border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border outline-none"
                 value={formData.description}
                 onChange={handleChange}
               />
@@ -230,11 +230,11 @@ const ItemForm = ({ isModal, onSuccess }) => {
 
           {activeTab === 'Goods' && (
             <div className="col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Opening Quantity</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Opening Quantity</label>
               <input
                 type="number"
                 name="openingQuantity"
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border"
+                className="w-full border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border outline-none"
                 value={formData.openingQuantity}
                 onChange={handleChange}
               />
@@ -242,7 +242,7 @@ const ItemForm = ({ isModal, onSuccess }) => {
           )}
 
            <div className="col-span-1">
-             <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+             <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Unit</label>
              <UnitSelector
                value={formData.unit}
                onChange={(val) => setFormData(prev => ({ ...prev, unit: val }))}
@@ -250,20 +250,20 @@ const ItemForm = ({ isModal, onSuccess }) => {
           </div>
 
            <div className="col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                 {activeTab === 'Service' ? 'SAC Code' : 'HSN Code'}
             </label>
             <input
               type="text"
               name="hsnCode"
-              className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border"
+              className="w-full border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border outline-none"
               value={formData.hsnCode}
               onChange={handleChange}
             />
           </div>
 
           <div className="col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Tax Rate (%)</label>
              <TaxRateSelector
                 value={formData.defaultTaxRate}
                 onChange={(val) => setFormData(prev => ({ ...prev, defaultTaxRate: val }))}
@@ -271,12 +271,12 @@ const ItemForm = ({ isModal, onSuccess }) => {
           </div>
           
            <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">SKU</label>
             <input
               type="text"
               name="sku"
               placeholder="Auto-generated if left blank"
-              className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border"
+              className="w-full border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border outline-none"
               value={formData.sku}
               onChange={handleChange}
             />
@@ -285,26 +285,26 @@ const ItemForm = ({ isModal, onSuccess }) => {
 
         {/* Sales Info */}
         <div className="mb-8">
-           <h3 className="text-md font-medium text-gray-700 mb-4 border-b border-gray-100 pb-2">Sales Info</h3>
-           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg">
+           <h3 className="text-md font-semibold text-gray-700 dark:text-slate-200 mb-4 border-b border-gray-100 dark:border-slate-800 pb-2">Sales Info</h3>
+           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Unit Price</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Unit Price</label>
                 <input
                   type="number"
                   name="price"
                   min="0"
                   step="0.01"
                   data-testid="item-sales-price"
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border"
+                  className="w-full border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border outline-none"
                   value={formData.salesInfo.price}
                   onChange={(e) => handleNestedChange('salesInfo', e)}
                 />
               </div>
                <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Currency</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Currency</label>
                 <select
                   name="currency"
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border bg-gray-100"
+                  className="w-full border-gray-300 dark:border-slate-700 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border bg-gray-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                   value={formData.salesInfo.currency}
                   onChange={(e) => handleNestedChange('salesInfo', e)}
                   disabled
@@ -313,25 +313,25 @@ const ItemForm = ({ isModal, onSuccess }) => {
                 </select>
               </div>
                <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">CESS %</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">CESS %</label>
                 <input
                   type="number"
                   name="cessPercent"
                    min="0"
                    step="0.01"
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border"
+                  className="w-full border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border outline-none"
                   value={formData.salesInfo.cessPercent}
                   onChange={(e) => handleNestedChange('salesInfo', e)}
                 />
               </div>
                <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">+ CESS</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">+ CESS</label>
                 <input
                   type="number"
                   name="cessAmount"
                    min="0"
                    step="0.01"
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border"
+                  className="w-full border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border outline-none"
                   value={formData.salesInfo.cessAmount}
                   onChange={(e) => handleNestedChange('salesInfo', e)}
                 />
@@ -341,25 +341,25 @@ const ItemForm = ({ isModal, onSuccess }) => {
 
         {/* Purchase Info */}
         <div className="mb-8">
-           <h3 className="text-md font-medium text-gray-700 mb-4 border-b border-gray-100 pb-2">Purchase Info</h3>
-           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg">
+           <h3 className="text-md font-semibold text-gray-700 dark:text-slate-200 mb-4 border-b border-gray-100 dark:border-slate-800 pb-2">Purchase Info</h3>
+           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Unit Price</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Unit Price</label>
                 <input
                   type="number"
                   name="price"
                    min="0"
                    step="0.01"
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border"
+                  className="w-full border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border outline-none"
                   value={formData.purchaseInfo.price}
                    onChange={(e) => handleNestedChange('purchaseInfo', e)}
                 />
               </div>
                <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Currency</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Currency</label>
                 <select
                   name="currency"
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border bg-gray-100"
+                  className="w-full border-gray-300 dark:border-slate-700 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border bg-gray-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                   value={formData.purchaseInfo.currency}
                    onChange={(e) => handleNestedChange('purchaseInfo', e)}
                    disabled
@@ -368,25 +368,25 @@ const ItemForm = ({ isModal, onSuccess }) => {
                 </select>
               </div>
                <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">CESS %</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">CESS %</label>
                 <input
                   type="number"
                   name="cessPercent"
                    min="0"
                    step="0.01"
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border"
+                  className="w-full border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border outline-none"
                   value={formData.purchaseInfo.cessPercent}
                    onChange={(e) => handleNestedChange('purchaseInfo', e)}
                 />
               </div>
                <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">+ CESS</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">+ CESS</label>
                 <input
                   type="number"
                   name="cessAmount"
                    min="0"
                    step="0.01"
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border"
+                  className="w-full border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 p-2 border outline-none"
                   value={formData.purchaseInfo.cessAmount}
                    onChange={(e) => handleNestedChange('purchaseInfo', e)}
                 />
@@ -394,12 +394,12 @@ const ItemForm = ({ isModal, onSuccess }) => {
            </div>
         </div>
 
-        <div className="flex justify-start gap-4 mt-8 pt-6 border-t">
+        <div className="flex justify-start gap-4 mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
           <button
             type="submit"
             disabled={loading}
             data-testid="save-item"
-            className="px-8 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 flex items-center gap-2 shadow-sm font-medium"
+            className="px-8 py-2.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 flex items-center gap-2 shadow-sm font-semibold transition-colors"
           >
             <FaSave size={18} />
             {loading ? 'Saving...' : 'Save'}
@@ -408,7 +408,7 @@ const ItemForm = ({ isModal, onSuccess }) => {
            <button
             type="button"
             onClick={() => navigate('/items')}
-            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium"
+            className="px-6 py-2.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 font-semibold transition-colors"
           >
             Cancel
           </button>

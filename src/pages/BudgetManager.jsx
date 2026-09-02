@@ -75,6 +75,7 @@ const BudgetManager = () => {
       name: budget.name || '',
       category: budget.category?._id || budget.category || '',
       department: budget.department?._id || budget.department || '',
+      businessUnit: budget.businessUnit?._id || budget.businessUnit || '',
       period: budget.period || 'monthly',
       startDate: budget.startDate?.substring(0, 10) || defaultStart,
       endDate: budget.endDate?.substring(0, 10) || defaultEnd,
@@ -98,6 +99,7 @@ const BudgetManager = () => {
       ...formData,
       category: formData.category || null,
       department: formData.department || null,
+      businessUnit: formData.businessUnit || null,
       budgetAmount: Number(formData.budgetAmount) || 0,
       alertThreshold: Number(formData.alertThreshold) || 80,
     };
@@ -126,44 +128,44 @@ const BudgetManager = () => {
     }
   };
 
-  const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm';
-  const labelCls = 'text-xs font-semibold text-gray-600 mb-1.5 inline-block';
+  const inputCls = 'w-full border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500';
+  const labelCls = 'text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1.5 inline-block';
 
   const getStatusClass = (status) => {
     switch (status) {
-      case 'exceeded': return 'bg-red-100 text-red-700';
+      case 'exceeded': return 'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800';
       case 'warning':
       case 'at_risk':
-        return 'bg-amber-100 text-amber-700';
+        return 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800';
       case 'active':
       case 'ok':
-        return 'bg-green-100 text-green-700';
+        return 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800';
       default:
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700';
     }
   };
 
   return (
-    <div className="container mx-auto p-6 font-sans text-gray-900">
+    <div className="container mx-auto p-6 font-sans text-gray-900 dark:text-slate-100 transition-colors">
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Budgets</h1>
-          <p className="text-gray-500 mt-1">Plan category spend and track actuals</p>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-slate-100">Budgets</h1>
+          <p className="text-gray-500 dark:text-slate-400 mt-1">Plan category spend and track actuals</p>
         </div>
-        <button onClick={openCreate} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold">
+        <button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-sm transition-all">
           <FaPlus /> Add Budget
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={saveBudget} className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <form onSubmit={saveBudget} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm p-6 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           {formError && (
-            <div className="md:col-span-3 rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-700">
+            <div className="md:col-span-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 p-4 text-sm text-amber-700 dark:text-amber-300">
               {formError}
             </div>
           )}
           {error && (
-            <div className="md:col-span-3 rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+            <div className="md:col-span-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 p-4 text-sm text-red-700 dark:text-red-300">
               {error}
             </div>
           )}
@@ -229,37 +231,39 @@ const BudgetManager = () => {
             <input id="budget-threshold" type="number" min="0" max="100" value={formData.alertThreshold} onChange={e => setFormData(p => ({ ...p, alertThreshold: e.target.value }))} className={inputCls} />
           </div>
           <div className="flex items-end gap-3">
-            <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">Save</button>
-            <button type="button" onClick={() => setShowForm(false)} className="bg-gray-100 px-4 py-2 rounded-lg text-sm font-semibold">Cancel</button>
+            <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">Save</button>
+            <button type="button" onClick={() => setShowForm(false)} className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">Cancel</button>
           </div>
         </form>
       )}
 
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+          <thead className="bg-gray-50 dark:bg-slate-800/60">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Category</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Period</th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Budget</th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Spent</th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Remaining</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Category</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Business Unit</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Period</th>
+              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Budget</th>
+              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Spent</th>
+              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Remaining</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Status</th>
+              <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
             {budgets.length === 0 ? (
-              <tr><td colSpan="8" className="px-6 py-10 text-center text-gray-500">No budgets created yet.</td></tr>
+              <tr><td colSpan="9" className="px-6 py-10 text-center text-gray-500 dark:text-slate-400">No budgets created yet.</td></tr>
             ) : budgets.map(budget => (
-              <tr key={budget._id} className="hover:bg-blue-50/40">
-                <td className="px-6 py-4 font-semibold">{budget.name}</td>
-                <td className="px-6 py-4 text-sm">{budget.category?.name || '-'}</td>
-                <td className="px-6 py-4 text-sm capitalize">{budget.period}</td>
-                <td className="px-6 py-4 text-right font-semibold">{fmtMoney(budget.budgetAmount)}</td>
-                <td className="px-6 py-4 text-right">{fmtMoney(budget.spentAmount)}</td>
-                <td className="px-6 py-4 text-right">{fmtMoney(budget.remainingAmount)}</td>
+              <tr key={budget._id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/50 transition-colors">
+                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-slate-100">{budget.name}</td>
+                <td className="px-6 py-4 text-sm text-gray-700 dark:text-slate-300">{budget.category?.name || '-'}</td>
+                <td className="px-6 py-4 text-sm text-gray-500 dark:text-slate-400">{budget.businessUnit?.name ? `${budget.businessUnit.name} (${budget.businessUnit.code})` : '-'}</td>
+                <td className="px-6 py-4 text-sm capitalize text-gray-700 dark:text-slate-300">{budget.period}</td>
+                <td className="px-6 py-4 text-right font-semibold text-gray-900 dark:text-slate-100">{fmtMoney(budget.budgetAmount)}</td>
+                <td className="px-6 py-4 text-right text-gray-700 dark:text-slate-300">{fmtMoney(budget.spentAmount)}</td>
+                <td className="px-6 py-4 text-right text-gray-700 dark:text-slate-300">{fmtMoney(budget.remainingAmount)}</td>
                 <td className="px-6 py-4">
                   <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${getStatusClass(budget.status)}`}>
                     {budget.status}
@@ -267,8 +271,8 @@ const BudgetManager = () => {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex justify-center gap-3">
-                    <button onClick={() => openEdit(budget)} className="text-gray-400 hover:text-blue-600"><FaEdit /></button>
-                    <button onClick={() => deleteBudget(budget)} className="text-gray-400 hover:text-red-600"><FaTrash /></button>
+                    <button onClick={() => openEdit(budget)} className="text-gray-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"><FaEdit /></button>
+                    <button onClick={() => deleteBudget(budget)} className="text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"><FaTrash /></button>
                   </div>
                 </td>
               </tr>

@@ -158,18 +158,18 @@ const VendorList = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-[1600px]"> {/* Detailed table needs more width */}
+    <div className="container mx-auto p-6 max-w-[1600px] text-slate-800 dark:text-slate-100 transition-colors"> {/* Detailed table needs more width */}
       
       {/* Header Bar */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 mb-6 flex flex-col md:flex-row justify-between items-center gap-4 transition-colors">
         
         {/* Left Side: Filter & Search */}
         <div className="flex items-center gap-3 w-full md:w-auto">
              {/* Filter Dropdown Mock */}
             <div className="relative">
-                <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-100 font-medium whitespace-nowrap">
+                <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium whitespace-nowrap transition-colors">
                    Filter Vendors / Suppliers 
-                   <FaChevronDown size={14} className="text-slate-400" />
+                   <FaChevronDown size={14} className="text-slate-400 dark:text-slate-400" />
                 </button>
             </div>
 
@@ -178,11 +178,11 @@ const VendorList = () => {
                 <input
                     type="text"
                     placeholder="Search"
-                    className="w-full pl-4 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full pl-4 pr-10 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
                     value={searchTerm}
                     onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                 />
-                <FaSearch className="absolute right-3 top-2.5 text-slate-400 h-4 w-4" />
+                <FaSearch className="absolute right-3 top-2.5 text-slate-400 dark:text-slate-400 h-4 w-4" />
             </div>
         </div>
 
@@ -225,25 +225,25 @@ const VendorList = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors">
         {loading ? (
              <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
-                    <thead className="bg-[#f8f9fa] border-b border-gray-200">
+                    <thead className="bg-[#f8f9fa] dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-800">
                         <tr>
                             <th className="px-4 py-3 w-10"><Skeleton width="16px" height="16px" /></th>
-                            <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">Company name</th>
-                            <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">Contact name</th>
-                            <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">Balance</th>
-                             <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">City</th>
-                             <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">Email</th>
-                             <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">Phone</th>
+                            <th className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Company name</th>
+                            <th className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Contact name</th>
+                            <th className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Balance</th>
+                             <th className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">City</th>
+                             <th className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Email</th>
+                             <th className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Phone</th>
                              <th className="px-4 py-3 w-10"></th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60">
                         {[...Array(5)].map((_, i) => (
-                            <tr key={i} className="bg-white">
+                            <tr key={i} className="bg-white dark:bg-slate-900">
                                 <td className="px-4 py-4"><Skeleton width="16px" height="16px" /></td>
                                 <td className="px-4 py-4"><Skeleton width="140px" height="20px" /></td>
                                 <td className="px-4 py-4"><Skeleton width="120px" height="20px" /></td>
@@ -260,82 +260,82 @@ const VendorList = () => {
         ) : (
              <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
-                    <thead className="bg-[#f8f9fa] border-b border-gray-200">
+                    <thead className="bg-[#f8f9fa] dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-800">
                         <tr>
                             <th className="px-4 py-3 w-10">
                                 <input 
                                     type="checkbox" 
-                                    className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                    className="rounded border-gray-300 dark:border-slate-700 text-teal-600 focus:ring-teal-500 dark:bg-slate-800"
                                     onChange={toggleSelectAll}
                                     checked={filteredVendors.length > 0 && selectedVendors.length === filteredVendors.length}
                                 />
                             </th>
-                            <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide cursor-pointer group select-none">
+                            <th className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide cursor-pointer group select-none">
                                 <div className="flex items-center gap-1">
                                     Company name 
                                     <FaSort size={12} className="text-slate-400 opacity-0 group-hover:opacity-100" />
                                 </div>
                             </th>
-                            <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">
+                            <th className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                                 Contact name
                             </th>
-                            <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">
+                            <th className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                                 Balance
                             </th>
-                             <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">
+                             <th className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                                 City
                             </th>
-                             <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide cursor-pointer group select-none">
+                             <th className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide cursor-pointer group select-none">
                                  <div className="flex items-center gap-1">
                                     Email
                                     <FaSort size={12} className="text-slate-400 opacity-0 group-hover:opacity-100" />
                                 </div>
                             </th>
-                             <th className="px-4 py-3 text-xs font-bold text-slate-700 uppercase tracking-wide">
+                             <th className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
                                 Phone
                             </th>
                             <th className="px-4 py-3 w-10"></th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60">
                         {filteredVendors.map((vendor) => (
-                            <tr key={vendor._id} className="hover:bg-slate-50 transition-colors">
+                            <tr key={vendor._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                 <td className="px-4 py-4">
                                     <input 
                                         type="checkbox" 
-                                        className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                        className="rounded border-gray-300 dark:border-slate-700 text-teal-600 focus:ring-teal-500 dark:bg-slate-800"
                                         checked={selectedVendors.includes(vendor._id)}
                                         onChange={() => toggleSelectVendor(vendor._id)}
                                     />
                                 </td>
                                 <td className="px-4 py-4">
-                                    <Link to={`/vendors/edit/${vendor._id}`} className="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                    <Link to={`/vendors/edit/${vendor._id}`} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold text-sm">
                                         {vendor.name}
                                     </Link>
                                 </td>
-                                <td className="px-4 py-4 text-sm text-slate-500">
+                                <td className="px-4 py-4 text-sm text-slate-500 dark:text-slate-400">
                                     {getContactName(vendor)}
                                 </td>
-                                <td className="px-4 py-4 text-sm text-slate-600">
+                                <td className="px-4 py-4 text-sm font-medium text-slate-700 dark:text-slate-200">
                                      {formatCurrency(vendor.openingBalance)}
                                 </td>
-                                <td className="px-4 py-4 text-sm text-slate-600">
+                                <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
                                      {vendor.billingAddress?.city || vendor.address?.city || '-'}
                                 </td>
-                                <td className="px-4 py-4 text-sm text-blue-500 hover:underline">
+                                <td className="px-4 py-4 text-sm text-blue-500 dark:text-blue-400 hover:underline">
                                      {vendor.email ? <a href={`mailto:${vendor.email}`}>{vendor.email}</a> : '-'}
                                 </td>
-                                 <td className="px-4 py-4 text-sm text-slate-600">
+                                 <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
                                      {vendor.phone || '-'}
                                 </td>
                                 <td className="px-4 py-4 text-center">
                                     <div className="flex items-center justify-center gap-3">
-                                      <Link to={`/vendors/edit/${vendor._id}`} className="text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+                                      <Link to={`/vendors/edit/${vendor._id}`} className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="Edit">
                                         <FaPencilAlt size={14} />
                                       </Link>
                                       <button 
                                           onClick={() => handleDelete(vendor._id)} 
-                                          className="text-slate-300 hover:text-red-500 transition-colors"
+                                          className="text-slate-300 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                                           title="Delete"
                                       >
                                           <FaTrash size={14} />
@@ -346,7 +346,7 @@ const VendorList = () => {
                         ))}
                          {filteredVendors.length === 0 && (
                             <tr>
-                                <td colSpan="8" className="text-center py-8 text-slate-500 text-sm">
+                                <td colSpan="8" className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
                                     No vendors found matching your search.
                                 </td>
                             </tr>
@@ -357,18 +357,18 @@ const VendorList = () => {
         )}
         
         {/* Pagination Footer */}
-        <div className="flex flex-col sm:flex-row justify-between items-center p-4 border-t border-slate-200 bg-white gap-4">
-            <div className="text-sm text-slate-500">
+        <div className="flex flex-col sm:flex-row justify-between items-center p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 gap-4 transition-colors">
+            <div className="text-sm text-slate-500 dark:text-slate-400">
                 Showing {vendors.length} of {totalRecords} records
             </div>
             
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm text-slate-500">Rows per page:</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">Rows per page:</span>
                     <select 
                       value={rowsPerPage} 
                       onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
-                      className="border border-slate-200 rounded text-sm text-slate-600 px-2 py-1 outline-none"
+                      className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-sm text-slate-600 dark:text-slate-300 px-2 py-1 outline-none"
                     >
                         <option value={10}>10</option>
                         <option value={20}>20</option>
@@ -377,21 +377,21 @@ const VendorList = () => {
                 </div>
                 
                 <div className="flex items-center gap-3">
-                    <span className="text-sm text-slate-600">
+                    <span className="text-sm text-slate-600 dark:text-slate-300">
                         Page {page} of {totalPages || 1}
                     </span>
                     <div className="flex gap-1">
                         <button 
                           disabled={page <= 1}
                           onClick={() => setPage(p => p - 1)}
-                          className="px-3 py-1 border border-slate-200 text-sm text-slate-600 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-3 py-1 border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 rounded hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                             Prev
                         </button>
                         <button 
                           disabled={page >= totalPages}
                           onClick={() => setPage(p => p + 1)}
-                          className="px-3 py-1 border border-slate-200 text-sm text-slate-600 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-3 py-1 border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 rounded hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                             Next
                         </button>

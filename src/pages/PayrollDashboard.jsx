@@ -50,11 +50,11 @@ const getComponentBreakdown = (snapshot, component) => {
 
 const BreakdownRow = ({ label, paid, master }) => (
   <div className="flex items-center justify-between px-4 py-2.5">
-    <span className="text-gray-600 font-medium">{label}</span>
+    <span className="text-gray-600 dark:text-slate-300 font-medium">{label}</span>
     <div className="flex items-center gap-2">
-      <span className="font-semibold text-gray-900">{fmtMoney(paid)}</span>
+      <span className="font-semibold text-gray-900 dark:text-slate-100">{fmtMoney(paid)}</span>
       {paid !== master && (
-        <span className="text-xs text-gray-400 font-normal line-through">
+        <span className="text-xs text-gray-400 dark:text-slate-500 font-normal line-through">
           {fmtMoney(master)}
         </span>
       )}
@@ -64,19 +64,19 @@ const BreakdownRow = ({ label, paid, master }) => (
 
 const DeductionRow = ({ label, amount, isContrib = false, isEditable = false, value = 0, onChange }) => (
   <div className="flex items-center justify-between px-4 py-2.5">
-    <span className={isContrib ? "text-gray-500 font-normal text-xs" : "text-gray-600 font-medium"}>{label}</span>
+    <span className={isContrib ? "text-gray-500 dark:text-slate-400 font-normal text-xs" : "text-gray-600 dark:text-slate-300 font-medium"}>{label}</span>
     {isEditable ? (
       <div className="flex items-center gap-1">
-        <span className="text-slate-500 font-medium">₹</span>
+        <span className="text-slate-500 dark:text-slate-400 font-medium">₹</span>
         <input
           type="number"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-semibold"
+          className="w-20 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-1.5 py-0.5 text-xs text-right font-semibold focus:outline-none focus:border-blue-500"
         />
       </div>
     ) : (
-      <span className={isContrib ? "font-semibold text-gray-700 text-xs" : "font-semibold text-gray-900"}>{fmtMoney(amount)}</span>
+      <span className={isContrib ? "font-semibold text-gray-700 dark:text-slate-300 text-xs" : "font-semibold text-gray-900 dark:text-slate-100"}>{fmtMoney(amount)}</span>
     )}
   </div>
 );
@@ -735,59 +735,59 @@ const PayrollDashboard = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 font-sans text-gray-900">
+    <div className="container mx-auto p-6 font-sans text-gray-900 dark:text-slate-100 transition-colors">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Payroll</h1>
-          <p className="text-gray-500 mt-1">Track payroll processing, approvals, payments, and employee payslips</p>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-slate-100">Payroll</h1>
+          <p className="text-gray-500 dark:text-slate-400 mt-1">Track payroll processing, approvals, payments, and employee payslips</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {/* Top Month & Year Period Filter */}
-          <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-1.5 shadow-sm">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Period:</span>
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-1.5 shadow-sm">
+            <span className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Period:</span>
             <select
               value={month}
               onChange={(e) => setMonth(Number(e.target.value))}
-              className="border-0 bg-transparent text-sm font-bold text-blue-600 focus:outline-none cursor-pointer"
+              className="border-0 bg-transparent text-sm font-bold text-blue-600 dark:text-blue-400 focus:outline-none cursor-pointer"
             >
               {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => (
-                <option key={value} value={value}>{monthName(value)}</option>
+                <option key={value} value={value} className="bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100">{monthName(value)}</option>
               ))}
             </select>
             <input
               type="number"
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
-              className="w-20 border border-gray-200 rounded px-2 py-0.5 text-sm font-bold text-gray-800 text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-20 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded px-2 py-0.5 text-sm font-bold text-gray-800 dark:text-slate-100 text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
 
           <button
             type="button"
             onClick={() => handleExport('inputs')}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3.5 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-sm"
+            className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 px-3.5 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-sm transition-colors"
             title="Download working days, LOP, overtime, and variable inputs as Excel"
           >
             <FaDownload size={13} /> Export Inputs Only
           </button>
-          <Link to="/employees" className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-sm">
+          <Link to="/employees" className="bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 border border-gray-300 dark:border-slate-700 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-sm transition-colors">
             Manage Employees
           </Link>
-          <Link to="/payroll/process" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold">
+          <Link to="/payroll/process" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-sm transition-colors">
             <FaPlus size={14} /> Process Payroll
           </Link>
         </div>
       </div>
 
       {/* Dynamic Approvals Hub Navigation Tabs */}
-      <div className="flex border-b border-gray-200 mb-6 gap-2 bg-white px-4 py-2.5 rounded-xl border shadow-sm">
+      <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 gap-2 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-xl border dark:border-slate-800 shadow-sm transition-colors">
         <button
           type="button"
           onClick={() => setActiveDashboardTab('runs')}
           className={`pb-2.5 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
             activeDashboardTab === 'runs'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-900'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100'
           }`}
         >
           <FaMoneyBillWave className="w-3.5 h-3.5" /> Payroll Batches
@@ -797,11 +797,11 @@ const PayrollDashboard = () => {
           onClick={() => setActiveDashboardTab('loans')}
           className={`pb-2.5 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 relative ${
             activeDashboardTab === 'loans'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-900'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100'
           }`}
         >
-          <FaMoneyBillWave className="w-3.5 h-3.5 text-indigo-500" /> Loans &amp; Advances
+          <FaMoneyBillWave className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" /> Loans &amp; Advances
           {loanStats.pending > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[9px] font-bold text-white">
               {loanStats.pending}
@@ -813,11 +813,11 @@ const PayrollDashboard = () => {
           onClick={() => setActiveDashboardTab('reimbursements')}
           className={`pb-2.5 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 relative ${
             activeDashboardTab === 'reimbursements'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-900'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100'
           }`}
         >
-          <FaReceipt className="w-3.5 h-3.5 text-emerald-500" /> Reimbursement Claims
+          <FaReceipt className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" /> Reimbursement Claims
           {claimStats.pending > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[9px] font-bold text-white">
               {claimStats.pending}
@@ -829,11 +829,11 @@ const PayrollDashboard = () => {
           onClick={() => setActiveDashboardTab('leaves')}
           className={`pb-2.5 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 relative ${
             activeDashboardTab === 'leaves'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-900'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100'
           }`}
         >
-          <FaCalendarCheck className="w-3.5 h-3.5 text-rose-500" /> Leaves &amp; LOP
+          <FaCalendarCheck className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" /> Leaves &amp; LOP
           {leaveStats.pending > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-bold text-white">
               {leaveStats.pending}
@@ -852,195 +852,195 @@ const PayrollDashboard = () => {
           </div>
 
           {/* Financial Breakdown Grid */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 mb-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 pb-2 border-b border-gray-100 gap-3">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm p-5 mb-6 transition-colors">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-slate-800 gap-3">
               <div>
-                <h2 className="font-bold text-lg text-gray-800">Financial Breakdown ({monthName(month)} {year})</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Sum of all processed, approved, and paid runs for this period</p>
+                <h2 className="font-bold text-lg text-gray-800 dark:text-slate-100">Financial Breakdown ({monthName(month)} {year})</h2>
+                <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Sum of all processed, approved, and paid runs for this period</p>
               </div>
               <div className="flex gap-6 self-end md:self-auto">
                 <div className="text-right">
-                  <div className="text-xs text-gray-400 font-semibold uppercase">Total Net Take Home</div>
-                  <div className="text-2xl font-extrabold text-blue-600">{fmtMoney(stats.total)}</div>
+                  <div className="text-xs text-gray-400 dark:text-slate-400 font-semibold uppercase">Total Net Take Home</div>
+                  <div className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{fmtMoney(stats.total)}</div>
                 </div>
-                <div className="text-right border-l pl-6">
-                  <div className="text-xs text-gray-400 font-semibold uppercase">Total Cost to Company (CTC)</div>
-                  <div className="text-2xl font-extrabold text-indigo-900">{fmtMoney(stats.ctc)}</div>
+                <div className="text-right border-l dark:border-slate-800 pl-6">
+                  <div className="text-xs text-gray-400 dark:text-slate-400 font-semibold uppercase">Total Cost to Company (CTC)</div>
+                  <div className="text-2xl font-extrabold text-indigo-900 dark:text-indigo-300">{fmtMoney(stats.ctc)}</div>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Earnings & Allowances Card */}
-              <div className="bg-slate-50 border border-gray-200 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3 border-b pb-2 border-gray-200">
-                  <span className="font-bold text-sm text-gray-700">Earnings & Allowances</span>
-                  <span className="font-extrabold text-sm text-gray-900 bg-white px-2 py-0.5 rounded border">{fmtMoney(stats.grossSalary)}</span>
+              <div className="bg-slate-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700/60 rounded-xl p-4 transition-colors">
+                <div className="flex items-center justify-between mb-3 border-b pb-2 border-gray-200 dark:border-slate-700">
+                  <span className="font-bold text-sm text-gray-700 dark:text-slate-200">Earnings & Allowances</span>
+                  <span className="font-extrabold text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-gray-200 dark:border-slate-700">{fmtMoney(stats.grossSalary)}</span>
                 </div>
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Basic Salary</span>
-                    <span className="font-semibold text-gray-800">{fmtMoney(stats.basic)}</span>
+                    <span className="text-gray-500 dark:text-slate-400">Basic Salary</span>
+                    <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.basic)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">House Rent Allowance (HRA)</span>
-                    <span className="font-semibold text-gray-800">{fmtMoney(stats.hra)}</span>
+                    <span className="text-gray-500 dark:text-slate-400">House Rent Allowance (HRA)</span>
+                    <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.hra)}</span>
                   </div>
                   {stats.flexiAmount > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Flexi Allowance</span>
-                      <span className="font-semibold text-gray-800">{fmtMoney(stats.flexiAmount)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Flexi Allowance</span>
+                      <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.flexiAmount)}</span>
                     </div>
                   )}
                   {stats.specialAllowance > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Special Allowance</span>
-                      <span className="font-semibold text-gray-800">{fmtMoney(stats.specialAllowance)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Special Allowance</span>
+                      <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.specialAllowance)}</span>
                     </div>
                   )}
                   {stats.overtime > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Overtime</span>
-                      <span className="font-semibold text-gray-800">{fmtMoney(stats.overtime)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Overtime</span>
+                      <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.overtime)}</span>
                     </div>
                   )}
                   {stats.broadband > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Broadband Reimbursement</span>
-                      <span className="font-semibold text-gray-800">{fmtMoney(stats.broadband)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Broadband Reimbursement</span>
+                      <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.broadband)}</span>
                     </div>
                   )}
                   {stats.petrol > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Petrol Allowance</span>
-                      <span className="font-semibold text-gray-800">{fmtMoney(stats.petrol)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Petrol Allowance</span>
+                      <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.petrol)}</span>
                     </div>
                   )}
                   {stats.lta > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Leave Travel Allowance (LTA)</span>
-                      <span className="font-semibold text-gray-800">{fmtMoney(stats.lta)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Leave Travel Allowance (LTA)</span>
+                      <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.lta)}</span>
                     </div>
                   )}
                   {stats.conveyance > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Conveyance Allowance</span>
-                      <span className="font-semibold text-gray-800">{fmtMoney(stats.conveyance)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Conveyance Allowance</span>
+                      <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.conveyance)}</span>
                     </div>
                   )}
                   {stats.medicalAllowance > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Medical Allowance</span>
-                      <span className="font-semibold text-gray-800">{fmtMoney(stats.medicalAllowance)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Medical Allowance</span>
+                      <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.medicalAllowance)}</span>
                     </div>
                   )}
                   {stats.otherEarnings > 0 && (
-                    <div className="flex justify-between border-t pt-1.5 border-dashed border-gray-200">
-                      <span className="text-gray-500 font-medium">Other Allowances</span>
-                      <span className="font-semibold text-gray-800">{fmtMoney(stats.otherEarnings)}</span>
+                    <div className="flex justify-between border-t pt-1.5 border-dashed border-gray-200 dark:border-slate-700">
+                      <span className="text-gray-500 dark:text-slate-400 font-medium">Other Allowances</span>
+                      <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.otherEarnings)}</span>
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Variable Pay & Reimbursements Card */}
-              <div className="bg-slate-50 border border-gray-200 rounded-xl p-4 flex flex-col justify-between">
+              <div className="bg-slate-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700/60 rounded-xl p-4 flex flex-col justify-between transition-colors">
                 <div>
-                  <div className="flex items-center justify-between mb-3 border-b pb-2 border-gray-200">
-                    <span className="font-bold text-sm text-gray-700">Variable Pay & Bonuses</span>
-                    <span className="font-extrabold text-sm text-gray-900 bg-white px-2 py-0.5 rounded border">{fmtMoney(stats.totalVariablePay)}</span>
+                  <div className="flex items-center justify-between mb-3 border-b pb-2 border-gray-200 dark:border-slate-700">
+                    <span className="font-bold text-sm text-gray-700 dark:text-slate-200">Variable Pay & Bonuses</span>
+                    <span className="font-extrabold text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-gray-200 dark:border-slate-700">{fmtMoney(stats.totalVariablePay)}</span>
                   </div>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Joining Bonus</span>
-                      <span className="font-semibold text-gray-800">{fmtMoney(stats.joiningBonus)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Joining Bonus</span>
+                      <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.joiningBonus)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Loyalty Bonus</span>
-                      <span className="font-semibold text-gray-800">{fmtMoney(stats.loyaltyBonus)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Loyalty Bonus</span>
+                      <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.loyaltyBonus)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Performance Incentives</span>
-                      <span className="font-semibold text-gray-800">{fmtMoney(stats.incentive)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Performance Incentives</span>
+                      <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.incentive)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Special Bonuses</span>
-                      <span className="font-semibold text-gray-800">{fmtMoney(stats.specialBonus)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Special Bonuses</span>
+                      <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.specialBonus)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Arrears / Other Variable</span>
-                      <span className="font-semibold text-gray-800">{fmtMoney(stats.otherAllowanceArrear)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Arrears / Other Variable</span>
+                      <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.otherAllowanceArrear)}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 border-t pt-3 border-gray-200">
+                <div className="mt-4 border-t pt-3 border-gray-200 dark:border-slate-700">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm text-gray-700">Reimbursement Claims</span>
-                    <span className="font-extrabold text-sm text-blue-700 bg-white px-2 py-0.5 rounded border">{fmtMoney(stats.totalReimbursementApproved)}</span>
+                    <span className="font-bold text-sm text-gray-700 dark:text-slate-200">Reimbursement Claims</span>
+                    <span className="font-extrabold text-sm text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-gray-200 dark:border-slate-700">{fmtMoney(stats.totalReimbursementApproved)}</span>
                   </div>
-                  <div className="text-[10px] text-gray-400 mt-1">Reimbursements paid alongside payroll salary structures.</div>
+                  <div className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">Reimbursements paid alongside payroll salary structures.</div>
                 </div>
               </div>
 
               {/* Statutory & Deductions Card */}
-              <div className="bg-slate-50 border border-gray-200 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3 border-b pb-2 border-gray-200">
-                  <span className="font-bold text-sm text-gray-700">Statutory & Deductions</span>
-                  <span className="font-extrabold text-xs text-red-600 bg-white px-2 py-0.5 rounded border">Deductions: {fmtMoney(stats.tds + stats.professionalTax + stats.pfEmployee + stats.esiEmployee + stats.lwfEmployee + stats.insuranceEmployee + stats.loanDeduction + stats.advanceDeduction + stats.otherDeductions)}</span>
+              <div className="bg-slate-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700/60 rounded-xl p-4 transition-colors">
+                <div className="flex items-center justify-between mb-3 border-b pb-2 border-gray-200 dark:border-slate-700">
+                  <span className="font-bold text-sm text-gray-700 dark:text-slate-200">Statutory & Deductions</span>
+                  <span className="font-extrabold text-xs text-red-600 dark:text-rose-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-gray-200 dark:border-slate-700">Deductions: {fmtMoney(stats.tds + stats.professionalTax + stats.pfEmployee + stats.esiEmployee + stats.lwfEmployee + stats.insuranceEmployee + stats.loanDeduction + stats.advanceDeduction + stats.otherDeductions)}</span>
                 </div>
                 <div className="space-y-2 text-xs">
                   {/* Provident Fund */}
                   <div className="flex justify-between">
-                    <span className="text-gray-500 font-medium">Provident Fund (EPF)</span>
-                    <span className="font-semibold text-gray-800">{fmtMoney(stats.pfEmployee + stats.pfEmployer)}</span>
+                    <span className="text-gray-500 dark:text-slate-400 font-medium">Provident Fund (EPF)</span>
+                    <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.pfEmployee + stats.pfEmployer)}</span>
                   </div>
-                  <div className="flex justify-between pl-3 text-[10px] text-gray-400 -mt-1">
+                  <div className="flex justify-between pl-3 text-[10px] text-gray-400 dark:text-slate-500 -mt-1">
                     <span>Employee Share: {fmtMoney(stats.pfEmployee)}</span>
                     <span>Employer Share: {fmtMoney(stats.pfEmployer)}</span>
                   </div>
 
                   {/* ESIC */}
                   <div className="flex justify-between">
-                    <span className="text-gray-500 font-medium">ESIC Scheme</span>
-                    <span className="font-semibold text-gray-800">{fmtMoney(stats.esiEmployee + stats.esiEmployer)}</span>
+                    <span className="text-gray-500 dark:text-slate-400 font-medium">ESIC Scheme</span>
+                    <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.esiEmployee + stats.esiEmployer)}</span>
                   </div>
-                  <div className="flex justify-between pl-3 text-[10px] text-gray-400 -mt-1">
+                  <div className="flex justify-between pl-3 text-[10px] text-gray-400 dark:text-slate-500 -mt-1">
                     <span>Employee Share: {fmtMoney(stats.esiEmployee)}</span>
                     <span>Employer Share: {fmtMoney(stats.esiEmployer)}</span>
                   </div>
 
                   {/* Taxes */}
                   <div className="flex justify-between">
-                    <span className="text-gray-500">TDS (Income Tax)</span>
-                    <span className="font-semibold text-red-600">-{fmtMoney(stats.tds)}</span>
+                    <span className="text-gray-500 dark:text-slate-400">TDS (Income Tax)</span>
+                    <span className="font-semibold text-red-600 dark:text-rose-400">-{fmtMoney(stats.tds)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Professional Tax (PT)</span>
-                    <span className="font-semibold text-red-600">-{fmtMoney(stats.professionalTax)}</span>
+                    <span className="text-gray-500 dark:text-slate-400">Professional Tax (PT)</span>
+                    <span className="font-semibold text-red-600 dark:text-rose-400">-{fmtMoney(stats.professionalTax)}</span>
                   </div>
 
                   {/* Gratuity */}
-                  <div className="flex justify-between border-t pt-1.5 border-dashed border-gray-200">
-                    <span className="text-gray-500">Gratuity Accrual</span>
-                    <span className="font-semibold text-gray-800">{fmtMoney(stats.gratuity)}</span>
+                  <div className="flex justify-between border-t pt-1.5 border-dashed border-gray-200 dark:border-slate-700">
+                    <span className="text-gray-500 dark:text-slate-400">Gratuity Accrual</span>
+                    <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.gratuity)}</span>
                   </div>
 
                   {/* LWF */}
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Labour Welfare Fund (LWF)</span>
-                    <span className="font-semibold text-gray-800">{fmtMoney(stats.lwfEmployee + stats.lwfEmployer)}</span>
+                    <span className="text-gray-500 dark:text-slate-400">Labour Welfare Fund (LWF)</span>
+                    <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(stats.lwfEmployee + stats.lwfEmployer)}</span>
                   </div>
 
                   {/* Loans/Advances */}
                   {(stats.loanDeduction > 0 || stats.advanceDeduction > 0) && (
-                    <div className="flex justify-between border-t pt-1.5 border-dashed border-gray-200">
-                      <span className="text-gray-500 font-medium">Loan/Advance Recovery</span>
-                      <span className="font-semibold text-red-600">-{fmtMoney(stats.loanDeduction + stats.advanceDeduction)}</span>
+                    <div className="flex justify-between border-t pt-1.5 border-dashed border-gray-200 dark:border-slate-700">
+                      <span className="text-gray-500 dark:text-slate-400 font-medium">Loan/Advance Recovery</span>
+                      <span className="font-semibold text-red-600 dark:text-rose-400">-{fmtMoney(stats.loanDeduction + stats.advanceDeduction)}</span>
                     </div>
                   )}
                   {(stats.loanDeduction > 0 || stats.advanceDeduction > 0) && (
-                    <div className="flex justify-between pl-3 text-[10px] text-gray-400 -mt-1">
+                    <div className="flex justify-between pl-3 text-[10px] text-gray-400 dark:text-slate-500 -mt-1">
                       <span>Loan EMI: {fmtMoney(stats.loanDeduction)}</span>
                       <span>Salary Advance: {fmtMoney(stats.advanceDeduction)}</span>
                     </div>
@@ -1049,8 +1049,8 @@ const PayrollDashboard = () => {
                   {/* Other Deductions */}
                   {stats.otherDeductions > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Other Deductions</span>
-                      <span className="font-semibold text-red-600">-{fmtMoney(stats.otherDeductions)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Other Deductions</span>
+                      <span className="font-semibold text-red-600 dark:text-rose-400">-{fmtMoney(stats.otherDeductions)}</span>
                     </div>
                   )}
                 </div>
@@ -1058,38 +1058,38 @@ const PayrollDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 mb-6">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm p-5 mb-6 transition-colors">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="font-bold text-lg">Net Payroll Trend</h2>
-                <p className="text-sm text-gray-500">Last 6 months</p>
+                <h2 className="font-bold text-lg text-gray-900 dark:text-slate-100">Net Payroll Trend</h2>
+                <p className="text-sm text-gray-500 dark:text-slate-400">Last 6 months</p>
               </div>
             </div>
             <div className="h-72">
               {loading ? <Skeleton className="h-full w-full" /> : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={trendData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="label" />
-                    <YAxis tickFormatter={(value) => `₹${Math.round(value / 1000)}k`} />
-                    <Tooltip formatter={(value) => fmtMoney(value)} />
-                    <Bar dataKey="total" fill="#1a2e44" radius={[8, 8, 0, 0]} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
+                    <XAxis dataKey="label" stroke="#64748b" />
+                    <YAxis tickFormatter={(value) => `₹${Math.round(value / 1000)}k`} stroke="#64748b" />
+                    <Tooltip formatter={(value) => fmtMoney(value)} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc', borderRadius: '0.75rem' }} />
+                    <Bar dataKey="total" fill="#3b82f6" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b bg-gray-50/60 flex flex-col gap-3">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
+            <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50/60 dark:bg-slate-800/50 flex flex-col gap-3">
               <div className="flex flex-col md:flex-row gap-3 md:items-center justify-between">
-                <h2 className="font-bold text-gray-800">{monthName(month)} {year}</h2>
+                <h2 className="font-bold text-gray-800 dark:text-slate-100">{monthName(month)} {year}</h2>
                 <div className="flex gap-3 flex-wrap">
-                  <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                    {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => <option key={value} value={value}>{monthName(value)}</option>)}
+                  <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => <option key={value} value={value} className="bg-white dark:bg-slate-900">{monthName(value)}</option>)}
                   </select>
-                  <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search employee..." className="border border-gray-300 rounded-lg px-3 py-2 text-sm min-w-[220px]" />
+                  <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-28 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search employee..." className="border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-lg px-3 py-2 text-sm min-w-[220px] focus:outline-none focus:border-blue-500" />
                 </div>
               </div>
 
@@ -1099,7 +1099,7 @@ const PayrollDashboard = () => {
                     key={tab}
                     type="button"
                     onClick={() => setStatusFilter(tab)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold capitalize ${statusFilter === tab ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-all ${statusFilter === tab ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700'}`}
                   >
                     {tab}
                   </button>
@@ -1107,50 +1107,50 @@ const PayrollDashboard = () => {
               </div>
 
               {selectedPayrolls.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-                  <span className="text-sm font-semibold text-blue-700">{selectedPayrolls.length} selected</span>
-                  <button onClick={() => setConfirmAction({ type: 'approve' })} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">Approve Selected</button>
-                  <button onClick={() => handleExport('full')} className="bg-white border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-blue-200 dark:border-blue-800/60 bg-blue-50 dark:bg-blue-950/40 px-4 py-3">
+                  <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">{selectedPayrolls.length} selected</span>
+                  <button onClick={() => setConfirmAction({ type: 'approve' })} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors">Approve Selected</button>
+                  <button onClick={() => handleExport('full')} className="bg-white dark:bg-slate-800 border border-blue-200 dark:border-slate-700 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-slate-700 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors">
                     <FaDownload /> Export Full Sheet
                   </button>
-                  <button onClick={() => handleExport('inputs')} className="bg-slate-100 border border-slate-300 text-slate-800 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+                  <button onClick={() => handleExport('inputs')} className="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors">
                     <FaDownload /> Export Inputs Only
                   </button>
                   <button onClick={() => setConfirmAction({
                     type: 'markPaid',
                     paymentDate: new Date().toISOString().substring(0, 10),
                     paymentMethod: 'Bank Transfer'
-                  })} className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">Mark Paid (Bulk)</button>
+                  })} className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors">Mark Paid (Bulk)</button>
                   {selectedPayrolls.some(p => p.status !== 'paid') && (
-                    <button onClick={() => setConfirmAction({ type: 'deleteBulk' })} className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">Delete Selected</button>
+                    <button onClick={() => setConfirmAction({ type: 'deleteBulk' })} className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors">Delete Selected</button>
                   )}
                 </div>
               ) : null}
             </div>
 
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+                <thead className="bg-gray-50 dark:bg-slate-800/80">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">
                       <input
                         type="checkbox"
                         checked={filteredPayrolls.length > 0 && filteredPayrolls.every((payroll) => selectedIds[payroll._id])}
                         onChange={(e) => setSelectedIds(Object.fromEntries(filteredPayrolls.map((payroll) => [payroll._id, e.target.checked])))}
                       />
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Employee</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Paid Days</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Working Days</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Gross</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Employer Contribution</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Variable Pay</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Net Salary</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Employee</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Paid Days</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Working Days</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Gross</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Employer Contribution</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Variable Pay</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Net Salary</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Status</th>
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
                   {loading ? (
                     Array.from({ length: 6 }).map((_, index) => (
                       <tr key={`payroll-skeleton-${index}`}>
@@ -1158,7 +1158,7 @@ const PayrollDashboard = () => {
                       </tr>
                     ))
                   ) : filteredPayrolls.length === 0 ? (
-                    <tr><td colSpan="10" className="px-6 py-10 text-center text-gray-500">No payroll processed for this period.</td></tr>
+                    <tr><td colSpan="10" className="px-6 py-10 text-center text-gray-500 dark:text-slate-400">No payroll processed for this period.</td></tr>
                   ) : filteredPayrolls.map((payroll) => {
                     const employerContribution = (Number(payroll.employerContributions?.grossTotalSalary) || 0) - (Number(payroll.earnings?.totalEarnings) || 0);
                     const pfEnabled = payroll.employeeSnapshot?.pfEnabled !== undefined ? payroll.employeeSnapshot.pfEnabled : (payroll.employee?.pfEnabled !== false);
@@ -1171,29 +1171,29 @@ const PayrollDashboard = () => {
                     const hraPercent = payroll.employeeSnapshot?.hraPercent !== undefined ? payroll.employeeSnapshot.hraPercent : (payroll.employee?.hraPercent);
 
                     return (
-                      <tr key={payroll._id} className="hover:bg-blue-50/40 cursor-pointer" onClick={() => openPayslipDrawer(payroll._id)}>
+                      <tr key={payroll._id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/50 cursor-pointer transition-colors" onClick={() => openPayslipDrawer(payroll._id)}>
                         <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                           <input type="checkbox" checked={Boolean(selectedIds[payroll._id])} onChange={(e) => setSelectedIds((prev) => ({ ...prev, [payroll._id]: e.target.checked }))} />
                         </td>
                         <td className="px-6 py-4">
-                          <div className="font-semibold">{payroll.employee?.firstName} {payroll.employee?.lastName}</div>
-                          <div className="text-xs text-gray-500">{payroll.employee?.employeeId} · {payroll.employee?.department?.name || '-'}</div>
+                          <div className="font-semibold text-gray-900 dark:text-slate-100">{payroll.employee?.firstName} {payroll.employee?.lastName}</div>
+                          <div className="text-xs text-gray-500 dark:text-slate-400">{payroll.employee?.employeeId} · {payroll.employee?.department?.name || '-'}</div>
                           
                           {/* Statutory Settings Badges */}
                           <div className="flex flex-wrap gap-1 mt-1.5 font-mono">
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${pfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={pfEnabled !== false ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${tdsEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={tdsEnabled !== false ? 'Income Tax TDS Enabled' : 'Income Tax TDS Disabled'}>TDS</span>
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${esiEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={esiEnabled !== false ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${ptEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={ptEnabled !== false ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${lwfEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={lwfEnabled !== false ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${gratuityEnabled !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={gratuityEnabled !== false ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${pfEnabled !== false ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm' : 'bg-rose-50 dark:bg-rose-950/50 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900 line-through opacity-70'}`} title={pfEnabled !== false ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${tdsEnabled !== false ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm' : 'bg-rose-50 dark:bg-rose-950/50 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900 line-through opacity-70'}`} title={tdsEnabled !== false ? 'Income Tax TDS Enabled' : 'Income Tax TDS Disabled'}>TDS</span>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${esiEnabled !== false ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm' : 'bg-rose-50 dark:bg-rose-950/50 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900 line-through opacity-70'}`} title={esiEnabled !== false ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${ptEnabled !== false ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm' : 'bg-rose-50 dark:bg-rose-950/50 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900 line-through opacity-70'}`} title={ptEnabled !== false ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${lwfEnabled !== false ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm' : 'bg-rose-50 dark:bg-rose-950/50 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900 line-through opacity-70'}`} title={lwfEnabled !== false ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold transition-all ${gratuityEnabled !== false ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm' : 'bg-rose-50 dark:bg-rose-950/50 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900 line-through opacity-70'}`} title={gratuityEnabled !== false ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
                             {basicPercent !== undefined && basicPercent !== null && Number(basicPercent) !== 50 && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" title="Basic Salary Overridden percentage">
+                              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-sm" title="Basic Salary Overridden percentage">
                                 B:{basicPercent}%
                               </span>
                             )}
                             {hraPercent !== undefined && hraPercent !== null && Number(hraPercent) !== 50 && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm" title="HRA Overridden percentage">
+                              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-sm" title="HRA Overridden percentage">
                                 H:{hraPercent}%
                               </span>
                             )}
@@ -1204,12 +1204,12 @@ const PayrollDashboard = () => {
                               e.stopPropagation();
                               setBreakdownPayroll(payroll);
                             }}
-                            className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left flex items-center gap-1 mt-1.5 animate-pulse-once"
+                            className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors text-left flex items-center gap-1 mt-1.5 animate-pulse-once"
                           >
                             <FaCalculator className="w-2.5 h-2.5" /> View Breakdown
                           </button>
                         </td>
-                        <td className="px-6 py-4 text-right text-sm">
+                        <td className="px-6 py-4 text-right text-sm text-gray-700 dark:text-slate-300">
                           {(() => {
                             const _ct = payroll.employeeSnapshot?.compensationType || payroll.compensationType || payroll.payType;
                             if (!isAttendanceLinked(_ct)) {
@@ -1219,17 +1219,17 @@ const PayrollDashboard = () => {
                             return payroll.paidDays;
                           })()}
                         </td>
-                        <td className="px-6 py-4 text-right text-sm">
+                        <td className="px-6 py-4 text-right text-sm text-gray-700 dark:text-slate-300">
                           {(() => {
                             const _ct = payroll.employeeSnapshot?.compensationType || payroll.compensationType || payroll.payType;
                             if (!isAttendanceLinked(_ct)) return '—';
                             return payroll.workingDays;
                           })()}
                         </td>
-                        <td className="px-6 py-4 text-right text-sm">{fmtMoney(payroll.earnings?.totalEarnings)}</td>
-                        <td className="px-6 py-4 text-right text-sm">{fmtMoney(employerContribution)}</td>
-                        <td className="px-6 py-4 text-right text-sm">{fmtMoney(payroll.variablePay?.totalVariablePay)}</td>
-                        <td className="px-6 py-4 text-right font-bold">{fmtMoney(payroll.netSalary)}</td>
+                        <td className="px-6 py-4 text-right text-sm text-gray-700 dark:text-slate-300">{fmtMoney(payroll.earnings?.totalEarnings)}</td>
+                        <td className="px-6 py-4 text-right text-sm text-gray-700 dark:text-slate-300">{fmtMoney(employerContribution)}</td>
+                        <td className="px-6 py-4 text-right text-sm text-gray-700 dark:text-slate-300">{fmtMoney(payroll.variablePay?.totalVariablePay)}</td>
+                        <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-slate-100">{fmtMoney(payroll.netSalary)}</td>
                         <td className="px-6 py-4">
                           <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${payrollStatusClass[payroll.status] || payrollStatusClass.draft}`}>
                             {payroll.status}
@@ -1237,8 +1237,8 @@ const PayrollDashboard = () => {
                         </td>
                         <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-center gap-3">
-                            <Link to={`/payroll/${payroll._id}/payslip`} className="text-gray-500 hover:text-blue-600" title="Payslip"><FaFileInvoice /></Link>
-                            <button onClick={() => setBreakdownPayroll(payroll)} className="text-gray-500 hover:text-blue-600" title="View Breakdown"><FaCalculator /></button>
+                            <Link to={`/payroll/${payroll._id}/payslip`} className="text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="Payslip"><FaFileInvoice /></Link>
+                            <button onClick={() => setBreakdownPayroll(payroll)} className="text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="View Breakdown"><FaCalculator /></button>
                             {payroll.status !== 'paid' && (
                               <>
                                 <button onClick={() => setConfirmAction({
@@ -1246,12 +1246,12 @@ const PayrollDashboard = () => {
                                   payrollId: payroll._id,
                                   paymentDate: new Date().toISOString().substring(0, 10),
                                   paymentMethod: 'Bank Transfer'
-                                })} className="text-gray-500 hover:text-green-600" title="Mark paid"><FaMoneyBillWave /></button>
+                                })} className="text-gray-500 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors" title="Mark paid"><FaMoneyBillWave /></button>
                                 <button onClick={() => setConfirmAction({
                                   type: 'deleteSingle',
                                   payrollId: payroll._id,
                                   employeeName: `${payroll.employee?.firstName || ''} ${payroll.employee?.lastName || ''}`.trim()
-                                })} className="text-gray-500 hover:text-red-600" title="Delete Payroll"><FaTrash /></button>
+                                })} className="text-gray-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors" title="Delete Payroll"><FaTrash /></button>
                               </>
                             )}
                           </div>
@@ -1272,27 +1272,27 @@ const PayrollDashboard = () => {
             <StatCard label="Total Outstanding Balance" value={fmtMoney(loanStats.totalBalance)} />
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b bg-gray-50/60">
-              <h2 className="font-bold text-gray-800">Loans &amp; Salary Advances Ledger</h2>
-              <p className="text-xs text-gray-500 mt-1">Review active and pending employee loan disbursements and amortization schedules.</p>
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
+            <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50/60 dark:bg-slate-800/50">
+              <h2 className="font-bold text-gray-800 dark:text-slate-100">Loans &amp; Salary Advances Ledger</h2>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Review active and pending employee loan disbursements and amortization schedules.</p>
             </div>
             
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+                <thead className="bg-gray-50 dark:bg-slate-800/80">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Employee</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Principal (₹)</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Monthly EMI (₹)</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Interest Rate</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Outstanding Balance (₹)</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Requested Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Employee</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Principal (₹)</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Monthly EMI (₹)</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Interest Rate</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Outstanding Balance (₹)</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Requested Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Status</th>
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
                   {loansLoading ? (
                     Array.from({ length: 4 }).map((_, index) => (
                       <tr key={`loan-skeleton-${index}`}>
@@ -1300,26 +1300,26 @@ const PayrollDashboard = () => {
                       </tr>
                     ))
                   ) : loans.length === 0 ? (
-                    <tr><td colSpan="8" className="px-6 py-10 text-center text-gray-500">No loan requests found.</td></tr>
+                    <tr><td colSpan="8" className="px-6 py-10 text-center text-gray-500 dark:text-slate-400">No loan requests found.</td></tr>
                   ) : loans.map((loan) => {
                     const empName = `${loan.employee?.firstName || ''} ${loan.employee?.lastName || ''}`.trim() || 'Unknown';
                     return (
-                      <tr key={loan._id} className="hover:bg-blue-50/40">
+                      <tr key={loan._id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="font-semibold text-gray-900">{empName}</div>
-                          <div className="text-xs text-gray-500">{loan.employee?.employeeId} · {loan.employee?.designation}</div>
+                          <div className="font-semibold text-gray-900 dark:text-slate-100">{empName}</div>
+                          <div className="text-xs text-gray-500 dark:text-slate-400">{loan.employee?.employeeId} · {loan.employee?.designation}</div>
                         </td>
-                        <td className="px-6 py-4 text-right font-medium text-sm">{fmtMoney(loan.principalAmount)}</td>
-                        <td className="px-6 py-4 text-right font-medium text-sm">{fmtMoney(loan.emiAmount)}</td>
-                        <td className="px-6 py-4 text-right text-sm">{loan.interestRate}%</td>
-                        <td className="px-6 py-4 text-right font-bold text-sm text-slate-800">{fmtMoney(loan.remainingBalance)}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{new Date(loan.createdAt).toLocaleDateString('en-IN')}</td>
+                        <td className="px-6 py-4 text-right font-medium text-sm text-gray-700 dark:text-slate-300">{fmtMoney(loan.principalAmount)}</td>
+                        <td className="px-6 py-4 text-right font-medium text-sm text-gray-700 dark:text-slate-300">{fmtMoney(loan.emiAmount)}</td>
+                        <td className="px-6 py-4 text-right text-sm text-gray-700 dark:text-slate-300">{loan.interestRate}%</td>
+                        <td className="px-6 py-4 text-right font-bold text-sm text-slate-800 dark:text-slate-100">{fmtMoney(loan.remainingBalance)}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-slate-300">{new Date(loan.createdAt).toLocaleDateString('en-IN')}</td>
                         <td className="px-6 py-4 text-sm">
                           <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
-                            loan.status === 'active' ? 'bg-green-100 text-green-800 border border-green-200 shadow-sm' :
-                            loan.status === 'closed' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200 shadow-sm' :
-                            loan.status === 'rejected' ? 'bg-red-100 text-red-800 border border-red-200 shadow-sm' :
-                            'bg-amber-100 text-amber-800 border border-amber-200 shadow-sm'
+                            loan.status === 'active' ? 'bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800 shadow-sm' :
+                            loan.status === 'closed' ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shadow-sm' :
+                            loan.status === 'rejected' ? 'bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800 shadow-sm' :
+                            'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shadow-sm'
                           }`}>
                             {loan.status === 'pending_approval' ? 'Pending Approval' : loan.status}
                           </span>
@@ -1331,7 +1331,7 @@ const PayrollDashboard = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateLoanStatus(loan._id, 'active')}
-                                  className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 transition-all border border-green-200"
+                                  className="p-1.5 rounded-lg bg-green-50 dark:bg-green-950/50 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900 transition-all border border-green-200 dark:border-green-800"
                                   title="Approve Loan Request"
                                 >
                                   <FaCheck className="w-3.5 h-3.5" />
@@ -1339,14 +1339,14 @@ const PayrollDashboard = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateLoanStatus(loan._id, 'rejected')}
-                                  className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-all border border-red-200"
+                                  className="p-1.5 rounded-lg bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 transition-all border border-red-200 dark:border-red-800"
                                   title="Reject Loan Request"
                                 >
                                   <FaTimes className="w-3.5 h-3.5" />
                                 </button>
                               </>
                             ) : (
-                              <span className="text-xs text-gray-400 font-medium">None</span>
+                              <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">None</span>
                             )}
                           </div>
                         </td>
@@ -1366,27 +1366,27 @@ const PayrollDashboard = () => {
             <StatCard label="Total Reimbursement Approved" value={fmtMoney(claimStats.totalApproved)} />
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b bg-gray-50/60">
-              <h2 className="font-bold text-gray-800">Reimbursement Claims Ledger</h2>
-              <p className="text-xs text-gray-500 mt-1">Review, audit and settle business expense reimbursement requests filed by employees.</p>
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
+            <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50/60 dark:bg-slate-800/50">
+              <h2 className="font-bold text-gray-800 dark:text-slate-100">Reimbursement Claims Ledger</h2>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Review, audit and settle business expense reimbursement requests filed by employees.</p>
             </div>
             
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+                <thead className="bg-gray-50 dark:bg-slate-800/80">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Employee</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Category</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Amount (₹)</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Receipt Attachment</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Submitted Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Approver Remarks</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Employee</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Category</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Amount (₹)</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Receipt Attachment</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Submitted Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Approver Remarks</th>
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
                   {claimsLoading ? (
                     Array.from({ length: 4 }).map((_, index) => (
                       <tr key={`claim-skeleton-${index}`}>
@@ -1394,53 +1394,53 @@ const PayrollDashboard = () => {
                       </tr>
                     ))
                   ) : claims.length === 0 ? (
-                    <tr><td colSpan="8" className="px-6 py-10 text-center text-gray-500">No reimbursement claims found.</td></tr>
+                    <tr><td colSpan="8" className="px-6 py-10 text-center text-gray-500 dark:text-slate-400">No reimbursement claims found.</td></tr>
                   ) : claims.map((claim) => {
                     const empName = `${claim.employee?.firstName || ''} ${claim.employee?.lastName || ''}`.trim() || 'Unknown';
                     return (
-                      <tr key={claim._id} className="hover:bg-blue-50/40">
+                      <tr key={claim._id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="font-semibold text-gray-900">{empName}</div>
-                          <div className="text-xs text-gray-500">{claim.employee?.employeeId} · {claim.employee?.designation}</div>
+                          <div className="font-semibold text-gray-900 dark:text-slate-100">{empName}</div>
+                          <div className="text-xs text-gray-500 dark:text-slate-400">{claim.employee?.employeeId} · {claim.employee?.designation}</div>
                         </td>
                         <td className="px-6 py-4 text-sm">
                           <span className={`px-2 py-0.5 rounded text-xs font-semibold uppercase ${
-                            claim.category === 'petrol' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                            claim.category === 'broadband' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
-                            claim.category === 'lta' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
-                            claim.category === 'medical' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
-                            'bg-slate-100 text-slate-700 border border-slate-200'
+                            claim.category === 'petrol' ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800' :
+                            claim.category === 'broadband' ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800' :
+                            claim.category === 'lta' ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800' :
+                            claim.category === 'medical' ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-800' :
+                            'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                           }`}>
                             {claim.category}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right font-bold text-sm text-slate-800">{fmtMoney(claim.amount)}</td>
+                        <td className="px-6 py-4 text-right font-bold text-sm text-slate-800 dark:text-slate-100">{fmtMoney(claim.amount)}</td>
                         <td className="px-6 py-4 text-sm">
                           {claim.billUrl ? (
                             <a
                               href={claim.billUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 font-semibold transition-all"
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline flex items-center gap-1 font-semibold transition-all"
                             >
                               <FaPaperclip className="w-3.5 h-3.5" /> View Receipt
                             </a>
                           ) : (
-                            <span className="text-gray-400 text-xs italic">No attachment</span>
+                            <span className="text-gray-400 dark:text-slate-500 text-xs italic">No attachment</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{new Date(claim.createdAt).toLocaleDateString('en-IN')}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-slate-300">{new Date(claim.createdAt).toLocaleDateString('en-IN')}</td>
                         <td className="px-6 py-4 text-sm">
                           <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
-                            claim.status === 'approved' ? 'bg-green-100 text-green-800 border border-green-200 shadow-sm' :
-                            claim.status === 'rejected' ? 'bg-red-100 text-red-800 border border-red-200 shadow-sm' :
-                            'bg-amber-100 text-amber-800 border border-amber-200 shadow-sm'
+                            claim.status === 'approved' ? 'bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800 shadow-sm' :
+                            claim.status === 'rejected' ? 'bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800 shadow-sm' :
+                            'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shadow-sm'
                           }`}>
                             {claim.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600 font-medium max-w-[200px] truncate" title={claim.approverRemarks}>
-                          {claim.approverRemarks || <span className="text-gray-400 text-xs italic">No remarks</span>}
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-slate-300 font-medium max-w-[200px] truncate" title={claim.approverRemarks}>
+                          {claim.approverRemarks || <span className="text-gray-400 dark:text-slate-500 text-xs italic">No remarks</span>}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex justify-center gap-2">
@@ -1449,7 +1449,7 @@ const PayrollDashboard = () => {
                                 <button
                                   type="button"
                                   onClick={() => setClaimToApprove(claim)}
-                                  className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 transition-all border border-green-200"
+                                  className="p-1.5 rounded-lg bg-green-50 dark:bg-green-950/50 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900 transition-all border border-green-200 dark:border-green-800"
                                   title="Approve Claim"
                                 >
                                   <FaCheck className="w-3.5 h-3.5" />
@@ -1457,14 +1457,14 @@ const PayrollDashboard = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleRejectClaim(claim._id)}
-                                  className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-all border border-red-200"
+                                  className="p-1.5 rounded-lg bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 transition-all border border-red-200 dark:border-red-800"
                                   title="Reject Claim"
                                 >
                                   <FaTimes className="w-3.5 h-3.5" />
                                 </button>
                               </>
                             ) : (
-                              <span className="text-xs text-gray-400 font-medium">None</span>
+                              <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">None</span>
                             )}
                           </div>
                         </td>
@@ -1484,52 +1484,52 @@ const PayrollDashboard = () => {
           </div>
 
           {/* Pending Leave Requests */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b bg-gray-50/60">
-              <h2 className="font-bold text-gray-800">Pending Leave Requests</h2>
-              <p className="text-xs text-gray-500 mt-1">Approve or reject employee leave requests.</p>
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
+            <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50/60 dark:bg-slate-800/50">
+              <h2 className="font-bold text-gray-800 dark:text-slate-100">Pending Leave Requests</h2>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Approve or reject employee leave requests.</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+                <thead className="bg-gray-50 dark:bg-slate-800/80">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Employee</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Leave Type</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Duration</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Days</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Reason</th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Employee</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Leave Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Duration</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Days</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Reason</th>
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
                   {leavesLoading ? (
                     <tr><td colSpan="6" className="px-6 py-4"><Skeleton className="h-8 w-full" /></td></tr>
                   ) : leaves.filter(l => l.status === 'pending').length === 0 ? (
-                    <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500">No pending leave requests.</td></tr>
+                    <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500 dark:text-slate-400">No pending leave requests.</td></tr>
                   ) : leaves.filter(l => l.status === 'pending').map((req) => {
                     const empName = `${req.employee?.firstName || ''} ${req.employee?.lastName || ''}`.trim() || 'Unknown';
                     return (
-                      <tr key={req._id} className="hover:bg-blue-50/40">
+                      <tr key={req._id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="font-semibold text-gray-900">{empName}</div>
-                          <div className="text-xs text-gray-500">{req.employee?.employeeId}</div>
+                          <div className="font-semibold text-gray-900 dark:text-slate-100">{empName}</div>
+                          <div className="text-xs text-gray-500 dark:text-slate-400">{req.employee?.employeeId}</div>
                         </td>
-                        <td className="px-6 py-4 text-sm font-semibold uppercase text-indigo-700">
+                        <td className="px-6 py-4 text-sm font-semibold uppercase text-indigo-700 dark:text-indigo-400">
                           {req.leaveType?.name || 'Leave'} ({req.leaveType?.code || 'LV'})
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-slate-300">
                           {new Date(req.startDate).toLocaleDateString('en-IN')} to {new Date(req.endDate).toLocaleDateString('en-IN')}
                         </td>
-                        <td className="px-6 py-4 text-right font-bold text-sm text-slate-800">{req.numberOfDays}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600 max-w-[200px] truncate" title={req.reason}>
-                          {req.reason || <span className="text-gray-400 italic">No reason</span>}
+                        <td className="px-6 py-4 text-right font-bold text-sm text-slate-800 dark:text-slate-100">{req.numberOfDays}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-slate-300 max-w-[200px] truncate" title={req.reason}>
+                          {req.reason || <span className="text-gray-400 dark:text-slate-500 italic">No reason</span>}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex justify-center gap-2">
                             <button
                               type="button"
                               onClick={() => setLeaveToApprove(req)}
-                              className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border border-green-200"
+                              className="p-1.5 rounded-lg bg-green-50 dark:bg-green-950/50 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900 border border-green-200 dark:border-green-800 transition-colors"
                               title="Approve Leave"
                             >
                               <FaCheck className="w-3.5 h-3.5" />
@@ -1537,7 +1537,7 @@ const PayrollDashboard = () => {
                             <button
                               type="button"
                               onClick={() => handleRejectLeave(req._id)}
-                              className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-200"
+                              className="p-1.5 rounded-lg bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 border border-red-200 dark:border-red-800 transition-colors"
                               title="Reject Leave"
                             >
                               <FaTimes className="w-3.5 h-3.5" />
@@ -1553,16 +1553,16 @@ const PayrollDashboard = () => {
           </div>
 
           {/* Employee Leave Balances Section */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b bg-gray-50/60 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
+            <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50/60 dark:bg-slate-800/50 flex items-center justify-between">
               <div>
-                <h2 className="font-bold text-gray-800">Employee Leave Balances</h2>
-                <p className="text-xs text-gray-500 mt-1">Accrued, used, and closing leave balances for the year.</p>
+                <h2 className="font-bold text-gray-800 dark:text-slate-100">Employee Leave Balances</h2>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Accrued, used, and closing leave balances for the year.</p>
               </div>
               <select
                 value={selectedBalanceYear}
                 onChange={(e) => setSelectedBalanceYear(Number(e.target.value))}
-                className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value={2025}>2025</option>
                 <option value={2026}>2026</option>
@@ -1570,37 +1570,37 @@ const PayrollDashboard = () => {
               </select>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+                <thead className="bg-gray-50 dark:bg-slate-800/80">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Employee</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Leave Type</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Opening</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Accrued</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Used</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Closing Balance</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Employee</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Leave Type</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Opening</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Accrued</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Used</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Closing Balance</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
                   {leavesLoading ? (
                     <tr><td colSpan="6" className="px-6 py-4"><Skeleton className="h-8 w-full" /></td></tr>
                   ) : leaveBalances.length === 0 ? (
-                    <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500">No leave balances found.</td></tr>
+                    <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500 dark:text-slate-400">No leave balances found.</td></tr>
                   ) : leaveBalances.map((bal) => {
                     const empName = `${bal.employee?.firstName || ''} ${bal.employee?.lastName || ''}`.trim() || 'Unknown';
                     return (
-                      <tr key={bal._id} className="hover:bg-blue-50/40">
-                        <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                      <tr key={bal._id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-slate-100">
                           {empName}
-                          <div className="text-[10px] text-gray-400 font-normal">{bal.employee?.employeeId}</div>
+                          <div className="text-[10px] text-gray-400 dark:text-slate-500 font-normal">{bal.employee?.employeeId}</div>
                         </td>
-                        <td className="px-6 py-4 text-sm font-semibold text-gray-700 uppercase">
+                        <td className="px-6 py-4 text-sm font-semibold text-gray-700 dark:text-slate-300 uppercase">
                           {bal.leaveType?.name || 'Leave'} ({bal.leaveType?.code || 'LV'})
                         </td>
-                        <td className="px-6 py-4 text-right text-sm text-gray-600">{bal.opening}</td>
-                        <td className="px-6 py-4 text-right text-sm text-gray-600">{bal.accrued}</td>
-                        <td className="px-6 py-4 text-right text-sm text-gray-600 font-medium text-amber-700">{bal.used}</td>
-                        <td className="px-6 py-4 text-right text-sm font-bold text-emerald-700">{bal.closing}</td>
+                        <td className="px-6 py-4 text-right text-sm text-gray-600 dark:text-slate-300">{bal.opening}</td>
+                        <td className="px-6 py-4 text-right text-sm text-gray-600 dark:text-slate-300">{bal.accrued}</td>
+                        <td className="px-6 py-4 text-right text-sm text-amber-700 dark:text-amber-400 font-medium">{bal.used}</td>
+                        <td className="px-6 py-4 text-right text-sm font-bold text-emerald-700 dark:text-emerald-400">{bal.closing}</td>
                       </tr>
                     );
                   })}
@@ -1610,54 +1610,54 @@ const PayrollDashboard = () => {
           </div>
 
           {/* Historical Leave Requests Log */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b bg-gray-50/60">
-              <h2 className="font-bold text-gray-800">Leave Requests History</h2>
-              <p className="text-xs text-gray-500 mt-1">Audit log of all processed and cancelled leave requests.</p>
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
+            <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50/60 dark:bg-slate-800/50">
+              <h2 className="font-bold text-gray-800 dark:text-slate-100">Leave Requests History</h2>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Audit log of all processed and cancelled leave requests.</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+                <thead className="bg-gray-50 dark:bg-slate-800/80">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Employee</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Leave Type</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Duration</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Days</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Remarks</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Employee</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Leave Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Duration</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Days</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Remarks</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
                   {leavesLoading ? (
                     <tr><td colSpan="6" className="px-6 py-4"><Skeleton className="h-8 w-full" /></td></tr>
                   ) : leaves.filter(l => l.status !== 'pending').length === 0 ? (
-                    <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500">No leaves history.</td></tr>
+                    <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500 dark:text-slate-400">No leaves history.</td></tr>
                   ) : leaves.filter(l => l.status !== 'pending').map((req) => {
                     const empName = `${req.employee?.firstName || ''} ${req.employee?.lastName || ''}`.trim() || 'Unknown';
                     return (
-                      <tr key={req._id} className="hover:bg-blue-50/40">
+                      <tr key={req._id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="font-semibold text-gray-900">{empName}</div>
-                          <div className="text-xs text-gray-500">{req.employee?.employeeId}</div>
+                          <div className="font-semibold text-gray-900 dark:text-slate-100">{empName}</div>
+                          <div className="text-xs text-gray-500 dark:text-slate-400">{req.employee?.employeeId}</div>
                         </td>
-                        <td className="px-6 py-4 text-sm font-semibold uppercase text-gray-600">
+                        <td className="px-6 py-4 text-sm font-semibold uppercase text-gray-600 dark:text-slate-300">
                           {req.leaveType?.name || 'Leave'}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-slate-300">
                           {new Date(req.startDate).toLocaleDateString('en-IN')} to {new Date(req.endDate).toLocaleDateString('en-IN')}
                         </td>
-                        <td className="px-6 py-4 text-right font-medium text-sm text-gray-700">{req.numberOfDays}</td>
+                        <td className="px-6 py-4 text-right font-medium text-sm text-gray-700 dark:text-slate-300">{req.numberOfDays}</td>
                         <td className="px-6 py-4 text-sm">
                           <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
-                            req.status === 'approved' ? 'bg-green-100 text-green-800 border border-green-200 shadow-sm' :
-                            req.status === 'rejected' ? 'bg-red-100 text-red-800 border border-red-200 shadow-sm' :
-                            'bg-gray-100 text-gray-800 border border-gray-200 shadow-sm'
+                            req.status === 'approved' ? 'bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800 shadow-sm' :
+                            req.status === 'rejected' ? 'bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800 shadow-sm' :
+                            'bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-slate-300 border border-gray-200 dark:border-slate-700 shadow-sm'
                           }`}>
                             {req.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600 font-medium max-w-[200px] truncate" title={req.approverRemarks}>
-                          {req.approverRemarks || <span className="text-gray-400 text-xs italic">No remarks</span>}
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-slate-300 font-medium max-w-[200px] truncate" title={req.approverRemarks}>
+                          {req.approverRemarks || <span className="text-gray-400 dark:text-slate-500 text-xs italic">No remarks</span>}
                         </td>
                       </tr>
                     );
@@ -1670,15 +1670,15 @@ const PayrollDashboard = () => {
       )}
 
       {drawerSlip || drawerLoading ? (
-        <div className="fixed inset-y-0 right-0 z-40 w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 overflow-y-auto">
-          <div className="p-5 border-b border-gray-200 flex items-center justify-between">
+        <div className="fixed inset-y-0 right-0 z-40 w-full max-w-xl bg-white dark:bg-slate-900 shadow-2xl border-l border-gray-200 dark:border-slate-800 overflow-y-auto text-gray-900 dark:text-slate-100 transition-colors">
+          <div className="p-5 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold">Payslip Preview</h3>
-              <p className="text-sm text-gray-500">{drawerSlip ? `${drawerSlip.employee?.firstName || ''} ${drawerSlip.employee?.lastName || ''}`.trim() : 'Loading...'}</p>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100">Payslip Preview</h3>
+              <p className="text-sm text-gray-500 dark:text-slate-400">{drawerSlip ? `${drawerSlip.employee?.firstName || ''} ${drawerSlip.employee?.lastName || ''}`.trim() : 'Loading...'}</p>
             </div>
             <div className="flex gap-3">
               {drawerSlip && drawerSlip.status === 'processed' ? (
-                <button onClick={handleApproveDrawerSlip} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">
+                <button onClick={handleApproveDrawerSlip} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors">
                   Approve
                 </button>
               ) : null}
@@ -1690,17 +1690,17 @@ const PayrollDashboard = () => {
                     paymentDate: new Date().toISOString().substring(0, 10),
                     paymentMethod: 'Bank Transfer'
                   })}
-                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-semibold"
+                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
                 >
                   Mark Paid
                 </button>
               ) : null}
               {drawerSlip ? (
-                <button onClick={handleDownloadDrawerPdf} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">
+                <button onClick={handleDownloadDrawerPdf} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors">
                   Download PDF
                 </button>
               ) : null}
-              <button onClick={() => setDrawerSlip(null)} className="px-3 py-2 rounded-lg border bg-white text-sm font-semibold">Close</button>
+              <button onClick={() => setDrawerSlip(null)} className="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">Close</button>
             </div>
           </div>
           <div className="p-5">
@@ -1727,25 +1727,25 @@ const PayrollDashboard = () => {
                   })()
                 ]} />
                 {drawerSlip.salarySplits && drawerSlip.salarySplits.length > 1 && isAttendanceLinked(drawerSlip.employeeSnapshot?.compensationType || drawerSlip.compensationType || drawerSlip.payType) && (
-                  <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
-                    <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">
+                  <div className="rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+                    <div className="bg-gray-50 dark:bg-slate-800/80 px-4 py-3 text-sm font-semibold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-800">
                       Mid-Month Revision Calculation Split
                     </div>
                     <div className="p-4 space-y-4">
                       {drawerSlip.salarySplits.map((split, index) => (
-                        <div key={index} className="space-y-2 pb-3 border-b border-gray-100 last:border-0 last:pb-0">
-                          <div className="flex justify-between items-center text-sm font-semibold text-gray-900">
+                        <div key={index} className="space-y-2 pb-3 border-b border-gray-100 dark:border-slate-800 last:border-0 last:pb-0">
+                          <div className="flex justify-between items-center text-sm font-semibold text-gray-900 dark:text-slate-100">
                             <span>{new Date(split.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} - {new Date(split.endDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
-                            <span className="text-xs text-slate-500 font-normal">{split.daysCount} days</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">{split.daysCount} days</span>
                           </div>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-slate-300">
                             <div className="flex justify-between">
                               <span>Monthly CTC:</span>
                               <span className="font-medium">{fmtMoney(split.monthlyCTC)}</span>
                             </div>
                             <div className="flex justify-between">
                               <span>Period Earnings:</span>
-                              <span className="font-semibold text-gray-900">{fmtMoney(split.totalEarnings)}</span>
+                              <span className="font-semibold text-gray-900 dark:text-slate-100">{fmtMoney(split.totalEarnings)}</span>
                             </div>
                             <div className="flex justify-between">
                               <span>Basic / HRA:</span>
@@ -1792,11 +1792,11 @@ const PayrollDashboard = () => {
                   ['Incentive', fmtMoney(drawerSlip.variablePay?.incentive)],
                   ['Special Bonus', fmtMoney(drawerSlip.variablePay?.specialBonus)],
                 ]} />
-                <div className="rounded-xl border border-gray-200 overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">History</div>
-                  <div className="p-4 bg-white space-y-3">
+                <div className="rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+                  <div className="bg-gray-50 dark:bg-slate-800/80 px-4 py-3 text-sm font-semibold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-800">History</div>
+                  <div className="p-4 bg-white dark:bg-slate-900 space-y-3">
                     {(drawerSlip.auditLog || []).length === 0 ? (
-                      <div className="text-sm text-gray-500 italic">No status transition history recorded.</div>
+                      <div className="text-sm text-gray-500 dark:text-slate-400 italic">No status transition history recorded.</div>
                     ) : (
                       <div className="space-y-3">
                         {(drawerSlip.auditLog || []).map((entry, i) => (
@@ -1805,11 +1805,11 @@ const PayrollDashboard = () => {
                               {entry.status}
                             </span>
                             <div>
-                              <div className="font-semibold text-gray-800">{entry.changedBy}</div>
-                              <div className="text-xs text-gray-500">
+                              <div className="font-semibold text-gray-800 dark:text-slate-100">{entry.changedBy}</div>
+                              <div className="text-xs text-gray-500 dark:text-slate-400">
                                 {new Date(entry.changedAt).toLocaleString('en-IN')} · Net: {fmtMoney(entry.netSalary)}
                               </div>
-                              {entry.notes && <div className="text-xs text-gray-400 mt-0.5">{entry.notes}</div>}
+                              {entry.notes && <div className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{entry.notes}</div>}
                             </div>
                           </div>
                         ))}
@@ -1825,7 +1825,7 @@ const PayrollDashboard = () => {
 
       <Modal isOpen={Boolean(confirmAction)} onClose={() => setConfirmAction(null)} title="Confirm Payroll Action">
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-slate-300">
             {confirmAction?.type === 'approve' ? 'Approve all selected payroll records?' :
               confirmAction?.type === 'markPaid' ? 'Mark all selected payroll records as paid?' :
                 confirmAction?.type === 'deleteSingle' ? `Are you sure you want to delete the payroll for ${confirmAction.employeeName || 'this employee'}?` :
@@ -1835,20 +1835,20 @@ const PayrollDashboard = () => {
           {(confirmAction?.type === 'markPaid' || confirmAction?.type === 'markPaidSingle') && (
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-gray-600 mb-1 inline-block">Payment Date</label>
+                <label className="text-xs font-semibold text-gray-600 dark:text-slate-400 mb-1 inline-block">Payment Date</label>
                 <input
                   type="date"
                   value={confirmAction.paymentDate || ''}
                   onChange={(e) => setConfirmAction((prev) => ({ ...prev, paymentDate: e.target.value }))}
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full"
+                  className="border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600 mb-1 inline-block">Payment Method</label>
+                <label className="text-xs font-semibold text-gray-600 dark:text-slate-400 mb-1 inline-block">Payment Method</label>
                 <select
                   value={confirmAction.paymentMethod || 'Bank Transfer'}
                   onChange={(e) => setConfirmAction((prev) => ({ ...prev, paymentMethod: e.target.value }))}
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full"
+                  className="border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:border-blue-500"
                 >
                   <option value="Bank Transfer">Bank Transfer</option>
                   <option value="Cash">Cash</option>
@@ -1861,8 +1861,8 @@ const PayrollDashboard = () => {
             </div>
           )}
           <div className="flex justify-end gap-3">
-            <button type="button" onClick={() => setConfirmAction(null)} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold">Cancel</button>
-            <button type="button" onClick={confirmAndRun} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">Confirm</button>
+            <button type="button" onClick={() => setConfirmAction(null)} className="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+            <button type="button" onClick={confirmAndRun} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors">Confirm</button>
           </div>
         </div>
       </Modal>
@@ -1870,22 +1870,22 @@ const PayrollDashboard = () => {
       {/* Reimbursement Claim Approval Modal */}
       <Modal isOpen={Boolean(claimToApprove)} onClose={() => setClaimToApprove(null)} title="Approve Reimbursement Claim">
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Are you sure you want to approve the reimbursement claim of <span className="font-bold text-gray-900">{claimToApprove ? `${claimToApprove.employee?.firstName || ''} ${claimToApprove.employee?.lastName || ''}`.trim() : ''}</span> for <span className="font-bold text-gray-900">{claimToApprove ? fmtMoney(claimToApprove.amount) : ''}</span>?
+          <p className="text-sm text-gray-600 dark:text-slate-300">
+            Are you sure you want to approve the reimbursement claim of <span className="font-bold text-gray-900 dark:text-slate-100">{claimToApprove ? `${claimToApprove.employee?.firstName || ''} ${claimToApprove.employee?.lastName || ''}`.trim() : ''}</span> for <span className="font-bold text-gray-900 dark:text-slate-100">{claimToApprove ? fmtMoney(claimToApprove.amount) : ''}</span>?
           </p>
           <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Approver Remarks (Optional)</label>
+            <label className="text-xs font-semibold text-gray-600 dark:text-slate-400 mb-1.5 inline-block">Approver Remarks (Optional)</label>
             <input
               type="text"
               placeholder="e.g. Approved against verified bill receipt"
               value={claimApproverRemarks}
               onChange={(e) => setClaimApproverRemarks(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setClaimToApprove(null)} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold">Cancel</button>
-            <button type="button" onClick={handleApproveClaim} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold">Approve Claim</button>
+            <button type="button" onClick={() => setClaimToApprove(null)} className="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+            <button type="button" onClick={handleApproveClaim} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-colors">Approve Claim</button>
           </div>
         </div>
       </Modal>
@@ -1893,22 +1893,22 @@ const PayrollDashboard = () => {
       {/* Leave Request Approval Modal */}
       <Modal isOpen={Boolean(leaveToApprove)} onClose={() => setLeaveToApprove(null)} title="Approve Leave Request">
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Are you sure you want to approve the leave request of <span className="font-bold text-gray-900">{leaveToApprove ? `${leaveToApprove.employee?.firstName || ''} ${leaveToApprove.employee?.lastName || ''}`.trim() : ''}</span> for <span className="font-bold text-gray-900">{leaveToApprove ? `${leaveToApprove.numberOfDays} days` : ''}</span>?
+          <p className="text-sm text-gray-600 dark:text-slate-300">
+            Are you sure you want to approve the leave request of <span className="font-bold text-gray-900 dark:text-slate-100">{leaveToApprove ? `${leaveToApprove.employee?.firstName || ''} ${leaveToApprove.employee?.lastName || ''}`.trim() : ''}</span> for <span className="font-bold text-gray-900 dark:text-slate-100">{leaveToApprove ? `${leaveToApprove.numberOfDays} days` : ''}</span>?
           </p>
           <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1.5 inline-block">Approver Remarks (Optional)</label>
+            <label className="text-xs font-semibold text-gray-600 dark:text-slate-400 mb-1.5 inline-block">Approver Remarks (Optional)</label>
             <input
               type="text"
               placeholder="e.g. Approved for family event"
               value={leaveApproverRemarks}
               onChange={(e) => setLeaveApproverRemarks(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setLeaveToApprove(null)} className="px-4 py-2 rounded-lg border bg-white text-sm font-semibold">Cancel</button>
-            <button type="button" onClick={handleApproveLeave} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold">Approve Leave</button>
+            <button type="button" onClick={() => setLeaveToApprove(null)} className="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+            <button type="button" onClick={handleApproveLeave} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-colors">Approve Leave</button>
           </div>
         </div>
       </Modal>
@@ -1943,9 +1943,9 @@ const PayrollDashboard = () => {
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full border border-gray-100 overflow-hidden flex flex-col my-8 animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-6xl w-full border border-gray-100 dark:border-slate-800 overflow-hidden flex flex-col my-8 animate-in fade-in duration-200 transition-colors">
               {/* Modal Header */}
-              <div className="bg-slate-900 text-white px-6 py-5 flex items-center justify-between">
+              <div className="bg-slate-900 dark:bg-slate-950 text-white px-6 py-5 flex items-center justify-between border-b border-slate-800">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg">
                     {breakdownEmployee.firstName?.[0] || 'E'}{breakdownEmployee.lastName?.[0] || ''}
@@ -1969,25 +1969,25 @@ const PayrollDashboard = () => {
               </div>
 
               {/* Modal Body */}
-              <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6">
+              <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6 text-gray-900 dark:text-slate-100">
                 {/* Proration Summary Banner */}
                 {localSnapshot && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-900 text-sm">
+                  <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-900 dark:text-blue-200 text-sm">
                     {isHourly ? (
                       <div>
-                        <span className="font-semibold text-blue-900">Hours Worked:</span> {breakdownRow?.hoursWorked ?? 160} hrs
-                        <span className="mx-2 text-blue-300">|</span>
-                        <span className="font-semibold text-blue-900">Hourly Rate:</span> {fmtMoney(breakdownEmployee.hourlyRate)}/hr
+                        <span className="font-semibold text-blue-900 dark:text-blue-200">Hours Worked:</span> {breakdownRow?.hoursWorked ?? 160} hrs
+                        <span className="mx-2 text-blue-300 dark:text-blue-700">|</span>
+                        <span className="font-semibold text-blue-900 dark:text-blue-200">Hourly Rate:</span> {fmtMoney(breakdownEmployee.hourlyRate)}/hr
                       </div>
                     ) : isAttendanceLinked(breakdownEmployee.compensationType || breakdownEmployee.payType) ? (
                       <div>
-                        <span className="font-semibold text-blue-900">Paid / Working Days:</span> {localSnapshot.paidDays} / {localSnapshot.workingDays} days
-                        <span className="mx-2 text-blue-300">|</span>
-                        <span className="font-semibold text-blue-900">Proration Ratio:</span> {Math.round((localSnapshot.paidDays / localSnapshot.workingDays) * 100)}%
+                        <span className="font-semibold text-blue-900 dark:text-blue-200">Paid / Working Days:</span> {localSnapshot.paidDays} / {localSnapshot.workingDays} days
+                        <span className="mx-2 text-blue-300 dark:text-blue-700">|</span>
+                        <span className="font-semibold text-blue-900 dark:text-blue-200">Proration Ratio:</span> {Math.round((localSnapshot.paidDays / localSnapshot.workingDays) * 100)}%
                       </div>
                     ) : (
                       <div>
-                        <span className="font-semibold text-blue-900">Compensation Type:</span> {(breakdownEmployee.compensationType || '').replace(/_/g, ' ')}
+                        <span className="font-semibold text-blue-900 dark:text-blue-200">Compensation Type:</span> {(breakdownEmployee.compensationType || '').replace(/_/g, ' ')}
                       </div>
                     )}
                     <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold self-start sm:self-auto">
@@ -2002,14 +2002,14 @@ const PayrollDashboard = () => {
                 )}
 
                 {localSplits && localSplits.length > 1 && isAttendanceLinked(breakdownEmployee.compensationType || breakdownEmployee.payType) && (
-                  <div className="border border-blue-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                    <div className="bg-blue-50 px-4 py-3 border-b border-blue-100 font-bold text-blue-900 text-sm">
+                  <div className="border border-blue-200 dark:border-blue-900/60 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm transition-colors">
+                    <div className="bg-blue-50 dark:bg-blue-950/60 px-4 py-3 border-b border-blue-100 dark:border-blue-900/60 font-bold text-blue-900 dark:text-blue-200 text-sm">
                       Mid-Month Revision Calculation Split
                     </div>
                     <div className="p-4 overflow-x-auto">
                       <table className="w-full text-left border-collapse text-xs">
                         <thead>
-                          <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                          <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                             <th className="p-2.5">Period</th>
                             {breakdownRow?.lopStrategy === 'custom' && (
                               <th className="p-2.5 text-right w-20">LOP Days</th>
@@ -2027,12 +2027,12 @@ const PayrollDashboard = () => {
                             <th className="p-2.5 text-right">Period Earnings</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {localSplits.map((split, index) => (
-                            <tr key={index} className="hover:bg-slate-50/50">
-                              <td className="p-2.5 font-medium text-slate-900">
+                            <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                              <td className="p-2.5 font-medium text-slate-900 dark:text-slate-100">
                                 <div>{new Date(split.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} - {new Date(split.endDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
-                                <div className="text-[10px] text-slate-500 font-normal mt-0.5">{split.daysCount} days in period</div>
+                                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal mt-0.5">{split.daysCount} days in period</div>
                               </td>
                               {breakdownRow?.lopStrategy === 'custom' && (
                                 <td className="p-2.5 text-right">
@@ -2044,27 +2044,27 @@ const PayrollDashboard = () => {
                                     disabled={isReadOnly}
                                     value={(breakdownRow?.segmentLops || [])[index] ?? 0}
                                     onChange={() => {}}
-                                    className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-semibold"
+                                    className="w-16 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-1.5 py-0.5 text-xs text-right font-semibold"
                                   />
                                 </td>
                               )}
-                              <td className="p-2.5 text-right font-medium text-slate-700">{fmtMoney(split.monthlyCTC)}</td>
+                              <td className="p-2.5 text-right font-medium text-slate-700 dark:text-slate-300">{fmtMoney(split.monthlyCTC)}</td>
                               {hasSalaryBreakup && (
                                 <>
-                                  <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.basic)}</td>
-                                  <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.hra)}</td>
-                                  <td className="p-2.5 text-right text-slate-700">
+                                  <td className="p-2.5 text-right text-slate-700 dark:text-slate-300">{fmtMoney(split.basic)}</td>
+                                  <td className="p-2.5 text-right text-slate-700 dark:text-slate-300">{fmtMoney(split.hra)}</td>
+                                  <td className="p-2.5 text-right text-slate-700 dark:text-slate-300">
                                     <div>{fmtMoney(split.pfEmployee)} <span className="text-[9px] text-slate-400">EE</span></div>
-                                    <div className="text-[10px] text-slate-500">{fmtMoney(split.pfEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">{fmtMoney(split.pfEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
                                   </td>
-                                  <td className="p-2.5 text-right text-slate-700">
+                                  <td className="p-2.5 text-right text-slate-700 dark:text-slate-300">
                                     <div>{fmtMoney(split.esiEmployee)} <span className="text-[9px] text-slate-400">EE</span></div>
-                                    <div className="text-[10px] text-slate-500">{fmtMoney(split.esiEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">{fmtMoney(split.esiEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
                                   </td>
-                                  <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.gratuity)}</td>
+                                  <td className="p-2.5 text-right text-slate-700 dark:text-slate-300">{fmtMoney(split.gratuity)}</td>
                                 </>
                               )}
-                              <td className="p-2.5 text-right font-semibold text-slate-900">{fmtMoney(split.totalEarnings)}</td>
+                              <td className="p-2.5 text-right font-semibold text-slate-900 dark:text-slate-100">{fmtMoney(split.totalEarnings)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -2075,7 +2075,7 @@ const PayrollDashboard = () => {
                         const sum = currentSegmentLops.reduce((s, val) => s + (Number(val) || 0), 0);
                         const isMatching = Math.abs(sum - totalLop) < 0.01;
                         return (
-                          <div className={`mt-3 text-[11px] font-semibold px-3 py-2 rounded-lg ${isMatching ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
+                          <div className={`mt-3 text-[11px] font-semibold px-3 py-2 rounded-lg ${isMatching ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800'}`}>
                             {isMatching ? (
                               <span>✓ Total LOP Days allocated: {totalLop} days (matches overall LOP).</span>
                             ) : (
@@ -2092,19 +2092,19 @@ const PayrollDashboard = () => {
                   const showStatutoryOverrides = hasSalaryBreakup;
                   
                   return (
-                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                      <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 font-bold text-slate-700 text-sm flex items-center justify-between">
+                    <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm transition-colors">
+                      <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-slate-700 dark:text-slate-200 text-sm flex items-center justify-between">
                         <span>Statutory Components & Ratio Overrides</span>
-                        <span className="text-[11px] text-slate-400 font-normal">Apply dynamically to this payroll run only</span>
+                        <span className="text-[11px] text-slate-400 dark:text-slate-400 font-normal">Apply dynamically to this payroll run only</span>
                       </div>
                       <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
                         {showStatutoryOverrides && (
                           <>
                             {/* PF Toggle */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all">
                               <div className="flex flex-col pr-2">
-                                <span className="font-semibold text-slate-800">Provident Fund (PF)</span>
-                                <span className="text-[10px] text-slate-500 mt-0.5">Matching contributions</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">Provident Fund (PF)</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Matching contributions</span>
                               </div>
                               <input
                                 type="checkbox"
@@ -2122,10 +2122,10 @@ const PayrollDashboard = () => {
                         )}
 
                         {/* TDS Toggle */}
-                        <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                        <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all">
                           <div className="flex flex-col pr-2">
-                            <span className="font-semibold text-slate-800">Income Tax (TDS)</span>
-                            <span className="text-[10px] text-slate-500 mt-0.5">Monthly TDS withholding</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">Income Tax (TDS)</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Monthly TDS withholding</span>
                           </div>
                           <input
                             type="checkbox"
@@ -2143,17 +2143,17 @@ const PayrollDashboard = () => {
                         {showStatutoryOverrides && (
                           <>
                             {/* ESI Toggle */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all">
                               <div className="flex flex-col pr-2">
-                                <span className="font-semibold text-slate-800">ESI Scheme</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">ESI Scheme</span>
                                 {(() => {
                                   const isEsiOn = breakdownRow?.esiEnabled !== undefined ? breakdownRow.esiEnabled : localSnapshot?.master?.esiEnabled !== false;
                                   const gross = localSnapshot?.master?.totalEarnings || 0;
                                   const threshold = config?.esiBasicThreshold ?? 21000;
                                   if (isEsiOn && gross > threshold) {
-                                    return <span className="text-[10px] text-amber-500 font-semibold mt-0.5">Not applicable — gross &gt; ₹{threshold.toLocaleString('en-IN')}</span>;
+                                    return <span className="text-[10px] text-amber-500 dark:text-amber-400 font-semibold mt-0.5">Not applicable — gross &gt; ₹{threshold.toLocaleString('en-IN')}</span>;
                                   }
-                                  return <span className="text-[10px] text-slate-500 mt-0.5">State insurance matches</span>;
+                                  return <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">State insurance matches</span>;
                                 })()}
                               </div>
                               <input
@@ -2170,10 +2170,10 @@ const PayrollDashboard = () => {
                             </div>
 
                             {/* PT Toggle */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all">
                               <div className="flex flex-col pr-2">
-                                <span className="font-semibold text-slate-800">Professional Tax (PT)</span>
-                                <span className="text-[10px] text-slate-500 mt-0.5">State professional tax</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">Professional Tax (PT)</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">State professional tax</span>
                               </div>
                               <input
                                 type="checkbox"
@@ -2189,10 +2189,10 @@ const PayrollDashboard = () => {
                             </div>
 
                             {/* LWF Toggle */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all">
                               <div className="flex flex-col pr-2">
-                                <span className="font-semibold text-slate-800">Labour Welfare Fund</span>
-                                <span className="text-[10px] text-slate-500 mt-0.5">State welfare fund (LWF)</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">Labour Welfare Fund</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">State welfare fund (LWF)</span>
                               </div>
                               <input
                                 type="checkbox"
@@ -2208,10 +2208,10 @@ const PayrollDashboard = () => {
                             </div>
 
                             {/* Gratuity Toggle */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all">
                               <div className="flex flex-col pr-2">
-                                <span className="font-semibold text-slate-800">Gratuity Provision</span>
-                                <span className="text-[10px] text-slate-500 mt-0.5">4.81% basic salary match</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">Gratuity Provision</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">4.81% basic salary match</span>
                               </div>
                               <input
                                 type="checkbox"
@@ -2227,10 +2227,10 @@ const PayrollDashboard = () => {
                             </div>
 
                             {/* Include PF in CTC */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all">
                               <div className="flex flex-col pr-2">
-                                <span className="font-semibold text-slate-800">Include PF in CTC</span>
-                                <span className="text-[10px] text-slate-500 mt-0.5">Employer PF inside CTC limit</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">Include PF in CTC</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Employer PF inside CTC limit</span>
                               </div>
                               <input
                                 type="checkbox"
@@ -2246,10 +2246,10 @@ const PayrollDashboard = () => {
                             </div>
 
                             {/* Include Gratuity in CTC */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all">
                               <div className="flex flex-col pr-2">
-                                <span className="font-semibold text-slate-800">Include Gratuity in CTC</span>
-                                <span className="text-[10px] text-slate-500 mt-0.5">Gratuity inside CTC limit</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">Include Gratuity in CTC</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Gratuity inside CTC limit</span>
                               </div>
                               <input
                                 type="checkbox"
@@ -2265,10 +2265,10 @@ const PayrollDashboard = () => {
                             </div>
 
                             {/* Basic Override */}
-                            <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
+                            <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all gap-1">
                               <div className="flex justify-between items-center">
-                                <span className="font-semibold text-slate-800">Basic Salary Override</span>
-                                <span className="text-[10px] text-slate-500">Default: 50%</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">Basic Salary Override</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400">Default: 50%</span>
                               </div>
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <input
@@ -2278,17 +2278,17 @@ const PayrollDashboard = () => {
                                   disabled={isReadOnly}
                                   value={breakdownRow?.basicPercent}
                                   onChange={() => {}}
-                                  className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
+                                  className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-0.5 text-xs text-right font-medium"
                                 />
-                                <span className="text-slate-500 font-medium">%</span>
+                                <span className="text-slate-500 dark:text-slate-400 font-medium">%</span>
                               </div>
                             </div>
 
                             {/* HRA Override */}
-                            <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
+                            <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all gap-1">
                               <div className="flex justify-between items-center">
-                                <span className="font-semibold text-slate-800">HRA Override (% of Basic)</span>
-                                <span className="text-[10px] text-slate-500">Default: 50%</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">HRA Override (% of Basic)</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400">Default: 50%</span>
                               </div>
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <input
@@ -2298,9 +2298,9 @@ const PayrollDashboard = () => {
                                   disabled={isReadOnly}
                                   value={breakdownRow?.hraPercent}
                                   onChange={() => {}}
-                                  className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
+                                  className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-0.5 text-xs text-right font-medium"
                                 />
-                                <span className="text-slate-500 font-medium">%</span>
+                                <span className="text-slate-500 dark:text-slate-400 font-medium">%</span>
                               </div>
                             </div>
                           </>
@@ -2308,16 +2308,16 @@ const PayrollDashboard = () => {
 
                         {/* Leave Deduction Strategy Preference Dropdown */}
                         {showLopStrategy && (
-                          <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
+                          <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all gap-1">
                             <div className="flex justify-between items-center">
-                              <span className="font-semibold text-slate-800">Leave Deduction Preference</span>
-                              <span className="text-[10px] text-slate-500">For mid-month revisions</span>
+                              <span className="font-semibold text-slate-800 dark:text-slate-200">Leave Deduction Preference</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">For mid-month revisions</span>
                             </div>
                             <select
                               value={breakdownRow?.lopStrategy || 'proportional'}
                               disabled={isReadOnly}
                               onChange={() => {}}
-                              className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white font-medium cursor-pointer"
+                              className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-xs font-medium cursor-pointer"
                             >
                               <option value="proportional">Proportional (Default)</option>
                               <option value="older_first">Older Period first</option>
@@ -2336,12 +2336,12 @@ const PayrollDashboard = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Left Column: Earnings Breakdown */}
                       <div className="space-y-4">
-                        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
+                        <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+                          <div className="bg-gray-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-gray-700 dark:text-slate-200 text-sm flex items-center justify-between">
                             <span>Earnings (Paid vs Master)</span>
-                            <span className="text-xs text-gray-500 font-normal">Attendance Prorated</span>
+                            <span className="text-xs text-gray-500 dark:text-slate-400 font-normal">Attendance Prorated</span>
                           </div>
-                          <div className="divide-y divide-gray-100 text-sm">
+                          <div className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
                             {allEarningComponents.map((c) => {
                               const { paid, master } = getComponentBreakdown(localSnapshot, c);
                               const isFlatSalary = !hasSalaryBreakup;
@@ -2364,13 +2364,13 @@ const PayrollDashboard = () => {
                         </div>
 
                         {/* Custom Allowances Editor */}
-                        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
+                        <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+                          <div className="bg-gray-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-gray-700 dark:text-slate-200 text-sm flex items-center justify-between">
                             <span>Custom Run Allowances (Other Earnings)</span>
                           </div>
                           <div className="p-4 space-y-3">
                             {localEarnings.length === 0 ? (
-                              <div className="text-xs text-gray-500 text-center py-2">No custom allowances defined for this run.</div>
+                              <div className="text-xs text-gray-500 dark:text-slate-400 text-center py-2">No custom allowances defined for this run.</div>
                             ) : (
                               localEarnings.map((item, idx) => (
                                 <div key={`local-earn-${idx}`} className="flex gap-2 items-center">
@@ -2379,14 +2379,14 @@ const PayrollDashboard = () => {
                                     placeholder="Allowance Name"
                                     disabled={isReadOnly}
                                     value={item.name}
-                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-500 font-medium"
+                                    className="flex-1 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-sm disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-500 font-medium"
                                   />
                                   <input
                                     type="number"
                                     placeholder="Amount"
                                     disabled={isReadOnly}
                                     value={item.amount}
-                                    className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right font-medium disabled:bg-slate-50 disabled:text-slate-500"
+                                    className="w-24 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-sm text-right font-medium disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-500"
                                   />
                                 </div>
                               ))
@@ -2395,7 +2395,7 @@ const PayrollDashboard = () => {
                         </div>
 
                         {/* Total Earnings Summary */}
-                        <div className="bg-slate-50 border border-gray-200 rounded-xl p-4 flex justify-between items-center font-bold text-slate-800">
+                        <div className="bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 rounded-xl p-4 flex justify-between items-center font-bold text-slate-800 dark:text-slate-100 transition-colors">
                           <span>Total Earnings (Gross Salary)</span>
                           <span className="text-lg">{fmtMoney(localSnapshot.earnings.totalEarnings)}</span>
                         </div>
@@ -2405,11 +2405,11 @@ const PayrollDashboard = () => {
                       <div className="space-y-4">
                         {/* Deductions Card */}
                         {(!isHourly || (localSnapshot.deductions.pfEmployee || 0) + (localSnapshot.deductions.esiEmployee || 0) + (localSnapshot.deductions.lwfEmployee || 0) + (localSnapshot.deductions.professionalTax || 0) + (localSnapshot.deductions.tds || 0) > 0) && (
-                          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
+                          <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+                            <div className="bg-gray-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-gray-700 dark:text-slate-200 text-sm">
                               Statutory & Voluntary Deductions
                             </div>
-                            <div className="divide-y divide-gray-100 text-sm">
+                            <div className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
                               {hasSalaryBreakup && localSnapshot.deductions.pfEmployee > 0 && (
                                 <DeductionRow label="Provident Fund (Employee PF Contribution)" amount={localSnapshot.deductions.pfEmployee} />
                               )}
@@ -2440,13 +2440,13 @@ const PayrollDashboard = () => {
                         )}
 
                         {/* Custom Deductions Editor */}
-                        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
+                        <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+                          <div className="bg-gray-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-gray-700 dark:text-slate-200 text-sm flex items-center justify-between">
                             <span>Custom Run Deductions (Other Deductions)</span>
                           </div>
                           <div className="p-4 space-y-3">
                             {localDeductions.length === 0 ? (
-                              <div className="text-xs text-gray-500 text-center py-2">No custom deductions defined for this run.</div>
+                              <div className="text-xs text-gray-500 dark:text-slate-400 text-center py-2">No custom deductions defined for this run.</div>
                             ) : (
                               localDeductions.map((item, idx) => (
                                 <div key={`local-ded-${idx}`} className="flex gap-2 items-center">
@@ -2455,14 +2455,14 @@ const PayrollDashboard = () => {
                                     placeholder="Deduction Name"
                                     disabled={isReadOnly}
                                     value={item.name}
-                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-500 font-medium"
+                                    className="flex-1 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-sm disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-500 font-medium"
                                   />
                                   <input
                                     type="number"
                                     placeholder="Amount"
                                     disabled={isReadOnly}
                                     value={item.amount}
-                                    className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right font-medium disabled:bg-slate-50 disabled:text-slate-500"
+                                    className="w-24 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-sm text-right font-medium disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-500"
                                   />
                                 </div>
                               ))
@@ -2472,11 +2472,11 @@ const PayrollDashboard = () => {
 
                         {/* Employer Contributions Card */}
                         {hasSalaryBreakup && (
-                          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
+                          <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+                            <div className="bg-gray-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-gray-700 dark:text-slate-200 text-sm">
                               Employer Contributions (Non-Takehome CTC Components)
                             </div>
-                            <div className="divide-y divide-gray-100 text-sm">
+                            <div className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
                               <DeductionRow label="Provident Fund (Employer PF Contribution)" amount={localSnapshot.employerContributions.pfEmployer} isContrib />
                               {localSnapshot.employerContributions.esiEmployer > 0 && <DeductionRow label="ESI (Employer Contribution)" amount={localSnapshot.employerContributions.esiEmployer} isContrib />}
                               {localSnapshot.employerContributions.gratuity > 0 && <DeductionRow label="Gratuity Provision" amount={localSnapshot.employerContributions.gratuity} isContrib />}
@@ -2488,27 +2488,27 @@ const PayrollDashboard = () => {
                         )}
 
                         {/* Net Take-Home Salary Callout */}
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex justify-between items-center font-bold text-emerald-900 shadow-sm">
+                        <div className="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 flex justify-between items-center font-bold text-emerald-900 dark:text-emerald-100 shadow-sm transition-colors">
                           <div className="flex flex-col">
-                            <span className="text-emerald-900">Net Take-Home Salary</span>
-                            <span className="text-[10px] text-emerald-600 font-normal">Gross - Total Deductions</span>
+                            <span className="text-emerald-900 dark:text-emerald-200">Net Take-Home Salary</span>
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">Gross - Total Deductions</span>
                           </div>
-                          <span className="text-2xl text-emerald-800">{fmtMoney(localSnapshot.netSalary)}</span>
+                          <span className="text-2xl text-emerald-800 dark:text-emerald-200">{fmtMoney(localSnapshot.netSalary)}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Pre-approved reimbursements section */}
                     {(localSnapshotFilteredRow?.reimbursements || []).length > 0 && (
-                      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm mt-6">
-                        <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 font-bold text-slate-700 text-sm">
+                      <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm mt-6 transition-colors">
+                        <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-slate-700 dark:text-slate-200 text-sm">
                           Pre-approved reimbursements
                         </div>
                         <div className="p-4 space-y-3">
                           {(localSnapshotFilteredRow?.reimbursements || []).map((claim) => {
                             const isExcluded = localExcludedClaimIds.has(claim._id);
                             return (
-                              <div key={claim._id} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                              <div key={claim._id} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all">
                                 <div className="flex items-center gap-3">
                                   <input
                                     type="checkbox"
@@ -2518,17 +2518,17 @@ const PayrollDashboard = () => {
                                     className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                                   />
                                   <span className={`px-2 py-0.5 rounded text-xs font-semibold uppercase ${
-                                    claim.category === 'petrol' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                                    claim.category === 'broadband' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
-                                    claim.category === 'lta' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
-                                    claim.category === 'medical' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
-                                    'bg-slate-100 text-slate-700 border border-slate-200'
+                                    claim.category === 'petrol' ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800' :
+                                    claim.category === 'broadband' ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800' :
+                                    claim.category === 'lta' ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800' :
+                                    claim.category === 'medical' ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-800' :
+                                    'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                                   }`}>
                                     {claim.category}
                                   </span>
-                                  <span className="text-xs text-gray-500 font-medium">Approved on {new Date(claim.createdAt).toLocaleDateString('en-IN')}</span>
+                                  <span className="text-xs text-gray-500 dark:text-slate-400 font-medium">Approved on {new Date(claim.createdAt).toLocaleDateString('en-IN')}</span>
                                 </div>
-                                <span className="font-bold text-sm text-slate-800">{fmtMoney(claim.amount)}</span>
+                                <span className="font-bold text-sm text-slate-800 dark:text-slate-100">{fmtMoney(claim.amount)}</span>
                               </div>
                             );
                           })}
@@ -2540,11 +2540,11 @@ const PayrollDashboard = () => {
               </div>
 
               {/* Modal Footer */}
-              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <div className="bg-gray-50 dark:bg-slate-800/80 px-6 py-4 border-t border-gray-200 dark:border-slate-800 flex justify-end gap-3 transition-colors">
                 <button
                   type="button"
                   onClick={() => setBreakdownPayroll(null)}
-                  className="px-4 py-2 border rounded-lg bg-white text-sm font-semibold hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   Close
                 </button>
@@ -2559,20 +2559,20 @@ const PayrollDashboard = () => {
 };
 
 const StatCard = ({ label, value }) => (
-  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-    <div className="text-sm text-gray-500">{label}</div>
-    <div className="text-2xl font-bold mt-2">{value}</div>
+  <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm transition-colors">
+    <div className="text-sm text-gray-500 dark:text-slate-400">{label}</div>
+    <div className="text-2xl font-bold mt-2 text-gray-900 dark:text-slate-100">{value}</div>
   </div>
 );
 
 const DrawerSection = ({ title, rows }) => (
-  <div className="rounded-xl border border-gray-200 overflow-hidden">
-    <div className="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">{title}</div>
-    <div className="divide-y divide-gray-200">
+  <div className="rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+    <div className="bg-gray-50 dark:bg-slate-800/80 px-4 py-3 text-sm font-semibold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-800">{title}</div>
+    <div className="divide-y divide-gray-200 dark:divide-slate-800">
       {rows.map(([label, value]) => (
         <div key={`${title}-${label}`} className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-gray-500">{label}</span>
-          <span className="font-semibold text-gray-900">{value}</span>
+          <span className="text-gray-500 dark:text-slate-400">{label}</span>
+          <span className="font-semibold text-gray-900 dark:text-slate-100">{value}</span>
         </div>
       ))}
     </div>

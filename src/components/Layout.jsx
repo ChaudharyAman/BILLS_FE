@@ -36,12 +36,15 @@ import {
   Inbox,
   Trash2,
   Shield,
-  LayoutGrid
+  LayoutGrid,
+  Sun,
+  Moon
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import * as Icons from 'react-icons/fa';
 import api, { clearAuthSession } from '../api/axios';
 import { getSidebarLayout } from '../utils/sidebarConfig';
+import { getStoredTheme, setGlobalTheme } from '../utils/theme';
 
 const ICON_SIZE = 16;
 
@@ -138,6 +141,31 @@ const Layout = ({ children }) => {
 
   // Premium Modal State
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+
+  // Dark Mode Synchronization
+  const [isDark, setIsDark] = useState(getStoredTheme);
+
+  useEffect(() => {
+    const handleThemeSync = (e) => {
+      if (e.detail && typeof e.detail.isDark === 'boolean') {
+        setIsDark(e.detail.isDark);
+      } else {
+        setIsDark(getStoredTheme());
+      }
+    };
+    window.addEventListener('app-theme-sync', handleThemeSync);
+    window.addEventListener('storage', handleThemeSync);
+    return () => {
+      window.removeEventListener('app-theme-sync', handleThemeSync);
+      window.removeEventListener('storage', handleThemeSync);
+    };
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    setGlobalTheme(next);
+  };
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
@@ -335,13 +363,17 @@ const Layout = ({ children }) => {
     `flex items-center ${isCollapsed ? 'justify-center px-0 py-2' : 'justify-between mx-2 my-[1px] px-2.5 py-[6.5px]'} text-[13px] rounded-[6px] transition-all duration-150 cursor-pointer w-auto text-left relative group
     ${isActive(path)
       ? 'bg-[#2f70f6] text-white font-medium shadow-sm'
-      : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950 font-medium'}`;
+      : isDark
+        ? 'text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium'
+        : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950 font-medium'}`;
 
   const subLinkCls = (path) =>
     `flex items-center justify-between pl-[34px] pr-2.5 py-[5.5px] mx-2 my-[1px] text-[12.5px] rounded-[6px] transition-colors w-auto text-left group
     ${isActive(path, path === '/payroll')
       ? 'bg-[#2f70f6] text-white font-medium shadow-sm'
-      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-medium'}`;
+      : isDark
+        ? 'text-slate-400 hover:text-white hover:bg-slate-800/60 font-medium'
+        : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-medium'}`;
 
   const renderIcon = (item, size = 16, className = '') => {
     const IconComp =
@@ -407,23 +439,29 @@ const Layout = ({ children }) => {
             onClick={handleToggle}
             className={`flex items-center ${isCollapsed ? 'justify-center px-0 py-2' : 'justify-between mx-2 px-2.5 py-[6.5px]'} text-[13px] rounded-[6px] transition-all duration-150 w-auto
               ${isHighlighted
-                ? 'bg-[#eff3fe] text-slate-950 font-medium'
-                : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950 font-medium'}`}
+                ? isDark
+                  ? 'bg-slate-800/80 text-white font-medium'
+                  : 'bg-[#eff3fe] text-slate-950 font-medium'
+                : isDark
+                  ? 'text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium'
+                  : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950 font-medium'}`}
           >
             <span className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2 flex-1 min-w-0'}`}>
               {!isCollapsed && (
                 <span className="w-2.5 flex items-center justify-center flex-shrink-0">
                   {isOpen ? (
-                    <ChevronDown size={11} strokeWidth={2.2} className={isHighlighted ? 'text-slate-700' : 'text-slate-500'} />
+                    <ChevronDown size={11} strokeWidth={2.2} className={isHighlighted ? (isDark ? 'text-slate-300' : 'text-slate-700') : (isDark ? 'text-slate-400' : 'text-slate-500')} />
                   ) : (
-                    <ChevronRight size={11} strokeWidth={2.2} className="text-slate-500" />
+                    <ChevronRight size={11} strokeWidth={2.2} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
                   )}
                 </span>
               )}
               {renderIcon(
                 item,
                 currentIconSize,
-                isHighlighted ? 'text-blue-600 flex-shrink-0' : 'text-slate-600 group-hover:text-slate-800 flex-shrink-0'
+                isHighlighted 
+                  ? (isDark ? 'text-blue-400 flex-shrink-0' : 'text-blue-600 flex-shrink-0') 
+                  : (isDark ? 'text-slate-400 group-hover:text-slate-200 flex-shrink-0' : 'text-slate-600 group-hover:text-slate-800 flex-shrink-0')
               )}
               {!isCollapsed && <span className="truncate text-left">{item.label}</span>}
               {!isCollapsed && item.isPremium && !hasPremiumAccess && (
@@ -435,10 +473,14 @@ const Layout = ({ children }) => {
           {/* Floating popup sub-menu for collapsed state */}
           {isCollapsed && (item.isPremium ? hasPremiumAccess : true) && (
             <div
-              className={`fixed ml-2 bg-white rounded-xl shadow-xl border border-slate-200 py-2 w-48 z-50 ${(activeDropdown === item.id) ? 'block' : 'hidden group-hover:block'}`}
+              className={`fixed ml-2 rounded-xl shadow-2xl border py-2 w-48 z-50 ${(activeDropdown === item.id) ? 'block' : 'hidden group-hover:block'} ${
+                isDark ? 'bg-[#0f172a] border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+              }`}
               style={popupStyles[item.id] || { display: 'none' }}
             >
-              <div className="px-3 py-1.5 text-[11px] font-bold text-slate-600 border-b border-slate-100 mb-1 uppercase tracking-wider text-left">
+              <div className={`px-3 py-1.5 text-[11px] font-bold border-b mb-1 uppercase tracking-wider text-left ${
+                isDark ? 'text-slate-400 border-slate-800' : 'text-slate-600 border-slate-100'
+              }`}>
                 {item.label}
               </div>
               {item.children.map(child => (
@@ -446,7 +488,13 @@ const Layout = ({ children }) => {
                   key={child.id}
                   to={child.path}
                   onClick={() => setActiveDropdown(null)}
-                  className={`flex items-center justify-between px-3 py-1.5 text-[12px] rounded-md mx-1 my-0.5 transition-colors text-left ${isActive(child.path) ? 'bg-[#2f70f6] text-white font-medium shadow-sm' : 'text-slate-800 font-medium hover:bg-slate-100 hover:text-blue-600'}`}
+                  className={`flex items-center justify-between px-3 py-1.5 text-[12px] rounded-md mx-1 my-0.5 transition-colors text-left ${
+                    isActive(child.path) 
+                      ? 'bg-[#2f70f6] text-white font-medium shadow-sm' 
+                      : isDark
+                        ? 'text-slate-300 font-medium hover:bg-slate-800 hover:text-blue-400'
+                        : 'text-slate-800 font-medium hover:bg-slate-100 hover:text-blue-600'
+                  }`}
                 >
                   <span className="truncate">{child.label}</span>
                 </Link>
@@ -483,7 +531,9 @@ const Layout = ({ children }) => {
           className={`flex items-center ${isCollapsed ? 'justify-center px-0 py-2' : 'justify-between mx-2 my-[1px] px-2.5 py-[6.5px]'} text-[13px] rounded-[6px] transition-all duration-150 cursor-pointer w-auto text-left relative group ${
             isActive(item.path)
               ? 'bg-[#2f70f6] text-white font-medium shadow-sm'
-              : 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-800 hover:from-amber-100 hover:to-orange-100 border border-amber-200/60 font-semibold'
+              : isDark
+                ? 'bg-gradient-to-r from-amber-950/40 to-orange-950/40 text-amber-300 hover:from-amber-950/60 hover:to-orange-950/60 border border-amber-800/50 font-semibold'
+                : 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-800 hover:from-amber-100 hover:to-orange-100 border border-amber-200/60 font-semibold'
           }`}
           onMouseEnter={(e) => showTooltip(item.label, e)}
           onMouseLeave={hideTooltip}
@@ -514,7 +564,11 @@ const Layout = ({ children }) => {
           {renderIcon(
             item,
             currentIconSize,
-            itemActive ? 'text-white flex-shrink-0' : 'text-slate-600 group-hover:text-slate-800 flex-shrink-0'
+            itemActive 
+              ? 'text-white flex-shrink-0' 
+              : isDark
+                ? 'text-slate-400 group-hover:text-slate-200 flex-shrink-0'
+                : 'text-slate-600 group-hover:text-slate-800 flex-shrink-0'
           )}
           {!isCollapsed && <span className="truncate">{item.label}</span>}
         </span>
@@ -523,11 +577,17 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 font-sans text-slate-800">
+    <div className={`flex h-screen overflow-hidden font-sans transition-colors duration-200 ${
+      isDark ? 'bg-[#090d16] text-slate-100' : 'bg-slate-50 text-slate-800'
+    }`}>
 
       {/* ── Sidebar ── */}
       <aside
-        className={`h-full flex-shrink-0 hidden md:flex flex-col relative transition-all duration-200 ease-in-out bg-white border-r border-slate-200/90 ${
+        className={`h-full flex-shrink-0 hidden md:flex flex-col relative transition-all duration-200 ease-in-out border-r ${
+          isDark 
+            ? 'bg-[#0f172a] border-slate-800/90 shadow-xl' 
+            : 'bg-white border-slate-200/90'
+        } ${
           isCollapsed ? 'w-[64px]' : 'w-[224px]'
         }`}
       >
@@ -535,14 +595,20 @@ const Layout = ({ children }) => {
         {/* Floating circular expand/collapse toggle button on divider */}
         <button
           onClick={toggleSidebar}
-          className="absolute -right-3 top-5 bg-white text-slate-500 hover:text-slate-900 hover:bg-slate-50 w-6 h-6 rounded-full flex items-center justify-center border border-slate-200 shadow-sm transition-all duration-200 z-50 cursor-pointer"
+          className={`absolute -right-3 top-5 w-6 h-6 rounded-full flex items-center justify-center border shadow-sm transition-all duration-200 z-50 cursor-pointer ${
+            isDark 
+              ? 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 border-slate-700 shadow-md' 
+              : 'bg-white text-slate-500 hover:text-slate-900 hover:bg-slate-50 border-slate-200'
+          }`}
           title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
         >
           {isCollapsed ? <ChevronRight size={12} strokeWidth={2.2} /> : <ChevronLeft size={12} strokeWidth={2.2} />}
         </button>
 
         {/* Brand Header */}
-        <div className="px-3.5 py-3 border-b border-slate-200/80 flex items-center min-h-[56px] bg-white">
+        <div className={`px-3.5 py-3 border-b flex items-center min-h-[56px] ${
+          isDark ? 'bg-[#0f172a] border-slate-800/80' : 'bg-white border-slate-200/80'
+        }`}>
           {!isCollapsed ? (
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
@@ -550,11 +616,11 @@ const Layout = ({ children }) => {
                   <LayoutGrid size={15} strokeWidth={2} />
                 </div>
                 <div className="flex flex-col">
-                  <h1 className="text-[15px] font-bold text-slate-900 leading-none tracking-tight">
+                  <h1 className={`text-[15px] font-bold leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     Flance
                   </h1>
                   {hasPremiumAccess && (
-                    <span className="text-[9px] font-semibold text-blue-600 tracking-wider uppercase mt-0.5">
+                    <span className={`text-[9px] font-semibold tracking-wider uppercase mt-0.5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
                       {isSuperAdmin ? 'Super Admin' : 'Pro Plan'}
                     </span>
                   )}
@@ -591,7 +657,11 @@ const Layout = ({ children }) => {
                 {!isCollapsed ? (
                   <button
                     onClick={() => toggleSection(section)}
-                    className="w-full flex items-center justify-between px-3.5 pt-2 pb-1 text-[10.5px] font-bold text-slate-500 hover:text-slate-800 tracking-wider uppercase transition-colors duration-150 focus:outline-none text-left select-none"
+                    className={`w-full flex items-center justify-between px-3.5 pt-2 pb-1 text-[10.5px] font-bold tracking-wider uppercase transition-colors duration-150 focus:outline-none text-left select-none ${
+                      isDark 
+                        ? 'text-slate-400 hover:text-slate-200' 
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
                   >
                     <span>{section.title}</span>
                     <ChevronDown 
@@ -603,7 +673,7 @@ const Layout = ({ children }) => {
                     />
                   </button>
                 ) : (
-                  <hr className="border-t border-slate-100 my-2 mx-3" />
+                  <hr className={`my-2 mx-3 ${isDark ? 'border-slate-800' : 'border-slate-100'}`} />
                 )}
                 {!isSectionCollapsedState && section.items.map(item => renderSidebarItem(item))}
               </div>
@@ -611,15 +681,19 @@ const Layout = ({ children }) => {
           })}
         </nav>
 
-        {/* Bottom Bar (User Profile, APPS & Logout) */}
-        <div className="border-t border-slate-200/80 p-2 bg-slate-50/50 flex flex-col gap-1.5">
+        {/* Bottom Bar (User Profile, Theme Toggle & Logout) */}
+        <div className={`border-t p-2 flex flex-col gap-1.5 ${
+          isDark ? 'border-slate-800/80 bg-[#0b1120]' : 'border-slate-200/80 bg-slate-50/50'
+        }`}>
           {currentUser && (
             <Link
               to="/settings?tab=software"
-              className={`flex items-center ${isCollapsed ? 'justify-center p-1' : 'gap-2 px-2 py-1.5'} rounded-lg hover:bg-slate-200/60 transition-colors group text-left`}
+              className={`flex items-center ${isCollapsed ? 'justify-center p-1' : 'gap-2 px-2 py-1.5'} rounded-lg transition-colors group text-left ${
+                isDark ? 'hover:bg-slate-800/70' : 'hover:bg-slate-200/60'
+              }`}
               title="Account Settings"
             >
-              <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-gradient-to-tr from-teal-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-xs">
+              <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-slate-200/40 bg-gradient-to-tr from-teal-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-xs">
                 {currentUser.avatar ? (
                   <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
@@ -628,10 +702,12 @@ const Layout = ({ children }) => {
               </div>
               {!isCollapsed && (
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-[12px] font-semibold text-slate-800 truncate leading-tight group-hover:text-blue-600">
+                  <span className={`text-[12px] font-semibold truncate leading-tight group-hover:text-blue-500 ${
+                    isDark ? 'text-slate-200' : 'text-slate-800'
+                  }`}>
                     {currentUser.username}
                   </span>
-                  <span className="text-[10px] text-slate-400 truncate">
+                  <span className={`text-[10px] truncate ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                     {currentUser.email}
                   </span>
                 </div>
@@ -639,18 +715,49 @@ const Layout = ({ children }) => {
             </Link>
           )}
 
-          {!isCollapsed && (
+          {!isCollapsed ? (
             <div className="flex items-center justify-between px-2.5 py-0.5">
-              <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">App</span>
-              <button
-                onClick={toggleSidebar}
-                className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors"
-                title="Collapse Sidebar"
-              >
-                <ChevronLeft size={12} strokeWidth={2.2} />
-              </button>
+              <span className={`text-[10px] font-bold tracking-wider uppercase ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                Theme & App
+              </span>
+              <div className="flex items-center gap-1">
+                {/* Theme Switcher Toggle */}
+                <button
+                  onClick={toggleTheme}
+                  className={`p-1 rounded transition-colors ${
+                    isDark 
+                      ? 'text-amber-400 hover:text-amber-300 hover:bg-slate-800' 
+                      : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-200/70'
+                  }`}
+                  title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                >
+                  {isDark ? <Sun size={13} strokeWidth={2} /> : <Moon size={13} strokeWidth={2} />}
+                </button>
+                <button
+                  onClick={toggleSidebar}
+                  className={`p-1 rounded transition-colors ${
+                    isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-200/70'
+                  }`}
+                  title="Collapse Sidebar"
+                >
+                  <ChevronLeft size={12} strokeWidth={2.2} />
+                </button>
+              </div>
             </div>
+          ) : (
+            <button
+              onClick={toggleTheme}
+              className={`flex items-center justify-center p-1.5 rounded-md transition-colors w-full ${
+                isDark 
+                  ? 'text-amber-400 hover:text-amber-300 hover:bg-slate-800' 
+                  : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-200/70'
+              }`}
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDark ? <Sun size={14} strokeWidth={2} /> : <Moon size={14} strokeWidth={2} />}
+            </button>
           )}
+
           <button
             onClick={async (e) => {
               hideTooltip();
@@ -665,7 +772,11 @@ const Layout = ({ children }) => {
             onMouseEnter={(e) => showTooltip('Logout', e)}
             onMouseLeave={hideTooltip}
             data-testid="logout-button"
-            className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-2 px-2.5'} py-1.5 rounded-md text-[12px] font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 transition-all duration-150 w-full`}
+            className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-2 px-2.5'} py-1.5 rounded-md text-[12px] font-medium transition-all duration-150 w-full ${
+              isDark 
+                ? 'text-slate-400 hover:text-red-400 hover:bg-red-950/30' 
+                : 'text-slate-600 hover:text-red-600 hover:bg-red-50'
+            }`}
           >
             <LogOut size={isCollapsed ? 16 : 14} strokeWidth={1.8} />
             {!isCollapsed && <span>Logout</span>}

@@ -539,10 +539,9 @@ const SalaryCalculator = () => {
     toast.success('Simulated salary breakup downloaded successfully');
   };
 
-
   if (loading) {
     return (
-      <div className="container mx-auto p-6 font-sans text-gray-900">
+      <div className="container mx-auto p-6 font-sans text-gray-900 dark:text-slate-100 transition-colors">
         <Skeleton className="h-12 w-72 mb-6" />
         <Skeleton className="h-[520px] w-full" />
       </div>
@@ -550,25 +549,25 @@ const SalaryCalculator = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 font-sans text-gray-900 max-w-7xl">
+    <div className="container mx-auto p-6 font-sans text-gray-900 dark:text-slate-100 max-w-7xl transition-colors">
       {/* Premium Header */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-150 pb-6">
+      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-150 dark:border-slate-800 pb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-slate-100">
             Enterprise Salary Calculator
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-500 dark:text-slate-400 mt-1">
             Simulate compensation structures, enforce statutory rules, apply default profiles, and compare regimes.
           </p>
         </div>
 
         {/* Template Quick Selector */}
-        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-2 rounded-xl">
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Salary Profile:</label>
+        <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 px-3 py-2 rounded-xl">
+          <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Salary Profile:</label>
           <select
             value={form.salaryTemplate}
             onChange={(e) => handleTemplateChange(e.target.value)}
-            className="bg-white text-xs font-bold text-blue-600 border border-gray-300 rounded-lg p-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="bg-white dark:bg-slate-800 text-xs font-bold text-blue-600 dark:text-blue-400 border border-gray-300 dark:border-slate-700 rounded-lg p-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="custom">Custom Structure</option>
             <option value="sde">SDE Preset</option>
@@ -580,9 +579,9 @@ const SalaryCalculator = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.1fr,0.9fr] gap-6 items-start">
         {/* Left Form Panel */}
-        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm p-6 space-y-6 transition-colors">
           {/* Form Tabs */}
-          <div className="flex border-b border-gray-100">
+          <div className="flex border-b border-gray-100 dark:border-slate-800">
             {[
               { id: 'ctc', name: 'CTC & Components' },
               { id: 'controls', name: 'Payroll Controls' },
@@ -593,8 +592,8 @@ const SalaryCalculator = () => {
                 key={t.id}
                 type="button"
                 onClick={() => setActiveTab(t.id)}
-                className={`flex-1 pb-3 text-xs sm:text-sm font-bold transition-all border-b-2 text-center ${
-                  activeTab === t.id ? 'border-blue-600 text-blue-600 font-extrabold' : 'border-transparent text-gray-400 hover:text-gray-600'
+                className={`flex-1 pb-3 text-xs sm:text-sm font-bold transition-all border-b-2 text-center cursor-pointer ${
+                  activeTab === t.id ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold' : 'border-transparent text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300'
                 }`}
               >
                 {t.name}
@@ -608,7 +607,7 @@ const SalaryCalculator = () => {
               <div className="space-y-4 animate-fadeIn">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="col-span-1 md:col-span-2">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Pay Type</label>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">Pay Type</label>
                     <select
                       data-testid="pay-type-select"
                       value={form.payType || 'salaried'}
@@ -647,7 +646,7 @@ const SalaryCalculator = () => {
                           })
                         }));
                       }}
-                      className="w-full mt-1.5 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      className="w-full mt-1.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     >
                       <option value="salaried">Salaried (Monthly Base)</option>
                       <option value="hourly">Hourly Contractor</option>
@@ -727,15 +726,15 @@ const SalaryCalculator = () => {
                   </>
                 )}
 
-                <div className="grid grid-cols-1 gap-4 pt-2 border-t border-gray-100">
+                <div className="grid grid-cols-1 gap-4 pt-2 border-t border-gray-100 dark:border-slate-800">
                   <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Payroll Notes</label>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">Payroll Notes</label>
                     <textarea
                       placeholder="Special revision notes or remarks..."
                       rows="2"
                       value={form.remarks}
                       onChange={(e) => setForm((prev) => ({ ...prev, remarks: e.target.value }))}
-                      className="w-full mt-1.5 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      className="w-full mt-1.5 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -744,119 +743,119 @@ const SalaryCalculator = () => {
 
             {activeTab === 'controls' && (
               <div className="space-y-4 animate-fadeIn">
-                <h3 className="text-sm font-bold text-gray-800 border-b border-gray-100 pb-2">Statutory Applicability</h3>
+                <h3 className="text-sm font-bold text-gray-800 dark:text-slate-100 border-b border-gray-100 dark:border-slate-800 pb-2">Statutory Applicability</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* PF Toggle */}
-                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
+                  <div className="p-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-xl space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold uppercase tracking-wider text-gray-700">PF Applicable</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-slate-300">PF Applicable</label>
                       <input
                         type="checkbox"
                         checked={form.pfEnabled}
                         onChange={(e) => setForm((prev) => ({ ...prev, pfEnabled: e.target.checked }))}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-700 rounded focus:ring-blue-500"
                       />
                     </div>
                     {form.pfEnabled && (
-                      <div className="flex items-center justify-between text-xs text-gray-500 border-t border-gray-200/50 pt-2">
+                      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-slate-400 border-t border-gray-200/50 dark:border-slate-700/50 pt-2">
                         <span>Include Employer PF in CTC</span>
                         <input
                           type="checkbox"
                           checked={form.includePfInCTC}
                           onChange={(e) => setForm((prev) => ({ ...prev, includePfInCTC: e.target.checked }))}
-                          className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          className="w-3.5 h-3.5 text-blue-600 border-gray-300 dark:border-slate-700 rounded focus:ring-blue-500"
                         />
                       </div>
                     )}
                   </div>
 
                   {/* Gratuity Toggle */}
-                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
+                  <div className="p-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-xl space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold uppercase tracking-wider text-gray-700">Gratuity Provision</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-slate-300">Gratuity Provision</label>
                       <input
                         type="checkbox"
                         checked={form.gratuityEnabled}
                         onChange={(e) => setForm((prev) => ({ ...prev, gratuityEnabled: e.target.checked }))}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-700 rounded focus:ring-blue-500"
                       />
                     </div>
                     {form.gratuityEnabled && (
-                      <div className="flex items-center justify-between text-xs text-gray-500 border-t border-gray-200/50 pt-2">
+                      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-slate-400 border-t border-gray-200/50 dark:border-slate-700/50 pt-2">
                         <span>Include Gratuity in CTC</span>
                         <input
                           type="checkbox"
                           checked={form.includeGratuityInCTC}
                           onChange={(e) => setForm((prev) => ({ ...prev, includeGratuityInCTC: e.target.checked }))}
-                          className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          className="w-3.5 h-3.5 text-blue-600 border-gray-300 dark:border-slate-700 rounded focus:ring-blue-500"
                         />
                       </div>
                     )}
                   </div>
 
                   {/* TDS Toggle */}
-                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
+                  <div className="p-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-xl space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold uppercase tracking-wider text-gray-700">TDS Applicable</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-slate-300">TDS Applicable</label>
                       <input
                         type="checkbox"
                         checked={form.tdsEnabled !== false}
                         onChange={(e) => setForm((prev) => ({ ...prev, tdsEnabled: e.target.checked }))}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-700 rounded focus:ring-blue-500"
                       />
                     </div>
                   </div>
 
                   {/* ESI Toggle */}
-                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between">
+                  <div className="p-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-gray-700">ESI Applicable</label>
-                      <p className="text-[10px] text-gray-400">Triggered if Basic &lt; ₹21k</p>
+                      <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-slate-300">ESI Applicable</label>
+                      <p className="text-[10px] text-gray-400 dark:text-slate-500">Triggered if Basic &lt; ₹21k</p>
                     </div>
                     <input
                       type="checkbox"
                       checked={form.esiEnabled}
                       onChange={(e) => setForm((prev) => ({ ...prev, esiEnabled: e.target.checked }))}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-700 rounded focus:ring-blue-500"
                     />
                   </div>
 
                   {/* LWF Toggle */}
-                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between">
+                  <div className="p-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-gray-700">LWF Applicable</label>
-                      <p className="text-[10px] text-gray-400">Labour Welfare Fund</p>
+                      <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-slate-300">LWF Applicable</label>
+                      <p className="text-[10px] text-gray-400 dark:text-slate-500">Labour Welfare Fund</p>
                     </div>
                     <input
                       type="checkbox"
                       checked={form.lwfEnabled}
                       onChange={(e) => setForm((prev) => ({ ...prev, lwfEnabled: e.target.checked }))}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-700 rounded focus:ring-blue-500"
                     />
                   </div>
                 </div>
 
                 {/* Professional Tax Dropdown & Configuration */}
-                <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl space-y-4">
+                <div className="p-4 bg-blue-50/50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 rounded-xl space-y-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold uppercase tracking-wider text-blue-800">Professional Tax (PT) Config</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-blue-800 dark:text-blue-300">Professional Tax (PT) Config</label>
                     <input
                       type="checkbox"
                       checked={form.ptEnabled}
                       onChange={(e) => setForm((prev) => ({ ...prev, ptEnabled: e.target.checked }))}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-700 rounded focus:ring-blue-500"
                     />
                   </div>
 
                   {form.ptEnabled && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">PT Jurisdiction State</label>
+                        <label className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">PT Jurisdiction State</label>
                         <select
                           value={form.ptState}
                           onChange={(e) => handlePtStateChange(e.target.value)}
-                          className="w-full mt-1 bg-white border border-gray-300 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
+                          className="w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-slate-100 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
                         >
                           <option value="MH">Maharashtra (₹200/mo)</option>
                           <option value="KA">Karnataka (₹200/mo)</option>
@@ -882,7 +881,7 @@ const SalaryCalculator = () => {
 
             {activeTab === 'bonuses' && (
               <div className="space-y-4 animate-fadeIn">
-                <h3 className="text-sm font-bold text-gray-800 border-b border-gray-100 pb-2">One-Time Bonuses & Variables</h3>
+                <h3 className="text-sm font-bold text-gray-800 dark:text-slate-100 border-b border-gray-100 dark:border-slate-800 pb-2">One-Time Bonuses & Variables</h3>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <InputField label="Joining Bonus" value={form.joiningBonus} onChange={(value) => setForm((prev) => ({ ...prev, joiningBonus: value }))} />
@@ -900,7 +899,7 @@ const SalaryCalculator = () => {
                   <InputField label="Referral Bonus" value={form.referralBonus} onChange={(value) => setForm((prev) => ({ ...prev, referralBonus: value }))} />
                 </div>
 
-                <div className="rounded-xl bg-indigo-50 border border-indigo-100 p-4 text-[11px] text-indigo-800">
+                <div className="rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 p-4 text-[11px] text-indigo-800 dark:text-indigo-200">
                   <p className="font-semibold">One-Time Variables Calculation:</p>
                   <p className="mt-1">
                     These bonuses represent transient one-time additions for the target payroll month. They do not increase the recurring base master salary structure, but are factorized inside the net take-home pay computations.
@@ -912,18 +911,18 @@ const SalaryCalculator = () => {
             {activeTab === 'tax' && (
               <div className="space-y-4 animate-fadeIn">
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Default Target Regime</label>
-                  <p className="text-xs text-gray-500 mt-0.5">Determine the regime displayed in the detailed breakdown below.</p>
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500">Default Target Regime</label>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Determine the regime displayed in the detailed breakdown below.</p>
                   <div className="grid grid-cols-2 gap-3 mt-2">
                     {['new', 'old'].map((r) => (
                       <button
                         key={r}
                         type="button"
                         onClick={() => setForm((prev) => ({ ...prev, taxRegime: r }))}
-                        className={`py-2 px-3 text-center rounded-lg text-sm font-semibold border transition-all ${
+                        className={`py-2 px-3 text-center rounded-lg text-sm font-semibold border transition-all cursor-pointer ${
                           form.taxRegime === r
-                            ? 'bg-blue-50 border-blue-600 text-blue-600'
-                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                            ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-600 text-blue-600 dark:text-blue-400'
+                            : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
                         }`}
                       >
                         {r === 'new' ? 'New Regime' : 'Old Regime'}
@@ -932,19 +931,19 @@ const SalaryCalculator = () => {
                   </div>
                 </div>
 
-                <div className="border-t border-gray-100 pt-4">
-                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Old Regime Declarations</h3>
+                <div className="border-t border-gray-100 dark:border-slate-800 pt-4">
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-slate-100 mb-3">Old Regime Declarations</h3>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <div className="flex items-center justify-between bg-gray-50 dark:bg-slate-800/60 p-3 rounded-lg border border-gray-200 dark:border-slate-700">
                       <div>
-                        <label className="text-sm font-semibold text-gray-700">Metro City Resident</label>
-                        <p className="text-xs text-gray-500">Raises HRA tax exemption threshold to 50% of Basic</p>
+                        <label className="text-sm font-semibold text-gray-700 dark:text-slate-300">Metro City Resident</label>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">Raises HRA tax exemption threshold to 50% of Basic</p>
                       </div>
                       <input
                         type="checkbox"
                         checked={form.isMetroCity}
                         onChange={(e) => setForm((prev) => ({ ...prev, isMetroCity: e.target.checked }))}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="w-4 h-4 text-blue-600 border-gray-300 dark:border-slate-700 rounded focus:ring-blue-500"
                       />
                     </div>
                     <InputField label="Monthly Rent Paid" value={form.rentPaidMonthly} onChange={(value) => setForm((prev) => ({ ...prev, rentPaidMonthly: value }))} />
@@ -962,7 +961,7 @@ const SalaryCalculator = () => {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-semibold shadow-md shadow-blue-200 transition-all disabled:opacity-60"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-semibold shadow-md shadow-blue-200 dark:shadow-none transition-all disabled:opacity-60 cursor-pointer"
           >
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
@@ -982,11 +981,11 @@ const SalaryCalculator = () => {
             <>
               {/* Side-by-Side Regime Comparison */}
               {comparison && (
-                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-6">
-                  <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-                    <h2 className="text-lg font-bold text-gray-800">Regime Comparison (FY 2024-25)</h2>
+                <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm p-6 space-y-6 transition-colors">
+                  <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-4">
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Regime Comparison (FY 2024-25)</h2>
                     {comparison.recommended !== 'equal' && (
-                      <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold flex items-center gap-1 border border-emerald-200">
+                      <span className="px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-1 border border-emerald-200 dark:border-emerald-800">
                         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
@@ -1000,34 +999,34 @@ const SalaryCalculator = () => {
                     {/* New Regime Option Card */}
                     <div className={`p-4 rounded-xl border transition-all ${
                       comparison.recommended === 'new'
-                        ? 'border-emerald-500 bg-emerald-50/50 shadow-sm'
-                        : 'border-gray-200 bg-white'
+                        ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 shadow-sm'
+                        : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-800/50'
                     }`}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-gray-400 uppercase">New Regime</span>
+                        <span className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase">New Regime</span>
                         {comparison.recommended === 'new' && (
                           <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">Best</span>
                         )}
                       </div>
-                      <div className="text-xl font-extrabold text-gray-900">{fmtMoney(comparison.newRegime.monthlyTakeHome)}<span className="text-xs font-normal text-gray-500"> /mo</span></div>
-                      <p className="text-[11px] text-gray-500 mt-1">Net Take-Home Salary</p>
+                      <div className="text-xl font-extrabold text-gray-900 dark:text-slate-100">{fmtMoney(comparison.newRegime.monthlyTakeHome)}<span className="text-xs font-normal text-gray-500 dark:text-slate-400"> /mo</span></div>
+                      <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-1">Net Take-Home Salary</p>
 
-                      <div className="border-t border-dashed border-gray-200 mt-3 pt-3 space-y-1.5 text-xs text-gray-600">
+                      <div className="border-t border-dashed border-gray-200 dark:border-slate-700 mt-3 pt-3 space-y-1.5 text-xs text-gray-600 dark:text-slate-300">
                         <div className="flex justify-between">
                           <span>Standard Ded.</span>
-                          <span className="font-semibold">{fmtMoney(comparison.newRegime.standardDeduction)}</span>
+                          <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(comparison.newRegime.standardDeduction)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Other Savings</span>
-                          <span className="font-semibold">₹0</span>
+                          <span className="font-semibold text-gray-800 dark:text-slate-200">₹0</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Taxable Income</span>
-                          <span className="font-semibold">{fmtMoney(toAnnual(comparison.newRegime.netTaxableIncome) / 12)}</span>
+                          <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(toAnnual(comparison.newRegime.netTaxableIncome) / 12)}</span>
                         </div>
-                        <div className="flex justify-between border-t border-gray-200/50 pt-1.5">
+                        <div className="flex justify-between border-t border-gray-200/50 dark:border-slate-700/50 pt-1.5">
                           <span>Monthly TDS</span>
-                          <span className={`font-semibold ${comparison.newRegime.monthlyTax > 0 ? 'text-rose-600' : 'text-gray-500'}`}>
+                          <span className={`font-semibold ${comparison.newRegime.monthlyTax > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-500 dark:text-slate-400'}`}>
                             {fmtMoney(comparison.newRegime.monthlyTax)}
                           </span>
                         </div>
@@ -1037,34 +1036,34 @@ const SalaryCalculator = () => {
                     {/* Old Regime Option Card */}
                     <div className={`p-4 rounded-xl border transition-all ${
                       comparison.recommended === 'old'
-                        ? 'border-emerald-500 bg-emerald-50/50 shadow-sm'
-                        : 'border-gray-200 bg-white'
+                        ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 shadow-sm'
+                        : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-800/50'
                     }`}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-gray-400 uppercase">Old Regime</span>
+                        <span className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase">Old Regime</span>
                         {comparison.recommended === 'old' && (
                           <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">Best</span>
                         )}
                       </div>
-                      <div className="text-xl font-extrabold text-gray-900">{fmtMoney(comparison.oldRegime.monthlyTakeHome)}<span className="text-xs font-normal text-gray-500"> /mo</span></div>
-                      <p className="text-[11px] text-gray-500 mt-1">Net Take-Home Salary</p>
+                      <div className="text-xl font-extrabold text-gray-900 dark:text-slate-100">{fmtMoney(comparison.oldRegime.monthlyTakeHome)}<span className="text-xs font-normal text-gray-500 dark:text-slate-400"> /mo</span></div>
+                      <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-1">Net Take-Home Salary</p>
 
-                      <div className="border-t border-dashed border-gray-200 mt-3 pt-3 space-y-1.5 text-xs text-gray-600">
+                      <div className="border-t border-dashed border-gray-200 dark:border-slate-700 mt-3 pt-3 space-y-1.5 text-xs text-gray-600 dark:text-slate-300">
                         <div className="flex justify-between">
                           <span>Standard Ded.</span>
-                          <span className="font-semibold">{fmtMoney(comparison.oldRegime.standardDeduction)}</span>
+                          <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(comparison.oldRegime.standardDeduction)}</span>
                         </div>
                         <div className="flex justify-between" title="HRA + 80C + 80D + 24b + NPS + Other exemptions">
                           <span className="underline decoration-dotted cursor-help">Other Savings</span>
-                          <span className="font-semibold text-emerald-600">{fmtMoney(comparison.oldRegime.otherDeductions)}</span>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">{fmtMoney(comparison.oldRegime.otherDeductions)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Taxable Income</span>
-                          <span className="font-semibold">{fmtMoney(toAnnual(comparison.oldRegime.netTaxableIncome) / 12)}</span>
+                          <span className="font-semibold text-gray-800 dark:text-slate-200">{fmtMoney(toAnnual(comparison.oldRegime.netTaxableIncome) / 12)}</span>
                         </div>
-                        <div className="flex justify-between border-t border-gray-200/50 pt-1.5">
+                        <div className="flex justify-between border-t border-gray-200/50 dark:border-slate-700/50 pt-1.5">
                           <span>Monthly TDS</span>
-                          <span className={`font-semibold ${comparison.oldRegime.monthlyTax > 0 ? 'text-rose-600' : 'text-gray-500'}`}>
+                          <span className={`font-semibold ${comparison.oldRegime.monthlyTax > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-500 dark:text-slate-400'}`}>
                             {fmtMoney(comparison.oldRegime.monthlyTax)}
                           </span>
                         </div>
@@ -1073,17 +1072,17 @@ const SalaryCalculator = () => {
                   </div>
 
                   {comparison.recommended !== 'equal' && (
-                    <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex items-start gap-3">
+                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 flex items-start gap-3">
                       <div className="p-1 rounded-lg bg-emerald-500 text-white mt-0.5">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                         </svg>
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-emerald-950">
+                        <h4 className="text-sm font-bold text-emerald-950 dark:text-emerald-100">
                           Save {fmtMoney(comparison.savings)} per month!
                         </h4>
-                        <p className="text-xs text-emerald-700 mt-0.5">
+                        <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">
                           By selecting the <strong className="uppercase">{comparison.recommended} regime</strong>, the projected annual tax savings is <strong>{fmtMoney(comparison.savings * 12)}</strong>.
                         </p>
                       </div>
@@ -1093,22 +1092,22 @@ const SalaryCalculator = () => {
               )}
 
               {/* Detailed Component Breakdown */}
-              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 pb-4 gap-3">
+              <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm p-6 space-y-5 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-4 gap-3">
                   <div>
-                    <h2 className="text-lg font-bold text-gray-800">Salary Structure Breakdown</h2>
-                    <p className="text-xs text-gray-500 mt-0.5">Estimated on the <strong className="uppercase text-blue-600">{form.taxRegime} Regime</strong> structure.</p>
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Salary Structure Breakdown</h2>
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Estimated on the <strong className="uppercase text-blue-600 dark:text-blue-400">{form.taxRegime} Regime</strong> structure.</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {result.master?.esiApplicable ? (
-                      <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold border border-amber-200">
+                      <span className="px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[10px] font-semibold border border-amber-200 dark:border-amber-800">
                         ESI Active (Basic &lt; ₹21,000)
                       </span>
                     ) : null}
                     <button
                       type="button"
                       onClick={handleDownloadBreakup}
-                      className="bg-white border border-gray-300 hover:bg-gray-50 text-blue-600 px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold shadow-sm"
+                      className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 px-3.5 py-1.5 rounded-lg flex items-center gap-2 text-xs font-semibold shadow-sm cursor-pointer transition-colors"
                     >
                       <FaDownload size={10} /> Download Breakup
                     </button>
@@ -1170,8 +1169,8 @@ const SalaryCalculator = () => {
                 )}
 
                 {/* Dynamic Summary Cards */}
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 mt-6 shadow-sm">
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs divide-x divide-blue-200/50">
+                <div className="rounded-2xl border border-blue-200 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/40 p-5 mt-6 shadow-sm">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs divide-x divide-blue-200/50 dark:divide-blue-800/40">
                     <SummaryItem label="Net Take-Home" value={fmtMoney(result.payroll?.netSalary)} highlight={true} />
                     <SummaryItem label="Monthly CTC" value={fmtMoney(result.monthlyCTC)} />
                     <SummaryItem label="Gross Earnings" value={fmtMoney(result.payroll?.earnings?.totalEarnings)} />
@@ -1182,14 +1181,14 @@ const SalaryCalculator = () => {
               </div>
             </>
           ) : (
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 text-center flex flex-col items-center justify-center min-h-[400px]">
-              <div className="p-4 rounded-full bg-blue-50 text-blue-600 mb-4 animate-pulse">
+            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm p-8 text-center flex flex-col items-center justify-center min-h-[400px] transition-colors">
+              <div className="p-4 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 mb-4 animate-pulse">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                 </svg>
               </div>
-              <h3 className="text-base font-bold text-gray-800">No Calculation Active</h3>
-              <p className="text-sm text-gray-500 mt-1 max-w-sm">
+              <h3 className="text-base font-bold text-gray-800 dark:text-slate-100">No Calculation Active</h3>
+              <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 max-w-sm">
                 Enter an Annual or Monthly CTC amount to dynamically break down components, calculate taxes, and estimate net take-home pay.
               </p>
             </div>
@@ -1203,8 +1202,8 @@ const SalaryCalculator = () => {
 const InputField = ({ label, value, onChange, suffix, hint }) => (
   <div className="w-full">
     <div className="flex justify-between items-center">
-      <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">{label}</label>
-      {hint && <span className="text-[10px] text-gray-400">{hint}</span>}
+      <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">{label}</label>
+      {hint && <span className="text-[10px] text-gray-400 dark:text-slate-500">{hint}</span>}
     </div>
     <div className="relative mt-1.5 rounded-lg shadow-sm">
       <input
@@ -1214,11 +1213,11 @@ const InputField = ({ label, value, onChange, suffix, hint }) => (
         value={value === 0 ? '' : value}
         placeholder="0"
         onChange={(e) => onChange(Number(e.target.value) || 0)}
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
       />
       {suffix && (
         <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-          <span className="text-gray-500 text-xs font-semibold">{suffix}</span>
+          <span className="text-gray-500 dark:text-slate-400 text-xs font-semibold">{suffix}</span>
         </div>
       )}
     </div>
@@ -1226,28 +1225,27 @@ const InputField = ({ label, value, onChange, suffix, hint }) => (
 );
 
 const BreakdownTable = ({ title, rows }) => {
-  // Filter out zero entries from bonuses or empty rows to keep display premium
   const isBonuses = title.includes('One-Time');
   const visibleRows = isBonuses 
     ? rows.filter(([label, val]) => val > 0 || label.startsWith('Total'))
     : rows;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm bg-white">
-      <div className="bg-gray-50/75 border-b border-gray-200 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-500">{title}</div>
-      <div className="divide-y divide-gray-150">
+    <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 transition-colors">
+      <div className="bg-gray-50/75 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-800 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">{title}</div>
+      <div className="divide-y divide-gray-150 dark:divide-slate-800">
         {visibleRows.map(([label, monthly]) => {
           const isTotal = label.startsWith('Total') || label.startsWith('Net');
           return (
             <div
               key={`${title}-${label}`}
-              className={`grid grid-cols-[1.5fr,0.85fr,0.85fr] px-4 py-2 text-xs transition-all hover:bg-gray-50/50 ${
-                isTotal ? 'bg-gray-50/30 font-bold border-t border-gray-200 text-gray-900 text-[12px]' : 'text-gray-600'
+              className={`grid grid-cols-[1.5fr,0.85fr,0.85fr] px-4 py-2 text-xs transition-all hover:bg-gray-50/50 dark:hover:bg-slate-800/50 ${
+                isTotal ? 'bg-gray-50/30 dark:bg-slate-800/40 font-bold border-t border-gray-200 dark:border-slate-800 text-gray-900 dark:text-slate-100 text-[12px]' : 'text-gray-600 dark:text-slate-300'
               }`}
             >
               <span>{label}</span>
-              <span className="text-right font-semibold text-gray-900">{fmtMoney(monthly)}</span>
-              <span className="text-right text-gray-500">{fmtMoney(toAnnual(monthly))}</span>
+              <span className="text-right font-semibold text-gray-900 dark:text-slate-100 font-mono">{fmtMoney(monthly)}</span>
+              <span className="text-right text-gray-500 dark:text-slate-400 font-mono">{fmtMoney(toAnnual(monthly))}</span>
             </div>
           );
         })}
@@ -1258,8 +1256,8 @@ const BreakdownTable = ({ title, rows }) => {
 
 const SummaryItem = ({ label, value, highlight }) => (
   <div className="px-3 first:pl-0">
-    <div className={`text-[9px] font-bold uppercase tracking-wider ${highlight ? 'text-blue-600 font-extrabold' : 'text-gray-400'}`}>{label}</div>
-    <div className={`mt-1 font-extrabold tracking-tight ${highlight ? 'text-blue-900 text-base sm:text-lg' : 'text-gray-800 text-xs sm:text-sm'}`}>{value}</div>
+    <div className={`text-[9px] font-bold uppercase tracking-wider ${highlight ? 'text-blue-600 dark:text-blue-400 font-extrabold' : 'text-gray-400 dark:text-slate-500'}`}>{label}</div>
+    <div className={`mt-1 font-extrabold tracking-tight ${highlight ? 'text-blue-900 dark:text-blue-100 text-base sm:text-lg font-mono' : 'text-gray-800 dark:text-slate-200 text-xs sm:text-sm font-mono'}`}>{value}</div>
   </div>
 );
 

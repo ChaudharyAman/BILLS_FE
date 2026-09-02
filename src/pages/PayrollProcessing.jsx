@@ -142,11 +142,11 @@ const getComponentBreakdown = (snapshot, component) => {
 
 const BreakdownRow = ({ label, paid, master }) => (
   <div className="flex items-center justify-between px-4 py-2.5">
-    <span className="text-gray-600 font-medium">{label}</span>
+    <span className="text-gray-600 dark:text-slate-300 font-medium">{label}</span>
     <div className="flex items-center gap-2">
-      <span className="font-semibold text-gray-900">{fmtMoney(paid)}</span>
+      <span className="font-semibold text-gray-900 dark:text-slate-100">{fmtMoney(paid)}</span>
       {paid !== master && (
-        <span className="text-xs text-gray-400 font-normal line-through">
+        <span className="text-xs text-gray-400 dark:text-slate-500 font-normal line-through">
           {fmtMoney(master)}
         </span>
       )}
@@ -155,10 +155,10 @@ const BreakdownRow = ({ label, paid, master }) => (
 );
 
 const DeductionRow = ({ label, amount, isContrib = false, isEditable = false, value, onChange }) => (
-  <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-50 last:border-0">
-    <span className={isContrib ? "text-gray-500 font-normal text-xs" : "text-gray-600 font-medium"}>
+  <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-50 dark:border-slate-800 last:border-0">
+    <span className={isContrib ? "text-gray-500 dark:text-slate-400 font-normal text-xs" : "text-gray-600 dark:text-slate-300 font-medium"}>
       {label}
-      {isContrib && <span className="text-[10px] text-gray-400 ml-1">(Employer Contribution)</span>}
+      {isContrib && <span className="text-[10px] text-gray-400 dark:text-slate-500 ml-1">(Employer Contribution)</span>}
     </span>
     {isEditable ? (
       <input
@@ -167,10 +167,10 @@ const DeductionRow = ({ label, amount, isContrib = false, isEditable = false, va
         placeholder={amount !== undefined ? String(amount) : "0"}
         value={value !== undefined && value !== null ? value : ''}
         onChange={(e) => onChange?.(e.target.value)}
-        className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right font-semibold"
+        className="w-24 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-sm text-right font-semibold focus:outline-none focus:border-blue-500"
       />
     ) : (
-      <span className={`font-semibold ${isContrib ? "text-gray-700" : "text-red-600"}`}>
+      <span className={`font-semibold ${isContrib ? "text-gray-700 dark:text-slate-300" : "text-red-600 dark:text-red-400"}`}>
         {isContrib ? '' : '-'}{fmtMoney(amount)}
       </span>
     )}
@@ -188,15 +188,15 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
             value={row?.paidDays ?? 0}
             disabled={isExistingDisabled}
             onChange={(e) => updateRow(employee._id, 'paidDays', e.target.value)}
-            className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400"
+            className="w-16 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-slate-500"
           />
-          <span className="self-center text-gray-400 text-xs">/</span>
+          <span className="self-center text-gray-400 dark:text-slate-500 text-xs">/</span>
           <input
             type="number" min="1"
             value={row?.workingDays ?? monthWorkingDays}
             disabled={isExistingDisabled}
             onChange={(e) => updateRow(employee._id, 'workingDays', e.target.value)}
-            className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 disabled:text-gray-400"
+            className="w-16 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-1.5 py-0.5 text-xs text-right disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-slate-500"
           />
         </div>
       );
@@ -214,9 +214,9 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
               updateRow(employee._id, 'hoursWorked', hrs);
               updatePeriodInput('hoursWorked', hrs);
             }}
-            className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+            className="w-20 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-slate-500"
           />
-          <span className="text-gray-400 text-xs">hrs</span>
+          <span className="text-gray-400 dark:text-slate-500 text-xs">hrs</span>
         </div>
       );
 
@@ -232,9 +232,9 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
               updateRow(employee._id, 'paidDays', days);
               updatePeriodInput('daysWorked', days);
             }}
-            className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+            className="w-20 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-slate-500"
           />
-          <span className="text-gray-400 text-xs">days</span>
+          <span className="text-gray-400 dark:text-slate-500 text-xs">days</span>
         </div>
       );
 
@@ -247,9 +247,9 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
             value={row?.periodInput?.unitsProduced !== undefined ? row.periodInput.unitsProduced : ''}
             disabled={isExistingDisabled}
             onChange={(e) => updatePeriodInput('unitsProduced', e.target.value === '' ? undefined : Number(e.target.value))}
-            className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+            className="w-20 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-slate-500"
           />
-          <span className="text-gray-400 text-xs">units</span>
+          <span className="text-gray-400 dark:text-slate-500 text-xs">units</span>
         </div>
       );
 
@@ -262,9 +262,9 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
             value={row?.periodInput?.ratePerUnit ?? ''}
             disabled={isExistingDisabled}
             onChange={(e) => updatePeriodInput('ratePerUnit', Number(e.target.value) || 0)}
-            className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+            className="w-20 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-slate-500"
           />
-          <span className="text-gray-400 text-xs">₹/u</span>
+          <span className="text-gray-400 dark:text-slate-500 text-xs">₹/u</span>
         </div>
       );
 
@@ -277,7 +277,7 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
             value={row?.periodInput?.projectFee ?? 0}
             disabled={isExistingDisabled}
             onChange={(e) => updatePeriodInput('projectFee', Number(e.target.value) || 0)}
-            className="w-24 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+            className="w-24 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-slate-500"
           />
         </div>
       );
@@ -291,7 +291,7 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
             value={row?.periodInput?.milestoneAmount ?? 0}
             disabled={isExistingDisabled}
             onChange={(e) => updatePeriodInput('milestoneAmount', Number(e.target.value) || 0)}
-            className="w-24 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 disabled:text-gray-400"
+            className="w-24 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-1.5 py-0.5 text-xs text-right font-medium disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-slate-500"
           />
         </div>
       );
@@ -305,7 +305,7 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
             value={row?.periodInput?.milestoneRef ?? ''}
             disabled={isExistingDisabled}
             onChange={(e) => updatePeriodInput('milestoneRef', e.target.value)}
-            className="w-24 border border-gray-300 rounded px-1.5 py-0.5 text-[10px] disabled:bg-gray-100 disabled:text-gray-400"
+            className="w-24 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-1.5 py-0.5 text-[10px] disabled:bg-gray-100 dark:disabled:bg-slate-800/60 disabled:text-gray-400 dark:disabled:text-slate-500"
           />
         </div>
       );
@@ -315,8 +315,8 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
       const commSum = (row?.variableTransactions || []).reduce((sum, t) => sum + (t.amount || 0), 0);
       return (
         <div key={fieldKey} className="flex flex-col gap-0.5">
-          <span className="text-xs font-semibold text-gray-800">{fmtMoney(commSum)}</span>
-          <span className="text-[9px] text-blue-600 font-bold">Commission</span>
+          <span className="text-xs font-semibold text-gray-800 dark:text-slate-100">{fmtMoney(commSum)}</span>
+          <span className="text-[9px] text-blue-600 dark:text-blue-400 font-bold">Commission</span>
         </div>
       );
 
@@ -326,7 +326,7 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
       const retainerVal = row?.snapshot?.master?.monthlyCTC ?? snapshot?.master?.monthlyCTC ?? employee.monthlyCTC ?? 0;
       return (
         <div key={fieldKey} className="flex flex-col gap-1">
-          <span className={`text-xs font-semibold ${isSkipped ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+          <span className={`text-xs font-semibold ${isSkipped ? 'line-through text-gray-400 dark:text-slate-500' : 'text-gray-800 dark:text-slate-100'}`}>
             {fmtMoney(retainerVal)}
           </span>
           <label className="inline-flex items-center gap-1 cursor-pointer">
@@ -335,9 +335,9 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
               checked={isSkipped}
               disabled={isExistingDisabled}
               onChange={(e) => updateRow(employee._id, '_skipPeriod', e.target.checked)}
-              className="w-3 h-3 rounded"
+              className="w-3 h-3 rounded text-blue-600 focus:ring-blue-500"
             />
-            <span className="text-[9px] text-gray-500 font-medium">Skip period</span>
+            <span className="text-[9px] text-gray-500 dark:text-slate-400 font-medium">Skip period</span>
           </label>
         </div>
       );
@@ -454,17 +454,19 @@ const EmployeeRow = ({
   const isProcessed = Boolean(existingPayroll && existingPayroll.status !== 'draft');
 
   const rowClass = isBlocking && !isProcessed
-    ? 'bg-red-50/40 border-l-4 border-l-red-500 hover:bg-red-50/60'
+    ? 'bg-red-50/40 dark:bg-red-950/30 border-l-4 border-l-red-500 hover:bg-red-50/60 dark:hover:bg-red-950/50'
     : isExitingInPeriod && !isProcessed
-      ? 'bg-amber-50/60 border-l-4 border-l-amber-500'
+      ? 'bg-amber-50/60 dark:bg-amber-950/40 border-l-4 border-l-amber-500 hover:bg-amber-100/60 dark:hover:bg-amber-900/40'
       : paidTooHigh && !isProcessed
-        ? 'bg-amber-50/40 border-l-4 border-l-amber-400'
+        ? 'bg-amber-50/40 dark:bg-amber-950/30 border-l-4 border-l-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30'
         : isProcessed
-          ? 'bg-gray-50 border-l-4 border-l-blue-400 text-gray-500 opacity-80'
-          : 'hover:bg-blue-50/40';
+          ? 'bg-gray-50 dark:bg-slate-800/40 border-l-4 border-l-blue-400 text-gray-500 dark:text-slate-400 opacity-80 hover:bg-gray-100/50 dark:hover:bg-slate-800/60'
+          : selected
+            ? 'bg-blue-50/30 dark:bg-slate-800/40 hover:bg-blue-50/50 dark:hover:bg-slate-800/70'
+            : 'hover:bg-blue-50/40 dark:hover:bg-slate-800/50';
 
   return (
-    <tr key={employee._id} className={`${rowClass} align-top`}>
+    <tr key={employee._id} className={`${rowClass} align-top transition-colors`}>
       <td className="px-4 py-2.5">
         <input
           type="checkbox"
@@ -476,28 +478,28 @@ const EmployeeRow = ({
         />
       </td>
       <td className="px-4 py-2.5 min-w-[220px]">
-        <div className={`font-semibold text-xs ${isExistingDisabled ? 'text-gray-600' : 'text-gray-900'}`}>{employee.firstName} {employee.lastName}</div>
-        <div className="text-[10px] text-gray-400 mt-0.5">{employee.employeeId} · {employee.designation || '-'}</div>
-        <div className="text-[10px] text-gray-400 mt-0.5 flex flex-col gap-0.5">
+        <div className={`font-semibold text-xs ${isExistingDisabled ? 'text-gray-600 dark:text-slate-400' : 'text-gray-900 dark:text-slate-100'}`}>{employee.firstName} {employee.lastName}</div>
+        <div className="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5">{employee.employeeId} · {employee.designation || '-'}</div>
+        <div className="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5 flex flex-col gap-0.5">
           {(() => {
             const badgeInfo = getCompensationBadgeInfo(employee, snapshot);
             if (badgeInfo.isBadge) {
               return (
-                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 self-start">
+                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-800 rounded px-1.5 py-0.5 self-start">
                   💼 {badgeInfo.label}
                 </span>
               );
             }
-            return <span>{badgeInfo.label}</span>;
+            return <span className="text-gray-600 dark:text-slate-300">{badgeInfo.label}</span>;
           })()}
           
           {existingPayroll ? (
             <div className="mt-1 flex flex-col gap-1">
               <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${
-                existingPayroll.status === 'paid' ? 'bg-green-100 text-green-800 border border-green-200' :
-                existingPayroll.status === 'approved' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                existingPayroll.status === 'draft' ? 'bg-slate-100 text-slate-700 border border-slate-200' :
-                'bg-amber-100 text-amber-800 border border-amber-200'
+                existingPayroll.status === 'paid' ? 'bg-green-100 dark:bg-green-950/60 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800' :
+                existingPayroll.status === 'approved' ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800' :
+                existingPayroll.status === 'draft' ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700' :
+                'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
               }`}>
                 Payroll {existingPayroll.status}
               </span>
@@ -506,7 +508,7 @@ const EmployeeRow = ({
                   type="button"
                   aria-label={`Delete payroll for ${employee.firstName} ${employee.lastName}`}
                   onClick={() => onDeletePayroll(existingPayroll._id, `${employee.firstName} ${employee.lastName}`)}
-                  className="text-[10px] font-bold text-red-600 hover:text-red-800 hover:underline transition-colors text-left flex items-center gap-1 self-start mt-0.5"
+                  className="text-[10px] font-bold text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:underline transition-colors text-left flex items-center gap-1 self-start mt-0.5"
                 >
                   <FaTrash className="w-2.5 h-2.5" /> Delete Payroll
                 </button>
@@ -526,7 +528,7 @@ const EmployeeRow = ({
               <button
                 type="button"
                 onClick={() => setFnfEmployee(employee)}
-                className="text-[10px] font-bold text-amber-700 hover:text-amber-900 hover:underline transition-colors text-left flex items-center gap-1 self-start"
+                className="text-[10px] font-bold text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300 hover:underline transition-colors text-left flex items-center gap-1 self-start"
               >
                 📜 Full & Final (F&F)
               </button>
@@ -536,46 +538,46 @@ const EmployeeRow = ({
               type="button"
               aria-label={isExistingDisabled ? `View breakdown for ${employee.firstName} ${employee.lastName}` : `Open breakdown and adjust for ${employee.firstName} ${employee.lastName}`}
               onClick={() => setBreakdownEmployee(employee)}
-              className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left flex items-center gap-1 self-start"
+              className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors text-left flex items-center gap-1 self-start"
             >
               <FaCalculator className="w-2.5 h-2.5" /> {isExistingDisabled ? 'View Breakdown' : 'Breakdown & Adjust'}
             </button>
 
             {employee.dateOfLeaving && (
-              <span className={`text-[9px] font-bold rounded px-1.5 py-0.5 ${isExitingInPeriod ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+              <span className={`text-[9px] font-bold rounded px-1.5 py-0.5 ${isExitingInPeriod ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800' : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'}`}>
                 🚨 Exiting{isExitingInPeriod ? ' This Period' : ''}: {new Date(employee.dateOfLeaving).toLocaleDateString('en-IN')}
               </span>
             )}
           </div>
           {/* Edge Case Warning Badges: Net Pay Clamped & Below Minimum Wage */}
           {(snapshot?.netPayClamped || snapshot?.payrollShortfall?.shortfallAmount > 0) && (
-            <div className="mt-1 text-[9px] font-bold text-amber-900 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5 self-start flex items-center gap-1 shadow-2xs" title="Net salary was clamped to ₹0 because deductions exceeded gross earnings">
+            <div className="mt-1 text-[9px] font-bold text-amber-900 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 rounded px-1.5 py-0.5 self-start flex items-center gap-1 shadow-2xs" title="Net salary was clamped to ₹0 because deductions exceeded gross earnings">
               ⚠️ Net Pay Clamped (Shortfall: {fmtMoney(snapshot.payrollShortfall?.shortfallAmount || 0)})
             </div>
           )}
           {(snapshot?.belowMinimumWage || snapshot?.minimumWageCompliance?.flagged) && (
-            <div className="mt-1 text-[9px] font-bold text-rose-900 bg-rose-100 border border-rose-300 rounded px-1.5 py-0.5 self-start flex items-center gap-1 shadow-2xs" title={snapshot.minimumWageCompliance?.warningMessage || 'Gross earnings below minimum wage floor'}>
+            <div className="mt-1 text-[9px] font-bold text-rose-900 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 rounded px-1.5 py-0.5 self-start flex items-center gap-1 shadow-2xs" title={snapshot.minimumWageCompliance?.warningMessage || 'Gross earnings below minimum wage floor'}>
               ⚠️ Below Minimum Wage Floor ({snapshot.minimumWageCompliance?.state || 'State'})
             </div>
           )}
           
           {/* Statutory Settings Badges */}
           <div className="flex flex-wrap gap-1 mt-1 font-mono">
-            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isTdsEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isTdsEnabled ? 'Income Tax TDS Enabled' : 'Income Tax TDS Disabled'}>TDS</span>
+            <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isTdsEnabled ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm' : 'bg-rose-50 dark:bg-rose-950/60 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/60 line-through opacity-70'}`} title={isTdsEnabled ? 'Income Tax TDS Enabled' : 'Income Tax TDS Disabled'}>TDS</span>
             {!isHourly && (!employee.compensationModel || employee.compensationModel === 'SALARIED') && (
               <>
-                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPfEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isPfEnabled ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
-                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isEsiEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isEsiEnabled ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
-                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPtEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isPtEnabled ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
-                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isLwfEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isLwfEnabled ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
-                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isGratuityEnabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-100 line-through opacity-70'}`} title={isGratuityEnabled ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
+                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPfEnabled ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm' : 'bg-rose-50 dark:bg-rose-950/60 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/60 line-through opacity-70'}`} title={isPfEnabled ? 'Provident Fund Enabled' : 'Provident Fund Disabled'}>PF</span>
+                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isEsiEnabled ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm' : 'bg-rose-50 dark:bg-rose-950/60 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/60 line-through opacity-70'}`} title={isEsiEnabled ? 'ESI Scheme Enabled' : 'ESI Scheme Disabled'}>ESI</span>
+                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isPtEnabled ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm' : 'bg-rose-50 dark:bg-rose-950/60 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/60 line-through opacity-70'}`} title={isPtEnabled ? 'Professional Tax Enabled' : 'Professional Tax Disabled'}>PT</span>
+                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isLwfEnabled ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm' : 'bg-rose-50 dark:bg-rose-950/60 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/60 line-through opacity-70'}`} title={isLwfEnabled ? 'Labour Welfare Fund Enabled' : 'Labour Welfare Fund Disabled'}>LWF</span>
+                <span className={`text-[8px] px-1 py-0.5 rounded font-bold transition-all ${isGratuityEnabled ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm' : 'bg-rose-50 dark:bg-rose-950/60 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/60 line-through opacity-70'}`} title={isGratuityEnabled ? 'Gratuity Accrual Enabled' : 'Gratuity Accrual Disabled'}>Gratuity</span>
                 {Number(basicPercentVal) !== 50 && (
-                  <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm" title="Basic Salary Overridden percentage">
+                  <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-sm" title="Basic Salary Overridden percentage">
                     B:{Math.round(basicPercentVal)}%
                   </span>
                 )}
                 {Number(hraPercentVal) !== 50 && (
-                  <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm" title="HRA Overridden percentage">
+                  <span className="text-[8px] px-1 py-0.5 rounded font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-sm" title="HRA Overridden percentage">
                     H:{Math.round(hraPercentVal)}%
                   </span>
                 )}
@@ -610,18 +612,18 @@ const EmployeeRow = ({
                 />
               ))}
               {compType === 'salary_plus_commission' && (
-                <div className="text-[10px] text-amber-700 font-medium">
+                <div className="text-[10px] text-amber-700 dark:text-amber-400 font-medium">
                   + Comm: {fmtMoney((row?.variableTransactions || []).reduce((sum, t) => sum + (t.amount || 0), 0))}
                 </div>
               )}
             </div>
           );
         })()}
-        {paidTooHigh ? <div className="mt-1 text-[10px] text-red-600">Paid days cannot exceed working days.</div> : null}
+        {paidTooHigh ? <div className="mt-1 text-[10px] text-red-600 dark:text-red-400">Paid days cannot exceed working days.</div> : null}
       </td>
       <td className="px-4 py-2.5 text-xs whitespace-nowrap">
         {isHourly || !snapshot.workingDays ? (
-          <span className="text-slate-400 font-medium italic">N/A</span>
+          <span className="text-slate-400 dark:text-slate-400 font-medium italic">N/A</span>
         ) : (
           `${Math.round((snapshot.paidDays / Math.max(snapshot.workingDays, 1)) * 100)}%`
         )}
@@ -632,15 +634,15 @@ const EmployeeRow = ({
         return (
           <td key={c.id} className="px-4 py-2.5">
             {numVal > 0 ? (
-              <div className="text-xs text-gray-700 whitespace-nowrap">{fmtMoney(numVal)}</div>
+              <div className="text-xs text-gray-700 dark:text-slate-300 whitespace-nowrap">{fmtMoney(numVal)}</div>
             ) : (
-              <span className="text-xs text-slate-400 font-medium italic">N/A</span>
+              <span className="text-xs text-slate-400 dark:text-slate-400 font-medium italic">N/A</span>
             )}
           </td>
         );
       })}
-      <td className="px-4 py-2.5 text-xs font-semibold text-slate-700 whitespace-nowrap">
-        {otherAllowancesTotal > 0 ? fmtMoney(otherAllowancesTotal) : <span className="text-slate-400 font-medium italic">N/A</span>}
+      <td className="px-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+        {otherAllowancesTotal > 0 ? fmtMoney(otherAllowancesTotal) : <span className="text-slate-400 dark:text-slate-400 font-medium italic">N/A</span>}
       </td>
       <EditableMoneyCell value={snapshot.employerContributions.gratuity} disabled notApplicable={!isGratuityEnabled || !Number(snapshot.employerContributions.gratuity)} />
       <EditableMoneyCell value={snapshot.employerContributions.lwfEmployer} disabled notApplicable={!isLwfEnabled || !Number(snapshot.employerContributions.lwfEmployer)} />
@@ -648,8 +650,8 @@ const EmployeeRow = ({
       <EditableMoneyCell value={row?.loyaltyBonus} disabled={isExistingDisabled} notApplicable={isExistingDisabled && !Number(row?.loyaltyBonus)} onChange={(value) => updateRow(employee._id, 'loyaltyBonus', value)} />
       <EditableMoneyCell value={row?.incentive} disabled={isExistingDisabled} notApplicable={isExistingDisabled && !Number(row?.incentive)} onChange={(value) => updateRow(employee._id, 'incentive', value)} />
       <EditableMoneyCell value={row?.specialBonus} disabled={isExistingDisabled} notApplicable={isExistingDisabled && !Number(row?.specialBonus)} onChange={(value) => updateRow(employee._id, 'specialBonus', value)} />
-      <td className="px-4 py-2.5 text-xs font-semibold text-red-600 whitespace-nowrap">
-        {sumNamedAmounts(snapshot.deductions.otherDeductions) > 0 ? fmtMoney(sumNamedAmounts(snapshot.deductions.otherDeductions)) : <span className="text-slate-400 font-medium italic">N/A</span>}
+      <td className="px-4 py-2.5 text-xs font-semibold text-red-600 dark:text-red-400 whitespace-nowrap">
+        {sumNamedAmounts(snapshot.deductions.otherDeductions) > 0 ? fmtMoney(sumNamedAmounts(snapshot.deductions.otherDeductions)) : <span className="text-slate-400 dark:text-slate-400 font-medium italic">N/A</span>}
       </td>
       <EditableMoneyCell
         value={row?.tds !== undefined ? row.tds : snapshot.deductions.tds}
@@ -657,7 +659,7 @@ const EmployeeRow = ({
         notApplicable={!isTdsEnabled || (isExistingDisabled && !Number(row?.tds !== undefined ? row.tds : snapshot.deductions.tds))}
         onChange={(value) => updateRow(employee._id, 'tds', value)}
       />
-      <td className="px-4 py-2.5 text-xs font-bold whitespace-nowrap">{fmtMoney(snapshot.netSalary)}</td>
+      <td className="px-4 py-2.5 text-xs font-bold text-gray-900 dark:text-slate-100 whitespace-nowrap">{fmtMoney(snapshot.netSalary)}</td>
     </tr>
   );
 };
@@ -1316,12 +1318,14 @@ const PayrollProcessing = () => {
 
       const res = await api.post('/payroll/process', payload);
 
-      if (res.data?.jobId) {
+      let jobData = res.data;
+
+      // Only enter asynchronous polling loop if the job was queued in background
+      if (res.data?.jobId && (res.data?.status === 'queued' || res.status === 202)) {
         const jobId = res.data.jobId;
         setActiveJobId(jobId);
         
         let completed = false;
-        let jobData = null;
         while (!completed) {
           await new Promise(resolve => setTimeout(resolve, 1000));
           const statusRes = await api.get(`/payroll/process/${jobId}/status`);
@@ -1334,43 +1338,16 @@ const PayrollProcessing = () => {
         
         setActiveJobId(null);
         setJobProgress(null);
-        
-        if (jobData.status === 'failed') {
-          toast.error(jobData.errorMessage || 'Background payroll processing failed');
-          return;
-        }
+      }
 
-        const successCount = jobData.success?.length || 0;
-        const errorCount = jobData.errors?.length || 0;
-        const skippedList = jobData.skippedNoActivity || [];
-        const skippedCount = skippedList.length;
-
-        let msgParts = [];
-        if (successCount > 0) msgParts.push(`${successCount} processed`);
-        if (skippedCount > 0) msgParts.push(`${skippedCount} skipped (no activity / marked skip)`);
-        if (errorCount > 0) msgParts.push(`${errorCount} failed`);
-
-        if (errorCount > 0) {
-          toast.error(msgParts.join(', '));
-        } else if (skippedCount > 0) {
-          toast(msgParts.join(', '), { icon: 'ℹ️' });
-        } else {
-          toast.success(saveAsDraft ? 'Payroll saved as draft' : 'Payroll processed successfully');
-        }
-
-        setSkippedSummaryList(skippedList);
-
-        if (!saveAsDraft && errorCount === 0) {
-          navigate('/payroll');
-        } else {
-          setRefreshTrigger(prev => prev + 1);
-        }
+      if (jobData?.status === 'failed') {
+        toast.error(jobData.errorMessage || 'Background payroll processing failed');
         return;
       }
 
-      const successCount = res.data.success?.length || 0;
-      const errorCount = res.data.errors?.length || 0;
-      const skippedList = res.data.skippedNoActivity || [];
+      const successCount = jobData?.success?.length || 0;
+      const errorCount = jobData?.errors?.length || 0;
+      const skippedList = jobData?.skippedNoActivity || [];
       const skippedCount = skippedList.length;
 
       let msgParts = [];
@@ -1480,22 +1457,22 @@ const PayrollProcessing = () => {
   };
 
   return (
-    <div className="max-w-[98%] mx-auto p-6 font-sans text-gray-900">
+    <div className="max-w-[98%] mx-auto p-6 font-sans text-gray-900 dark:text-slate-100 transition-colors">
       {activeJobId && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-sm">
+        <div className="mb-6 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-blue-900 flex items-center gap-2">
-              <span className="animate-spin text-blue-600">⏳</span> Processing Payroll Batch Asynchronously...
+            <span className="text-sm font-semibold text-blue-900 dark:text-blue-200 flex items-center gap-2">
+              <span className="animate-spin text-blue-600 dark:text-blue-400">⏳</span> Processing Payroll Batch Asynchronously...
             </span>
-            <span className="text-xs font-bold text-blue-700">{jobProgress?.progressPercent || 0}%</span>
+            <span className="text-xs font-bold text-blue-700 dark:text-blue-300">{jobProgress?.progressPercent || 0}%</span>
           </div>
-          <div className="w-full bg-blue-200 rounded-full h-2.5 overflow-hidden">
+          <div className="w-full bg-blue-200 dark:bg-blue-900/60 rounded-full h-2.5 overflow-hidden">
             <div
-              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+              className="bg-blue-600 dark:bg-blue-500 h-2.5 rounded-full transition-all duration-300"
               style={{ width: `${jobProgress?.progressPercent || 0}%` }}
             ></div>
           </div>
-          <p className="text-xs text-blue-700 mt-2">
+          <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
             Processed {jobProgress?.processed || 0} of {jobProgress?.total || 0} employees...
           </p>
         </div>
@@ -1503,14 +1480,14 @@ const PayrollProcessing = () => {
 
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Process Payroll</h1>
-          <p className="text-xs text-gray-500 mt-1">Review proration, variable pay, and deduction inputs before generating payroll.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-slate-100">Process Payroll</h1>
+          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Review proration, variable pay, and deduction inputs before generating payroll.</p>
         </div>
         <div className="flex items-center gap-2 flex-nowrap shrink-0 overflow-x-auto pb-0.5">
           <button
             type="button"
             onClick={handleDownloadInputsOnly}
-            className="bg-slate-700 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs shrink-0 whitespace-nowrap"
+            className="bg-slate-700 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs shrink-0 whitespace-nowrap border border-slate-600 dark:border-slate-700"
             title="Download working days, LOP, overtime, and variable inputs as Excel"
           >
             <FaDownload className="w-3 h-3" /> Download Inputs Only
@@ -1535,13 +1512,13 @@ const PayrollProcessing = () => {
               Reset Month's Payroll
             </button>
           )}
-          <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs bg-white font-medium shrink-0 whitespace-nowrap">
+          <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-2.5 py-1.5 text-xs font-medium shrink-0 whitespace-nowrap focus:outline-none focus:border-blue-500">
             {Array.from({ length: 12 }, (_, i) => i + 1).map((value) => <option key={value} value={value}>{monthName(value)}</option>)}
           </select>
-          <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-18 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-medium shrink-0" />
-          <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 shrink-0 whitespace-nowrap">
-            <span className="text-[11px] text-gray-500 font-medium">Days:</span>
-            <input type="number" value={monthWorkingDays} min="1" onChange={(e) => setMonthWorkingDays(Number(e.target.value) || 1)} className="w-10 border-0 bg-transparent p-0 text-xs font-semibold text-gray-800 focus:ring-0 text-center" title="Working Days in Month" />
+          <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-18 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-2.5 py-1.5 text-xs font-medium shrink-0 focus:outline-none focus:border-blue-500" />
+          <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 shrink-0 whitespace-nowrap">
+            <span className="text-[11px] text-gray-500 dark:text-slate-400 font-medium">Days:</span>
+            <input type="number" value={monthWorkingDays} min="1" onChange={(e) => setMonthWorkingDays(Number(e.target.value) || 1)} className="w-10 border-0 bg-transparent p-0 text-xs font-semibold text-gray-800 dark:text-slate-100 focus:ring-0 text-center" title="Working Days in Month" />
           </div>
         </div>
       </div>
@@ -1556,10 +1533,10 @@ const PayrollProcessing = () => {
         <div
           className={`rounded-xl p-4 border shadow-xs cursor-pointer transition-colors select-none ${
             filterNeedsAttention
-              ? 'bg-red-50 border-red-300'
+              ? 'bg-red-50 dark:bg-red-950/60 border-red-300 dark:border-red-800'
               : needsAttentionCount > 0
-                ? 'bg-amber-50 border-amber-300 hover:bg-amber-100'
-                : 'bg-white border-gray-200'
+                ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40'
+                : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800'
           }`}
           onClick={() => needsAttentionCount > 0 && setFilterNeedsAttention(v => !v)}
           title={needsAttentionCount > 0 ? 'Click to filter to employees needing attention' : ''}
@@ -1567,9 +1544,9 @@ const PayrollProcessing = () => {
           tabIndex={needsAttentionCount > 0 ? 0 : undefined}
           onKeyDown={e => e.key === 'Enter' && needsAttentionCount > 0 && setFilterNeedsAttention(v => !v)}
         >
-          <div className="text-xs font-semibold text-gray-500 mb-1">Needs Attention</div>
+          <div className="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-1">Needs Attention</div>
           <div className={`text-2xl font-bold ${
-            needsAttentionCount > 0 ? 'text-red-600' : 'text-gray-400'
+            needsAttentionCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-slate-600'
           }`}>
             {needsAttentionCount}
           </div>
@@ -1578,27 +1555,27 @@ const PayrollProcessing = () => {
       </div>
 
       {skippedSummaryList.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex flex-col gap-2 text-xs text-amber-900 shadow-sm">
-          <div className="flex justify-between items-center border-b border-amber-200/60 pb-2">
-            <span className="font-bold text-amber-900 text-sm flex items-center gap-1.5">
+        <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-5 flex flex-col gap-2 text-xs text-amber-900 dark:text-amber-200 shadow-sm transition-colors">
+          <div className="flex justify-between items-center border-b border-amber-200/60 dark:border-amber-800 pb-2">
+            <span className="font-bold text-amber-900 dark:text-amber-100 text-sm flex items-center gap-1.5">
               ℹ️ {skippedSummaryList.length} Employee(s) Skipped (No Activity / Marked Skip)
             </span>
             <button
               type="button"
               onClick={() => setSkippedSummaryList([])}
-              className="text-xs text-amber-700 hover:text-amber-900 font-bold underline"
+              className="text-xs text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300 font-bold underline"
             >
               Dismiss
             </button>
           </div>
-          <p className="text-amber-800">
+          <p className="text-amber-800 dark:text-amber-300">
             The following employees were excluded from payslip creation for this cycle:
           </p>
-          <div className="space-y-1 mt-1 bg-white/80 p-3 rounded-lg border border-amber-200 max-h-40 overflow-y-auto">
+          <div className="space-y-1 mt-1 bg-white/80 dark:bg-slate-900/80 p-3 rounded-lg border border-amber-200 dark:border-amber-800/80 max-h-40 overflow-y-auto">
             {skippedSummaryList.map((item, idx) => (
-              <div key={idx} className="flex justify-between text-xs py-0.5 border-b border-amber-100 last:border-0">
-                <span className="font-semibold text-amber-950">{item.employeeName || item.employeeId}</span>
-                <span className="text-amber-700 font-medium">[{item.compensationType || 'strategy'}]: {item.message || 'No activity'}</span>
+              <div key={idx} className="flex justify-between text-xs py-0.5 border-b border-amber-100 dark:border-amber-900/40 last:border-0">
+                <span className="font-semibold text-amber-950 dark:text-amber-100">{item.employeeName || item.employeeId}</span>
+                <span className="text-amber-700 dark:text-amber-400 font-medium">[{item.compensationType || 'strategy'}]: {item.message || 'No activity'}</span>
               </div>
             ))}
           </div>
@@ -1613,14 +1590,14 @@ const PayrollProcessing = () => {
           placeholder="Search name or code…"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs w-48 focus:outline-none focus:ring-2 focus:ring-blue-300"
+          className="border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-1.5 text-xs w-48 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-400 dark:placeholder-slate-500"
         />
         {deptOptions.length > 0 && (
           <select
             aria-label="Filter by department"
             value={filterDept}
             onChange={e => setFilterDept(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Departments</option>
             {deptOptions.map(d => <option key={d} value={d}>{d}</option>)}
@@ -1631,7 +1608,7 @@ const PayrollProcessing = () => {
             aria-label="Filter by compensation type"
             value={filterCompType}
             onChange={e => setFilterCompType(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Types</option>
             {compTypeOptions.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
@@ -1644,12 +1621,12 @@ const PayrollProcessing = () => {
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
             filterNeedsAttention
               ? 'bg-red-600 text-white border-red-600'
-              : 'bg-white text-gray-700 border-gray-300 hover:border-red-400 hover:text-red-600'
+              : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border-gray-300 dark:border-slate-700 hover:border-red-400 hover:text-red-600 dark:hover:text-red-400'
           }`}
         >
           {filterNeedsAttention ? '🔴 Attention (active)' : '🔴 Needs Attention'}
           {needsAttentionCount > 0 && !filterNeedsAttention && (
-            <span className="ml-1 bg-red-100 text-red-700 rounded-full px-1.5 text-[10px] font-bold">{needsAttentionCount}</span>
+            <span className="ml-1 bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300 rounded-full px-1.5 text-[10px] font-bold">{needsAttentionCount}</span>
           )}
         </button>
         <div className="flex items-center gap-1 ml-auto">
@@ -1657,7 +1634,7 @@ const PayrollProcessing = () => {
             aria-label="Sort employees by"
             value={sortKey}
             onChange={e => setSortKey(e.target.value)}
-            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white"
+            className="border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500"
           >
             <option value="name">Sort: Name</option>
             <option value="type">Sort: Type</option>
@@ -1667,7 +1644,7 @@ const PayrollProcessing = () => {
             type="button"
             aria-label={`Sort direction: ${sortDir === 'asc' ? 'ascending' : 'descending'}`}
             onClick={() => setSortDir(v => v === 'asc' ? 'desc' : 'asc')}
-            className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs bg-white hover:bg-gray-50"
+            className="border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 rounded-lg px-2.5 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
           >
             {sortDir === 'asc' ? '↑' : '↓'}
           </button>
@@ -1676,24 +1653,24 @@ const PayrollProcessing = () => {
           <button
             type="button"
             onClick={() => { setSearchQuery(''); setFilterDept(''); setFilterCompType(''); setFilterNeedsAttention(false); }}
-            className="text-xs text-blue-600 hover:text-blue-800 underline"
+            className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
           >
             Clear {activeFiltersCount} filter{activeFiltersCount > 1 ? 's' : ''}
           </button>
         )}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden transition-colors">
         <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0 z-10">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+            <thead className="bg-gray-50 dark:bg-slate-800/80 sticky top-0 z-10 border-b border-gray-200 dark:border-slate-800">
               <tr>
                 {headers.map((label) => (
-                  <th key={label} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">{label}</th>
+                  <th key={label} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase whitespace-nowrap">{label}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
               {loading ? (
                 Array.from({ length: 6 }).map((_, index) => (
                   <tr key={`payroll-process-skeleton-${index}`}>
@@ -1701,15 +1678,15 @@ const PayrollProcessing = () => {
                   </tr>
                 ))
               ) : employees.length === 0 ? (
-                <tr><td colSpan={headers.length} className="px-6 py-10 text-center text-gray-500">No active employees found.</td></tr>
+                <tr><td colSpan={headers.length} className="px-6 py-10 text-center text-gray-500 dark:text-slate-400">No active employees found.</td></tr>
               ) : filteredSortedEmployees.length === 0 ? (
-                <tr><td colSpan={headers.length} className="px-6 py-10 text-center text-gray-400">
+                <tr><td colSpan={headers.length} className="px-6 py-10 text-center text-gray-400 dark:text-slate-500">
                   <div className="text-2xl mb-2">🔍</div>
                   <div className="font-semibold">No employees match your filters.</div>
                   <button
                     type="button"
                     onClick={() => { setSearchQuery(''); setFilterDept(''); setFilterCompType(''); setFilterNeedsAttention(false); }}
-                    className="mt-2 text-xs text-blue-600 underline hover:text-blue-800"
+                    className="mt-2 text-xs text-blue-600 dark:text-blue-400 underline hover:text-blue-800"
                   >
                     Clear all filters
                   </button>
@@ -1753,22 +1730,22 @@ const PayrollProcessing = () => {
       </div>
 
       {/* Sticky action bar */}
-      <div className="sticky bottom-0 z-20 mt-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl shadow-lg px-4 py-3 flex items-center justify-between gap-2.5">
-        <div className="text-xs text-gray-500 font-medium">
+      <div className="sticky bottom-0 z-20 mt-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-gray-200 dark:border-slate-800 rounded-xl shadow-lg px-4 py-3 flex items-center justify-between gap-2.5 transition-colors">
+        <div className="text-xs text-gray-500 dark:text-slate-400 font-medium">
           {selectedEmployees.length} employee{selectedEmployees.length !== 1 ? 's' : ''} selected
           {selectedEmployees.length > 0 && (
-            <span className="ml-2 text-gray-400">· Net: <span className="font-semibold text-gray-700">{fmtMoney(totalPreview)}</span></span>
+            <span className="ml-2 text-gray-400 dark:text-slate-500">· Net: <span className="font-semibold text-gray-700 dark:text-slate-200">{fmtMoney(totalPreview)}</span></span>
           )}
           {needsAttentionCount > 0 && (
-            <span className="ml-2 text-red-600 font-semibold">· ⚠️ {needsAttentionCount} need attention</span>
+            <span className="ml-2 text-red-600 dark:text-red-400 font-semibold">· ⚠️ {needsAttentionCount} need attention</span>
           )}
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => navigate('/payroll')} className="px-3.5 py-1.5 rounded-lg bg-white border text-xs font-semibold hover:bg-gray-50">Cancel</button>
-          <button type="button" onClick={() => submit(true)} disabled={saving || selectedEmployees.length === 0} className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60">
+          <button type="button" onClick={() => navigate('/payroll')} className="px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-200 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+          <button type="button" onClick={() => submit(true)} disabled={saving || selectedEmployees.length === 0} className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60 transition-colors">
             <FaSave aria-hidden="true" /> Save as Draft
           </button>
-          <button type="button" onClick={() => setShowConfirmModal(true)} disabled={saving || selectedEmployees.length === 0} className="px-3.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60">
+          <button type="button" onClick={() => setShowConfirmModal(true)} disabled={saving || selectedEmployees.length === 0} className="px-3.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-60 transition-colors">
             <FaCheck aria-hidden="true" /> Process Payroll
           </button>
         </div>
@@ -1777,8 +1754,8 @@ const PayrollProcessing = () => {
       {/* Process Payroll Confirmation Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Confirm payroll processing">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 overflow-hidden">
-            <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 dark:border-slate-800 overflow-hidden transition-colors">
+            <div className="bg-slate-900 dark:bg-slate-950 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
               <h2 className="font-bold text-base flex items-center gap-2">
                 <FaCheck className="text-green-400" aria-hidden="true" /> Confirm Payroll Processing
               </h2>
@@ -1786,29 +1763,29 @@ const PayrollProcessing = () => {
                 <FaTimes className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
-            <div className="p-6 space-y-4 text-sm text-slate-700">
+            <div className="p-6 space-y-4 text-sm text-slate-700 dark:text-slate-300">
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-                  <div className="text-xs text-slate-500 font-semibold mb-1">Employees</div>
-                  <div className="text-xl font-bold text-slate-900">{selectedEmployees.length}</div>
+                <div className="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3 border border-slate-200 dark:border-slate-700">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-1">Employees</div>
+                  <div className="text-xl font-bold text-slate-900 dark:text-slate-100">{selectedEmployees.length}</div>
                 </div>
-                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-                  <div className="text-xs text-slate-500 font-semibold mb-1">Total Net Payout</div>
-                  <div className="text-xl font-bold text-emerald-700">{fmtMoney(totalPreview)}</div>
+                <div className="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3 border border-slate-200 dark:border-slate-700">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-1">Total Net Payout</div>
+                  <div className="text-xl font-bold text-emerald-700 dark:text-emerald-400">{fmtMoney(totalPreview)}</div>
                 </div>
               </div>
               {needsAttentionCount > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-amber-900 text-xs font-medium flex items-start gap-2">
+                <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-amber-900 dark:text-amber-200 text-xs font-medium flex items-start gap-2">
                   <span className="text-base">⚠️</span>
                   <span><strong>{needsAttentionCount}</strong> employee{needsAttentionCount !== 1 ? 's have' : ' has'} pay-clamping or minimum-wage flags. Review before processing.</span>
                 </div>
               )}
-              <p className="text-xs text-slate-500 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                 This will process payroll for <strong>{monthName(month)} {year}</strong> for all {selectedEmployees.length} selected employees. Processed payrolls cannot be undone without a full month reset.
               </p>
             </div>
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-              <button type="button" onClick={() => setShowConfirmModal(false)} className="px-4 py-2 border rounded-lg bg-white text-sm font-semibold hover:bg-gray-50 transition-colors">
+            <div className="bg-gray-50 dark:bg-slate-800/80 px-6 py-4 border-t border-gray-200 dark:border-slate-800 flex justify-end gap-3 transition-colors">
+              <button type="button" onClick={() => setShowConfirmModal(false)} className="px-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                 Cancel
               </button>
               <button
@@ -1837,9 +1814,9 @@ const PayrollProcessing = () => {
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full border border-gray-100 overflow-hidden flex flex-col my-8 animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-6xl w-full border border-gray-100 dark:border-slate-800 overflow-hidden flex flex-col my-8 animate-in fade-in duration-200 transition-colors">
               {/* Modal Header */}
-              <div className="bg-slate-900 text-white px-6 py-5 flex items-center justify-between">
+              <div className="bg-slate-900 dark:bg-slate-950 text-white px-6 py-5 flex items-center justify-between border-b border-slate-800">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg">
                     {breakdownEmployee.firstName[0]}{breakdownEmployee.lastName?.[0] || ''}
@@ -1871,11 +1848,11 @@ const PayrollProcessing = () => {
               <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6">
                 {/* Edge Case Warning Banners: Net Pay Clamped & Below Minimum Wage */}
                 {localSnapshot?.netPayClamped && (
-                  <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 text-amber-900 text-xs font-medium space-y-1">
-                    <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                  <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 rounded-xl p-3 text-amber-900 dark:text-amber-200 text-xs font-medium space-y-1">
+                    <div className="font-bold flex items-center gap-1.5 text-amber-950 dark:text-amber-100">
                       ⚠️ Net Pay Clamped to ₹0 (Deductions Exceeded Gross Earnings)
                     </div>
-                    <p className="text-[11px] text-amber-800 leading-relaxed">
+                    <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
                       Total deductions ({fmtMoney(localSnapshot.deductions?.totalDeductions)}) exceeded total earnings ({fmtMoney(localSnapshot.earnings?.totalEarnings)}).
                       Non-statutory deductions (loans/advances) were clamped by {fmtMoney(localSnapshot.payrollShortfall?.shortfallAmount || 0)} to prevent negative net salary.
                     </p>
@@ -1883,11 +1860,11 @@ const PayrollProcessing = () => {
                 )}
 
                 {localSnapshot?.belowMinimumWage && (
-                  <div className="bg-rose-50 border border-rose-300 rounded-xl p-3 text-rose-900 text-xs font-medium space-y-1">
-                    <div className="font-bold flex items-center gap-1.5 text-rose-950">
+                  <div className="bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 rounded-xl p-3 text-rose-900 dark:text-rose-200 text-xs font-medium space-y-1">
+                    <div className="font-bold flex items-center gap-1.5 text-rose-950 dark:text-rose-100">
                       ⚠️ Statutory Minimum Wage Violation Flag
                     </div>
-                    <p className="text-[11px] text-rose-800 leading-relaxed">
+                    <p className="text-[11px] text-rose-800 dark:text-rose-300 leading-relaxed">
                       {localSnapshot.minimumWageCompliance?.warningMessage || 'Computed gross earnings are below the statutory minimum wage floor for this state.'}
                     </p>
                   </div>
@@ -1895,21 +1872,21 @@ const PayrollProcessing = () => {
 
                 {/* Proration Summary Banner */}
                 {localSnapshot && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-900 text-sm">
+                  <div className="bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-900 dark:text-blue-200 text-sm">
                     {isHourly ? (
                       <div>
-                        <span className="font-semibold text-blue-900">Hours Worked:</span> {rows[empId]?.hoursWorked ?? 160} hrs
-                        <span className="mx-2 text-blue-300">|</span>
-                        <span className="font-semibold text-blue-900">Hourly Rate:</span> {fmtMoney(breakdownEmployee.hourlyRate)}/hr
+                        <span className="font-semibold text-blue-900 dark:text-blue-100">Hours Worked:</span> {rows[empId]?.hoursWorked ?? 160} hrs
+                        <span className="mx-2 text-blue-300 dark:text-blue-600">|</span>
+                        <span className="font-semibold text-blue-900 dark:text-blue-100">Hourly Rate:</span> {fmtMoney(breakdownEmployee.hourlyRate)}/hr
                       </div>
                     ) : (
                       <div>
-                        <span className="font-semibold text-blue-900">Paid / Working Days:</span> {localSnapshot.paidDays} / {localSnapshot.workingDays} days
-                        <span className="mx-2 text-blue-300">|</span>
-                        <span className="font-semibold text-blue-900">Proration Ratio:</span> {Math.round((localSnapshot.paidDays / localSnapshot.workingDays) * 100)}%
+                        <span className="font-semibold text-blue-900 dark:text-blue-100">Paid / Working Days:</span> {localSnapshot.paidDays} / {localSnapshot.workingDays} days
+                        <span className="mx-2 text-blue-300 dark:text-blue-600">|</span>
+                        <span className="font-semibold text-blue-900 dark:text-blue-100">Proration Ratio:</span> {Math.round((localSnapshot.paidDays / localSnapshot.workingDays) * 100)}%
                       </div>
                     )}
-                    <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold self-start sm:self-auto">
+                    <div className="bg-blue-600 dark:bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold self-start sm:self-auto">
                       {isHourly 
                         ? `${rows[empId]?.hoursWorked ?? 160} hrs logged` 
                         : (localSnapshot.lop > 0 ? `${localSnapshot.lop} LOP Days` : 'Full Attendance')
@@ -1919,14 +1896,14 @@ const PayrollProcessing = () => {
                 )}
 
                 {localSplits && localSplits.length > 1 && isAttendanceLinked(breakdownEmployee.compensationType, isHourly) && (
-                  <div className="border border-blue-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                    <div className="bg-blue-50 px-4 py-3 border-b border-blue-100 font-bold text-blue-900 text-sm">
+                  <div className="border border-blue-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+                    <div className="bg-blue-50 dark:bg-slate-800 px-4 py-3 border-b border-blue-100 dark:border-slate-700 font-bold text-blue-900 dark:text-blue-300 text-sm">
                       Mid-Month Revision Calculation Split
                     </div>
                     <div className="p-4 overflow-x-auto">
                       <table className="w-full text-left border-collapse text-xs">
                         <thead>
-                          <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                          <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                             <th className="p-2.5">Period</th>
                             {rows[empId]?.lopStrategy === 'custom' && (
                               <th className="p-2.5 text-right w-20">LOP Days</th>
@@ -1944,12 +1921,12 @@ const PayrollProcessing = () => {
                             <th className="p-2.5 text-right">Period Earnings</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {localSplits.map((split, index) => (
-                            <tr key={index} className="hover:bg-slate-50/50">
-                              <td className="p-2.5 font-medium text-slate-900">
+                            <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                              <td className="p-2.5 font-medium text-slate-900 dark:text-slate-100">
                                 <div>{new Date(split.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} - {new Date(split.endDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
-                                <div className="text-[10px] text-slate-500 font-normal mt-0.5">{split.daysCount} days in period</div>
+                                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal mt-0.5">{split.daysCount} days in period</div>
                               </td>
                               {rows[empId]?.lopStrategy === 'custom' && (
                                 <td className="p-2.5 text-right">
@@ -1961,27 +1938,27 @@ const PayrollProcessing = () => {
                                     disabled={isReadOnly}
                                     value={(rows[empId]?.segmentLops || [])[index] ?? 0}
                                     onChange={(e) => handleSegmentLopChange(index, e.target.value)}
-                                    className="w-16 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-semibold"
+                                    className="w-16 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-1.5 py-0.5 text-xs text-right font-semibold"
                                   />
                                 </td>
                               )}
-                              <td className="p-2.5 text-right font-medium text-slate-700">{fmtMoney(split.monthlyCTC)}</td>
+                              <td className="p-2.5 text-right font-medium text-slate-700 dark:text-slate-300">{fmtMoney(split.monthlyCTC)}</td>
                               {hasSalaryBreakup && (
                                 <>
-                                  <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.basic)}</td>
-                                  <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.hra)}</td>
-                                  <td className="p-2.5 text-right text-slate-700">
+                                  <td className="p-2.5 text-right text-slate-700 dark:text-slate-300">{fmtMoney(split.basic)}</td>
+                                  <td className="p-2.5 text-right text-slate-700 dark:text-slate-300">{fmtMoney(split.hra)}</td>
+                                  <td className="p-2.5 text-right text-slate-700 dark:text-slate-300">
                                     <div>{fmtMoney(split.pfEmployee)} <span className="text-[9px] text-slate-400">EE</span></div>
-                                    <div className="text-[10px] text-slate-500">{fmtMoney(split.pfEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">{fmtMoney(split.pfEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
                                   </td>
-                                  <td className="p-2.5 text-right text-slate-700">
+                                  <td className="p-2.5 text-right text-slate-700 dark:text-slate-300">
                                     <div>{fmtMoney(split.esiEmployee)} <span className="text-[9px] text-slate-400">EE</span></div>
-                                    <div className="text-[10px] text-slate-500">{fmtMoney(split.esiEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400">{fmtMoney(split.esiEmployer)} <span className="text-[9px] text-slate-400">ER</span></div>
                                   </td>
-                                  <td className="p-2.5 text-right text-slate-700">{fmtMoney(split.gratuity)}</td>
+                                  <td className="p-2.5 text-right text-slate-700 dark:text-slate-300">{fmtMoney(split.gratuity)}</td>
                                 </>
                               )}
-                              <td className="p-2.5 text-right font-semibold text-slate-900">{fmtMoney(split.totalEarnings)}</td>
+                              <td className="p-2.5 text-right font-semibold text-slate-900 dark:text-slate-100">{fmtMoney(split.totalEarnings)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1992,7 +1969,7 @@ const PayrollProcessing = () => {
                         const sum = currentSegmentLops.reduce((s, val) => s + (Number(val) || 0), 0);
                         const isMatching = Math.abs(sum - totalLop) < 0.01;
                         return (
-                          <div className={`mt-3 text-[11px] font-semibold px-3 py-2 rounded-lg ${isMatching ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
+                          <div className={`mt-3 text-[11px] font-semibold px-3 py-2 rounded-lg ${isMatching ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800'}`}>
                             {isMatching ? (
                               <span>✓ Total LOP Days allocated: {totalLop} days (matches overall LOP).</span>
                             ) : (
@@ -2008,19 +1985,19 @@ const PayrollProcessing = () => {
                 {localSnapshot && (() => {
                   
                   return (
-                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                      <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 font-bold text-slate-700 text-sm flex items-center justify-between">
+                    <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm transition-colors">
+                      <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-slate-700 dark:text-slate-200 text-sm flex items-center justify-between">
                         <span>Statutory Components & Ratio Overrides</span>
-                        <span className="text-[11px] text-slate-400 font-normal">Apply dynamically to this payroll run only</span>
+                        <span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">Apply dynamically to this payroll run only</span>
                       </div>
                       <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
                         {showStatutoryOverrides && (
                           <>
                             {/* PF Toggle */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all">
                               <div className="flex flex-col pr-2">
-                                <span className="font-semibold text-slate-800">Provident Fund (PF)</span>
-                                <span className="text-[10px] text-slate-500 mt-0.5">Matching contributions</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">Provident Fund (PF)</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Matching contributions</span>
                               </div>
                               <input
                                 type="checkbox"
@@ -2031,17 +2008,17 @@ const PayrollProcessing = () => {
                                     : localSnapshot?.master?.pfEnabled !== false
                                 }
                                 onChange={(e) => updateRow(empId, 'pfEnabled', e.target.checked)}
-                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer"
                               />
                             </div>
                           </>
                         )}
 
                         {/* TDS Toggle */}
-                        <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                        <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all">
                           <div className="flex flex-col pr-2">
-                            <span className="font-semibold text-slate-800">Income Tax (TDS)</span>
-                            <span className="text-[10px] text-slate-500 mt-0.5">Monthly TDS withholding</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">Income Tax (TDS)</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Monthly TDS withholding</span>
                           </div>
                           <input
                             type="checkbox"
@@ -2052,7 +2029,7 @@ const PayrollProcessing = () => {
                                 : localSnapshot?.master?.tdsEnabled !== false
                             }
                             onChange={(e) => updateRow(empId, 'tdsEnabled', e.target.checked)}
-                            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                            className="w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer"
                           />
                         </div>
 
@@ -2060,9 +2037,9 @@ const PayrollProcessing = () => {
                           <>
 
                             {/* ESI Toggle */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all">
                               <div className="flex flex-col pr-2">
-                                <span className="font-semibold text-slate-800">ESI Scheme</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">ESI Scheme</span>
                                 {(() => {
                                   const isEsiOn = rows[empId]?.esiEnabled !== undefined ? rows[empId].esiEnabled : localSnapshot?.master?.esiEnabled !== false;
                                   const gross = localSnapshot?.master?.totalEarnings || 0;
@@ -2070,7 +2047,7 @@ const PayrollProcessing = () => {
                                   if (isEsiOn && gross > threshold) {
                                     return <span className="text-[10px] text-amber-500 font-semibold mt-0.5">Not applicable — gross &gt; ₹{threshold.toLocaleString('en-IN')}</span>;
                                   }
-                                  return <span className="text-[10px] text-slate-500 mt-0.5">State insurance contributions</span>;
+                                  return <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">State insurance contributions</span>;
                                 })()}
                               </div>
                               <input
@@ -2082,15 +2059,15 @@ const PayrollProcessing = () => {
                                     : localSnapshot?.master?.esiEnabled !== false
                                 }
                                 onChange={(e) => updateRow(empId, 'esiEnabled', e.target.checked)}
-                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer"
                               />
                             </div>
 
                             {/* PT Toggle */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all">
                               <div className="flex flex-col pr-2">
-                                <span className="font-semibold text-slate-800">Professional Tax (PT)</span>
-                                <span className="text-[10px] text-slate-500 mt-0.5">State professional tax</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">Professional Tax (PT)</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">State professional tax</span>
                               </div>
                               <input
                                 type="checkbox"
@@ -2101,15 +2078,15 @@ const PayrollProcessing = () => {
                                     : localSnapshot?.master?.ptEnabled !== false
                                 }
                                 onChange={(e) => updateRow(empId, 'ptEnabled', e.target.checked)}
-                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer"
                               />
                             </div>
 
                             {/* LWF Toggle */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all">
                               <div className="flex flex-col pr-2">
-                                <span className="font-semibold text-slate-800">Labour Welfare Fund</span>
-                                <span className="text-[10px] text-slate-500 mt-0.5">State welfare fund (LWF)</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">Labour Welfare Fund</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">State welfare fund (LWF)</span>
                               </div>
                               <input
                                 type="checkbox"
@@ -2120,15 +2097,15 @@ const PayrollProcessing = () => {
                                     : localSnapshot?.master?.lwfEnabled !== false
                                 }
                                 onChange={(e) => updateRow(empId, 'lwfEnabled', e.target.checked)}
-                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer"
                               />
                             </div>
 
                             {/* Gratuity Toggle */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all">
                               <div className="flex flex-col pr-2">
-                                <span className="font-semibold text-slate-800">Gratuity Provision</span>
-                                <span className="text-[10px] text-slate-500 mt-0.5">4.81% basic salary match</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">Gratuity Provision</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">4.81% basic salary match</span>
                               </div>
                               <input
                                 type="checkbox"
@@ -2139,15 +2116,15 @@ const PayrollProcessing = () => {
                                     : localSnapshot?.master?.gratuityEnabled !== false
                                 }
                                 onChange={(e) => updateRow(empId, 'gratuityEnabled', e.target.checked)}
-                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer"
                               />
                             </div>
 
                             {/* Include PF in CTC */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all">
                               <div className="flex flex-col pr-2">
-                                <span className="font-semibold text-slate-800">Include PF in CTC</span>
-                                <span className="text-[10px] text-slate-500 mt-0.5">Employer PF inside CTC limit</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">Include PF in CTC</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Employer PF inside CTC limit</span>
                               </div>
                               <input
                                 type="checkbox"
@@ -2158,15 +2135,15 @@ const PayrollProcessing = () => {
                                     : localSnapshot?.master?.includePfInCTC === true
                                 }
                                 onChange={(e) => updateRow(empId, 'includePfInCTC', e.target.checked)}
-                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer"
                               />
                             </div>
 
                             {/* Include Gratuity in CTC */}
-                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all">
                               <div className="flex flex-col pr-2">
-                                <span className="font-semibold text-slate-800">Include Gratuity in CTC</span>
-                                <span className="text-[10px] text-slate-500 mt-0.5">Gratuity inside CTC limit</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">Include Gratuity in CTC</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Gratuity inside CTC limit</span>
                               </div>
                               <input
                                 type="checkbox"
@@ -2177,15 +2154,15 @@ const PayrollProcessing = () => {
                                     : localSnapshot?.master?.includeGratuityInCTC !== false
                                 }
                                 onChange={(e) => updateRow(empId, 'includeGratuityInCTC', e.target.checked)}
-                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer"
                               />
                             </div>
 
                             {/* Basic Override */}
-                            <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
+                            <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all gap-1">
                               <div className="flex justify-between items-center">
-                                <span className="font-semibold text-slate-800">Basic Salary Override</span>
-                                <span className="text-[10px] text-slate-500">Default: 50%</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">Basic Salary Override</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400">Default: 50%</span>
                               </div>
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <input
@@ -2203,17 +2180,17 @@ const PayrollProcessing = () => {
                                           : 50)
                                   }
                                   onChange={(e) => updateRow(empId, 'basicPercent', Number(e.target.value) || 0)}
-                                  className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
+                                  className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-0.5 text-xs text-right font-medium"
                                 />
-                                <span className="text-slate-500 font-medium">%</span>
+                                <span className="text-slate-500 dark:text-slate-400 font-medium">%</span>
                               </div>
                             </div>
 
                             {/* HRA Override */}
-                            <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
+                            <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all gap-1">
                               <div className="flex justify-between items-center">
-                                <span className="font-semibold text-slate-800">HRA Override (% of Basic)</span>
-                                <span className="text-[10px] text-slate-500">Default: 50%</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">HRA Override (% of Basic)</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400">Default: 50%</span>
                               </div>
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <input
@@ -2231,9 +2208,9 @@ const PayrollProcessing = () => {
                                           : 50)
                                   }
                                   onChange={(e) => updateRow(empId, 'hraPercent', Number(e.target.value) || 0)}
-                                  className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
+                                  className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-0.5 text-xs text-right font-medium"
                                 />
-                                <span className="text-slate-500 font-medium">%</span>
+                                <span className="text-slate-500 dark:text-slate-400 font-medium">%</span>
                               </div>
                             </div>
 
@@ -2251,10 +2228,10 @@ const PayrollProcessing = () => {
                                         : Math.round(localSnapshot.master[fieldKey] * 100))
                                     : defaultVal);
                               return (
-                                <div key={c.id} className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
+                                <div key={c.id} className="flex flex-col p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all gap-1">
                                   <div className="flex justify-between items-center">
-                                    <span className="font-semibold text-slate-800">{c.name} Override ({c.linkedTo === 'basic_percent' ? '% of Basic' : '% of CTC'})</span>
-                                    <span className="text-[10px] text-slate-500">Default: {defaultVal}%</span>
+                                    <span className="font-semibold text-slate-800 dark:text-slate-200">{c.name} Override ({c.linkedTo === 'basic_percent' ? '% of Basic' : '% of CTC'})</span>
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Default: {defaultVal}%</span>
                                   </div>
                                   <div className="flex items-center gap-1.5 mt-0.5">
                                     <input
@@ -2264,9 +2241,9 @@ const PayrollProcessing = () => {
                                       disabled={isReadOnly}
                                       value={currentVal ?? ''}
                                       onChange={(e) => updateRow(empId, fieldKey, e.target.value === '' ? null : Number(e.target.value))}
-                                      className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-medium"
+                                      className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-0.5 text-xs text-right font-medium"
                                     />
-                                    <span className="text-slate-500 font-medium">%</span>
+                                    <span className="text-slate-500 dark:text-slate-400 font-medium">%</span>
                                   </div>
                                 </div>
                               );
@@ -2276,10 +2253,10 @@ const PayrollProcessing = () => {
 
                         {/* Leave Deduction Strategy Preference Dropdown */}
                         {showLopStrategy && (
-                          <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all gap-1">
+                          <div className="flex flex-col p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all gap-1">
                             <div className="flex justify-between items-center">
-                              <span className="font-semibold text-slate-800">Leave Deduction Preference</span>
-                              <span className="text-[10px] text-slate-500">For mid-month revisions</span>
+                              <span className="font-semibold text-slate-800 dark:text-slate-200">Leave Deduction Preference</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">For mid-month revisions</span>
                             </div>
                             <select
                               value={rows[empId]?.lopStrategy || 'proportional'}
@@ -2297,7 +2274,7 @@ const PayrollProcessing = () => {
                                   updateRow(empId, 'segmentLops', initialLops);
                                 }
                               }}
-                              className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white font-medium cursor-pointer"
+                              className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-xs font-medium cursor-pointer"
                             >
                               <option value="proportional">Proportional (Default)</option>
                               <option value="older_first">Older Period first</option>
@@ -2307,16 +2284,16 @@ const PayrollProcessing = () => {
                           </div>
                         )}
                         {/* Overtime Policy Structured Inputs */}
-                        <div className="col-span-full border border-slate-200 rounded-xl p-3 bg-white shadow-xs space-y-2">
-                          <div className="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                            <span className="font-bold text-slate-800 text-xs flex items-center gap-1">
+                        <div className="col-span-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-white dark:bg-slate-900/60 shadow-xs space-y-2">
+                          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-1.5">
+                            <span className="font-bold text-slate-800 dark:text-slate-200 text-xs flex items-center gap-1">
                               ⏱️ Overtime Hours & Flat Override
                             </span>
-                            <span className="text-[10px] text-slate-400">Policy Multipliers: Weekday {config?.overtimePolicy?.weekdayMultiplier || 1.5}x · Weekend {config?.overtimePolicy?.weekendMultiplier || 2.0}x · Holiday {config?.overtimePolicy?.holidayMultiplier || 2.0}x</span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500">Policy Multipliers: Weekday {config?.overtimePolicy?.weekdayMultiplier || 1.5}x · Weekend {config?.overtimePolicy?.weekendMultiplier || 2.0}x · Holiday {config?.overtimePolicy?.holidayMultiplier || 2.0}x</span>
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                             <div>
-                              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Weekday Hrs</label>
+                              <label className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Weekday Hrs</label>
                               <input
                                 type="number" min="0" step="0.5"
                                 disabled={isReadOnly}
@@ -2326,11 +2303,11 @@ const PayrollProcessing = () => {
                                   const curr = (typeof rows[empId]?.overtime === 'object' && rows[empId]?.overtime) ? rows[empId].overtime : {};
                                   updateRow(empId, 'overtime', { ...curr, weekdayHours: val });
                                 }}
-                                className="w-full border border-slate-300 rounded px-2 py-1 text-right font-semibold"
+                                className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-right font-semibold"
                               />
                             </div>
                             <div>
-                              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Weekend Hrs</label>
+                              <label className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Weekend Hrs</label>
                               <input
                                 type="number" min="0" step="0.5"
                                 disabled={isReadOnly}
@@ -2340,11 +2317,11 @@ const PayrollProcessing = () => {
                                   const curr = (typeof rows[empId]?.overtime === 'object' && rows[empId]?.overtime) ? rows[empId].overtime : {};
                                   updateRow(empId, 'overtime', { ...curr, weekendHours: val });
                                 }}
-                                className="w-full border border-slate-300 rounded px-2 py-1 text-right font-semibold"
+                                className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-right font-semibold"
                               />
                             </div>
                             <div>
-                              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Holiday Hrs</label>
+                              <label className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Holiday Hrs</label>
                               <input
                                 type="number" min="0" step="0.5"
                                 disabled={isReadOnly}
@@ -2354,11 +2331,11 @@ const PayrollProcessing = () => {
                                   const curr = (typeof rows[empId]?.overtime === 'object' && rows[empId]?.overtime) ? rows[empId].overtime : {};
                                   updateRow(empId, 'overtime', { ...curr, holidayHours: val });
                                 }}
-                                className="w-full border border-slate-300 rounded px-2 py-1 text-right font-semibold"
+                                className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-right font-semibold"
                               />
                             </div>
                             <div>
-                              <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Flat Override (₹)</label>
+                              <label className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Flat Override (₹)</label>
                               <input
                                 type="number" min="0" step="any"
                                 placeholder="Flat ₹"
@@ -2369,7 +2346,7 @@ const PayrollProcessing = () => {
                                   const curr = (typeof rows[empId]?.overtime === 'object' && rows[empId]?.overtime) ? rows[empId].overtime : {};
                                   updateRow(empId, 'overtime', { ...curr, customAmount: val });
                                 }}
-                                className="w-full border border-slate-300 rounded px-2 py-1 text-right font-semibold"
+                                className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-right font-semibold"
                               />
                             </div>
                           </div>
@@ -2380,34 +2357,34 @@ const PayrollProcessing = () => {
                             if (!otBreakdown && totalOtPay === 0) return null;
                             const hrRate = otBreakdown?.hourlyRate || (localSnapshot?.master?.hourlyRate || 0);
                             return (
-                              <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 space-y-1.5 text-[11px] text-slate-700 mt-2">
-                                <div className="flex justify-between font-bold text-slate-800 border-b border-slate-200/80 pb-1">
+                              <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 space-y-1.5 text-[11px] text-slate-700 dark:text-slate-300 mt-2">
+                                <div className="flex justify-between font-bold text-slate-800 dark:text-slate-100 border-b border-slate-200/80 dark:border-slate-700 pb-1">
                                   <span>Computed OT Pay: {fmtMoney(totalOtPay)}</span>
                                   <span>Base Rate: ₹{Math.round(hrRate * 100) / 100}/hr</span>
                                 </div>
-                                <div className="space-y-1 text-[10px] text-slate-600">
+                                <div className="space-y-1 text-[10px] text-slate-600 dark:text-slate-400">
                                   {otBreakdown?.weekday?.hours > 0 && (
                                     <div className="flex justify-between">
                                       <span>Weekday: {otBreakdown.weekday.hours} hrs × ₹{Math.round(otBreakdown.weekday.rate * 100)/100} × {otBreakdown.weekday.multiplier}x</span>
-                                      <span className="font-semibold text-slate-800">={fmtMoney(otBreakdown.weekday.amount)}</span>
+                                      <span className="font-semibold text-slate-800 dark:text-slate-200">={fmtMoney(otBreakdown.weekday.amount)}</span>
                                     </div>
                                   )}
                                   {otBreakdown?.weekend?.hours > 0 && (
                                     <div className="flex justify-between">
                                       <span>Weekend: {otBreakdown.weekend.hours} hrs × ₹{Math.round(otBreakdown.weekend.rate * 100)/100} × {otBreakdown.weekend.multiplier}x</span>
-                                      <span className="font-semibold text-slate-800">={fmtMoney(otBreakdown.weekend.amount)}</span>
+                                      <span className="font-semibold text-slate-800 dark:text-slate-200">={fmtMoney(otBreakdown.weekend.amount)}</span>
                                     </div>
                                   )}
                                   {otBreakdown?.holiday?.hours > 0 && (
                                     <div className="flex justify-between">
                                       <span>Holiday: {otBreakdown.holiday.hours} hrs × ₹{Math.round(otBreakdown.holiday.rate * 100)/100} × {otBreakdown.holiday.multiplier}x</span>
-                                      <span className="font-semibold text-slate-800">={fmtMoney(otBreakdown.holiday.amount)}</span>
+                                      <span className="font-semibold text-slate-800 dark:text-slate-200">={fmtMoney(otBreakdown.holiday.amount)}</span>
                                     </div>
                                   )}
                                   {otBreakdown?.customAmount > 0 && (
                                     <div className="flex justify-between">
                                       <span>Flat Override:</span>
-                                      <span className="font-semibold text-slate-800">={fmtMoney(otBreakdown.customAmount)}</span>
+                                      <span className="font-semibold text-slate-800 dark:text-slate-200">={fmtMoney(otBreakdown.customAmount)}</span>
                                     </div>
                                   )}
                                 </div>
@@ -2415,7 +2392,7 @@ const PayrollProcessing = () => {
                             );
                           })()}
                           {localSnapshot?.earnings?.overtimeCapWarning?.flagged && (
-                            <div className="text-[10px] text-amber-700 font-bold bg-amber-50 p-1.5 rounded border border-amber-200 mt-1">
+                            <div className="text-[10px] text-amber-700 dark:text-amber-300 font-bold bg-amber-50 dark:bg-amber-950/60 p-1.5 rounded border border-amber-200 dark:border-amber-800 mt-1">
                               ⚠️ {localSnapshot.earnings.overtimeCapWarning.warningMessage}
                             </div>
                           )}
@@ -2430,12 +2407,12 @@ const PayrollProcessing = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Left Column: Earnings Breakdown */}
                       <div className="space-y-4">
-                        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
+                        <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+                          <div className="bg-gray-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-gray-700 dark:text-slate-200 text-sm flex items-center justify-between">
                             <span>Earnings Breakdown</span>
-                            <span className="text-xs text-gray-500 font-normal">{isConsultantModel ? 'Retainer Fee' : 'Attendance Prorated'}</span>
+                            <span className="text-xs text-gray-500 dark:text-slate-400 font-normal">{isConsultantModel ? 'Retainer Fee' : 'Attendance Prorated'}</span>
                           </div>
-                          <div className="divide-y divide-gray-100 text-sm">
+                          <div className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
                             {isConsultantModel ? (
                               (localSnapshot.earnings?.basic > 0 || (breakdownEmployee.monthlyCTC || 0) > 0) && (
                                 <BreakdownRow
@@ -2468,8 +2445,8 @@ const PayrollProcessing = () => {
 
                         {/* Custom Allowances or Variable Compensation Editor */}
                         {isConsultantModel ? (
-                          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                            <div className="bg-amber-50/60 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
+                          <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+                            <div className="bg-amber-50/60 dark:bg-amber-950/40 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-gray-700 dark:text-slate-200 text-sm flex items-center justify-between">
                               <span>Variable Compensation Items</span>
                               {!isReadOnly && (
                                 <button
@@ -2490,7 +2467,7 @@ const PayrollProcessing = () => {
                                       { paymentType: defaultPaymentType, reference: '', client: '', quantity: 1, rate: defaultRate, amount: defaultRate, remarks: '' }
                                     ]);
                                   }}
-                                  className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded transition-colors"
+                                  className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-2.5 py-1 rounded transition-colors"
                                 >
                                   <FaPlus className="w-2.5 h-2.5" /> Add Variable Item
                                 </button>
@@ -2498,11 +2475,11 @@ const PayrollProcessing = () => {
                             </div>
                             <div className="p-4 space-y-3">
                               {localVariableTransactions.length === 0 ? (
-                                <div className="text-xs text-gray-500 text-center py-4 border border-dashed border-slate-200 rounded-lg">No variable compensation items defined for this run.</div>
+                                <div className="text-xs text-gray-500 dark:text-slate-400 text-center py-4 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg">No variable compensation items defined for this run.</div>
                               ) : (
                                 <div className="space-y-4">
                                   {localVariableTransactions.map((item, idx) => (
-                                    <div key={`local-tx-${idx}`} className="border border-slate-100 p-3 rounded-xl bg-slate-50/30 space-y-2.5 relative">
+                                    <div key={`local-tx-${idx}`} className="border border-slate-100 dark:border-slate-800 p-3 rounded-xl bg-slate-50/30 dark:bg-slate-800/40 space-y-2.5 relative">
                                       {!isReadOnly && (
                                         <button
                                           type="button"
@@ -2510,7 +2487,7 @@ const PayrollProcessing = () => {
                                             const updated = localVariableTransactions.filter((_, i) => i !== idx);
                                             setLocalVariableTransactions(updated);
                                           }}
-                                          className="absolute top-2.5 right-2.5 text-red-500 hover:text-red-700 p-1 bg-white hover:bg-red-50 border border-slate-100 rounded shadow-sm transition-colors"
+                                          className="absolute top-2.5 right-2.5 text-red-500 hover:text-red-700 p-1 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/50 border border-slate-100 dark:border-slate-700 rounded shadow-sm transition-colors"
                                           title="Remove item"
                                         >
                                           <FaTrash className="w-2.5 h-2.5" />
@@ -2519,7 +2496,7 @@ const PayrollProcessing = () => {
                                       
                                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                         <div>
-                                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Type</label>
+                                          <label className="block text-[9px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">Type</label>
                                           <select
                                             disabled={isReadOnly}
                                             value={item.paymentType}
@@ -2534,7 +2511,7 @@ const PayrollProcessing = () => {
                                               }
                                               setLocalVariableTransactions(updated);
                                             }}
-                                            className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-medium bg-white"
+                                            className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-medium bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
                                           >
                                             <option value="POSITION">Position</option>
                                             <option value="PROJECT">Project</option>
@@ -2545,7 +2522,7 @@ const PayrollProcessing = () => {
                                           </select>
                                         </div>
                                         <div>
-                                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Reference</label>
+                                          <label className="block text-[9px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">Reference</label>
                                           <input
                                             type="text"
                                             placeholder="e.g. React Dev"
@@ -2556,11 +2533,11 @@ const PayrollProcessing = () => {
                                               updated[idx].reference = e.target.value;
                                               setLocalVariableTransactions(updated);
                                             }}
-                                            className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-medium"
+                                            className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-2 py-1 text-xs font-medium focus:outline-none focus:border-blue-500"
                                           />
                                         </div>
                                         <div>
-                                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Client</label>
+                                          <label className="block text-[9px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">Client</label>
                                           <input
                                             type="text"
                                             placeholder="Client Name"
@@ -2571,11 +2548,11 @@ const PayrollProcessing = () => {
                                               updated[idx].client = e.target.value;
                                               setLocalVariableTransactions(updated);
                                             }}
-                                            className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-medium"
+                                            className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-2 py-1 text-xs font-medium focus:outline-none focus:border-blue-500"
                                           />
                                         </div>
                                         <div>
-                                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Qty</label>
+                                          <label className="block text-[9px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">Qty</label>
                                           <input
                                             type="number"
                                             min="1"
@@ -2588,14 +2565,14 @@ const PayrollProcessing = () => {
                                               updated[idx].amount = q * (updated[idx].rate || 0);
                                               setLocalVariableTransactions(updated);
                                             }}
-                                            className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-semibold text-right"
+                                            className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-2 py-1 text-xs font-semibold text-right focus:outline-none focus:border-blue-500"
                                           />
                                         </div>
                                       </div>
 
                                       <div className="grid grid-cols-3 gap-2">
                                         <div>
-                                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Rate (₹)</label>
+                                          <label className="block text-[9px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">Rate (₹)</label>
                                           <input
                                             type="number"
                                             min="0"
@@ -2608,11 +2585,11 @@ const PayrollProcessing = () => {
                                               updated[idx].amount = (updated[idx].quantity || 1) * r;
                                               setLocalVariableTransactions(updated);
                                             }}
-                                            className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-semibold text-right"
+                                            className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-2 py-1 text-xs font-semibold text-right focus:outline-none focus:border-blue-500"
                                           />
                                         </div>
                                         <div>
-                                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Amount (₹)</label>
+                                          <label className="block text-[9px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">Amount (₹)</label>
                                           <input
                                             type="number"
                                             min="0"
@@ -2623,11 +2600,11 @@ const PayrollProcessing = () => {
                                               updated[idx].amount = Number(e.target.value) || 0;
                                               setLocalVariableTransactions(updated);
                                             }}
-                                            className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-semibold text-right"
+                                            className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-2 py-1 text-xs font-semibold text-right focus:outline-none focus:border-blue-500"
                                           />
                                         </div>
                                         <div>
-                                          <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Remarks</label>
+                                          <label className="block text-[9px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">Remarks</label>
                                           <input
                                             type="text"
                                             placeholder="Notes..."
@@ -2638,7 +2615,7 @@ const PayrollProcessing = () => {
                                               updated[idx].remarks = e.target.value;
                                               setLocalVariableTransactions(updated);
                                             }}
-                                            className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-medium"
+                                            className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-2 py-1 text-xs font-medium focus:outline-none focus:border-blue-500"
                                           />
                                         </div>
                                       </div>
@@ -2654,7 +2631,7 @@ const PayrollProcessing = () => {
                                     const estimatedTds = isDrawerTdsEnabled ? (totalVar * 0.1) : 0;
                                     const netTakeHome = totalVar - estimatedTds;
                                     return (
-                                      <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-3.5 space-y-2 text-amber-900 text-xs font-medium">
+                                      <div className="bg-amber-50/50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800 rounded-xl p-3.5 space-y-2 text-amber-900 dark:text-amber-200 text-xs font-medium">
                                         <div className="flex justify-between">
                                           <span>Total Variable Earnings:</span>
                                           <span className="font-bold">{fmtMoney(totalVar)}</span>
@@ -2663,11 +2640,11 @@ const PayrollProcessing = () => {
                                           <>
                                             <div className="flex justify-between">
                                               <span>Estimated TDS (10% Sec 194J):</span>
-                                              <span className="font-semibold text-red-600">-{fmtMoney(estimatedTds)}</span>
+                                              <span className="font-semibold text-red-600 dark:text-red-400">-{fmtMoney(estimatedTds)}</span>
                                             </div>
-                                            <div className="flex justify-between border-t border-amber-200 pt-1.5 font-bold">
+                                            <div className="flex justify-between border-t border-amber-200 dark:border-amber-800 pt-1.5 font-bold">
                                               <span>Net Take-Home (Est. Variable):</span>
-                                              <span className="text-emerald-700">{fmtMoney(netTakeHome)}</span>
+                                              <span className="text-emerald-700 dark:text-emerald-400">{fmtMoney(netTakeHome)}</span>
                                             </div>
                                           </>
                                         )}
@@ -2679,14 +2656,14 @@ const PayrollProcessing = () => {
                             </div>
                           </div>
                         ) : (
-                          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
+                          <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+                            <div className="bg-gray-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-gray-700 dark:text-slate-200 text-sm flex items-center justify-between">
                               <span>Custom Run Allowances (Other Earnings)</span>
                               {!isReadOnly && (
                                 <button
                                   type="button"
                                   onClick={() => setLocalEarnings([...localEarnings, { name: '', amount: 0 }])}
-                                  className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
+                                  className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-2 py-1 rounded transition-colors"
                                 >
                                   <FaPlus className="w-2.5 h-2.5" /> Add
                                 </button>
@@ -2694,7 +2671,7 @@ const PayrollProcessing = () => {
                             </div>
                             <div className="p-4 space-y-3">
                               {localEarnings.length === 0 ? (
-                                <div className="text-xs text-gray-500 text-center py-2">No custom allowances defined for this run.</div>
+                                <div className="text-xs text-gray-500 dark:text-slate-400 text-center py-2">No custom allowances defined for this run.</div>
                               ) : (
                                 localEarnings.map((item, idx) => (
                                   <div key={`local-earn-${idx}`} className="flex gap-2 items-center">
@@ -2708,7 +2685,7 @@ const PayrollProcessing = () => {
                                         updated[idx].name = e.target.value;
                                         setLocalEarnings(updated);
                                       }}
-                                      className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-500 font-medium"
+                                      className="flex-1 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-sm disabled:bg-slate-50 dark:disabled:bg-slate-800/60 disabled:text-slate-500 font-medium focus:outline-none focus:border-blue-500"
                                     />
                                     <input
                                       type="number"
@@ -2720,7 +2697,7 @@ const PayrollProcessing = () => {
                                         updated[idx].amount = Number(e.target.value) || 0;
                                         setLocalEarnings(updated);
                                       }}
-                                      className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right font-medium disabled:bg-slate-50 disabled:text-slate-500"
+                                      className="w-24 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-sm text-right font-medium disabled:bg-slate-50 dark:disabled:bg-slate-800/60 disabled:text-slate-500 focus:outline-none focus:border-blue-500"
                                     />
                                     {!isReadOnly && (
                                       <button
@@ -2743,21 +2720,21 @@ const PayrollProcessing = () => {
 
                         {/* Variable Transactions List */}
                         {localSnapshot.earnings.variableCompensation && localSnapshot.earnings.variableCompensation.length > 0 && (
-                          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                            <div className="bg-amber-50 px-4 py-3 border-b border-amber-200 font-bold text-amber-900 text-sm">
+                          <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+                            <div className="bg-amber-50 dark:bg-amber-950/60 px-4 py-3 border-b border-amber-200 dark:border-amber-800 font-bold text-amber-900 dark:text-amber-200 text-sm">
                               💼 Variable Compensation (Transactions)
                             </div>
                             <div className="p-4 space-y-2">
                               {localSnapshot.earnings.variableCompensation.map((tx, idx) => (
-                                <div key={`tx-${idx}`} className="flex justify-between items-center text-xs text-slate-700 bg-slate-50 p-2 rounded border border-slate-100">
+                                <div key={`tx-${idx}`} className="flex justify-between items-center text-xs text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 p-2 rounded border border-slate-100 dark:border-slate-700">
                                   <div>
-                                    <div className="font-semibold text-slate-800">{tx.paymentType}</div>
-                                    {tx.reference && <div className="text-[10px] text-slate-500 mt-0.5">Ref: {tx.reference} {tx.client && `· Client: ${tx.client}`}</div>}
-                                    {tx.remarks && <div className="text-[10px] text-slate-500 mt-0.5">Note: {tx.remarks}</div>}
+                                    <div className="font-semibold text-slate-800 dark:text-slate-200">{tx.paymentType}</div>
+                                    {tx.reference && <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Ref: {tx.reference} {tx.client && `· Client: ${tx.client}`}</div>}
+                                    {tx.remarks && <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Note: {tx.remarks}</div>}
                                   </div>
                                   <div className="text-right">
-                                    <div className="font-bold text-slate-800">{fmtMoney(tx.amount)}</div>
-                                    {tx.quantity > 1 && <div className="text-[10px] text-slate-500 mt-0.5">{tx.quantity} x {fmtMoney(tx.rate)}</div>}
+                                    <div className="font-bold text-slate-800 dark:text-slate-200">{fmtMoney(tx.amount)}</div>
+                                    {tx.quantity > 1 && <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{tx.quantity} x {fmtMoney(tx.rate)}</div>}
                                   </div>
                                 </div>
                               ))}
@@ -2766,7 +2743,7 @@ const PayrollProcessing = () => {
                         )}
 
                         {/* Total Earnings Summary */}
-                        <div className="bg-slate-50 border border-gray-200 rounded-xl p-4 flex justify-between items-center font-bold text-slate-800">
+                        <div className="bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-800 rounded-xl p-4 flex justify-between items-center font-bold text-slate-800 dark:text-slate-100 transition-colors">
                           <span>Total Earnings (Gross Salary)</span>
                           <span className="text-lg">{fmtMoney(localSnapshot.earnings.totalEarnings)}</span>
                         </div>
@@ -2780,11 +2757,11 @@ const PayrollProcessing = () => {
                           const staticTotal = (localSnapshot.deductions.pfEmployee || 0) + (localSnapshot.deductions.esiEmployee || 0) + (localSnapshot.deductions.lwfEmployee || 0) + (localSnapshot.deductions.professionalTax || 0) + (localSnapshot.deductions.tds || 0);
                           if (isHourly && staticTotal + dynamicDeductionsTotal === 0) return null;
                           return (
-                            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
+                            <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+                              <div className="bg-gray-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-gray-700 dark:text-slate-200 text-sm">
                                 Statutory & Voluntary Deductions
                               </div>
-                              <div className="divide-y divide-gray-100 text-sm">
+                              <div className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
                                 {hasSalaryBreakup && localSnapshot.deductions.pfEmployee > 0 && (
                                   <DeductionRow label="Provident Fund (Employee PF)" amount={localSnapshot.deductions.pfEmployee} />
                                 )}
@@ -2814,18 +2791,18 @@ const PayrollProcessing = () => {
                                   <DeductionRow label="Loan EMI Recovery" amount={localSnapshot.deductions.loanDeduction} />
                                 )}
                                 {localSnapshot?.deductions?.loanRepayments?.length > 0 && (
-                                  <div className="bg-slate-50 border-t border-slate-200 p-3 space-y-2 text-xs text-slate-700">
-                                    <div className="flex justify-between font-bold text-slate-800 border-b border-slate-200/80 pb-1.5 text-[11px]">
+                                  <div className="bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700 p-3 space-y-2 text-xs text-slate-700 dark:text-slate-300">
+                                    <div className="flex justify-between font-bold text-slate-800 dark:text-slate-100 border-b border-slate-200/80 dark:border-slate-700 pb-1.5 text-[11px]">
                                       <span>💳 Multi-Loan Repayment Allocation</span>
                                       <span>Total: {fmtMoney(localSnapshot.deductions.loanDeduction)}</span>
                                     </div>
                                     <div className="space-y-1.5 text-[10px]">
                                       {localSnapshot.deductions.loanRepayments.map((lr, idx) => (
-                                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded border border-slate-200 shadow-2xs">
-                                          <div className="font-semibold text-slate-900">{lr.loanReference || `Loan #${idx + 1}`}</div>
+                                        <div key={idx} className="flex justify-between items-center bg-white dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">
+                                          <div className="font-semibold text-slate-900 dark:text-slate-100">{lr.loanReference || `Loan #${idx + 1}`}</div>
                                           <div className="text-right">
-                                            <div className="font-bold text-emerald-700">Applied: {fmtMoney(lr.amountApplied)}</div>
-                                            <div className="text-slate-500">Remaining: {fmtMoney(lr.remainingBalance)}</div>
+                                            <div className="font-bold text-emerald-700 dark:text-emerald-400">Applied: {fmtMoney(lr.amountApplied)}</div>
+                                            <div className="text-slate-500 dark:text-slate-400">Remaining: {fmtMoney(lr.remainingBalance)}</div>
                                           </div>
                                         </div>
                                       ))}
@@ -2838,14 +2815,14 @@ const PayrollProcessing = () => {
                         })()}
 
                         {/* Custom Deductions Editor */}
-                        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm flex items-center justify-between">
+                        <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+                          <div className="bg-gray-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-gray-700 dark:text-slate-200 text-sm flex items-center justify-between">
                             <span>Custom Run Deductions (Other Deductions)</span>
                             {!isReadOnly && (
                               <button
                                 type="button"
                                 onClick={() => setLocalDeductions([...localDeductions, { name: '', amount: 0 }])}
-                                className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded transition-colors"
+                                className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-2 py-1 rounded transition-colors"
                               >
                                 <FaPlus className="w-2.5 h-2.5" /> Add
                               </button>
@@ -2853,7 +2830,7 @@ const PayrollProcessing = () => {
                           </div>
                           <div className="p-4 space-y-3">
                             {localDeductions.length === 0 ? (
-                              <div className="text-xs text-gray-500 text-center py-2">No custom deductions defined for this run.</div>
+                              <div className="text-xs text-gray-500 dark:text-slate-400 text-center py-2">No custom deductions defined for this run.</div>
                             ) : (
                               localDeductions.map((item, idx) => (
                                 <div key={`local-ded-${idx}`} className="flex gap-2 items-center">
@@ -2867,7 +2844,7 @@ const PayrollProcessing = () => {
                                       updated[idx].name = e.target.value;
                                       setLocalDeductions(updated);
                                     }}
-                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm disabled:bg-slate-50 disabled:text-slate-500 font-medium"
+                                    className="flex-1 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-sm disabled:bg-slate-50 dark:disabled:bg-slate-800/60 disabled:text-slate-500 font-medium focus:outline-none focus:border-blue-500"
                                   />
                                   <input
                                     type="number"
@@ -2879,7 +2856,7 @@ const PayrollProcessing = () => {
                                       updated[idx].amount = Number(e.target.value) || 0;
                                       setLocalDeductions(updated);
                                     }}
-                                    className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right font-medium disabled:bg-slate-50 disabled:text-slate-500"
+                                    className="w-24 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-2 py-1 text-sm text-right font-medium disabled:bg-slate-50 dark:disabled:bg-slate-800/60 disabled:text-slate-500 focus:outline-none focus:border-blue-500"
                                   />
                                   {!isReadOnly && (
                                     <button
@@ -2901,11 +2878,11 @@ const PayrollProcessing = () => {
 
                         {/* Employer Contributions Card */}
                         {hasSalaryBreakup && (
-                          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-bold text-gray-700 text-sm">
+                          <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 transition-colors">
+                            <div className="bg-gray-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-gray-700 dark:text-slate-200 text-sm">
                               Employer Contributions (Non-Takehome CTC Components)
                             </div>
-                            <div className="divide-y divide-gray-100 text-sm">
+                            <div className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
                               <DeductionRow label="Provident Fund (Employer PF Contribution)" amount={localSnapshot.employerContributions.pfEmployer} isContrib />
                               {localSnapshot.employerContributions.esiEmployer > 0 && <DeductionRow label="ESI (Employer Contribution)" amount={localSnapshot.employerContributions.esiEmployer} isContrib />}
                               {localSnapshot.employerContributions.gratuity > 0 && <DeductionRow label="Gratuity Provision" amount={localSnapshot.employerContributions.gratuity} isContrib />}
@@ -2928,55 +2905,55 @@ const PayrollProcessing = () => {
                             + (localSnapshot.deductions.otherDeductions?.reduce((s, d) => s + (d.amount || 0), 0) || 0);
                           if (!totalDed) return null;
                           return (
-                            <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex justify-between items-center text-red-900 text-sm font-semibold">
+                            <div className="bg-red-50 dark:bg-red-950/60 border border-red-100 dark:border-red-900/60 rounded-xl p-3 flex justify-between items-center text-red-900 dark:text-red-300 text-sm font-semibold">
                               <span>Total Deductions</span>
-                              <span className="text-red-700">-{fmtMoney(totalDed)}</span>
+                              <span className="text-red-700 dark:text-red-400">-{fmtMoney(totalDed)}</span>
                             </div>
                           );
                         })()}
 
                         {/* Net Take-Home Salary Callout */}
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex justify-between items-center font-bold text-emerald-900 shadow-sm">
+                        <div className="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 flex justify-between items-center font-bold text-emerald-900 dark:text-emerald-300 shadow-sm transition-colors">
                           <div className="flex flex-col">
-                            <span className="text-emerald-900">Net Take-Home Salary</span>
-                            <span className="text-[10px] text-emerald-600 font-normal">Gross Earnings − Total Deductions</span>
+                            <span className="text-emerald-900 dark:text-emerald-200">Net Take-Home Salary</span>
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">Gross Earnings − Total Deductions</span>
                           </div>
-                          <span className="text-2xl text-emerald-800">{fmtMoney(localSnapshot.netSalary)}</span>
+                          <span className="text-2xl text-emerald-800 dark:text-emerald-300">{fmtMoney(localSnapshot.netSalary)}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Pre-approved reimbursements section */}
                     {claimsMap.get(empId)?.length > 0 && (
-                      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm mt-6">
-                        <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 font-bold text-slate-700 text-sm">
+                      <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm mt-6 transition-colors">
+                        <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-gray-200 dark:border-slate-800 font-bold text-slate-700 dark:text-slate-200 text-sm">
                           Pre-approved reimbursements
                         </div>
                         <div className="p-4 space-y-3">
                           {claimsMap.get(empId).map((claim) => {
                             const isExcluded = localExcludedClaimIds.has(claim._id);
                             return (
-                              <div key={claim._id} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all">
+                              <div key={claim._id} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 transition-all">
                                 <div className="flex items-center gap-3">
                                   <input
                                     type="checkbox"
                                     checked={!isExcluded}
                                     disabled={isReadOnly}
                                     onChange={() => {}}
-                                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                    className="w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer"
                                   />
                                   <span className={`px-2 py-0.5 rounded text-xs font-semibold uppercase ${
-                                    claim.category === 'petrol' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                                    claim.category === 'broadband' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
-                                    claim.category === 'lta' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
-                                    claim.category === 'medical' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
-                                    'bg-slate-100 text-slate-700 border border-slate-200'
+                                    claim.category === 'petrol' ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800' :
+                                    claim.category === 'broadband' ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800' :
+                                    claim.category === 'lta' ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800' :
+                                    claim.category === 'medical' ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-800' :
+                                    'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                                   }`}>
                                     {claim.category}
                                   </span>
-                                  <span className="text-xs text-gray-500 font-medium">Approved on {new Date(claim.createdAt).toLocaleDateString('en-IN')}</span>
+                                  <span className="text-xs text-gray-500 dark:text-slate-400 font-medium">Approved on {new Date(claim.createdAt).toLocaleDateString('en-IN')}</span>
                                 </div>
-                                <span className="font-bold text-sm text-slate-800">{fmtMoney(claim.amount)}</span>
+                                <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{fmtMoney(claim.amount)}</span>
                               </div>
                             );
                           })}
@@ -2988,11 +2965,11 @@ const PayrollProcessing = () => {
               </div>
 
               {/* Modal Footer */}
-              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <div className="bg-gray-50 dark:bg-slate-800/80 px-6 py-4 border-t border-gray-200 dark:border-slate-800 flex justify-end gap-3 transition-colors">
                 <button
                   type="button"
                   onClick={() => setBreakdownEmployee(null)}
-                  className="px-4 py-2 border rounded-lg bg-white text-sm font-semibold hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   Close
                 </button>
@@ -3000,7 +2977,7 @@ const PayrollProcessing = () => {
                   <button
                     type="button"
                     onClick={handleSaveAdjustments}
-                    className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
+                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors shadow-sm"
                   >
                     Save Run Adjustments
                   </button>
@@ -3014,8 +2991,8 @@ const PayrollProcessing = () => {
       {/* Full & Final Settlement (F&F) Modal */}
       {fnfEmployee && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-200">
-            <div className="bg-amber-600 px-6 py-4 text-white flex justify-between items-center">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-800 text-gray-900 dark:text-slate-100 transition-colors">
+            <div className="bg-amber-600 dark:bg-amber-700 px-6 py-4 text-white flex justify-between items-center">
               <div>
                 <h3 className="font-bold text-base flex items-center gap-2">
                   📜 Full & Final (F&F) Settlement
@@ -3032,13 +3009,13 @@ const PayrollProcessing = () => {
                 ✕
               </button>
             </div>
-            <form onSubmit={handleProcessFnf} className="p-6 space-y-4 text-xs text-slate-700">
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-900 leading-relaxed">
+            <form onSubmit={handleProcessFnf} className="p-6 space-y-4 text-xs text-slate-700 dark:text-slate-300">
+              <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed">
                 Processing F&F settlement will calculate gratuity (if tenure &ge; 5 yrs), notice period recovery/shortfall, leave encashment, outstanding loan balance recovery, and mark the employee status as terminated.
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Last Working Day</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Last Working Day</label>
                 <input
                   type="date"
                   required
@@ -3047,7 +3024,7 @@ const PayrollProcessing = () => {
                     const d = e.target.value;
                     setFnfEmployee({ ...fnfEmployee, dateOfLeaving: d });
                   }}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold"
+                  className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -3058,41 +3035,41 @@ const PayrollProcessing = () => {
                 const isPieceRate = compType === 'piece_rate';
                 if (!isHourlyType && !isPieceRate) return null;
                 return (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-3">
-                    <p className="text-[11px] font-bold text-blue-800">Final Period Work Input</p>
+                  <div className="bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 rounded-xl p-3 space-y-3">
+                    <p className="text-[11px] font-bold text-blue-800 dark:text-blue-300">Final Period Work Input</p>
                     {isHourlyType && (
                       <div>
-                        <label className="block font-bold text-slate-700 mb-1">Hours Worked in Final Period</label>
+                        <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Hours Worked in Final Period</label>
                         <input
                           type="number" min="0" step="0.5"
                           placeholder="0"
                           value={fnfForm.hoursWorked}
                           onChange={(e) => setFnfForm({ ...fnfForm, hoursWorked: e.target.value })}
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                          className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-xs font-semibold text-right focus:outline-none focus:border-blue-500"
                         />
-                        <p className="text-[10px] text-slate-500 mt-0.5">Leave blank to use the stored default from the employee record.</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Leave blank to use the stored default from the employee record.</p>
                       </div>
                     )}
                     {isPieceRate && (
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block font-bold text-slate-700 mb-1">Units Produced</label>
+                          <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Units Produced</label>
                           <input
                             type="number" min="0"
                             placeholder="1"
                             value={fnfForm.unitsProduced}
                             onChange={(e) => setFnfForm({ ...fnfForm, unitsProduced: e.target.value })}
-                            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                            className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-xs font-semibold text-right focus:outline-none focus:border-blue-500"
                           />
                         </div>
                         <div>
-                          <label className="block font-bold text-slate-700 mb-1">Rate Per Unit (override)</label>
+                          <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Rate Per Unit (override)</label>
                           <input
                             type="number" min="0"
                             placeholder="From rate card"
                             value={fnfForm.ratePerUnit}
                             onChange={(e) => setFnfForm({ ...fnfForm, ratePerUnit: e.target.value })}
-                            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                            className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-xs font-semibold text-right focus:outline-none focus:border-blue-500"
                           />
                         </div>
                       </div>
@@ -3103,58 +3080,58 @@ const PayrollProcessing = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Notice Required (Days)</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Notice Required (Days)</label>
                   <input
                     type="number" min="0"
                     value={fnfForm.noticePeriodRequiredDays}
                     onChange={(e) => setFnfForm({ ...fnfForm, noticePeriodRequiredDays: Number(e.target.value) || 0 })}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                    className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-xs font-semibold text-right focus:outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Notice Served (Days)</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Notice Served (Days)</label>
                   <input
                     type="number" min="0"
                     value={fnfForm.noticePeriodServedDays}
                     onChange={(e) => setFnfForm({ ...fnfForm, noticePeriodServedDays: Number(e.target.value) || 0 })}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                    className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-xs font-semibold text-right focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Leave Encashment Days</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Leave Encashment Days</label>
                 <input
                   type="number" min="0" step="0.5"
                   value={fnfForm.leaveEncashmentDays}
                   onChange={(e) => setFnfForm({ ...fnfForm, leaveEncashmentDays: Number(e.target.value) || 0 })}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-right"
+                  className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-xs font-semibold text-right focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Settlement Comments / Notes</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Settlement Comments / Notes</label>
                 <textarea
                   rows="2"
                   placeholder="Optional exit notes..."
                   value={fnfForm.comments}
                   onChange={(e) => setFnfForm({ ...fnfForm, comments: e.target.value })}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs"
+                  className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-500"
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setFnfEmployee(null)}
-                  className="px-4 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={processingFnf}
-                  className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
                 >
                   {processingFnf ? 'Processing F&F...' : 'Finalize & Process F&F'}
                 </button>
@@ -3168,9 +3145,9 @@ const PayrollProcessing = () => {
 };
 
 const SummaryCard = ({ label, value }) => (
-  <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
-    <div className="text-xs text-gray-500">{label}</div>
-    <div className="text-xl font-bold mt-1 text-gray-900">{value}</div>
+  <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm p-4 transition-colors">
+    <div className="text-xs text-gray-500 dark:text-slate-400 font-medium">{label}</div>
+    <div className="text-xl font-bold mt-1 text-gray-900 dark:text-slate-100">{value}</div>
   </div>
 );
 
@@ -3181,9 +3158,9 @@ const EditableMoneyCell = ({ value, onChange, disabled = false, notApplicable = 
   return (
     <td className="px-4 py-2.5">
       {showNA ? (
-        <span className="text-xs text-slate-400 font-medium italic">N/A</span>
+        <span className="text-xs text-slate-400 dark:text-slate-400 font-medium italic">N/A</span>
       ) : disabled ? (
-        <div className="text-xs text-gray-700 whitespace-nowrap">{fmtMoney(numVal)}</div>
+        <div className="text-xs text-gray-700 dark:text-slate-300 whitespace-nowrap">{fmtMoney(numVal)}</div>
       ) : (
         <input
           type="number"
@@ -3191,7 +3168,7 @@ const EditableMoneyCell = ({ value, onChange, disabled = false, notApplicable = 
           placeholder="N/A"
           value={value !== undefined && value !== null && value !== '' ? value : ''}
           onChange={(e) => onChange?.(e.target.value)}
-          className="w-20 border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-medium focus:ring-1 focus:ring-blue-500 focus:outline-none"
+          className="w-20 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded px-1.5 py-0.5 text-xs text-right font-medium focus:ring-1 focus:ring-blue-500 focus:outline-none"
         />
       )}
     </td>

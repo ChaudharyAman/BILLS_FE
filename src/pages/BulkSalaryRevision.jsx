@@ -270,32 +270,32 @@ const BulkSalaryRevision = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 font-sans text-gray-900 max-w-6xl">
+    <div className="container mx-auto p-6 font-sans text-gray-900 dark:text-slate-100 max-w-6xl transition-colors">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <Link to="/employees" className="text-gray-400 hover:text-gray-600 transition-colors">
+            <Link to="/employees" className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
               <FaArrowLeft size={18} />
             </Link>
-            <h1 className="text-2xl font-bold tracking-tight">Bulk Salary Revision</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-slate-100">Bulk Salary Revision</h1>
           </div>
-          <p className="text-sm text-gray-500 mt-1 ml-7">
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 ml-7">
             Apply percentage or flat salary increments across departments, designations, or custom employee cohorts.
           </p>
         </div>
 
         {/* Step Indicator */}
         <div className="flex items-center gap-2 text-xs font-semibold">
-          <span className={`px-3 py-1.5 rounded-full ${step === 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+          <span className={`px-3 py-1.5 rounded-full transition-colors ${step === 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-300'}`}>
             1. Scope & Config
           </span>
-          <span className="text-gray-300">→</span>
-          <span className={`px-3 py-1.5 rounded-full ${step === 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+          <span className="text-gray-300 dark:text-slate-600">→</span>
+          <span className={`px-3 py-1.5 rounded-full transition-colors ${step === 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-300'}`}>
             2. Preview & Validate
           </span>
-          <span className="text-gray-300">→</span>
-          <span className={`px-3 py-1.5 rounded-full ${step === 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+          <span className="text-gray-300 dark:text-slate-600">→</span>
+          <span className={`px-3 py-1.5 rounded-full transition-colors ${step === 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-300'}`}>
             3. Summary
           </span>
         </div>
@@ -305,41 +305,41 @@ const BulkSalaryRevision = () => {
       {step === 1 && (
         <div className="space-y-6">
           {/* Config Card */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-5">
-            <h2 className="text-base font-bold text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-3">
-              <FaCalculator className="text-blue-600" /> Revision Parameters
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-6 shadow-sm space-y-5 transition-colors">
+            <h2 className="text-base font-bold text-gray-800 dark:text-slate-100 flex items-center gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
+              <FaCalculator className="text-blue-600 dark:text-blue-400" /> Revision Parameters
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Effective Date *</label>
+                <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1">Effective Date *</label>
                 <input
                   type="date"
                   value={effectiveDate}
                   onChange={(e) => setEffectiveDate(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Reason for Revision</label>
+                <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1">Reason for Revision</label>
                 <input
                   type="text"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="e.g. Annual Appraisal 2026"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Increment Distribution</label>
+                <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1">Increment Distribution</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setIncrementMode('uniform')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg border ${
-                      incrementMode === 'uniform' ? 'bg-blue-50 border-blue-600 text-blue-700' : 'bg-white border-gray-300 text-gray-600'
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-colors cursor-pointer ${
+                      incrementMode === 'uniform' ? 'bg-blue-50 dark:bg-blue-950/50 border-blue-600 text-blue-700 dark:text-blue-300' : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700 text-gray-600 dark:text-slate-300'
                     }`}
                   >
                     Uniform Policy
@@ -350,8 +350,8 @@ const BulkSalaryRevision = () => {
                       setIncrementMode('individual');
                       setTargetMode('select');
                     }}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg border ${
-                      incrementMode === 'individual' ? 'bg-blue-50 border-blue-600 text-blue-700' : 'bg-white border-gray-300 text-gray-600'
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-colors cursor-pointer ${
+                      incrementMode === 'individual' ? 'bg-blue-50 dark:bg-blue-950/50 border-blue-600 text-blue-700 dark:text-blue-300' : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700 text-gray-600 dark:text-slate-300'
                     }`}
                   >
                     Custom Table
@@ -361,20 +361,20 @@ const BulkSalaryRevision = () => {
             </div>
 
             {incrementMode === 'uniform' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-slate-800/60 p-4 rounded-xl border border-gray-200 dark:border-slate-800">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Increment Method</label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1">Increment Method</label>
                   <select
                     value={incrementType}
                     onChange={(e) => setIncrementType(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                   >
                     <option value="percentage">Percentage (%)</option>
                     <option value="flat_amount">Flat Amount (₹)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1">
                     {incrementType === 'percentage' ? 'Percentage Rate (%)' : 'Flat Amount per Employee (₹)'}
                   </label>
                   <input
@@ -384,7 +384,7 @@ const BulkSalaryRevision = () => {
                     value={incrementValue}
                     onChange={(e) => setIncrementValue(e.target.value)}
                     placeholder={incrementType === 'percentage' ? 'e.g. 10.5' : 'e.g. 5000'}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
                   />
                 </div>
               </div>
@@ -392,10 +392,10 @@ const BulkSalaryRevision = () => {
           </div>
 
           {/* Scope Card */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
-                <FaLayerGroup className="text-blue-600" /> Employee Scope Selection
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-6 shadow-sm space-y-4 transition-colors">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+              <h2 className="text-base font-bold text-gray-800 dark:text-slate-100 flex items-center gap-2">
+                <FaLayerGroup className="text-blue-600 dark:text-blue-400" /> Employee Scope Selection
               </h2>
 
               <div className="flex gap-2">
@@ -403,8 +403,8 @@ const BulkSalaryRevision = () => {
                   type="button"
                   onClick={() => setTargetMode('filter')}
                   disabled={incrementMode === 'individual'}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${
-                    targetMode === 'filter' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-300'
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors cursor-pointer ${
+                    targetMode === 'filter' ? 'bg-gray-800 dark:bg-blue-600 text-white border-gray-800 dark:border-blue-600' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-300 dark:border-slate-700'
                   }`}
                 >
                   By Filter Criteria
@@ -412,8 +412,8 @@ const BulkSalaryRevision = () => {
                 <button
                   type="button"
                   onClick={() => setTargetMode('select')}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${
-                    targetMode === 'select' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-300'
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors cursor-pointer ${
+                    targetMode === 'select' ? 'bg-gray-800 dark:bg-blue-600 text-white border-gray-800 dark:border-blue-600' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-300 dark:border-slate-700'
                   }`}
                 >
                   Manual Selection ({selectedEmployeeIds.length})
@@ -422,13 +422,13 @@ const BulkSalaryRevision = () => {
             </div>
 
             {targetMode === 'filter' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-slate-800/60 p-4 rounded-xl border border-gray-200 dark:border-slate-800">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Target Department</label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1">Target Department</label>
                   <select
                     value={selectedDepartment}
                     onChange={(e) => setSelectedDepartment(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
                   >
                     <option value="">All Departments</option>
                     {departments.map((d) => (
@@ -438,13 +438,13 @@ const BulkSalaryRevision = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Target Designation</label>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1">Target Designation</label>
                   <input
                     type="text"
                     value={selectedDesignation}
                     onChange={(e) => setSelectedDesignation(e.target.value)}
                     placeholder="e.g. Senior Software Engineer (Leave blank for all)"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
                   />
                 </div>
               </div>
@@ -452,28 +452,28 @@ const BulkSalaryRevision = () => {
               <div className="space-y-3">
                 <div className="flex gap-3">
                   <div className="relative flex-1">
-                    <FaSearch className="absolute left-3 top-3 text-gray-400" size={12} />
+                    <FaSearch className="absolute left-3 top-3 text-gray-400 dark:text-slate-500" size={12} />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search employee name or code..."
-                      className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm"
+                      className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-lg pl-9 pr-3 py-2 text-sm"
                     />
                   </div>
                   <button
                     type="button"
                     onClick={toggleSelectAll}
-                    className="px-4 py-2 border border-gray-300 bg-gray-50 hover:bg-gray-100 rounded-lg text-xs font-bold text-gray-700"
+                    className="px-4 py-2 border border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg text-xs font-bold text-gray-700 dark:text-slate-300 cursor-pointer transition-colors"
                   >
                     {filteredEmployees.every((emp) => selectedEmployeeIds.includes(emp._id)) ? 'Deselect All Visible' : 'Select All Visible'}
                   </button>
                 </div>
 
                 {/* Employee Table */}
-                <div className="border border-gray-200 rounded-xl overflow-hidden max-h-80 overflow-y-auto">
+                <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden max-h-80 overflow-y-auto">
                   <table className="w-full text-xs text-left">
-                    <thead className="bg-gray-50 sticky top-0 border-b border-gray-200">
+                    <thead className="bg-gray-50 dark:bg-slate-800/80 sticky top-0 border-b border-gray-200 dark:border-slate-800 text-gray-700 dark:text-slate-300">
                       <tr>
                         <th className="p-3 w-10 text-center">Sel</th>
                         <th className="p-3">Employee</th>
@@ -483,14 +483,14 @@ const BulkSalaryRevision = () => {
                         {incrementMode === 'individual' && <th className="p-3 w-44 text-right">New Value Override</th>}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 bg-white">
+                    <tbody className="divide-y divide-gray-100 dark:divide-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100">
                       {fetchingEmployees ? (
                         <tr>
-                          <td colSpan="6" className="p-6 text-center text-gray-400">Loading employees...</td>
+                          <td colSpan="6" className="p-6 text-center text-gray-400 dark:text-slate-500">Loading employees...</td>
                         </tr>
                       ) : filteredEmployees.length === 0 ? (
                         <tr>
-                          <td colSpan="6" className="p-6 text-center text-gray-400">No matching employees found</td>
+                          <td colSpan="6" className="p-6 text-center text-gray-400 dark:text-slate-500">No matching employees found</td>
                         </tr>
                       ) : (
                         filteredEmployees.map((emp) => {
@@ -501,23 +501,23 @@ const BulkSalaryRevision = () => {
                           const label = isHourly ? '/hr' : isDaily ? '/day' : '/mo';
 
                           return (
-                            <tr key={emp._id} className={isSelected ? 'bg-blue-50/30' : 'hover:bg-gray-50'}>
+                            <tr key={emp._id} className={isSelected ? 'bg-blue-50/30 dark:bg-blue-950/30' : 'hover:bg-gray-50 dark:hover:bg-slate-800/50'}>
                               <td className="p-3 text-center">
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
                                   onChange={() => toggleEmployeeSelection(emp._id)}
-                                  className="h-4 w-4 text-blue-600 rounded cursor-pointer"
+                                  className="h-4 w-4 text-blue-600 rounded cursor-pointer dark:bg-slate-800 dark:border-slate-700"
                                 />
                               </td>
                               <td className="p-3">
-                                <div className="font-bold text-gray-900">{emp.firstName} {emp.lastName}</div>
-                                <div className="text-[10px] text-gray-400">{emp.employeeId}</div>
+                                <div className="font-bold text-gray-900 dark:text-slate-100">{emp.firstName} {emp.lastName}</div>
+                                <div className="text-[10px] text-gray-400 dark:text-slate-500">{emp.employeeId}</div>
                               </td>
-                              <td className="p-3 text-gray-600">{emp.department?.name || emp.department || '-'}</td>
-                              <td className="p-3 text-gray-600">{emp.designation || '-'}</td>
-                              <td className="p-3 text-right font-semibold text-gray-900">
-                                {fmtMoney(currentVal)} <span className="text-[10px] text-gray-400 font-normal">{label}</span>
+                              <td className="p-3 text-gray-600 dark:text-slate-400">{emp.department?.name || emp.department || '-'}</td>
+                              <td className="p-3 text-gray-600 dark:text-slate-400">{emp.designation || '-'}</td>
+                              <td className="p-3 text-right font-semibold text-gray-900 dark:text-slate-100">
+                                {fmtMoney(currentVal)} <span className="text-[10px] text-gray-400 dark:text-slate-500 font-normal">{label}</span>
                               </td>
 
                               {incrementMode === 'individual' && (() => {
@@ -562,13 +562,13 @@ const BulkSalaryRevision = () => {
                                         setIndividualRevisions((prev) => ({
                                           ...prev,
                                           [emp._id]: {
-                                            ...prev[emp._id],
+                                            ...(prev[emp._id] || {}),
                                             compensationType: emp.compensationType || 'monthly_salary',
-                                            [targetField]: val,
+                                            [targetField]: val === '' ? '' : Number(val),
                                           },
                                         }));
                                       }}
-                                      className="w-full text-right border border-gray-300 rounded px-2 py-1 text-xs bg-white disabled:bg-gray-100 focus:ring-1 focus:ring-blue-500"
+                                      className="w-36 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded px-2 py-1 text-xs text-right disabled:bg-gray-100 dark:disabled:bg-slate-800 disabled:opacity-50"
                                     />
                                   </td>
                                 );
@@ -584,13 +584,12 @@ const BulkSalaryRevision = () => {
             )}
           </div>
 
-          {/* Action Footer */}
           <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={handleProceedToPreview}
               disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-colors disabled:opacity-60 flex items-center gap-2"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2 cursor-pointer"
             >
               {loading ? 'Processing...' : 'Generate Preview →'}
             </button>
@@ -611,20 +610,20 @@ const BulkSalaryRevision = () => {
 
         return (
           <div className="space-y-6">
-            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-4">
-              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-6 shadow-sm space-y-4 transition-colors">
+              <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-3">
                 <div>
-                  <h2 className="text-base font-bold text-gray-800">Revision Preview & Simulation</h2>
-                  <p className="text-xs text-gray-500">
-                    Effective Date: <span className="font-semibold text-gray-800">{effectiveDate}</span> · Reason: <span className="font-semibold text-gray-800">{reason}</span>
+                  <h2 className="text-base font-bold text-gray-800 dark:text-slate-100">Revision Preview & Simulation</h2>
+                  <p className="text-xs text-gray-500 dark:text-slate-400">
+                    Effective Date: <span className="font-semibold text-gray-800 dark:text-slate-200">{effectiveDate}</span> · Reason: <span className="font-semibold text-gray-800 dark:text-slate-200">{reason}</span>
                   </p>
                 </div>
                 <div className="flex gap-2 text-xs font-bold">
-                  <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">
+                  <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
                     {validItems.length} Ready to Revise
                   </span>
                   {skippedCount > 0 && (
-                    <span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full border border-amber-200">
+                    <span className="bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-800">
                       {skippedCount} Skipped (Validation Error)
                     </span>
                   )}
@@ -632,18 +631,18 @@ const BulkSalaryRevision = () => {
               </div>
 
               {/* Exact summary line banner */}
-              <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 font-medium flex items-center justify-between">
+              <div className="bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl p-4 text-xs text-blue-900 dark:text-blue-200 font-medium flex items-center justify-between">
                 <div>
-                  <span className="font-bold text-blue-950">{validItems.length} employees will be revised</span>
-                  {skippedCount > 0 && <span>, <span className="font-bold text-amber-700">{skippedCount} skipped due to validation errors</span></span>}
-                  <span>, total monthly payroll cost change: <span className={`font-bold ${totalCostChange >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{totalCostChange >= 0 ? '+' : ''}{fmtMoney(totalCostChange)}</span></span>
+                  <span className="font-bold text-blue-950 dark:text-blue-50">{validItems.length} employees will be revised</span>
+                  {skippedCount > 0 && <span>, <span className="font-bold text-amber-700 dark:text-amber-300">{skippedCount} skipped due to validation errors</span></span>}
+                  <span>, total monthly payroll cost change: <span className={`font-bold ${totalCostChange >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>{totalCostChange >= 0 ? '+' : ''}{fmtMoney(totalCostChange)}</span></span>
                 </div>
               </div>
 
               {/* Error alerts if top-level preview errors returned */}
               {previewErrors.length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-xs text-red-700 space-y-1">
-                  <div className="font-bold flex items-center gap-1.5 text-red-800">
+                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl p-4 text-xs text-red-700 dark:text-red-300 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-red-800 dark:text-red-200">
                     <FaExclamationTriangle /> {previewErrors.length} Scope Validation Errors
                   </div>
                   {previewErrors.map((err, i) => (
@@ -653,9 +652,9 @@ const BulkSalaryRevision = () => {
               )}
 
               {/* Preview Table */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden max-h-96 overflow-y-auto">
+              <div className="border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden max-h-96 overflow-y-auto">
                 <table className="w-full text-xs text-left">
-                  <thead className="bg-gray-50 sticky top-0 border-b border-gray-200">
+                  <thead className="bg-gray-50 dark:bg-slate-800/80 sticky top-0 border-b border-gray-200 dark:border-slate-800 text-gray-700 dark:text-slate-300">
                     <tr>
                       <th className="p-3">Employee</th>
                       <th className="p-3 text-right">Current Pay</th>
@@ -665,7 +664,7 @@ const BulkSalaryRevision = () => {
                       <th className="p-3">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 bg-white">
+                  <tbody className="divide-y divide-gray-100 dark:divide-slate-800 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100">
                     {previewData.map((item, index) => {
                       const isHourly = item.compensationType === 'hourly';
                       const isDaily = item.compensationType === 'daily_wage';
@@ -679,33 +678,33 @@ const BulkSalaryRevision = () => {
                       const hasErr = Boolean(item.validationError);
 
                       return (
-                        <tr key={index} className={hasErr ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-gray-50'}>
+                        <tr key={index} className={hasErr ? 'bg-red-50/40 dark:bg-red-950/30 hover:bg-red-50/60' : 'hover:bg-gray-50 dark:hover:bg-slate-800/50'}>
                           <td className="p-3">
-                            <div className="font-bold text-gray-900">{item.employeeName}</div>
-                            <div className="text-[10px] text-gray-400">{item.employeeCode}</div>
+                            <div className="font-bold text-gray-900 dark:text-slate-100">{item.employeeName}</div>
+                            <div className="text-[10px] text-gray-400 dark:text-slate-500">{item.employeeCode}</div>
                           </td>
-                          <td className="p-3 text-right text-gray-600">
-                            {fmtMoney(prev)} <span className="text-[10px] text-gray-400">{unit}</span>
+                          <td className="p-3 text-right text-gray-600 dark:text-slate-400">
+                            {fmtMoney(prev)} <span className="text-[10px] text-gray-400 dark:text-slate-500">{unit}</span>
                           </td>
-                          <td className="p-3 text-right font-bold text-gray-900">
-                            {fmtMoney(next)} <span className="text-[10px] text-gray-400">{unit}</span>
+                          <td className="p-3 text-right font-bold text-gray-900 dark:text-slate-100">
+                            {fmtMoney(next)} <span className="text-[10px] text-gray-400 dark:text-slate-500">{unit}</span>
                           </td>
-                          <td className={`p-3 text-right font-bold ${diff >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                            {diff >= 0 ? '+' : ''}{fmtMoney(diff)} <span className="text-[10px] font-normal text-gray-500">({diff >= 0 ? '+' : ''}{pctChange}%)</span>
+                          <td className={`p-3 text-right font-bold ${diff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {diff >= 0 ? '+' : ''}{fmtMoney(diff)} <span className="text-[10px] font-normal text-gray-500 dark:text-slate-400">({diff >= 0 ? '+' : ''}{pctChange}%)</span>
                           </td>
                           <td className="p-3 text-center">
-                            <span className="bg-gray-100 text-gray-700 font-semibold text-[10px] px-2 py-0.5 rounded-full capitalize">
+                            <span className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 font-semibold text-[10px] px-2 py-0.5 rounded-full capitalize">
                               {(item.compensationType || 'monthly_salary').replace('_', ' ')}
                             </span>
                           </td>
                           <td className="p-3">
                             {hasErr ? (
-                              <div className="text-red-600 font-bold text-[11px] flex items-center gap-1">
+                              <div className="text-red-600 dark:text-red-400 font-bold text-[11px] flex items-center gap-1">
                                 <FaExclamationTriangle size={11} />
                                 <span>⚠️ {item.validationError}</span>
                               </div>
                             ) : (
-                              <span className="text-emerald-600 font-bold text-[11px] flex items-center gap-1">
+                              <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px] flex items-center gap-1">
                                 ✅ Ready
                               </span>
                             )}
@@ -722,7 +721,7 @@ const BulkSalaryRevision = () => {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold px-5 py-2.5 rounded-xl text-sm"
+                className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 font-bold px-5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer"
               >
                 ← Back to Config
               </button>
@@ -730,7 +729,7 @@ const BulkSalaryRevision = () => {
                 type="button"
                 onClick={openConfirmModal}
                 disabled={loading || validItems.length === 0}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-colors disabled:opacity-60 flex items-center gap-2"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-colors disabled:opacity-60 flex items-center gap-2 cursor-pointer shadow-sm"
               >
                 {loading ? 'Applying Revisions...' : `Confirm & Apply to ${validItems.length} Employee(s)`}
               </button>
@@ -753,22 +752,22 @@ const BulkSalaryRevision = () => {
 
         return (
           <div className="space-y-6">
-            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm text-center space-y-4">
+            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-6 shadow-sm text-center space-y-4 transition-colors">
               <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto text-2xl ${
-                isFullyReconciled ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
+                isFullyReconciled ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
               }`}>
                 {isFullyReconciled ? <FaCheckCircle /> : <FaExclamationTriangle />}
               </div>
-              <h2 className="text-xl font-bold text-gray-900">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100">
                 {isFullyReconciled ? 'Bulk Revision Successfully Applied' : 'Bulk Revision Applied with Discrepancies'}
               </h2>
-              <p className="text-sm text-gray-500 max-w-md mx-auto">
-                Updated salary master structures and recorded revision history entries effective <span className="font-semibold">{effectiveDate}</span>.
+              <p className="text-sm text-gray-500 dark:text-slate-400 max-w-md mx-auto">
+                Updated salary master structures and recorded revision history entries effective <span className="font-semibold text-gray-800 dark:text-slate-200">{effectiveDate}</span>.
               </p>
 
               {/* Reconciliation Alert Banner */}
               <div className={`p-4 rounded-xl border text-xs text-left max-w-xl mx-auto font-medium ${
-                isFullyReconciled ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'
+                isFullyReconciled ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200' : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200'
               }`}>
                 <div className="font-bold mb-1 flex items-center gap-1.5">
                   <FaShieldAlt /> {isFullyReconciled ? 'Reconciliation Status: 100% Match' : 'Reconciliation Alert: Concurrent Discrepancy Detected'}
@@ -781,20 +780,20 @@ const BulkSalaryRevision = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-4 max-w-md mx-auto pt-2">
-                <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-center">
-                  <div className="text-xs font-bold text-emerald-700 uppercase">Successfully Revised</div>
-                  <div className="text-3xl font-extrabold text-emerald-800 mt-1">{actualSuccessList.length}</div>
+                <div className="bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 p-4 rounded-xl text-center">
+                  <div className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase">Successfully Revised</div>
+                  <div className="text-3xl font-extrabold text-emerald-800 dark:text-emerald-200 mt-1">{actualSuccessList.length}</div>
                 </div>
 
-                <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-center">
-                  <div className="text-xs font-bold text-red-700 uppercase">Execution Errors</div>
-                  <div className="text-3xl font-extrabold text-red-800 mt-1">{actualErrorList.length}</div>
+                <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 p-4 rounded-xl text-center">
+                  <div className="text-xs font-bold text-red-700 dark:text-red-300 uppercase">Execution Errors</div>
+                  <div className="text-3xl font-extrabold text-red-800 dark:text-red-200 mt-1">{actualErrorList.length}</div>
                 </div>
               </div>
 
               {actualErrorList.length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-xs text-red-700 text-left max-w-lg mx-auto space-y-1">
-                  <div className="font-bold text-red-800">Errors encountered during live submission:</div>
+                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl p-4 text-xs text-red-700 dark:text-red-300 text-left max-w-lg mx-auto space-y-1">
+                  <div className="font-bold text-red-800 dark:text-red-200">Errors encountered during live submission:</div>
                   {actualErrorList.map((e, i) => (
                     <div key={i}>• {e.employeeName || e.employeeId}: {e.error}</div>
                   ))}
@@ -805,13 +804,13 @@ const BulkSalaryRevision = () => {
             <div className="flex justify-center gap-4">
               <Link
                 to="/employees"
-                className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 font-bold px-6 py-2.5 rounded-xl text-sm"
+                className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-800 dark:text-slate-200 font-bold px-6 py-2.5 rounded-xl text-sm transition-colors"
               >
                 Go to Employee Directory
               </Link>
               <Link
                 to="/payroll/process"
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-colors shadow-sm"
               >
                 Proceed to Payroll Processing →
               </Link>
@@ -826,30 +825,30 @@ const BulkSalaryRevision = () => {
         onClose={() => setShowConfirmModal(false)}
         title="Confirm Bulk Salary Revision"
       >
-        <div className="space-y-4 text-sm">
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 space-y-1.5">
-            <div className="font-bold text-amber-950 flex items-center gap-1.5 text-sm">
-              <FaExclamationTriangle className="text-amber-600" /> Irreversible Action Warning
+        <div className="space-y-4 text-sm text-gray-900 dark:text-slate-100">
+          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-xs text-amber-900 dark:text-amber-200 space-y-1.5">
+            <div className="font-bold text-amber-950 dark:text-amber-100 flex items-center gap-1.5 text-sm">
+              <FaExclamationTriangle className="text-amber-600 dark:text-amber-400" /> Irreversible Action Warning
             </div>
             <p>
               This will update active master salary structures and append official revision history records for{' '}
-              <strong className="text-amber-950">
+              <strong className="text-amber-950 dark:text-amber-100">
                 {previewData.filter((i) => !i.validationError).length} employee(s)
               </strong>{' '}
-              effective <strong className="text-amber-950">{effectiveDate}</strong>.
+              effective <strong className="text-amber-950 dark:text-amber-100">{effectiveDate}</strong>.
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1.5">
-              Type <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-red-600 border border-gray-300">CONFIRM</span> to unlock submission:
+            <label className="block text-xs font-bold text-gray-700 dark:text-slate-300 mb-1.5">
+              Type <span className="font-mono bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-red-600 dark:text-red-400 border border-gray-300 dark:border-slate-700">CONFIRM</span> to unlock submission:
             </label>
             <input
               type="text"
               value={confirmInputText}
               onChange={(e) => setConfirmInputText(e.target.value)}
               placeholder="CONFIRM"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono tracking-wider text-center focus:ring-2 focus:ring-red-500"
+              className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-lg px-3 py-2 text-sm font-mono tracking-wider text-center focus:ring-2 focus:ring-red-500"
             />
           </div>
 
@@ -857,7 +856,7 @@ const BulkSalaryRevision = () => {
             <button
               type="button"
               onClick={() => setShowConfirmModal(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-700 bg-white"
+              className="px-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg text-sm font-bold text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -865,7 +864,7 @@ const BulkSalaryRevision = () => {
               type="button"
               onClick={handleCommitRevision}
               disabled={confirmInputText.trim() !== 'CONFIRM' || loading}
-              className="px-5 py-2 rounded-lg text-sm font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
+              className="px-5 py-2 rounded-lg text-sm font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors cursor-pointer"
             >
               {loading ? 'Executing...' : `Confirm & Apply to ${previewData.filter((i) => !i.validationError).length} Employees`}
             </button>

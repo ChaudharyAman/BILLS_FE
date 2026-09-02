@@ -14,6 +14,7 @@ import {
 } from 'react-icons/fa';
 import { getTaxDashboard } from '../api/taxReports';
 import { motion } from 'framer-motion';
+import { getStoredTheme, setGlobalTheme } from '../utils/theme';
 
 const fmt = (value, digits = 0) =>
   `Rs ${(Number(value) || 0).toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
@@ -123,7 +124,20 @@ function ChartTooltip({ active, payload, label, darkMode }) {
 export default function TaxDashboard({ isEmbedded = false }) {
   const navigate = useNavigate();
   const monthInputRef = useRef(null);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('tax-dashboard-theme') === 'dark');
+  const [darkMode, setDarkMode] = useState(getStoredTheme);
+
+  useEffect(() => {
+    const onThemeSync = (e) => {
+      if (e.detail && typeof e.detail.isDark === 'boolean') {
+        setDarkMode(e.detail.isDark);
+      } else {
+        setDarkMode(getStoredTheme());
+      }
+    };
+    window.addEventListener('app-theme-sync', onThemeSync);
+    return () => window.removeEventListener('app-theme-sync', onThemeSync);
+  }, []);
+
   const [activeTab, setActiveTab] = useState('This Month');
   const [customMonth, setCustomMonth] = useState(() => {
     const d = new Date();
@@ -368,7 +382,7 @@ export default function TaxDashboard({ isEmbedded = false }) {
               onClick={() => {
                 const nextTheme = !darkMode;
                 setDarkMode(nextTheme);
-                localStorage.setItem('tax-dashboard-theme', nextTheme ? 'dark' : 'light');
+                setGlobalTheme(nextTheme);
               }}
               className={`p-2.5 rounded-xl border transition-all duration-300 shrink-0 ${
                 darkMode
