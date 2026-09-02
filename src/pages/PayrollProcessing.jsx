@@ -454,17 +454,19 @@ const EmployeeRow = ({
   const isProcessed = Boolean(existingPayroll && existingPayroll.status !== 'draft');
 
   const rowClass = isBlocking && !isProcessed
-    ? 'bg-red-50/40 border-l-4 border-l-red-500 hover:bg-red-50/60'
+    ? 'bg-red-50/40 dark:bg-red-950/30 border-l-4 border-l-red-500 hover:bg-red-50/60 dark:hover:bg-red-950/50'
     : isExitingInPeriod && !isProcessed
-      ? 'bg-amber-50/60 border-l-4 border-l-amber-500'
+      ? 'bg-amber-50/60 dark:bg-amber-950/40 border-l-4 border-l-amber-500 hover:bg-amber-100/60 dark:hover:bg-amber-900/40'
       : paidTooHigh && !isProcessed
-        ? 'bg-amber-50/40 border-l-4 border-l-amber-400'
+        ? 'bg-amber-50/40 dark:bg-amber-950/30 border-l-4 border-l-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30'
         : isProcessed
-          ? 'bg-gray-50 border-l-4 border-l-blue-400 text-gray-500 opacity-80'
-          : 'hover:bg-blue-50/40';
+          ? 'bg-gray-50 dark:bg-slate-800/40 border-l-4 border-l-blue-400 text-gray-500 dark:text-slate-400 opacity-80 hover:bg-gray-100/50 dark:hover:bg-slate-800/60'
+          : selected
+            ? 'bg-blue-50/30 dark:bg-slate-800/40 hover:bg-blue-50/50 dark:hover:bg-slate-800/70'
+            : 'hover:bg-blue-50/40 dark:hover:bg-slate-800/50';
 
   return (
-    <tr key={employee._id} className={`${rowClass} align-top`}>
+    <tr key={employee._id} className={`${rowClass} align-top transition-colors`}>
       <td className="px-4 py-2.5">
         <input
           type="checkbox"
@@ -477,8 +479,8 @@ const EmployeeRow = ({
       </td>
       <td className="px-4 py-2.5 min-w-[220px]">
         <div className={`font-semibold text-xs ${isExistingDisabled ? 'text-gray-600 dark:text-slate-400' : 'text-gray-900 dark:text-slate-100'}`}>{employee.firstName} {employee.lastName}</div>
-        <div className="text-[10px] text-gray-400 dark:text-slate-500 mt-0.5">{employee.employeeId} · {employee.designation || '-'}</div>
-        <div className="text-[10px] text-gray-400 dark:text-slate-500 mt-0.5 flex flex-col gap-0.5">
+        <div className="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5">{employee.employeeId} · {employee.designation || '-'}</div>
+        <div className="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5 flex flex-col gap-0.5">
           {(() => {
             const badgeInfo = getCompensationBadgeInfo(employee, snapshot);
             if (badgeInfo.isBadge) {
@@ -621,7 +623,7 @@ const EmployeeRow = ({
       </td>
       <td className="px-4 py-2.5 text-xs whitespace-nowrap">
         {isHourly || !snapshot.workingDays ? (
-          <span className="text-slate-400 dark:text-slate-500 font-medium italic">N/A</span>
+          <span className="text-slate-400 dark:text-slate-400 font-medium italic">N/A</span>
         ) : (
           `${Math.round((snapshot.paidDays / Math.max(snapshot.workingDays, 1)) * 100)}%`
         )}
@@ -634,13 +636,13 @@ const EmployeeRow = ({
             {numVal > 0 ? (
               <div className="text-xs text-gray-700 dark:text-slate-300 whitespace-nowrap">{fmtMoney(numVal)}</div>
             ) : (
-              <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic">N/A</span>
+              <span className="text-xs text-slate-400 dark:text-slate-400 font-medium italic">N/A</span>
             )}
           </td>
         );
       })}
       <td className="px-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-        {otherAllowancesTotal > 0 ? fmtMoney(otherAllowancesTotal) : <span className="text-slate-400 dark:text-slate-500 font-medium italic">N/A</span>}
+        {otherAllowancesTotal > 0 ? fmtMoney(otherAllowancesTotal) : <span className="text-slate-400 dark:text-slate-400 font-medium italic">N/A</span>}
       </td>
       <EditableMoneyCell value={snapshot.employerContributions.gratuity} disabled notApplicable={!isGratuityEnabled || !Number(snapshot.employerContributions.gratuity)} />
       <EditableMoneyCell value={snapshot.employerContributions.lwfEmployer} disabled notApplicable={!isLwfEnabled || !Number(snapshot.employerContributions.lwfEmployer)} />
@@ -649,7 +651,7 @@ const EmployeeRow = ({
       <EditableMoneyCell value={row?.incentive} disabled={isExistingDisabled} notApplicable={isExistingDisabled && !Number(row?.incentive)} onChange={(value) => updateRow(employee._id, 'incentive', value)} />
       <EditableMoneyCell value={row?.specialBonus} disabled={isExistingDisabled} notApplicable={isExistingDisabled && !Number(row?.specialBonus)} onChange={(value) => updateRow(employee._id, 'specialBonus', value)} />
       <td className="px-4 py-2.5 text-xs font-semibold text-red-600 dark:text-red-400 whitespace-nowrap">
-        {sumNamedAmounts(snapshot.deductions.otherDeductions) > 0 ? fmtMoney(sumNamedAmounts(snapshot.deductions.otherDeductions)) : <span className="text-slate-400 dark:text-slate-500 font-medium italic">N/A</span>}
+        {sumNamedAmounts(snapshot.deductions.otherDeductions) > 0 ? fmtMoney(sumNamedAmounts(snapshot.deductions.otherDeductions)) : <span className="text-slate-400 dark:text-slate-400 font-medium italic">N/A</span>}
       </td>
       <EditableMoneyCell
         value={row?.tds !== undefined ? row.tds : snapshot.deductions.tds}
@@ -1316,12 +1318,14 @@ const PayrollProcessing = () => {
 
       const res = await api.post('/payroll/process', payload);
 
-      if (res.data?.jobId) {
+      let jobData = res.data;
+
+      // Only enter asynchronous polling loop if the job was queued in background
+      if (res.data?.jobId && (res.data?.status === 'queued' || res.status === 202)) {
         const jobId = res.data.jobId;
         setActiveJobId(jobId);
         
         let completed = false;
-        let jobData = null;
         while (!completed) {
           await new Promise(resolve => setTimeout(resolve, 1000));
           const statusRes = await api.get(`/payroll/process/${jobId}/status`);
@@ -1334,43 +1338,16 @@ const PayrollProcessing = () => {
         
         setActiveJobId(null);
         setJobProgress(null);
-        
-        if (jobData.status === 'failed') {
-          toast.error(jobData.errorMessage || 'Background payroll processing failed');
-          return;
-        }
+      }
 
-        const successCount = jobData.success?.length || 0;
-        const errorCount = jobData.errors?.length || 0;
-        const skippedList = jobData.skippedNoActivity || [];
-        const skippedCount = skippedList.length;
-
-        let msgParts = [];
-        if (successCount > 0) msgParts.push(`${successCount} processed`);
-        if (skippedCount > 0) msgParts.push(`${skippedCount} skipped (no activity / marked skip)`);
-        if (errorCount > 0) msgParts.push(`${errorCount} failed`);
-
-        if (errorCount > 0) {
-          toast.error(msgParts.join(', '));
-        } else if (skippedCount > 0) {
-          toast(msgParts.join(', '), { icon: 'ℹ️' });
-        } else {
-          toast.success(saveAsDraft ? 'Payroll saved as draft' : 'Payroll processed successfully');
-        }
-
-        setSkippedSummaryList(skippedList);
-
-        if (!saveAsDraft && errorCount === 0) {
-          navigate('/payroll');
-        } else {
-          setRefreshTrigger(prev => prev + 1);
-        }
+      if (jobData?.status === 'failed') {
+        toast.error(jobData.errorMessage || 'Background payroll processing failed');
         return;
       }
 
-      const successCount = res.data.success?.length || 0;
-      const errorCount = res.data.errors?.length || 0;
-      const skippedList = res.data.skippedNoActivity || [];
+      const successCount = jobData?.success?.length || 0;
+      const errorCount = jobData?.errors?.length || 0;
+      const skippedList = jobData?.skippedNoActivity || [];
       const skippedCount = skippedList.length;
 
       let msgParts = [];
@@ -3181,7 +3158,7 @@ const EditableMoneyCell = ({ value, onChange, disabled = false, notApplicable = 
   return (
     <td className="px-4 py-2.5">
       {showNA ? (
-        <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic">N/A</span>
+        <span className="text-xs text-slate-400 dark:text-slate-400 font-medium italic">N/A</span>
       ) : disabled ? (
         <div className="text-xs text-gray-700 dark:text-slate-300 whitespace-nowrap">{fmtMoney(numVal)}</div>
       ) : (

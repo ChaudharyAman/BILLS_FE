@@ -17,7 +17,8 @@ const CsvAndExcelUploader = ({
   title = "Upload File",
   subtitle = "Drag & drop a .csv, .xlsx, or .xls file here, or click to select",
   compact = false,
-  hint = "Make sure your file contains a header row with columns like Name, Rate, Qty, Tax."
+  hint = "Make sure your file contains a header row with columns like Name, Rate, Qty, Tax.",
+  detectGroupedHeader = false,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
@@ -73,8 +74,18 @@ const CsvAndExcelUploader = ({
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         
+        let rangeStart = 0;
+        if (detectGroupedHeader && sheet) {
+          const firstCellAddress = XLSX.utils.encode_cell({ r: 0, c: 0 }); // A1
+          const firstCell = sheet[firstCellAddress] || sheet['A1'];
+          const firstCellValue = firstCell ? String(firstCell.v).trim().toLowerCase() : '';
+          if (firstCellValue && !['employee id', 'employeeid', 'employee_id'].includes(firstCellValue)) {
+            rangeStart = 1;
+          }
+        }
+
         // Convert sheet to JSON array of objects
-        const results = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+        const results = XLSX.utils.sheet_to_json(sheet, { defval: "", range: rangeStart });
         
         if (results.length === 0) {
           setError('The Excel file appears to be empty.');
