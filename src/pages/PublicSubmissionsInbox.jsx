@@ -21,6 +21,7 @@ import {
   FaClock, FaChevronRight, FaFileInvoice, FaReceipt,
   FaFilePdf, FaImage, FaExternalLinkAlt, FaSpinner,
   FaChevronLeft, FaEdit, FaCheck, FaTimes, FaArrowRight,
+  FaBolt, FaTrash, FaLayerGroup,
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -58,11 +59,11 @@ function fmtDate(d) {
 function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[status] || { label: status, color: 'slate' };
   const colorMap = {
-    amber:   'bg-amber-100   text-amber-700   border-amber-200',
-    emerald: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    red:     'bg-red-100     text-red-700     border-red-200',
-    orange:  'bg-orange-100  text-orange-700  border-orange-200',
-    slate:   'bg-slate-100   text-slate-600   border-slate-200',
+    amber:   'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+    emerald: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+    red:     'bg-red-100 dark:bg-rose-950/60 text-red-700 dark:text-rose-300 border-red-200 dark:border-rose-800',
+    orange:  'bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800',
+    slate:   'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700',
   };
   return (
     <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${colorMap[cfg.color] || colorMap.slate}`}>
@@ -87,11 +88,13 @@ export default function PublicSubmissionsInbox() {
   // Detail pane state
   const [selected, setSelected]   = useState(null);   // full submission object
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [activeFileIndex, setActiveFileIndex] = useState(0);
 
   // Edit state
   const [editMode, setEditMode]   = useState(false);
   const [editData, setEditData]   = useState({});
   const [saving, setSaving]       = useState(false);
+  const [parsingFile, setParsingFile] = useState(false);
 
   // Action state
   const [actionLoading, setActionLoading] = useState(false);
@@ -123,6 +126,7 @@ export default function PublicSubmissionsInbox() {
   // ── Fetch detail ───────────────────────────────────────────────────────────
   const openDetail = async (sub) => {
     setSelected(null);
+    setActiveFileIndex(0);
     setEditMode(false);
     setActionNote('');
     setShowApprovePanel(false);
@@ -130,7 +134,8 @@ export default function PublicSubmissionsInbox() {
     try {
       const res = await api.get(`/submissions/${sub._id}`);
       setSelected(res.data);
-      setEditData(res.data.parsedData || {});
+      const initialParsed = res.data.files?.[0]?.parsedData || res.data.parsedData || {};
+      setEditData(initialParsed);
       setApproveCategory(res.data.suggestedCategory !== 'unknown' ? res.data.suggestedCategory : 'expense');
     } catch {
       toast.error('Failed to load submission detail');
@@ -139,13 +144,24 @@ export default function PublicSubmissionsInbox() {
     }
   };
 
+  const selectFileTab = (idx) => {
+    setActiveFileIndex(idx);
+    setEditMode(false);
+    const targetParsed = selected?.files?.[idx]?.parsedData || (idx === 0 ? selected?.parsedData : {}) || {};
+    setEditData(targetParsed);
+  };
+
   // ── Save edited parsed data ────────────────────────────────────────────────
   const saveEdit = async () => {
     setSaving(true);
     try {
-      const res = await api.patch(`/submissions/${selected._id}`, { parsedData: editData });
+      const res = await api.patch(`/submissions/${selected._id}`, {
+        fileIndex: activeFileIndex,
+        parsedData: editData,
+      });
       setSelected(res.data.data);
-      setEditData(res.data.data.parsedData || {});
+      const updatedParsed = res.data.data.files?.[activeFileIndex]?.parsedData || (activeFileIndex === 0 ? res.data.data.parsedData : {}) || {};
+      setEditData(updatedParsed);
       setEditMode(false);
       toast.success('Changes saved');
     } catch {
@@ -156,21 +172,37 @@ export default function PublicSubmissionsInbox() {
   };
 
   // ── Approve ────────────────────────────────────────────────────────────────
-  const handleApprove = async () => {
+  const handleApprove = async (approveMode = 'single') => {
     setActionLoading(true);
     try {
-      const res = await api.post(`/submissions/${selected._id}/approve`, {
+      const payload = {
         category: approveCategory,
-      });
-      toast.success('Submission approved!');
-      fetchList();
-      setSelected(null);
+      };
+      if (approveMode === 'single' && (selected.files || []).length > 1) {
+        payload.fileIndex = activeFileIndex;
+      } else if (approveMode === 'all-individual') {
+        payload.mode = 'all-individual';
+      }
 
-      // Navigate to the created record
-      const { collection, recordId } = res.data.resultingRecord || {};
-      const routeBase = RESULT_ROUTES[collection];
-      if (routeBase && recordId) {
-        navigate(`${routeBase}/${recordId}`);
+      const res = await api.post(`/submissions/${selected._id}/approve`, payload);
+      toast.success(res.data.message || 'Approved successfully!');
+
+      if (res.data.data) {
+        setSelected(res.data.data);
+      }
+      fetchList();
+
+      if (approveMode === 'single' && (selected.files || []).length > 1 && !res.data.allApproved) {
+        const nextPending = (res.data.data?.files || []).findIndex(f => f.status !== 'approved');
+        if (nextPending !== -1) {
+          selectFileTab(nextPending);
+        }
+      } else {
+        const { collection, recordId } = res.data.resultingRecord || {};
+        const routeBase = RESULT_ROUTES[collection];
+        if (routeBase && recordId && (selected.files || []).length <= 1) {
+          navigate(`${routeBase}/${recordId}`);
+        }
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Approval failed');
@@ -200,15 +232,58 @@ export default function PublicSubmissionsInbox() {
 
   // ── File View (authenticated blob URL) ──────────────────────────────────
   const handleViewFile = async (submissionId, fileIndex) => {
+    // Open new tab synchronously to avoid browser popup blockers
+    const newTab = window.open('', '_blank');
     try {
       const response = await api.get(`/submissions/${submissionId}/files/${fileIndex}`, {
         responseType: 'blob',
       });
-      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' });
+      const mime = response.headers['content-type'] || 'application/pdf';
+      const blob = new Blob([response.data], { type: mime });
       const blobUrl = window.URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
+      if (newTab) {
+        newTab.location.href = blobUrl;
+      } else {
+        window.open(blobUrl, '_blank');
+      }
     } catch (err) {
+      if (newTab) newTab.close();
       toast.error('Failed to view file');
+    }
+  };
+
+  // ── On-demand file extraction ────────────────────────────────────────────
+  const handleParseFile = async (fileIndex) => {
+    setParsingFile(true);
+    try {
+      const res = await api.post(`/submissions/${selected._id}/files/${fileIndex}/parse`);
+      toast.success('Extracted data successfully!');
+      if (res.data.submission) {
+        setSelected(res.data.submission);
+        setEditData(res.data.parsedData || {});
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to extract data');
+    } finally {
+      setParsingFile(false);
+    }
+  };
+
+  // ── Remove single file from multi-file submission ────────────────────────
+  const handleRemoveFile = async (fileIndex) => {
+    if (!selected) return;
+    if (!window.confirm('Are you sure you want to remove this file from this submission?')) return;
+
+    try {
+      const res = await api.delete(`/submissions/${selected._id}/files/${fileIndex}`);
+      toast.success('File removed');
+      setSelected(res.data.data);
+      if (activeFileIndex >= (res.data.data?.files?.length || 1)) {
+        setActiveFileIndex(0);
+      }
+      fetchList();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to remove file');
     }
   };
 
@@ -373,11 +448,57 @@ export default function PublicSubmissionsInbox() {
             )}
           </div>
 
+          {/* File Tabs for multi-file submissions in a single open menu */}
+          {selected && (selected.files || []).length > 1 && (
+            <div className="flex-shrink-0 bg-slate-100/90 dark:bg-slate-950/70 border-b border-gray-200 dark:border-slate-800 px-5 py-3">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'thin' }}>
+                <span className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 mr-2 flex-shrink-0">
+                  <FaLayerGroup className="text-indigo-500" /> Files ({selected.files.length}):
+                </span>
+                {selected.files.map((file, idx) => {
+                  const isApproved = file.status === 'approved';
+                  const isActive = activeFileIndex === idx;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => selectFileTab(idx)}
+                      className={`flex-shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border ${
+                        isActive
+                          ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20'
+                          : isApproved
+                          ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
+                          : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-750'
+                      }`}
+                    >
+                      <FaFilePdf className={isActive ? 'text-white' : isApproved ? 'text-emerald-500' : 'text-red-500'} />
+                      <span className="max-w-[150px] truncate">{file.originalName}</span>
+                      {isApproved ? (
+                        <span className="text-[10px] bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded-full">✓ Approved</span>
+                      ) : (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                          isActive ? 'bg-indigo-700 text-white' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                        }`}>
+                          Pending
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {loadingDetail ? (
             <div className="flex-1 flex items-center justify-center">
               <FaSpinner className="animate-spin text-3xl text-indigo-400" />
             </div>
-          ) : selected && (
+          ) : selected && (() => {
+            const currentFile = (selected.files || [])[activeFileIndex] || (selected.files || [])[0];
+            const currentParsed = currentFile?.parsedData || (activeFileIndex === 0 ? selected.parsedData : {}) || {};
+            const isCurrentFileApproved = currentFile?.status === 'approved';
+
+            return (
             <div className="flex-1 p-5 space-y-5">
 
               {/* ── Submitter info ─────────────────────────────── */}
@@ -392,40 +513,104 @@ export default function PublicSubmissionsInbox() {
                 )}
               </section>
 
-              {/* ── Files ─────────────────────────────────────── */}
-              <section>
-                <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">Files</h3>
-                <ul className="space-y-2">
-                  {(selected.files || []).map((f, idx) => (
-                    <li key={idx} className="flex items-center gap-3 bg-gray-50 dark:bg-slate-800/60 rounded-xl px-4 py-3">
-                      <span className="text-xl">
-                        {f.mimeType === 'application/pdf' ? (
-                          <FaFilePdf className="text-red-500" />
-                        ) : (
-                          <FaImage className="text-blue-500" />
-                        )}
-                      </span>
-                      <span className="flex-1 min-w-0 text-sm text-gray-700 dark:text-slate-200 truncate">{f.originalName}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleViewFile(selected._id, idx)}
-                        className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex-shrink-0 cursor-pointer"
-                      >
-                        View <FaExternalLinkAlt />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+              {/* ── Active File Card ────────────────────────────── */}
+              <section className="bg-gray-50 dark:bg-slate-800/60 rounded-xl p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-2xl text-red-500 flex-shrink-0">
+                    {currentFile?.mimeType === 'application/pdf' ? <FaFilePdf /> : <FaImage />}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-gray-800 dark:text-slate-100 truncate">{currentFile?.originalName}</p>
+                      {isCurrentFileApproved && (
+                        <span className="text-[10px] font-bold uppercase bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full flex-shrink-0">
+                          Approved
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                      <p className="text-xs text-gray-500 dark:text-slate-400">
+                        {currentFile?.sizeBytes ? `${Math.round(currentFile.sizeBytes / 1024)} KB` : ''}
+                      </p>
+                      {(selected.files || []).length > 1 && (
+                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg px-2 py-0.5 shadow-sm">
+                          <button
+                            type="button"
+                            disabled={activeFileIndex <= 0}
+                            onClick={() => selectFileTab(activeFileIndex - 1)}
+                            className="text-gray-400 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 disabled:opacity-20 cursor-pointer p-0.5"
+                            title="Previous file"
+                          >
+                            <FaChevronLeft size={9} />
+                          </button>
+                          <span className="text-[11px] font-bold text-gray-700 dark:text-slate-200 px-1 select-none">
+                            File {activeFileIndex + 1} of {selected.files.length}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={activeFileIndex >= selected.files.length - 1}
+                            onClick={() => selectFileTab(activeFileIndex + 1)}
+                            className="text-gray-400 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 disabled:opacity-20 cursor-pointer p-0.5"
+                            title="Next file"
+                          >
+                            <FaChevronRight size={9} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleViewFile(selected._id, activeFileIndex)}
+                    className="px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    View File <FaExternalLinkAlt size={10} />
+                  </button>
+                  {selected.status === 'pending' && (selected.files || []).length > 1 && !isCurrentFileApproved && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(activeFileIndex)}
+                      className="p-2 text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer"
+                      title="Remove this file from submission"
+                    >
+                      <FaTrash size={12} />
+                    </button>
+                  )}
+                </div>
               </section>
+
+              {/* ── Active File Resulting Record Link ─────────────── */}
+              {isCurrentFileApproved && currentFile?.resultingRecord?.recordId && (
+                <section>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const base = RESULT_ROUTES[currentFile.resultingRecord.collection];
+                      if (base) navigate(`${base}/${currentFile.resultingRecord.recordId}`);
+                    }}
+                    className="w-full flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2 font-semibold">
+                      <FaCheckCircle />
+                      View created {CATEGORY_LABELS[currentFile.resultingRecord.collection] || 'record'} for this file
+                    </span>
+                    <FaArrowRight />
+                  </button>
+                </section>
+              )}
 
               {/* ── Parsed Data ────────────────────────────────── */}
               <section>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Extracted Data</h3>
-                  {(selected.status === 'pending' || selected.status === 'needs-changes') && !editMode && (
+                  <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+                    Extracted Data {(selected.files || []).length > 1 ? `(File ${activeFileIndex + 1})` : ''}
+                  </h3>
+                  {!isCurrentFileApproved && (selected.status === 'pending' || selected.status === 'needs-changes') && !editMode && (
                     <button
                       onClick={() => setEditMode(true)}
-                      className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 cursor-pointer"
+                      className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 cursor-pointer font-medium"
                     >
                       <FaEdit /> Edit
                     </button>
@@ -435,12 +620,12 @@ export default function PublicSubmissionsInbox() {
                       <button
                         onClick={saveEdit}
                         disabled={saving}
-                        className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 cursor-pointer"
+                        className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 cursor-pointer font-medium"
                       >
                         {saving ? <FaSpinner className="animate-spin" /> : <FaCheck />} Save
                       </button>
                       <button
-                        onClick={() => { setEditMode(false); setEditData(selected.parsedData || {}); }}
+                        onClick={() => { setEditMode(false); setEditData(currentParsed); }}
                         className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400 hover:text-gray-700 cursor-pointer"
                       >
                         <FaTimes /> Cancel
@@ -448,6 +633,23 @@ export default function PublicSubmissionsInbox() {
                     </div>
                   )}
                 </div>
+
+                {!isCurrentFileApproved && !currentFile?.parsedData && activeFileIndex > 0 && (
+                  <div className="mb-3 p-3.5 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between gap-3">
+                    <div className="text-xs text-indigo-900 dark:text-indigo-200">
+                      <span className="font-bold block flex items-center gap-1.5"><FaBolt className="text-amber-500" /> Data not yet extracted for File {activeFileIndex + 1}</span>
+                      Extract invoice number, date, and totals with AI or fill them manually.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleParseFile(activeFileIndex)}
+                      disabled={parsingFile}
+                      className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 flex-shrink-0 shadow-sm transition-all cursor-pointer"
+                    >
+                      {parsingFile ? <FaSpinner className="animate-spin" /> : <FaBolt />} Extract Data
+                    </button>
+                  </div>
+                )}
 
                 <div className="bg-gray-50 dark:bg-slate-800/60 rounded-xl p-4 space-y-3 text-sm">
                   {[
@@ -471,23 +673,23 @@ export default function PublicSubmissionsInbox() {
                           className="flex-1 text-sm border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-300"
                         />
                       ) : (
-                        <span className={`flex-1 text-gray-800 dark:text-slate-200 ${!selected.parsedData?.[key] ? 'text-gray-300 dark:text-slate-600 italic' : ''}`}>
-                          {selected.parsedData?.[key] || '—'}
+                        <span className={`flex-1 text-gray-800 dark:text-slate-200 ${!currentParsed[key] ? 'text-gray-300 dark:text-slate-600 italic' : ''}`}>
+                          {currentParsed[key] || '—'}
                         </span>
                       )}
                     </div>
                   ))}
 
                   {/* Confidence badge */}
-                  {selected.parsedData?.confidence !== undefined && (
+                  {currentParsed.confidence !== undefined && (
                     <div className="flex items-center gap-2 pt-1 border-t border-gray-200 dark:border-slate-700 mt-2">
                       <span className="text-gray-500 dark:text-slate-400 text-xs">Parse confidence</span>
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full
-                        ${selected.parsedData.confidence >= 70 ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300' :
-                          selected.parsedData.confidence >= 40 ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300' :
+                        ${currentParsed.confidence >= 70 ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300' :
+                          currentParsed.confidence >= 40 ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300' :
                           'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300'}`}
                       >
-                        {selected.parsedData.confidence}%
+                        {currentParsed.confidence}%
                       </span>
                     </div>
                   )}
@@ -502,27 +704,8 @@ export default function PublicSubmissionsInbox() {
                 </section>
               )}
 
-              {/* ── Resulting record link (approved) ──────────── */}
-              {selected.status === 'approved' && selected.resultingRecord?.recordId && (
-                <section>
-                  <button
-                    onClick={() => {
-                      const base = RESULT_ROUTES[selected.resultingRecord.collection];
-                      if (base) navigate(`${base}/${selected.resultingRecord.recordId}`);
-                    }}
-                    className="w-full flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 transition-colors cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <FaCheckCircle />
-                      View created {CATEGORY_LABELS[selected.resultingRecord.collection] || 'record'}
-                    </span>
-                    <FaArrowRight />
-                  </button>
-                </section>
-              )}
-
-              {/* ── Action buttons (pending or needs-changes only) ─── */}
-              {(selected.status === 'pending' || selected.status === 'needs-changes') && (
+              {/* ── Action buttons ─── */}
+              {(!isCurrentFileApproved || selected.status === 'pending' || selected.status === 'needs-changes') && (
                 <section className="space-y-3 pt-2 border-t border-gray-100 dark:border-slate-800">
 
                   {/* Approve flow */}
@@ -531,7 +714,7 @@ export default function PublicSubmissionsInbox() {
                       onClick={() => setShowApprovePanel(true)}
                       className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-3 text-sm font-semibold shadow-sm transition-all cursor-pointer"
                     >
-                      <FaCheckCircle /> Approve Submission
+                      <FaCheckCircle /> Approve {(selected.files || []).length > 1 ? `File ${activeFileIndex + 1}` : 'Submission'}
                     </button>
                   ) : (
                     <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 space-y-3">
@@ -552,18 +735,45 @@ export default function PublicSubmissionsInbox() {
                           </button>
                         ))}
                       </div>
-                      <div className="flex gap-2">
+
+                      <div className="space-y-2 pt-1">
+                        {/* 1. Approve active file */}
                         <button
-                          onClick={handleApprove}
-                          disabled={actionLoading}
-                          className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg py-2.5 text-sm font-semibold cursor-pointer"
+                          onClick={() => handleApprove('single')}
+                          disabled={actionLoading || isCurrentFileApproved}
+                          className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg py-2.5 text-sm font-semibold cursor-pointer shadow-sm transition-all"
                         >
                           {actionLoading ? <FaSpinner className="animate-spin" /> : <FaCheck />}
-                          Confirm Approve
+                          {(selected.files || []).length > 1
+                            ? `Approve File ${activeFileIndex + 1} (${currentFile?.originalName}) as ${CATEGORY_LABELS[approveCategory]}`
+                            : `Confirm Approve as ${CATEGORY_LABELS[approveCategory]}`}
                         </button>
+
+                        {/* 2. Approve all files as separate records (if multiple) */}
+                        {(selected.files || []).length > 1 && (
+                          <button
+                            onClick={() => handleApprove('all-individual')}
+                            disabled={actionLoading}
+                            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-2 text-xs font-semibold cursor-pointer shadow-sm transition-all"
+                          >
+                            <FaBolt /> Approve All ({selected.files.length}) as Separate {CATEGORY_LABELS[approveCategory]} Records
+                          </button>
+                        )}
+
+                        {/* 3. Consolidate all files into 1 record (if multiple) */}
+                        {(selected.files || []).length > 1 && (
+                          <button
+                            onClick={() => handleApprove('consolidate')}
+                            disabled={actionLoading}
+                            className="w-full flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg py-1.5 text-xs font-medium cursor-pointer transition-all"
+                          >
+                            Approve All as 1 Consolidated Record
+                          </button>
+                        )}
+
                         <button
                           onClick={() => setShowApprovePanel(false)}
-                          className="px-4 py-2.5 rounded-lg border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 text-sm cursor-pointer"
+                          className="w-full py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 text-xs cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -603,7 +813,8 @@ export default function PublicSubmissionsInbox() {
               )}
 
             </div>
-          )}
+            );
+          })()}
         </div>
       ) : (
         /* ── Empty detail state for desktop ────────────────────────────── */
