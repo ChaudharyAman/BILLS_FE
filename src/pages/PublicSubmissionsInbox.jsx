@@ -21,7 +21,8 @@ import {
   FaClock, FaChevronRight, FaFileInvoice, FaReceipt,
   FaFilePdf, FaImage, FaExternalLinkAlt, FaSpinner,
   FaChevronLeft, FaEdit, FaCheck, FaTimes, FaArrowRight,
-  FaBolt, FaTrash, FaLayerGroup,
+  FaBolt, FaTrash, FaLayerGroup, FaPlus, FaBuilding, FaUser,
+  FaListUl, FaPercentage, FaPhone, FaEnvelope, FaMapMarkerAlt,
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -169,6 +170,37 @@ export default function PublicSubmissionsInbox() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // ── Line Items Editing Helpers ─────────────────────────────────────────────
+  const handleItemChange = (index, field, value) => {
+    setEditData((prev) => {
+      const items = [...(prev.items || [])];
+      items[index] = { ...items[index], [field]: value };
+      if (field === 'quantity' || field === 'price') {
+        const qty = Number(field === 'quantity' ? value : items[index].quantity || 1);
+        const price = Number(field === 'price' ? value : items[index].price || 0);
+        items[index].amount = Math.round(qty * price * 100) / 100;
+      }
+      return { ...prev, items };
+    });
+  };
+
+  const handleAddItem = () => {
+    setEditData((prev) => ({
+      ...prev,
+      items: [
+        ...(prev.items || []),
+        { name: '', hsnCode: '', quantity: 1, unit: 'PCS', price: 0, gst: 0, amount: 0 },
+      ],
+    }));
+  };
+
+  const handleRemoveItem = (index) => {
+    setEditData((prev) => ({
+      ...prev,
+      items: (prev.items || []).filter((_, i) => i !== index),
+    }));
   };
 
   // ── Approve ────────────────────────────────────────────────────────────────
@@ -601,18 +633,31 @@ export default function PublicSubmissionsInbox() {
                 </section>
               )}
 
-              {/* ── Parsed Data ────────────────────────────────── */}
-              <section>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
-                    Extracted Data {(selected.files || []).length > 1 ? `(File ${activeFileIndex + 1})` : ''}
-                  </h3>
+              {/* ── Parsed Data / Full Invoice Details ──────────────── */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <FaFileInvoice className="text-indigo-500" />
+                      Invoice Details {(selected.files || []).length > 1 ? `(File ${activeFileIndex + 1})` : ''}
+                    </h3>
+                    {currentParsed.confidence !== undefined && (
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full
+                        ${currentParsed.confidence >= 70 ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' :
+                          currentParsed.confidence >= 40 ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' :
+                          'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'}`}
+                      >
+                        {currentParsed.confidence}% Confidence
+                      </span>
+                    )}
+                  </div>
+
                   {!isCurrentFileApproved && (selected.status === 'pending' || selected.status === 'needs-changes') && !editMode && (
                     <button
                       onClick={() => setEditMode(true)}
-                      className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 cursor-pointer font-medium"
+                      className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
                     >
-                      <FaEdit /> Edit
+                      <FaEdit /> Edit Fields
                     </button>
                   )}
                   {editMode && (
@@ -620,13 +665,13 @@ export default function PublicSubmissionsInbox() {
                       <button
                         onClick={saveEdit}
                         disabled={saving}
-                        className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 cursor-pointer font-medium"
+                        className="flex items-center gap-1 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-sm transition-colors"
                       >
                         {saving ? <FaSpinner className="animate-spin" /> : <FaCheck />} Save
                       </button>
                       <button
                         onClick={() => { setEditMode(false); setEditData(currentParsed); }}
-                        className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400 hover:text-gray-700 cursor-pointer"
+                        className="flex items-center gap-1 px-3 py-1 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
                       >
                         <FaTimes /> Cancel
                       </button>
@@ -635,10 +680,10 @@ export default function PublicSubmissionsInbox() {
                 </div>
 
                 {!isCurrentFileApproved && !currentFile?.parsedData && activeFileIndex > 0 && (
-                  <div className="mb-3 p-3.5 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between gap-3">
+                  <div className="p-3.5 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between gap-3">
                     <div className="text-xs text-indigo-900 dark:text-indigo-200">
                       <span className="font-bold block flex items-center gap-1.5"><FaBolt className="text-amber-500" /> Data not yet extracted for File {activeFileIndex + 1}</span>
-                      Extract invoice number, date, and totals with AI or fill them manually.
+                      Extract invoice number, date, vendor, and line items with AI.
                     </div>
                     <button
                       type="button"
@@ -651,48 +696,416 @@ export default function PublicSubmissionsInbox() {
                   </div>
                 )}
 
-                <div className="bg-gray-50 dark:bg-slate-800/60 rounded-xl p-4 space-y-3 text-sm">
-                  {[
-                    { key: 'invoiceNumber', label: 'Number' },
-                    { key: 'invoiceDate',   label: 'Date', type: 'date' },
-                    { key: 'dueDate',       label: 'Due Date', type: 'date' },
-                    { key: 'vendorName',    label: 'Vendor' },
-                    { key: 'clientName',    label: 'Client' },
-                    { key: 'subTotal',      label: 'Sub Total', type: 'number' },
-                    { key: 'taxAmount',     label: 'Tax', type: 'number' },
-                    { key: 'totalAmount',   label: 'Grand Total', type: 'number' },
-                    { key: 'paymentMode',   label: 'Payment Mode' },
-                  ].map(({ key, label, type }) => (
-                    <div key={key} className="flex items-baseline gap-3">
-                      <span className="text-gray-500 dark:text-slate-400 w-28 flex-shrink-0 text-xs">{label}</span>
+                {/* 1. General Invoice Information Grid */}
+                <div className="bg-gray-50 dark:bg-slate-800/60 rounded-xl p-4 border border-gray-100 dark:border-slate-800">
+                  <h4 className="text-[11px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-3">General Information</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-gray-500 dark:text-slate-400 block mb-1">Invoice / Bill Number</span>
                       {editMode ? (
                         <input
-                          type={type || 'text'}
-                          value={editData[key] ?? ''}
-                          onChange={(e) => setEditData((prev) => ({ ...prev, [key]: e.target.value }))}
-                          className="flex-1 text-sm border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                          type="text"
+                          value={editData.invoiceNumber ?? ''}
+                          onChange={(e) => setEditData((prev) => ({ ...prev, invoiceNumber: e.target.value }))}
+                          className="w-full text-xs font-mono font-semibold border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-400"
                         />
                       ) : (
-                        <span className={`flex-1 text-gray-800 dark:text-slate-200 ${!currentParsed[key] ? 'text-gray-300 dark:text-slate-600 italic' : ''}`}>
-                          {currentParsed[key] || '—'}
+                        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-sm">
+                          {currentParsed.invoiceNumber || '—'}
                         </span>
                       )}
                     </div>
-                  ))}
-
-                  {/* Confidence badge */}
-                  {currentParsed.confidence !== undefined && (
-                    <div className="flex items-center gap-2 pt-1 border-t border-gray-200 dark:border-slate-700 mt-2">
-                      <span className="text-gray-500 dark:text-slate-400 text-xs">Parse confidence</span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full
-                        ${currentParsed.confidence >= 70 ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300' :
-                          currentParsed.confidence >= 40 ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300' :
-                          'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300'}`}
-                      >
-                        {currentParsed.confidence}%
-                      </span>
+                    <div>
+                      <span className="text-gray-500 dark:text-slate-400 block mb-1">Invoice Date</span>
+                      {editMode ? (
+                        <input
+                          type="date"
+                          value={editData.invoiceDate ? String(editData.invoiceDate).slice(0, 10) : ''}
+                          onChange={(e) => setEditData((prev) => ({ ...prev, invoiceDate: e.target.value }))}
+                          className="w-full text-xs border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-400"
+                        />
+                      ) : (
+                        <span className="text-slate-800 dark:text-slate-200 font-medium">
+                          {currentParsed.invoiceDate ? String(currentParsed.invoiceDate).slice(0, 10) : '—'}
+                        </span>
+                      )}
                     </div>
-                  )}
+                    <div>
+                      <span className="text-gray-500 dark:text-slate-400 block mb-1">Due Date</span>
+                      {editMode ? (
+                        <input
+                          type="date"
+                          value={editData.dueDate ? String(editData.dueDate).slice(0, 10) : ''}
+                          onChange={(e) => setEditData((prev) => ({ ...prev, dueDate: e.target.value }))}
+                          className="w-full text-xs border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-400"
+                        />
+                      ) : (
+                        <span className="text-slate-800 dark:text-slate-200 font-medium">
+                          {currentParsed.dueDate ? String(currentParsed.dueDate).slice(0, 10) : '—'}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-gray-500 dark:text-slate-400 block mb-1">Payment Mode / Terms</span>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          value={editData.paymentMode ?? ''}
+                          onChange={(e) => setEditData((prev) => ({ ...prev, paymentMode: e.target.value }))}
+                          className="w-full text-xs border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-400"
+                        />
+                      ) : (
+                        <span className="text-slate-800 dark:text-slate-200 font-medium">
+                          {currentParsed.paymentMode || '—'}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-gray-500 dark:text-slate-400 block mb-1">PO Number</span>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          value={editData.poNumber ?? ''}
+                          onChange={(e) => setEditData((prev) => ({ ...prev, poNumber: e.target.value }))}
+                          className="w-full text-xs border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-400"
+                        />
+                      ) : (
+                        <span className="text-slate-800 dark:text-slate-200 font-medium">
+                          {currentParsed.poNumber || '—'}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-gray-500 dark:text-slate-400 block mb-1">Place of Supply</span>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          value={editData.placeOfSupply ?? ''}
+                          onChange={(e) => setEditData((prev) => ({ ...prev, placeOfSupply: e.target.value }))}
+                          className="w-full text-xs border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-400"
+                        />
+                      ) : (
+                        <span className="text-slate-800 dark:text-slate-200 font-medium">
+                          {currentParsed.placeOfSupply || '—'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Parties Grid (Vendor & Client) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Vendor / Seller */}
+                  <div className="bg-gray-50 dark:bg-slate-800/60 rounded-xl p-4 border border-gray-100 dark:border-slate-800 space-y-2 text-xs">
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                      <FaBuilding className="text-indigo-500" /> Vendor / Seller (Bill From)
+                    </div>
+                    <div>
+                      <span className="text-gray-500 dark:text-slate-400 block mb-0.5">Name</span>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          value={editData.vendorName ?? ''}
+                          onChange={(e) => setEditData((prev) => ({ ...prev, vendorName: e.target.value }))}
+                          className="w-full text-xs font-semibold border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-2.5 py-1.5"
+                        />
+                      ) : (
+                        <p className="font-bold text-slate-800 dark:text-slate-100">{currentParsed.vendorName || '—'}</p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-gray-500 dark:text-slate-400 block mb-0.5">GSTIN</span>
+                        {editMode ? (
+                          <input
+                            type="text"
+                            value={editData.vendorGST ?? ''}
+                            onChange={(e) => setEditData((prev) => ({ ...prev, vendorGST: e.target.value }))}
+                            className="w-full text-xs font-mono border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-2.5 py-1"
+                          />
+                        ) : (
+                          <p className="font-mono text-slate-800 dark:text-slate-200">{currentParsed.vendorGST || '—'}</p>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-gray-500 dark:text-slate-400 block mb-0.5">PAN</span>
+                        {editMode ? (
+                          <input
+                            type="text"
+                            value={editData.vendorPAN ?? ''}
+                            onChange={(e) => setEditData((prev) => ({ ...prev, vendorPAN: e.target.value }))}
+                            className="w-full text-xs font-mono border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-2.5 py-1"
+                          />
+                        ) : (
+                          <p className="font-mono text-slate-800 dark:text-slate-200">{currentParsed.vendorPAN || '—'}</p>
+                        )}
+                      </div>
+                    </div>
+                    {(editMode || currentParsed.vendorAddress || currentParsed.vendorPhone || currentParsed.vendorEmail) && (
+                      <div>
+                        <span className="text-gray-500 dark:text-slate-400 block mb-0.5">Address</span>
+                        {editMode ? (
+                          <textarea
+                            rows={2}
+                            value={editData.vendorAddress ?? ''}
+                            onChange={(e) => setEditData((prev) => ({ ...prev, vendorAddress: e.target.value }))}
+                            className="w-full text-xs border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-2.5 py-1"
+                          />
+                        ) : (
+                          <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">{currentParsed.vendorAddress || '—'}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Client / Buyer */}
+                  <div className="bg-gray-50 dark:bg-slate-800/60 rounded-xl p-4 border border-gray-100 dark:border-slate-800 space-y-2 text-xs">
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                      <FaUser className="text-indigo-500" /> Client / Buyer (Bill To)
+                    </div>
+                    <div>
+                      <span className="text-gray-500 dark:text-slate-400 block mb-0.5">Name</span>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          value={editData.clientName ?? ''}
+                          onChange={(e) => setEditData((prev) => ({ ...prev, clientName: e.target.value }))}
+                          className="w-full text-xs font-semibold border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-2.5 py-1.5"
+                        />
+                      ) : (
+                        <p className="font-bold text-slate-800 dark:text-slate-100">{currentParsed.clientName || '—'}</p>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-gray-500 dark:text-slate-400 block mb-0.5">GSTIN</span>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          value={editData.clientGST ?? ''}
+                          onChange={(e) => setEditData((prev) => ({ ...prev, clientGST: e.target.value }))}
+                          className="w-full text-xs font-mono border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg px-2.5 py-1"
+                        />
+                      ) : (
+                        <p className="font-mono text-slate-800 dark:text-slate-200">{currentParsed.clientGST || '—'}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Line Items Table */}
+                <div className="bg-gray-50 dark:bg-slate-800/60 rounded-xl p-4 border border-gray-100 dark:border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[11px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <FaListUl className="text-indigo-500" /> Line Items ({editMode ? (editData.items || []).length : (currentParsed.items || []).length})
+                    </h4>
+                    {editMode && (
+                      <button
+                        type="button"
+                        onClick={handleAddItem}
+                        className="flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 cursor-pointer"
+                      >
+                        <FaPlus size={10} /> Add Item
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="overflow-x-auto -mx-4 sm:mx-0">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400">
+                          <th className="py-2 px-2.5 w-8">#</th>
+                          <th className="py-2 px-2.5 min-w-[140px]">Description</th>
+                          <th className="py-2 px-2 w-20">HSN/SAC</th>
+                          <th className="py-2 px-2 w-16 text-right">Qty</th>
+                          <th className="py-2 px-2 w-14">Unit</th>
+                          <th className="py-2 px-2 w-20 text-right">Rate</th>
+                          <th className="py-2 px-2 w-16 text-right">GST %</th>
+                          <th className="py-2 px-2.5 w-24 text-right">Amount</th>
+                          {editMode && <th className="py-2 px-1 w-8 text-center"></th>}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60">
+                        {editMode ? (
+                          (editData.items || []).length > 0 ? (
+                            editData.items.map((item, idx) => (
+                              <tr key={idx} className="hover:bg-white/50 dark:hover:bg-slate-700/30">
+                                <td className="py-2 px-2 text-gray-400">{idx + 1}</td>
+                                <td className="py-2 px-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Item name"
+                                    value={item.name ?? ''}
+                                    onChange={(e) => handleItemChange(idx, 'name', e.target.value)}
+                                    className="w-full text-xs px-2 py-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded"
+                                  />
+                                </td>
+                                <td className="py-2 px-1">
+                                  <input
+                                    type="text"
+                                    placeholder="HSN"
+                                    value={item.hsnCode ?? ''}
+                                    onChange={(e) => handleItemChange(idx, 'hsnCode', e.target.value)}
+                                    className="w-full text-xs font-mono px-1.5 py-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded"
+                                  />
+                                </td>
+                                <td className="py-2 px-1 text-right">
+                                  <input
+                                    type="number"
+                                    value={item.quantity ?? 1}
+                                    onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                                    className="w-full text-xs text-right px-1.5 py-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded"
+                                  />
+                                </td>
+                                <td className="py-2 px-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Unit"
+                                    value={item.unit ?? ''}
+                                    onChange={(e) => handleItemChange(idx, 'unit', e.target.value)}
+                                    className="w-full text-xs px-1.5 py-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded"
+                                  />
+                                </td>
+                                <td className="py-2 px-1 text-right">
+                                  <input
+                                    type="number"
+                                    value={item.price ?? 0}
+                                    onChange={(e) => handleItemChange(idx, 'price', e.target.value)}
+                                    className="w-full text-xs text-right font-mono px-1.5 py-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded"
+                                  />
+                                </td>
+                                <td className="py-2 px-1 text-right">
+                                  <input
+                                    type="number"
+                                    value={item.gst ?? 0}
+                                    onChange={(e) => handleItemChange(idx, 'gst', e.target.value)}
+                                    className="w-full text-xs text-right px-1.5 py-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded"
+                                  />
+                                </td>
+                                <td className="py-2 px-1 text-right">
+                                  <input
+                                    type="number"
+                                    value={item.amount ?? 0}
+                                    onChange={(e) => handleItemChange(idx, 'amount', e.target.value)}
+                                    className="w-full text-xs text-right font-mono font-semibold px-1.5 py-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded"
+                                  />
+                                </td>
+                                <td className="py-2 px-1 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveItem(idx)}
+                                    className="text-red-400 hover:text-red-600 p-1 cursor-pointer"
+                                    title="Remove item"
+                                  >
+                                    <FaTrash size={11} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={9} className="py-4 text-center text-gray-400 italic">No line items. Click &quot;Add Item&quot; to add one.</td>
+                            </tr>
+                          )
+                        ) : (
+                          (currentParsed.items || []).length > 0 ? (
+                            currentParsed.items.map((item, idx) => (
+                              <tr key={idx} className="hover:bg-white/40 dark:hover:bg-slate-700/20">
+                                <td className="py-2 px-2.5 text-gray-400">{idx + 1}</td>
+                                <td className="py-2 px-2.5 font-medium text-slate-800 dark:text-slate-100">{item.name || 'Item'}</td>
+                                <td className="py-2 px-2 font-mono text-gray-500 dark:text-slate-400">{item.hsnCode || '—'}</td>
+                                <td className="py-2 px-2 text-right font-medium">{item.quantity ?? item.qty ?? 1}</td>
+                                <td className="py-2 px-2 text-gray-500 dark:text-slate-400">{item.unit || '—'}</td>
+                                <td className="py-2 px-2 text-right font-mono text-gray-600 dark:text-slate-300">
+                                  ₹{Number(item.price ?? item.rate ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </td>
+                                <td className="py-2 px-2 text-right text-gray-600 dark:text-slate-300">
+                                  {item.gst !== undefined && item.gst !== null ? `${item.gst}%` : '—'}
+                                </td>
+                                <td className="py-2 px-2.5 text-right font-mono font-bold text-slate-800 dark:text-slate-100">
+                                  ₹{Number(item.amount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={8} className="py-4 text-center text-gray-400 dark:text-slate-500 italic">
+                                Lump-sum bill (no individual line items detected)
+                              </td>
+                            </tr>
+                          )
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 4. Financial Summary & Totals */}
+                <div className="bg-gray-50 dark:bg-slate-800/60 rounded-xl p-4 border border-gray-100 dark:border-slate-800">
+                  <h4 className="text-[11px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-3">Financial Summary</h4>
+                  <div className="space-y-2 max-w-sm ml-auto text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500 dark:text-slate-400">Sub Total (Taxable)</span>
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={editData.subTotal ?? ''}
+                          onChange={(e) => setEditData((prev) => ({ ...prev, subTotal: e.target.value }))}
+                          className="w-32 text-right text-xs font-mono border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded px-2 py-1"
+                        />
+                      ) : (
+                        <span className="font-mono font-medium text-slate-700 dark:text-slate-200">
+                          ₹{Number(currentParsed.subTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500 dark:text-slate-400">Tax Amount</span>
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={editData.taxAmount ?? ''}
+                          onChange={(e) => setEditData((prev) => ({ ...prev, taxAmount: e.target.value }))}
+                          className="w-32 text-right text-xs font-mono border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded px-2 py-1"
+                        />
+                      ) : (
+                        <span className="font-mono font-medium text-slate-700 dark:text-slate-200">
+                          ₹{Number(currentParsed.taxAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      )}
+                    </div>
+                    {(editMode || currentParsed.roundOff) && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-slate-400">Round Off</span>
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={editData.roundOff ?? ''}
+                            onChange={(e) => setEditData((prev) => ({ ...prev, roundOff: e.target.value }))}
+                            className="w-32 text-right text-xs font-mono border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded px-2 py-1"
+                          />
+                        ) : (
+                          <span className="font-mono font-medium text-slate-700 dark:text-slate-200">
+                            ₹{Number(currentParsed.roundOff || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-slate-700 text-sm">
+                      <span className="font-bold text-gray-800 dark:text-slate-100">Grand Total</span>
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={editData.totalAmount ?? ''}
+                          onChange={(e) => setEditData((prev) => ({ ...prev, totalAmount: e.target.value }))}
+                          className="w-36 text-right text-sm font-bold font-mono border border-indigo-300 dark:border-indigo-600 bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 rounded px-2 py-1"
+                        />
+                      ) : (
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-base">
+                          ₹{Number(currentParsed.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </section>
 
