@@ -283,8 +283,8 @@ const EmployeeDetails = () => {
     }
   });
 
-  const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
-  const labelCls = 'text-xs font-semibold text-gray-600 mb-1.5 inline-block';
+  const inputCls = 'w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+  const labelCls = 'text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1.5 inline-block';
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1086,53 +1086,53 @@ const EmployeeDetails = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl font-sans text-slate-900 space-y-5">
+    <div className="container mx-auto px-4 py-6 max-w-7xl font-sans text-slate-900 dark:text-slate-100 space-y-5">
       {/* Keka Profile Hero Banner */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white font-bold text-xl flex items-center justify-center shadow-md flex-shrink-0">
             {getInitials(employee.firstName, employee.lastName)}
           </div>
           <div>
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-bold text-slate-900">{employee.firstName} {employee.lastName}</h1>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{employee.firstName} {employee.lastName}</h1>
               <span
                 className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize ${
                   employee.status === 'active'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                     : employee.status === 'inactive'
-                    ? 'bg-amber-50 text-amber-700 border-amber-200'
-                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                    ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                    : 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
                 }`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${employee.status === 'active' ? 'bg-emerald-500' : employee.status === 'inactive' ? 'bg-amber-500' : 'bg-rose-500'}`} />
                 {employee.status}
               </span>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-1">
-              ID: <strong className="text-slate-800">{employee.employeeId}</strong> · {employee.designation || 'No designation'} · {employee.department?.name || 'No department'}
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
+              ID: <strong className="text-slate-800 dark:text-slate-200">{employee.employeeId}</strong> · {employee.designation || 'No designation'} · {employee.department?.name || 'No department'}
             </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2.5 items-center">
-          <button onClick={() => openRevisionModal()} className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold shadow-2xs transition-colors cursor-pointer">
-            <FaHistory size={12} className="text-indigo-600" /> Revise Salary
+          <button onClick={() => openRevisionModal()} className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold shadow-2xs transition-colors cursor-pointer">
+            <FaHistory size={12} className="text-indigo-600 dark:text-indigo-400" /> Revise Salary
           </button>
-          <button onClick={handleDownloadBreakup} className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold shadow-2xs transition-colors cursor-pointer">
-            <FaDownload size={12} className="text-emerald-600" /> Download Breakup
+          <button onClick={handleDownloadBreakup} className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold shadow-2xs transition-colors cursor-pointer">
+            <FaDownload size={12} className="text-emerald-600 dark:text-emerald-400" /> Download Breakup
           </button>
           <Link to={`/employees/${employee._id}/edit`} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold shadow-xs transition-all">
             <FaEdit size={12} /> Edit Profile
           </Link>
-          <button onClick={() => setShowDeleteModal(true)} className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer">
+          <button onClick={() => setShowDeleteModal(true)} className="bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 px-3.5 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer">
             <FaTrash size={12} /> Delete
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-          <h2 className="font-semibold text-sm text-gray-700 mb-4">Employee Information</h2>
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm p-6 transition-colors">
+          <h2 className="font-semibold text-sm text-gray-700 dark:text-slate-200 mb-4">Employee Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-xs">
             <Info label="Email" value={employee.email} />
             <Info label="Phone" value={employee.phone || '-'} />
@@ -1150,14 +1150,14 @@ const EmployeeDetails = () => {
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-          <div className="flex justify-between items-center mb-4 border-b border-gray-150 pb-2">
-            <h2 className="font-semibold text-sm text-gray-700">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm p-6 transition-colors">
+          <div className="flex justify-between items-center mb-4 border-b border-gray-150 dark:border-slate-800 pb-2">
+            <h2 className="font-semibold text-sm text-gray-700 dark:text-slate-200">
               {(COMPENSATION_SNAPSHOT_CONFIG[employee.compensationType || (employee.payType === 'hourly' ? 'hourly' : 'monthly_salary')] || COMPENSATION_SNAPSHOT_CONFIG.monthly_salary).title}
             </h2>
             <button
               onClick={handleDownloadBreakup}
-              className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1.5"
+              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:underline flex items-center gap-1.5"
             >
               <FaDownload size={10} />
               Download Breakup
@@ -1193,7 +1193,7 @@ const EmployeeDetails = () => {
                     <Info label="Net Take-Home" value={fmtMoney(salaryPreview.netTakeHome)} strong />
                   </>
                 ) : (
-                  <div className="border-t border-dashed border-gray-200 my-2 pt-2 text-[10px] text-amber-700 leading-normal font-medium bg-amber-50/50 p-2.5 rounded-lg border border-amber-100">
+                  <div className="border-t border-dashed border-gray-200 dark:border-slate-800 my-2 pt-2 text-[10px] text-amber-700 dark:text-amber-300 leading-normal font-medium bg-amber-50/50 dark:bg-amber-950/40 p-2.5 rounded-lg border border-amber-100 dark:border-amber-900/50">
                     💼 Non-Salaried Compensation Type: subject to TDS on total earnings, no statutory benefits (PF, ESI, PT, LWF, Gratuity).
                   </div>
                 )}
@@ -1205,29 +1205,29 @@ const EmployeeDetails = () => {
 
       {/* ── Statutory Gratuity Eligibility Card ─────────────────────────────── */}
       {gratuityInfo && (
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm mt-6 p-5">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm mt-6 p-5 transition-colors">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="font-semibold text-sm text-gray-700">Statutory Gratuity Eligibility</h2>
-              <p className="text-[10px] text-gray-400 mt-0.5">
+              <h2 className="font-semibold text-sm text-gray-700 dark:text-slate-200">Statutory Gratuity Eligibility</h2>
+              <p className="text-[10px] text-gray-400 dark:text-slate-400 mt-0.5">
                 Payment of Gratuity Act, 1972 — formula: (Basic + DA) × 15/26 × years of service
               </p>
             </div>
             <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
               gratuityInfo.eligible
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                : 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
             }`}>
               {gratuityInfo.eligible ? '✓ Eligible' : '⏳ Not Yet Eligible'}
             </span>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-gray-400 text-[10px] font-medium uppercase tracking-wide mb-0.5">Service (yrs)</p>
-              <p className="text-gray-800 font-bold text-base">
+            <div className="bg-gray-50 dark:bg-slate-800/60 border border-transparent dark:border-slate-700/50 rounded-lg p-3">
+              <p className="text-gray-400 dark:text-slate-400 text-[10px] font-medium uppercase tracking-wide mb-0.5">Service (yrs)</p>
+              <p className="text-gray-800 dark:text-slate-100 font-bold text-base">
                 {gratuityInfo.completedYears}
-                <span className="text-xs font-normal text-gray-500 ml-1">
+                <span className="text-xs font-normal text-gray-500 dark:text-slate-400 ml-1">
                   yr{gratuityInfo.completedYears !== 1 ? 's' : ''}
                   {gratuityInfo.completedYears > 0 || gratuityInfo.completedMonths % 12 > 0
                     ? ` ${gratuityInfo.completedMonths % 12} mo`
@@ -1236,36 +1236,36 @@ const EmployeeDetails = () => {
               </p>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-gray-400 text-[10px] font-medium uppercase tracking-wide mb-0.5">Years Used</p>
-              <p className="text-gray-800 font-bold text-base">
+            <div className="bg-gray-50 dark:bg-slate-800/60 border border-transparent dark:border-slate-700/50 rounded-lg p-3">
+              <p className="text-gray-400 dark:text-slate-400 text-[10px] font-medium uppercase tracking-wide mb-0.5">Years Used</p>
+              <p className="text-gray-800 dark:text-slate-100 font-bold text-base">
                 {gratuityInfo.eligible ? gratuityInfo.roundedYears : '—'}
                 {gratuityInfo.eligible && gratuityInfo.roundedYears > gratuityInfo.completedYears && (
-                  <span className="ml-1 text-[9px] text-blue-500 font-semibold">↑ rounded up</span>
+                  <span className="ml-1 text-[9px] text-blue-500 dark:text-blue-400 font-semibold">↑ rounded up</span>
                 )}
               </p>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-gray-400 text-[10px] font-medium uppercase tracking-wide mb-0.5">Est. Entitlement</p>
+            <div className="bg-gray-50 dark:bg-slate-800/60 border border-transparent dark:border-slate-700/50 rounded-lg p-3">
+              <p className="text-gray-400 dark:text-slate-400 text-[10px] font-medium uppercase tracking-wide mb-0.5">Est. Entitlement</p>
               <p className={`font-bold text-base ${
-                gratuityInfo.eligible ? 'text-gray-800' : 'text-gray-400'
+                gratuityInfo.eligible ? 'text-gray-800 dark:text-slate-100' : 'text-gray-400 dark:text-slate-500'
               }`}>
                 {gratuityInfo.eligible ? fmtMoney(gratuityInfo.cappedEntitlement) : '—'}
               </p>
               {gratuityInfo.isCapped && (
-                <p className="text-[9px] text-amber-600 font-semibold mt-0.5">Capped at ₹20L (statutory max)</p>
+                <p className="text-[9px] text-amber-600 dark:text-amber-400 font-semibold mt-0.5">Capped at ₹20L (statutory max)</p>
               )}
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-gray-400 text-[10px] font-medium uppercase tracking-wide mb-0.5">Basic (current)</p>
-              <p className="text-gray-800 font-bold text-base">{fmtMoney(salaryPreview.basicMaster || 0)}/mo</p>
-              <p className="text-[9px] text-gray-400 mt-0.5">DA treated as ₹0</p>
+            <div className="bg-gray-50 dark:bg-slate-800/60 border border-transparent dark:border-slate-700/50 rounded-lg p-3">
+              <p className="text-gray-400 dark:text-slate-400 text-[10px] font-medium uppercase tracking-wide mb-0.5">Basic (current)</p>
+              <p className="text-gray-800 dark:text-slate-100 font-bold text-base">{fmtMoney(salaryPreview.basicMaster || 0)}/mo</p>
+              <p className="text-[9px] text-gray-400 dark:text-slate-400 mt-0.5">DA treated as ₹0</p>
             </div>
           </div>
 
-          <p className="mt-3 text-[9px] text-gray-400 leading-relaxed">
+          <p className="mt-3 text-[9px] text-gray-400 dark:text-slate-400 leading-relaxed">
             ℹ️ {gratuityInfo.note}
             &nbsp;Estimate only — actual amount is confirmed at Full &amp; Final Settlement.
             6-month partial-year rounding per Section 2A &amp; Mettur Beardsell (1998 ILLJ 180 Mad).
@@ -1273,8 +1273,8 @@ const EmployeeDetails = () => {
         </div>
       )}
 
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm mt-6 overflow-hidden">
-        <div className="p-4 border-b bg-gray-50 font-bold flex justify-between items-center">
+      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm mt-6 overflow-hidden transition-colors">
+        <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/80 font-bold text-slate-800 dark:text-slate-100 flex justify-between items-center">
           <span>Salary Revision History</span>
           <button
             onClick={() => openRevisionModal()}
@@ -1283,47 +1283,47 @@ const EmployeeDetails = () => {
             <FaPlus size={12} /> Revise Salary
           </button>
         </div>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+          <thead className="bg-gray-50 dark:bg-slate-800/60">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Effective Date</th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Effective Date</th>
+              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">
                 {employee.payType === 'hourly' ? 'Previous Rate' : 'Previous CTC'}
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
+              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">
                 {employee.payType === 'hourly' ? 'New Rate' : 'New CTC'}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Reason</th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Reason</th>
+              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
             {employee.salaryRevisions?.length ? employee.salaryRevisions.map((revision, index) => (
-              <tr key={`revision-${index}`}>
-                <td className="px-6 py-4 text-sm">{fmtDate(revision.effectiveDate)}</td>
-                <td className="px-6 py-4 text-sm text-right text-slate-800">
+              <tr key={`revision-${index}`} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                <td className="px-6 py-4 text-sm text-slate-800 dark:text-slate-200">{fmtDate(revision.effectiveDate)}</td>
+                <td className="px-6 py-4 text-sm text-right text-slate-700 dark:text-slate-300">
                   {employee.payType === 'hourly'
                     ? `${fmtMoney(revision.previousHourlyRate || revision.hourlyRate || 0)}/hr`
                     : fmtMoney(revision.previousCTC)}
                 </td>
-                <td className="px-6 py-4 text-sm text-right font-semibold">
+                <td className="px-6 py-4 text-sm text-right font-semibold text-slate-900 dark:text-slate-100">
                   {employee.payType === 'hourly'
                     ? `${fmtMoney(revision.newHourlyRate || revision.hourlyRate || 0)}/hr`
                     : fmtMoney(revision.newCTC)}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-600">{revision.reason || '-'}</td>
+                <td className="px-6 py-4 text-sm text-gray-600 dark:text-slate-400">{revision.reason || '-'}</td>
                 <td className="px-6 py-4 text-sm text-right">
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={() => openRevisionModal(revision)}
-                      className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
                       title="Edit Revision"
                     >
                       <FaEdit size={14} />
                     </button>
                     <button
                       onClick={() => handleDeleteSalaryRevision(revision._id)}
-                      className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-1.5 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
                       title="Delete Revision"
                     >
                       <FaTrash size={14} />
@@ -1332,39 +1332,39 @@ const EmployeeDetails = () => {
                 </td>
               </tr>
             )) : (
-              <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500">No salary revisions recorded yet.</td></tr>
+              <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500 dark:text-slate-400">No salary revisions recorded yet.</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm mt-6 overflow-hidden">
-        <div className="p-4 border-b bg-gray-50 font-bold">Payroll History</div>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm mt-6 overflow-hidden transition-colors">
+        <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/80 font-bold text-slate-800 dark:text-slate-100">Payroll History</div>
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+          <thead className="bg-gray-50 dark:bg-slate-800/60">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Period</th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Net Salary</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Payslip</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Period</th>
+              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Net Salary</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Status</th>
+              <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase">Payslip</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
             {payrolls.length === 0 ? (
-              <tr><td colSpan="4" className="px-6 py-8 text-center text-gray-500">No payroll records yet.</td></tr>
+              <tr><td colSpan="4" className="px-6 py-8 text-center text-gray-500 dark:text-slate-400">No payroll records yet.</td></tr>
             ) : payrolls.map((payroll) => (
-              <tr key={payroll._id}>
-                <td className="px-6 py-4">
+              <tr key={payroll._id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                <td className="px-6 py-4 text-slate-800 dark:text-slate-200">
                   {new Date(0, payroll.month - 1).toLocaleString('en-US', { month: 'long' })} {payroll.year}
                 </td>
-                <td className="px-6 py-4 text-right font-semibold">{fmtMoney(payroll.netSalary)}</td>
+                <td className="px-6 py-4 text-right font-semibold text-slate-900 dark:text-slate-100">{fmtMoney(payroll.netSalary)}</td>
                 <td className="px-6 py-4">
                   <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${payrollStatusClass[payroll.status] || payrollStatusClass.draft}`}>
                     {payroll.status}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-center">
-                  <Link to={`/payroll/${payroll._id}/payslip`} className="text-blue-600 hover:underline">View</Link>
+                  <Link to={`/payroll/${payroll._id}/payslip`} className="text-blue-600 dark:text-blue-400 hover:underline">View</Link>
                 </td>
               </tr>
             ))}
@@ -2654,16 +2654,16 @@ const EmployeeDetails = () => {
 };
 
 const Info = ({ label, value, strong }) => (
-  <div className="flex justify-between gap-4 border-b border-gray-100 pb-2">
-    <span className="text-gray-500">{label}</span>
-    <span className={strong ? 'font-bold text-gray-900' : 'font-medium text-gray-800'}>{value}</span>
+  <div className="flex justify-between gap-4 border-b border-gray-100 dark:border-slate-800/80 pb-2">
+    <span className="text-gray-500 dark:text-slate-400">{label}</span>
+    <span className={strong ? 'font-bold text-gray-900 dark:text-slate-100' : 'font-medium text-gray-800 dark:text-slate-200'}>{value}</span>
   </div>
 );
 
 const SummaryCard = ({ label, value }) => (
-  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-    <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</div>
-    <div className="mt-2 text-lg font-bold text-gray-900">{value}</div>
+  <div className="bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-800 rounded-xl p-4">
+    <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</div>
+    <div className="mt-2 text-lg font-bold text-gray-900 dark:text-slate-100">{value}</div>
   </div>
 );
 

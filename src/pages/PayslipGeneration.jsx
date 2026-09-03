@@ -6,14 +6,28 @@ import api from '../api/axios';
 import Skeleton from '../components/Skeleton';
 import { getPayslipLineItemLabels, resolveCompensationTypeClient } from '../utils/compensationTypeFields';
 
-const fmtMoney = (value) => {
-  if (value === undefined || value === null || value === '-') return '-';
-  const num = Number(value);
-  if (isNaN(num)) return '-';
-  return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtVal = (val, showDash = true) => {
+  if (val === null || val === undefined || val === '' || Number(val) === 0) {
+    return showDash ? '-' : '';
+  }
+  const n = Number(val);
+  if (isNaN(n)) return val;
+  return n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
 };
 
-const fmtDate = (value) => value ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+const fmtMoney = (val, showDash = true) => fmtVal(val, showDash);
+
+const fmtDate = (d) => {
+  if (!d) return '-';
+  try {
+    const dt = new Date(d);
+    return isNaN(dt.getTime())
+      ? String(d)
+      : dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+  } catch {
+    return String(d);
+  }
+};
 const titleCase = (value) => String(value || '-').replace(/[_-]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 
 const PayslipGeneration = () => {
@@ -270,9 +284,17 @@ const PayslipGeneration = () => {
   if (!slip || !tableData) return <div className="container mx-auto p-6 text-red-600">Payslip not available.</div>;
 
   const company = slip.company || {};
+  const companyName = company.companyName || company.name || 'Company';
+  const companyLogo = company.logoUrl || '';
+  const rawAddress = company.address;
+  const companyAddress = typeof rawAddress === 'string'
+    ? rawAddress
+    : [rawAddress?.line1, rawAddress?.city, rawAddress?.state, rawAddress?.zip].filter(Boolean).join(', ');
+
   const employee = slip.employee || {};
   const employeeName = `${employee.firstName ?? ''} ${employee.lastName ?? ''}`.trim() || '-';
   const payPeriod = `${slip.period?.monthName ?? '-'} ${slip.period?.year ?? ''}`.trim().toUpperCase();
+  const taxRegime = String(employee.taxRegime || slip.employeeSnapshot?.taxRegime || 'new').toUpperCase();
 
   const currentMonth = slip.period?.month;
   const currentYear = slip.period?.year;
@@ -292,7 +314,37 @@ const PayslipGeneration = () => {
   const compBreakdown = worksheet.componentBreakdown || [];
   const hraCalc = worksheet.hra || {};
   const tdsMonths = worksheet.tdsMonths || {};
-  
+
+  const decl = employee.declarations || slip.employeeSnapshot?.declarations || {};
+  const epfVal = decl.epf || 0;
+  const ppfVal = decl.ppf || 0;
+  const homeLoanVal = decl.homeLoanPrincipal || 0;
+  const licVal = decl.lic || 0;
+  const elssVal = decl.elss || 0;
+  const sec80CVal = decl.section80C || (epfVal + ppfVal + homeLoanVal + licVal + elssVal);
+  const sec80CCapped = Math.min(150000, sec80CVal);
+  const sec80DVal = decl.section80D || 0;
+  const sec80CCDVal = decl.section80CCD1B || 0;
+  const sec24bVal = decl.section24b || 0;
+  const totalVIA = sec80CCapped + sec80DVal + sec80CCDVal;
+
+  const annualPF = (slip.deductions?.pfEmployee || 0) * 12;
+  const annualPT = (slip.deductions?.professionalTax || 0) * 12;
+  const annualGross = worksheet.grossSalary || (tableData.totalEarningMonthly * 12);
+  const standardDeduction = worksheet.standardDeduction || (taxRegime.includes('NEW') ? 75000 : 50000);
+  const chapterVIA = totalVIA > 0 ? totalVIA : (taxRegime.includes('OLD') ? Math.min(150000, annualPF) : 0);
+  const taxableIncome = worksheet.taxableIncome !== undefined ? worksheet.taxableIncome : Math.max(0, annualGross - standardDeduction - annualPT - chapterVIA);
+
+  // Dynamic earnings rows for worksheet if compBreakdown is empty
+  const worksheetEarnings = (compBreakdown.length > 0)
+    ? compBreakdown
+    : tableData.earnings.map(e => ({
+        name: e.name,
+        gross: (Number(e.monthly) || Number(e.rate) || 0) * 12,
+        exempt: 0,
+        taxable: (Number(e.monthly) || Number(e.rate) || 0) * 12
+      }));
+
   // Format TDS detail list
   const monthsList = [
     { key: 4, name: 'April' },
@@ -310,370 +362,319 @@ const PayslipGeneration = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-100 py-6 px-4 md:px-8 font-serif text-gray-900 print:bg-white print:py-0 print:px-0">
+    <div className="min-h-screen bg-slate-100 py-6 px-4 md:px-8 font-sans text-black print:bg-white print:py-0 print:px-0">
       
       {/* Action Header bar */}
-      <div className="mx-auto mb-6 flex max-w-5xl items-center justify-between print-hide">
-        <button onClick={() => window.history.back()} className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900">
+      <div className="mx-auto mb-6 flex max-w-5xl items-center justify-between print:hidden">
+        <button onClick={() => window.history.back()} className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 cursor-pointer">
           <FaChevronLeft size={12} /> Back
         </button>
         <div className="flex gap-3">
-          <button onClick={emailPayslip} disabled={emailing} className="inline-flex items-center gap-2 rounded-lg bg-white border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60">
+          <button onClick={emailPayslip} disabled={emailing} className="inline-flex items-center gap-2 rounded-lg bg-white border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 shadow-xs hover:bg-slate-50 disabled:opacity-60 cursor-pointer">
             <FaEnvelope /> {emailing ? 'Sending...' : 'Email to Employee'}
           </button>
-          <button onClick={downloadPdf} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">
+          <button onClick={downloadPdf} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-slate-800 cursor-pointer">
             <FaDownload /> Download PDF / Print
           </button>
         </div>
       </div>
 
       {/* Spreadsheet styled Payslip Sheet */}
-      <div className="payslip-container mx-auto max-w-4xl bg-white border border-gray-400 p-8 shadow-sm print:shadow-none print:border-none print:p-0">
+      <div className="payslip-container mx-auto max-w-4xl bg-white border-2 border-black p-4 sm:p-5 shadow-xs print:shadow-none print:border-2 print:border-black print:p-4 text-black font-sans text-[10px] leading-tight" id="payslip-print-area">
         
-        {/* Table wrapper for perfect Excel layout borders */}
-        <div className="border border-black text-[11px] leading-relaxed">
-          
-          {/* Company header block */}
-          <div className="flex items-center justify-between border-b border-black p-4">
-            <div className="flex items-center gap-3">
-              {company.logoUrl ? (
-                <img src={company.logoUrl} alt="logo" className="h-10 object-contain max-w-[120px]" />
-              ) : (
-                <span className="font-bold text-base tracking-wide text-gray-800">
-                  {company.companyName
-                    ? company.companyName.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase()
-                    : '—'}
-                </span>
-              )}
-            </div>
-            <div className="text-center flex-1 pr-10">
-              <h1 className="text-sm font-bold uppercase tracking-tight">{company.companyName || ''}</h1>
-              {(company.address?.line1 || company.address?.city || company.address?.state) && (
-                <p className="text-[10px] text-gray-700 mt-0.5">
-                  {[company.address?.line1, company.address?.city, company.address?.state].filter(Boolean).join(', ')}
-                </p>
-              )}
-              <h2 className="text-xs font-bold mt-2 tracking-wide text-blue-950">
-                {Boolean(slip.isFullAndFinal || slip.settlementType === 'full_and_final') ? `FINAL SETTLEMENT STATEMENT — ${payPeriod}` : `PAY SLIP FOR THE MONTH OF ${payPeriod}`}
-              </h2>
-            </div>
-            <div className="text-right text-[10px] font-bold text-gray-800 whitespace-nowrap self-start">
-              {employee.taxRegime === 'old' ? 'OLD TAX REGIME' : 'NEW TAX REGIME'}
-            </div>
+        {/* Header: Logo, Company Name & Address */}
+        <div className="flex items-center justify-between border-b-2 border-black pb-3">
+          <div className="w-1/4 flex items-center">
+            {companyLogo ? (
+              <img src={companyLogo} alt={companyName || 'Company Logo'} className="max-h-14 max-w-[170px] object-contain" />
+            ) : (
+              <div className="flex items-center gap-1.5 font-bold tracking-tight text-xs text-slate-900">
+                <span className="text-blue-600 text-lg font-black leading-none">■</span>
+                <span className="font-extrabold text-slate-900">{companyName.split(' ')[0] || 'Company'}</span>
+                <span className="text-slate-600 font-semibold">{companyName.split(' ').slice(1, 3).join(' ') || ''}</span>
+              </div>
+            )}
+          </div>
+          <div className="w-3/4 text-center pr-6">
+            <h1 className="text-sm sm:text-base font-bold tracking-tight uppercase text-black">{companyName}</h1>
+            {companyAddress && (
+              <p className="text-[10px] font-medium text-black mt-0.5 leading-relaxed">{companyAddress}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Pay Slip Period Subheader */}
+        <div className="text-center font-bold uppercase text-[11px] py-1.5 border-b border-black tracking-wide">
+          {Boolean(slip.isFullAndFinal || slip.settlementType === 'full_and_final')
+            ? `FINAL SETTLEMENT STATEMENT — ${payPeriod}`
+            : `PAY SLIP FOR THE MONTH OF ${payPeriod}`}
+        </div>
+
+        {/* Compliance & Net Pay Warnings Banner */}
+        {Array.isArray(slip.complianceNotes) && slip.complianceNotes.length > 0 && (
+          <div className="bg-amber-50 border-b border-black p-1.5 text-[10px] font-semibold text-amber-900 font-sans space-y-0.5">
+            {slip.complianceNotes.map((note, idx) => (
+              <div key={idx} className="flex items-center gap-1">
+                <span>⚠️</span> <span>{note}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Employee Details 4-Column Box */}
+        <div className="grid grid-cols-12 border-b border-black">
+          {/* Col 1: Emp. Code, Name, Designation, Department, Cost Centre, DOJ */}
+          <div className="col-span-4 border-r border-black p-1.5 space-y-1">
+            <div className="flex"><span className="w-24 text-gray-700">Emp. Code</span><span className="font-bold">{employee.employeeId || '-'}</span></div>
+            <div className="flex"><span className="w-24 text-gray-700">Name</span><span className="font-bold">{employeeName}</span></div>
+            <div className="flex"><span className="w-24 text-gray-700">Designation</span><span className="font-bold">{employee.designation || '-'}</span></div>
+            <div className="flex"><span className="w-24 text-gray-700">Department</span><span className="font-bold">{employee.department?.name || '-'}</span></div>
+            <div className="flex"><span className="w-24 text-gray-700">Cost Centre</span><span className="font-bold">{employee.costCentre || 'TaaS'}</span></div>
+            <div className="flex"><span className="w-24 text-gray-700">DOJ</span><span className="font-bold">{fmtDate(employee.joiningDate)}</span></div>
           </div>
 
-          {/* Compliance & Net Pay Warnings Banner */}
-          {Array.isArray(slip.complianceNotes) && slip.complianceNotes.length > 0 && (
-            <div className="bg-amber-50 border-b border-black p-2 text-[10px] font-semibold text-amber-900 font-sans space-y-0.5">
-              {slip.complianceNotes.map((note, idx) => (
-                <div key={idx} className="flex items-center gap-1">
-                  <span>⚠️</span> <span>{note}</span>
+          {/* Col 2: PF UAN No., Month Days, Gender, Payable Days */}
+          <div className="col-span-3 border-r border-black p-1.5 space-y-1">
+            <div className="flex justify-between"><span className="text-gray-700">PF UAN No.</span><span className="font-bold">{employee.uanNumber || 'NA'}</span></div>
+            <div className="flex justify-between mt-6"><span className="text-gray-700">Month Days</span><span className="font-bold">{Number(slip.workingDays || 31).toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-700">Gender</span><span className="font-bold">{employee.gender || 'Male'}</span></div>
+            <div className="flex justify-between"><span className="text-gray-700">Payable Days</span><span className="font-bold">{Number(slip.paidDays || 31).toFixed(2)}</span></div>
+          </div>
+
+          {/* Col 3: Location, Payment, Bank A/c, PAN, PF No., ESI No. */}
+          <div className="col-span-3 border-r border-black p-1.5 space-y-1">
+            <div className="flex justify-between"><span className="text-gray-700">Location</span><span className="font-bold">{employee.location || 'Office'}</span></div>
+            <div className="flex justify-between"><span className="text-gray-700">Payment</span><span className="font-bold">{slip.paymentMethod || 'Bank Transfer'}</span></div>
+            <div className="flex justify-between"><span className="text-gray-700">Bank A/c</span><span className="font-bold">{employee.bankDetails?.accountNumber || '-'}</span></div>
+            <div className="flex justify-between"><span className="text-gray-700">PAN</span><span className="font-bold">{employee.panNumber || '-'}</span></div>
+            <div className="flex justify-between"><span className="text-gray-700">PF No.</span><span className="font-bold">{employee.pfNumber || employee.pfNo || 'NA'}</span></div>
+            <div className="flex justify-between"><span className="text-gray-700">ESI No.</span><span className="font-bold">{employee.esiNumber || 'NA'}</span></div>
+          </div>
+
+          {/* Col 4: Tax Regime */}
+          <div className="col-span-2 p-1.5 flex items-start justify-center">
+            <span className="font-bold text-[9px] uppercase tracking-wide border border-black px-1.5 py-0.5">
+              {taxRegime.includes('OLD') ? 'OLD TAX REGIME' : 'NEW TAX REGIME'}
+            </span>
+          </div>
+        </div>
+
+        {/* Earnings & Deductions Section Header */}
+        <div className="grid grid-cols-12 border-b border-black text-center font-bold">
+          <div className="col-span-7 border-r border-black py-0.5">Earnings</div>
+          <div className="col-span-5 py-0.5">Deductions</div>
+        </div>
+
+        {/* Column Titles */}
+        <div className="grid grid-cols-12 border-b border-black font-bold text-center">
+          <div className="col-span-2 border-r border-black py-0.5 text-left px-1.5">Description</div>
+          <div className="col-span-1 border-r border-black py-0.5 text-right px-1">Rate</div>
+          <div className="col-span-1 border-r border-black py-0.5 text-right px-1">Monthly</div>
+          <div className="col-span-1 border-r border-black py-0.5 text-center px-1">Arrear</div>
+          <div className="col-span-2 border-r border-black py-0.5 text-right px-1.5 leading-tight text-[8px] sm:text-[9px] flex items-center justify-end">
+            Total Earning (Monthly)
+          </div>
+          <div className="col-span-3 border-r border-black py-0.5 text-left px-1.5">Description</div>
+          <div className="col-span-2 py-0.5 text-right px-1.5">Amount</div>
+        </div>
+
+        {/* Table Rows (Aligned Line by Line) */}
+        <div className="border-b border-black divide-y divide-black">
+          {Array.from({ length: Math.max(tableData.earnings.length, tableData.deductions.length, 3) }).map((_, idx) => {
+            const earn = tableData.earnings[idx] || null;
+            const ded = tableData.deductions[idx] || null;
+
+            return (
+              <div key={idx} className="grid grid-cols-12 py-0.5 items-center">
+                {/* Earnings Cells */}
+                <div className="col-span-2 border-r border-black text-left px-1.5 font-medium">{earn?.name || ''}</div>
+                <div className="col-span-1 border-r border-black text-right px-1">{earn ? fmtVal(earn.rate) : ''}</div>
+                <div className="col-span-1 border-r border-black text-right px-1">{earn ? fmtVal(earn.monthly) : ''}</div>
+                <div className="col-span-1 border-r border-black text-center">{earn?.arrear || ''}</div>
+                <div className="col-span-2 border-r border-black text-right px-1.5 font-semibold">{earn ? fmtVal(earn.total || earn.monthly) : ''}</div>
+
+                {/* Deductions Cells */}
+                <div className="col-span-3 border-r border-black text-left px-1.5 font-medium">{ded?.name || ''}</div>
+                <div className="col-span-2 text-right px-1.5 font-semibold">{ded ? fmtVal(ded.amount) : ''}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* CTC / Totals Row */}
+        <div className="grid grid-cols-12 border-b border-black font-bold py-1 bg-gray-50 items-center">
+          <div className="col-span-2 border-r border-black text-left px-1.5">CTC</div>
+          <div className="col-span-1 border-r border-black text-right px-1">{fmtVal(tableData.totalEarningMonthly)}</div>
+          <div className="col-span-1 border-r border-black text-right px-1">{fmtVal(tableData.totalEarningMonthly)}</div>
+          <div className="col-span-1 border-r border-black text-center">-</div>
+          <div className="col-span-2 border-r border-black text-right px-1.5 font-black">{fmtVal(tableData.totalEarningMonthly)}</div>
+          <div className="col-span-3 border-r border-black text-left px-1.5">Total Deduction</div>
+          <div className="col-span-2 text-right px-1.5 font-black">{fmtVal(tableData.totalDeductions)}</div>
+        </div>
+
+        {/* Net Take Home Bar */}
+        <div className="flex justify-between items-center font-bold border-b border-black px-4 py-1.5 bg-white">
+          <span className="uppercase tracking-wider">NET TAKE HOME FOR THE MONTH</span>
+          <span className="text-xs font-black">{fmtVal(tableData.netTakeHome)}</span>
+        </div>
+
+        {/* ----------------- INCOME TAX WORKSHEET (DARK BLUE BAR) ----------------- */}
+        <div className="border-b border-black text-center font-bold py-1 bg-[#0f2d59] text-white uppercase tracking-wider text-[10px]">
+          Income Tax Worksheet for the period April {startYear} - March {endYear}
+        </div>
+
+        {/* 3-Section Tax Grid */}
+        <div className="grid grid-cols-12 border-b border-black text-[9px] leading-tight">
+          
+          {/* Section 1: Income Breakdown & Deductions Table (Col 1 to 5) */}
+          <div className="col-span-5 border-r border-black">
+            <div className="grid grid-cols-12 border-b border-black font-bold text-center bg-gray-50 py-0.5">
+              <div className="col-span-5 border-r border-black text-left px-1">Description</div>
+              <div className="col-span-2 border-r border-black text-right px-1">Gross</div>
+              <div className="col-span-2 border-r border-black text-center">Exempt</div>
+              <div className="col-span-3 text-right px-1">Taxable</div>
+            </div>
+            <div className="divide-y divide-gray-200">
+              {worksheetEarnings.map((row, i) => (
+                <div key={i} className="grid grid-cols-12 py-0.5">
+                  <div className="col-span-5 border-r border-black px-1 font-medium">{row.name}</div>
+                  <div className="col-span-2 border-r border-black text-right px-1">{fmtVal(row.gross)}</div>
+                  <div className="col-span-2 border-r border-black text-center text-gray-500">{row.exempt ? fmtVal(row.exempt) : '-'}</div>
+                  <div className="col-span-3 text-right px-1">{fmtVal(row.taxable)}</div>
                 </div>
               ))}
-            </div>
-          )}
-
-          {/* Employee Info Grid */}
-          <div className="grid grid-cols-3 border-b border-black">
-            {/* Column 1 */}
-            <div className="border-r border-black p-2 space-y-1.5">
-              <div className="flex justify-between"><span className="text-gray-600">Emp. Code</span> <span className="font-bold text-right">{employee.employeeId || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Name</span> <span className="font-bold text-right">{employeeName}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Designation</span> <span className="font-bold text-right">{employee.designation || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Department</span> <span className="font-bold text-right">{employee.department?.name || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">DOJ</span> <span className="font-bold text-right">{fmtDate(employee.joiningDate)}</span></div>
-            </div>
-            
-            {/* Column 2 */}
-            <div className="border-r border-black p-2 space-y-1.5">
-              <div className="flex justify-between"><span className="text-gray-600">PF UAN No.</span> <span className="font-bold text-right">{employee.uanNumber || 'NA'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Location</span> <span className="font-bold text-right">{employee.location || 'Gurgaon'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Payment</span> <span className="font-bold text-right">{slip.paymentMethod || 'Bank Transfer'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Bank A/c</span> <span className="font-bold text-right">{employee.bankDetails?.accountNumber || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">PAN</span> <span className="font-bold text-right">{employee.panNumber || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Gender</span> <span className="font-bold text-right">{employee.gender || '-'}</span></div>
-            </div>
-
-            {/* Column 3 */}
-            <div className="p-2 space-y-1.5">
-              <div className="flex justify-between"><span className="text-gray-600">Month Days</span> <span className="font-bold text-right">{Number(slip.workingDays || 30).toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Payable Days</span> <span className="font-bold text-right">{Number(slip.paidDays || 30).toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">PF No.</span> <span className="font-bold text-right">{employee.pfNumber || employee.pfNo || 'NA'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">ESI No.</span> <span className="font-bold text-right">{employee.esiNumber || 'NA'}</span></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-5 border-r border-black px-1">Other</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-3 text-center">-</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-5 border-r border-black px-1">Bonus</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-3 text-center">-</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-5 border-r border-black px-1">Arrear</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-3 text-center">-</div></div>
+              <div className="grid grid-cols-12 py-0.5 border-t border-black font-bold bg-gray-50">
+                <div className="col-span-5 border-r border-black px-1">Gross Salary</div>
+                <div className="col-span-2 border-r border-black text-right px-1">{fmtVal(annualGross)}</div>
+                <div className="col-span-2 border-r border-black text-center">-</div>
+                <div className="col-span-3 text-right px-1 font-bold">{fmtVal(annualGross)}</div>
+              </div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Deduction - Income from House Property (Intt)</div><div className="col-span-3 text-center">-</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1 font-medium">Standard Deduction</div><div className="col-span-3 text-right px-1">{fmtVal(standardDeduction)}</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Previous Employer Professional Tax</div><div className="col-span-3 text-center">-</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Professional Tax</div><div className="col-span-3 text-right px-1">{fmtVal(annualPT)}</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Under Chapter VI-A</div><div className="col-span-3 text-right px-1">{fmtVal(chapterVIA)}</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Any Other Income</div><div className="col-span-3 text-center">-</div></div>
+              <div className="grid grid-cols-12 py-0.5 font-bold bg-gray-50 border-t border-black"><div className="col-span-9 border-r border-black px-1">Taxable Income</div><div className="col-span-3 text-right px-1">{fmtVal(taxableIncome)}</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Total Tax</div><div className="col-span-3 text-center">{worksheet.totalTax ? fmtVal(worksheet.totalTax) : '-'}</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Tax Rebate</div><div className="col-span-3 text-center">-</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Surcharge</div><div className="col-span-3 text-center">-</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Tax Due</div><div className="col-span-3 text-center">-</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Educational Cess</div><div className="col-span-3 text-right px-1">{worksheet.cess ? fmtVal(worksheet.cess) : '-'}</div></div>
+              <div className="grid grid-cols-12 py-0.5 font-bold"><div className="col-span-9 border-r border-black px-1">Net Tax</div><div className="col-span-3 text-center">{worksheet.netTax ? fmtVal(worksheet.netTax) : '-'}</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Tax deducted (Previous Employer)</div><div className="col-span-3 text-center">-</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Tax Deducted Till date</div><div className="col-span-3 text-center">{worksheet.taxDeductedTillDate ? fmtVal(worksheet.taxDeductedTillDate) : '-'}</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Tax to be Deducted</div><div className="col-span-3 text-center">{worksheet.taxToDeducted ? fmtVal(worksheet.taxToDeducted) : '-'}</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Tax/ Month</div><div className="col-span-3 text-right px-1">-</div></div>
+              <div className="grid grid-cols-12 py-0.5"><div className="col-span-9 border-r border-black px-1">Tax on Non-Recurring Earnings</div><div className="col-span-3 text-center">-</div></div>
+              <div className="grid grid-cols-12 py-0.5 font-bold"><div className="col-span-9 border-r border-black px-1">Tax Deduction for this month</div><div className="col-span-3 text-right px-1 text-amber-900">{worksheet.taxDeductionThisMonth ? fmtVal(worksheet.taxDeductionThisMonth) : '-'}</div></div>
             </div>
           </div>
 
-          {/* Earnings / Deductions Subheader */}
-          <div className="grid grid-cols-7 border-b border-black text-center font-bold bg-gray-50">
-            <div className="col-span-5 border-r border-black py-1">Earnings</div>
-            <div className="col-span-2 py-1">Deductions</div>
-          </div>
-
-          {/* Table Headers */}
-          <div className="grid grid-cols-7 border-b border-black font-bold text-center bg-gray-100">
-            <div className="col-span-2 border-r border-black py-1 text-left px-2">Description</div>
-            <div className="border-r border-black py-1">Rate</div>
-            <div className="border-r border-black py-1">Monthly</div>
-            <div className="border-r border-black py-1">Arrear</div>
-            <div className="border-r border-black py-1 text-left px-2">Description</div>
-            <div className="py-1 text-right px-2">Amount</div>
-          </div>
-
-          {/* Table Rows */}
-          <div className="border-b border-black divide-y divide-gray-200">
-            {Array.from({ length: tableData.maxRows }).map((_, idx) => {
-              const earn = tableData.earnings[idx] || null;
-              const ded = tableData.deductions[idx] || null;
-
-              return (
-                <div key={idx} className="grid grid-cols-7 text-center">
-                  {/* Earnings cell */}
-                  <div className="col-span-2 border-r border-black py-1 text-left px-2 font-semibold">
-                    {earn ? earn.name : ''}
-                  </div>
-                  <div className="border-r border-black py-1 text-right px-2">
-                    {earn ? fmtMoney(earn.rate) : ''}
-                  </div>
-                  <div className="border-r border-black py-1 text-right px-2">
-                    {earn ? fmtMoney(earn.monthly) : ''}
-                  </div>
-                  <div className="border-r border-black py-1 text-right px-2 text-gray-500">
-                    {earn ? earn.arrear : ''}
-                  </div>
-
-                  {/* Deductions cell */}
-                  <div className="border-r border-black py-1 text-left px-2">
-                    {ded ? ded.name : ''}
-                  </div>
-                  <div className="py-1 text-right px-2 font-semibold">
-                    {ded ? fmtMoney(ded.amount) : ''}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Totals Row */}
-          <div className="grid grid-cols-7 border-b border-black font-bold bg-gray-50 text-center">
-            <div className="col-span-2 border-r border-black py-1.5 text-left px-2">CTC</div>
-            <div className="border-r border-black py-1.5 text-right px-2">{fmtMoney(tableData.totalEarningRate)}</div>
-            <div className="border-r border-black py-1.5 text-right px-2">{fmtMoney(tableData.totalEarningMonthly)}</div>
-            <div className="border-r border-black py-1.5 text-right px-2">-</div>
-            <div className="border-r border-black py-1.5 text-left px-2">Total Deduction</div>
-            <div className="py-1.5 text-right px-2">{fmtMoney(tableData.totalDeductions)}</div>
-          </div>
-
-          {/* Net Take Home Bar */}
-          <div className="flex justify-between font-bold border-b border-black px-4 py-2 bg-gray-100">
-            <span>NET TAKE HOME FOR THE MONTH</span>
-            <span className="text-sm">{fmtMoney(tableData.netTakeHome)}</span>
-          </div>
-
-          {/* ----------------- TAX WORKSHEET SECTION ----------------- */}
-          <div className="border-b border-black text-center font-bold py-1 bg-gray-800 text-white uppercase tracking-wider">
-            Income Tax Worksheet for the period April {startYear} - March {endYear}
-          </div>
-
-          <div className="grid grid-cols-5 border-b border-black">
-            {/* Columns 1-2: Gross breakdown & Tax Calcs */}
-            <div className="col-span-2 border-r border-black">
-              <table className="w-full text-[10px] border-collapse">
-                <thead>
-                  <tr className="bg-gray-100 border-b border-black font-bold text-center">
-                    <th className="py-1 text-left px-2 border-r border-black">Description</th>
-                    <th className="py-1 text-right px-2 border-r border-black">Gross</th>
-                    <th className="py-1 text-right px-2 border-r border-black">Exempt</th>
-                    <th className="py-1 text-right px-2">Taxable</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {compBreakdown.map((row, i) => (
-                    <tr key={i}>
-                      <td className="py-0.5 px-2 border-r border-black font-medium">{row.name}</td>
-                      <td className="py-0.5 px-2 border-r border-black text-right">{fmtMoney(row.gross)}</td>
-                      <td className="py-0.5 px-2 border-r border-black text-right text-gray-500">{row.exempt ? fmtMoney(row.exempt) : '-'}</td>
-                      <td className="py-0.5 px-2 text-right">{fmtMoney(row.taxable)}</td>
-                    </tr>
-                  ))}
-                  <tr className="bg-gray-50 border-t border-black font-bold">
-                    <td className="py-1 px-2 border-r border-black">Gross Salary</td>
-                    <td className="py-1 px-2 border-r border-black text-right">{fmtMoney(worksheet.grossSalary)}</td>
-                    <td className="py-1 px-2 border-r border-black text-right">-</td>
-                    <td className="py-1 px-2 text-right">{fmtMoney(worksheet.grossSalary)}</td>
-                  </tr>
-                  {/* Deductions and standard tax calculations list */}
-                  <tr className="divide-x divide-gray-200">
-                    <td colSpan="3" className="py-0.5 px-2 border-r border-black">Standard Deduction</td>
-                    <td className="py-0.5 px-2 text-right font-medium">{fmtMoney(worksheet.standardDeduction)}</td>
-                  </tr>
-                  <tr className="divide-x divide-gray-200">
-                    <td colSpan="3" className="py-0.5 px-2 border-r border-black">Taxable Income</td>
-                    <td className="py-0.5 px-2 text-right font-bold bg-gray-50">{fmtMoney(worksheet.taxableIncome)}</td>
-                  </tr>
-                  <tr className="divide-x divide-gray-200">
-                    <td colSpan="3" className="py-0.5 px-2 border-r border-black">Total Tax</td>
-                    <td className="py-0.5 px-2 text-right font-medium">{fmtMoney(worksheet.totalTax)}</td>
-                  </tr>
-                  <tr className="divide-x divide-gray-200">
-                    <td colSpan="3" className="py-0.5 px-2 border-r border-black">Educational Cess (4%)</td>
-                    <td className="py-0.5 px-2 text-right font-medium">{fmtMoney(worksheet.cess)}</td>
-                  </tr>
-                  <tr className="divide-x divide-gray-200 font-bold bg-gray-100">
-                    <td colSpan="3" className="py-1 px-2 border-r border-black">Net Tax</td>
-                    <td className="py-1 px-2 text-right">{fmtMoney(worksheet.netTax)}</td>
-                  </tr>
-                  <tr className="divide-x divide-gray-200">
-                    <td colSpan="3" className="py-0.5 px-2 border-r border-black">Tax Deducted Till Date</td>
-                    <td className="py-0.5 px-2 text-right font-medium">{fmtMoney(worksheet.taxDeductedTillDate)}</td>
-                  </tr>
-                  <tr className="divide-x divide-gray-200">
-                    <td colSpan="3" className="py-0.5 px-2 border-r border-black">Tax to be Deducted</td>
-                    <td className="py-0.5 px-2 text-right font-medium">{fmtMoney(worksheet.taxToDeducted)}</td>
-                  </tr>
-                  <tr className="divide-x divide-gray-200 font-bold bg-amber-50">
-                    <td colSpan="3" className="py-1 px-2 border-r border-black">Tax Deduction this Month</td>
-                    <td className="py-1 px-2 text-right text-amber-950">{fmtMoney(worksheet.taxDeductionThisMonth)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* Column 3-4: Deduction Under Chapter VI-A & 80C */}
-            <div className="col-span-2 border-r border-black text-[10px]">
-              <div className="bg-gray-100 border-b border-black font-bold py-1 px-2 text-center">
+          {/* Section 2: Deduction Under Chapter VI-A (Col 6 to 9) */}
+          <div className="col-span-4 border-r border-black flex flex-col justify-between">
+            <div>
+              <div className="border-b border-black font-bold text-center py-0.5 bg-gray-50">
                 Deduction Under Chapter VI-A
               </div>
-              <div className="p-2 space-y-1">
-                <div className="flex justify-between font-bold border-b border-gray-100 pb-0.5">
-                  <span>Investments u/s 80C</span>
-                  <span>Amount</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span>Provident Fund (EPF)</span>
-                  <span>{fmtMoney(employee.declarations?.epf || 0)}</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span>Public Provident Fund (PPF)</span>
-                  <span>{fmtMoney(employee.declarations?.ppf || 0)}</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span>Principal - Housing Loan</span>
-                  <span>{fmtMoney(employee.declarations?.homeLoanPrincipal || 0)}</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span>Life Insurance Premium</span>
-                  <span>{fmtMoney(employee.declarations?.lic || 0)}</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span>ELSS Mutual Funds</span>
-                  <span>{fmtMoney(employee.declarations?.elss || 0)}</span>
-                </div>
-                <div className="flex justify-between font-bold border-t border-gray-100 pt-1">
-                  <span>Total of Investment u/s 80C</span>
-                  <span>{fmtMoney(employee.declarations?.section80C || 0)}</span>
-                </div>
+              <div className="border-b border-black font-bold px-1.5 py-0.5 bg-gray-100">
+                Investments u/s 80C
+              </div>
+              <div className="divide-y divide-gray-200">
+                <div className="flex justify-between px-1.5 py-0.5"><span>Provident Fund</span><span>{fmtVal(epfVal || annualPF, false) || '0.00'}</span></div>
+                <div className="flex justify-between px-1.5 py-0.5"><span>Public Provident Fund</span><span>{fmtVal(ppfVal)}</span></div>
+                <div className="flex justify-between px-1.5 py-0.5"><span>Principal - Housing Loan</span><span>{fmtVal(homeLoanVal)}</span></div>
+                <div className="flex justify-between px-1.5 py-0.5"><span>Life Insurance Premium</span><span>{fmtVal(licVal)}</span></div>
+                <div className="flex justify-between px-1.5 py-0.5"><span>Mutual Fund</span><span>{fmtVal(elssVal)}</span></div>
+                <div className="flex justify-between px-1.5 py-0.5"><span>Atal Pension Yojna</span><span>-</span></div>
+                <div className="flex justify-between px-1.5 py-0.5 font-bold border-t border-black bg-gray-50"><span>Total of Investment u/s 80C</span><span>{fmtVal(sec80CVal || annualPF, false) || '0.00'}</span></div>
               </div>
 
-              {/* Other chapter VI-A sections */}
-              <div className="border-t border-black p-2 space-y-1">
-                <div className="flex justify-between font-bold pb-0.5 border-b border-gray-100">
-                  <span>Section Details</span>
-                  <span>Value</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span>U/S 80C (Capped)</span>
-                  <span>{fmtMoney(Math.min(150000, employee.declarations?.section80C || 0))}</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span>U/S 80D (Medical)</span>
-                  <span>{fmtMoney(employee.declarations?.section80D || 0)}</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span>U/S 80CCD (NPS)</span>
-                  <span>{fmtMoney(employee.declarations?.section80CCD1B || 0)}</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span>Interest on Housing Loan u/s 24b</span>
-                  <span>{fmtMoney(employee.declarations?.section24b || 0)}</span>
-                </div>
-                <div className="flex justify-between font-bold border-t border-gray-100 pt-1">
-                  <span>Total Deductions Chapter VI-A</span>
-                  <span>{fmtMoney(
-                    Math.min(150000, employee.declarations?.section80C || 0) + 
-                    (employee.declarations?.section80D || 0) + 
-                    (employee.declarations?.section80CCD1B || 0)
-                  )}</span>
+              <div className="border-t border-black divide-y divide-gray-200">
+                <div className="flex justify-between px-1.5 py-0.5"><span>U/S 80C</span><span>{fmtVal(sec80CCapped || annualPF)}</span></div>
+                <div className="flex justify-between px-1.5 py-0.5"><span>U/S 80D</span><span>{fmtVal(sec80DVal)}</span></div>
+                <div className="flex justify-between px-1.5 py-0.5"><span>U/S 80CCD</span><span>{fmtVal(sec80CCDVal)}</span></div>
+                <div className="flex justify-between px-1.5 py-0.5"><span>U/S 80 G</span><span>-</span></div>
+              </div>
+            </div>
+
+            <div className="border-t border-black divide-y divide-gray-200 bg-gray-50">
+              <div className="flex justify-between px-1.5 py-0.5 font-bold"><span>Total of Ded Under Chapter</span><span>{fmtVal(totalVIA || annualPF)}</span></div>
+              <div className="flex justify-between px-1.5 py-0.5"><span>Interest on Housing Loan</span><span>{fmtVal(sec24bVal)}</span></div>
+              <div className="flex justify-between px-1.5 py-0.5"><span>Max Allowed</span><span>-</span></div>
+            </div>
+          </div>
+
+          {/* Section 3: Tax Deducted Details & Leave Balance (Col 10 to 12) */}
+          <div className="col-span-3 flex flex-col justify-between">
+            <div>
+              <div className="border-b border-black font-bold text-center py-0.5 bg-gray-50">
+                Tax Deducted Details
+              </div>
+              <div className="grid grid-cols-12 border-b border-black font-bold px-1.5 py-0.5 bg-gray-100 text-center">
+                <div className="col-span-6 text-left">Month</div>
+                <div className="col-span-6 text-right">Amount</div>
+              </div>
+              <div className="divide-y divide-gray-200">
+                {monthsList.map((m, i) => (
+                  <div key={i} className="grid grid-cols-12 px-1.5 py-0.5">
+                    <div className="col-span-6 text-left">{m.name}</div>
+                    <div className="col-span-6 text-right font-medium">{fmtVal(tdsMonths[m.key] || 0)}</div>
+                  </div>
+                ))}
+                <div className="grid grid-cols-12 px-1.5 py-0.5 font-bold border-t border-black bg-gray-50">
+                  <div className="col-span-6 text-left">Total</div>
+                  <div className="col-span-6 text-right">{fmtVal(Object.values(tdsMonths).reduce((a, b) => a + (Number(b) || 0), 0))}</div>
                 </div>
               </div>
             </div>
 
-            {/* Column 5: Month-wise TDS Detail */}
-            <div className="col-span-1 text-[10px] flex flex-col justify-between">
-              <div>
-                <div className="bg-gray-100 border-b border-black font-bold py-1 px-2 text-center">
-                  Tax Deducted Details
-                </div>
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50 text-[9px] font-bold text-gray-700">
-                      <th className="py-0.5 px-2 text-left">Month</th>
-                      <th className="py-0.5 px-2 text-right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {monthsList.map((m, idx) => (
-                      <tr key={idx}>
-                        <td className="py-0.5 px-2 text-gray-600">{m.name}</td>
-                        <td className="py-0.5 px-2 text-right font-medium">{fmtMoney(tdsMonths[m.key] || 0)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="border-t border-black p-2 bg-gray-50">
-                <div className="flex justify-between font-bold text-[9px]">
-                  <span>LEAVE BALANCE ON MONTH END</span>
-                  <span>{Number(slip.leaveBalance || 0).toFixed(2)}</span>
-                </div>
+            <div className="border-t border-black p-1.5 bg-gray-50">
+              <div className="flex justify-between font-bold text-[9px]">
+                <span>LEAVE BALANCE AS ON MONTH END</span>
+                <span>{Number(slip.leaveBalance || 0).toFixed(2)}</span>
               </div>
             </div>
           </div>
-
-          {/* HRA Calculation Row */}
-          <div className="border-b border-black text-center font-bold py-1 bg-gray-800 text-white uppercase tracking-wider">
-            HRA Calculation
-          </div>
-          <table className="w-full text-[10px] text-center border-collapse">
-            <thead>
-              <tr className="bg-gray-100 border-b border-black font-bold">
-                <th className="py-1 px-2 border-r border-black">From</th>
-                <th className="py-1 px-2 border-r border-black">To</th>
-                <th className="py-1 px-2 border-r border-black">Rent Paid</th>
-                <th className="py-1 px-2 border-r border-black">Actual HRA</th>
-                <th className="py-1 px-2 border-r border-black">40/50% of Basic</th>
-                <th className="py-1 px-2 border-r border-black">Rent - 10% of Basic</th>
-                <th className="py-1 px-2">Exempt HRA</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="py-1 px-2 border-r border-black">April</td>
-                <td className="py-1 px-2 border-r border-black">March</td>
-                <td className="py-1 px-2 border-r border-black">{fmtMoney(hraCalc.rentPaid)}</td>
-                <td className="py-1 px-2 border-r border-black">{fmtMoney(hraCalc.actualHRA)}</td>
-                <td className="py-1 px-2 border-r border-black">{fmtMoney(hraCalc.basicPercent)}</td>
-                <td className="py-1 px-2 border-r border-black">{fmtMoney(hraCalc.rentMinusBasic10)}</td>
-                <td className="py-1 px-2 font-bold bg-gray-50">{fmtMoney(hraCalc.exemptHRA)}</td>
-              </tr>
-            </tbody>
-          </table>
 
         </div>
 
-        {/* Footer generator message */}
-        <p className="text-center text-[10px] text-gray-500 font-sans tracking-wide mt-6">
+        {/* HRA Calculation Table */}
+        <div className="border-b border-black">
+          <div className="font-bold px-1.5 py-0.5 bg-gray-100 border-b border-black">
+            HRA Calculation
+          </div>
+          <div className="grid grid-cols-12 text-center font-bold border-b border-black text-[9px] py-0.5 bg-gray-50">
+            <div className="col-span-1 border-r border-black">From</div>
+            <div className="col-span-1 border-r border-black">To</div>
+            <div className="col-span-2 border-r border-black">Rent Paid</div>
+            <div className="col-span-2 border-r border-black">Actual HRA</div>
+            <div className="col-span-2 border-r border-black">40/50% of Basic</div>
+            <div className="col-span-2 border-r border-black">Rent - 10% of Basic</div>
+            <div className="col-span-2">Exempt HRA</div>
+          </div>
+          <div className="grid grid-cols-12 text-center text-[9px] py-0.5 border-b border-black">
+            <div className="col-span-1 border-r border-black">April</div>
+            <div className="col-span-1 border-r border-black">March</div>
+            <div className="col-span-2 border-r border-black">{fmtVal(hraCalc.rentPaid)}</div>
+            <div className="col-span-2 border-r border-black">{fmtVal(hraCalc.actualHRA || ((worksheetEarnings.find(e => e.name.toLowerCase().includes('hra'))?.gross) || 0))}</div>
+            <div className="col-span-2 border-r border-black">{fmtVal(hraCalc.basicPercent || (((worksheetEarnings.find(e => e.name.toLowerCase().includes('basic'))?.gross) || 0) * 0.4))}</div>
+            <div className="col-span-2 border-r border-black">{fmtVal(hraCalc.rentMinusBasic10)}</div>
+            <div className="col-span-2 font-bold bg-gray-50">{fmtVal(hraCalc.exemptHRA || ((worksheetEarnings.find(e => e.name.toLowerCase().includes('hra'))?.gross) || 0))}</div>
+          </div>
+          <div className="grid grid-cols-12 text-center text-[9px] py-0.5 font-bold bg-gray-50">
+            <div className="col-span-2 border-r border-black text-center font-bold">Total</div>
+            <div className="col-span-10 text-center">-</div>
+          </div>
+        </div>
+
+        {/* Computer Generated Footer Banner */}
+        <div className="bg-[#0f2d59] text-white text-center font-bold text-[9px] py-1 mt-1 tracking-wider uppercase">
           THIS IS COMPUTER GENERATED PAY SLIP - SIGNATURE NOT REQUIRED.
-        </p>
+        </div>
 
       </div>
     </div>

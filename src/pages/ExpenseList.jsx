@@ -72,16 +72,28 @@ const ExpenseList = () => {
 
       const formattedExpenses = loadedExpenses.map(exp => {
         const isCategory = !exp.vendor?.vendorRef && !exp.vendor?.name;
+        const gross = Number(exp.grandTotal || 0);
+        const tax = Number(exp.taxTotal || (exp.items?.reduce((s, i) => s + (Number(i.taxAmount) || 0), 0)) || 0);
+        const tds = Number(exp.tds_amount || exp.tdsAmount || 0);
+        const tdsSec = exp.tds_section || exp.tdsSection || '';
+        const paid = Number(exp.amountPaid || 0);
+        const net = Math.max(0, gross - tds);
+        const bal = typeof exp.balanceDue === 'number' && exp.balanceDue !== null ? exp.balanceDue : Math.max(0, net - paid);
+
         return {
           id: exp._id,
           type: isCategory ? 'category' : 'vendor',
           date: exp.date,
           number: exp.expenseNumber,
           partyName: exp.vendor?.name || '—',
-          clientOrMethod: exp.client?.name || '—',
+          clientOrMethod: exp.client?.name || exp.paymentMethod || '—',
           status: exp.status,
-          amount: exp.grandTotal,
-          balanceDue: exp.balanceDue,
+          amount: gross,
+          taxTotal: tax,
+          tds: tds,
+          tdsSection: tdsSec,
+          amountPaid: paid,
+          balanceDue: bal,
           rawItem: exp
         };
       });
@@ -89,6 +101,11 @@ const ExpenseList = () => {
       const formattedPayrolls = loadedPayrolls.map(pr => {
         const empName = `${pr.employee?.firstName || pr.employeeSnapshot?.firstName || ''} ${pr.employee?.lastName || pr.employeeSnapshot?.lastName || ''}`.trim() || 'Unknown Employee';
         const dateObj = pr.createdAt || new Date(pr.year, pr.month - 1, 1).toISOString();
+        const netSalary = Number(pr.netSalary || 0);
+        const totalGross = Number(pr.earnings?.totalEarnings || pr.totalPayable || netSalary);
+        const tds = Number(pr.deductions?.tds || 0);
+        const isPaid = (pr.status || '').toLowerCase() === 'paid';
+
         return {
           id: pr._id,
           type: 'salary',
@@ -98,8 +115,12 @@ const ExpenseList = () => {
           partyName: empName,
           clientOrMethod: pr.paymentMethod || 'Bank Transfer',
           status: pr.status?.toUpperCase() || 'DRAFT',
-          amount: pr.netSalary,
-          balanceDue: 0,
+          amount: totalGross,
+          taxTotal: 0,
+          tds: tds,
+          tdsSection: '192',
+          amountPaid: isPaid ? netSalary : 0,
+          balanceDue: isPaid ? 0 : netSalary,
           rawItem: pr
         };
       });
@@ -236,6 +257,15 @@ const ExpenseList = () => {
       } else if (sortBy === 'partyName') {
         valA = String(a.partyName || '');
         valB = String(b.partyName || '');
+      } else if (sortBy === 'taxTotal') {
+        valA = Number(a.taxTotal) || 0;
+        valB = Number(b.taxTotal) || 0;
+      } else if (sortBy === 'tds') {
+        valA = Number(a.tds) || 0;
+        valB = Number(b.tds) || 0;
+      } else if (sortBy === 'balanceDue') {
+        valA = Number(a.balanceDue) || 0;
+        valB = Number(b.balanceDue) || 0;
       } else if (sortBy === 'status') {
         valA = String(a.status || '');
         valB = String(b.status || '');
@@ -297,7 +327,10 @@ const ExpenseList = () => {
       partyName: item.partyName,
       info: item.clientOrMethod,
       status: item.status,
-      amount: item.amount
+      amount: item.amount,
+      taxTotal: item.taxTotal || 0,
+      tds: item.tds || 0,
+      balanceDue: item.balanceDue || 0
     }));
   };
 
@@ -320,20 +353,20 @@ const ExpenseList = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 font-sans text-gray-900 dark:text-slate-100 transition-colors">
+    <div className="w-full px-4 py-4 font-sans text-gray-900 dark:text-slate-100 transition-colors">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-5 gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Expenses</h1>
           <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Record and manage your company purchases, outgoings, and payroll</p>
         </div>
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-2.5 flex-wrap">
           {selectedIds.length > 0 && (
             <button
               onClick={handleBulkDelete}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
             >
-              <FaTrash size={14} /> Delete Selected ({selectedIds.length})
+              <FaTrash size={12} /> Delete Selected ({selectedIds.length})
             </button>
           )}
           <ExportDropdown 
@@ -345,31 +378,33 @@ const ExpenseList = () => {
                  { header: 'Date', key: 'date' },
                  { header: 'Number / ID', key: 'number' },
                  { header: 'Vendor / Employee', key: 'partyName' },
-                 { header: 'Client / Method', key: 'info' },
                  { header: 'Status', key: 'status' },
-                 { header: 'Amount', key: 'amount' }
+                 { header: 'Amount', key: 'amount' },
+                 { header: 'Total GST', key: 'taxTotal' },
+                 { header: 'TDS', key: 'tds' },
+                 { header: 'Balance', key: 'balanceDue' }
               ]}
           />
           <button
             type="button"
             onClick={() => setIsPdfScannerOpen(true)}
-            className="bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-900/50 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/60 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+            className="bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-900/50 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/60 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
           >
-            <FaFilePdf size={16} /> Scan PDF
+            <FaFilePdf size={13} /> Scan PDF
           </button>
           <Link to="/payroll/process"
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-semibold shadow-sm transition-all text-sm">
-            <FaPlus size={16} /> Process Payroll
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-semibold shadow-sm transition-all text-xs">
+            <FaPlus size={12} /> Process Payroll
           </Link>
           <Link to="/expenses/new"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-semibold shadow-sm transition-all text-sm">
-            <FaPlus size={16} /> New Expense
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-semibold shadow-sm transition-all text-xs">
+            <FaPlus size={12} /> New Expense
           </Link>
         </div>
       </div>
 
       {/* Tabs / Filters */}
-      <div className="flex flex-wrap border-b border-gray-200 dark:border-slate-800 mb-6 gap-2 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-xl border shadow-sm transition-colors">
+      <div className="flex flex-wrap border-b border-gray-200 dark:border-slate-800 mb-4 gap-1.5 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border shadow-sm transition-colors text-xs">
         {[
           { key: 'all', label: 'All Expenses' },
           { key: 'vendor', label: 'Vendor Expense' },
@@ -380,7 +415,7 @@ const ExpenseList = () => {
             key={tab.key}
             type="button"
             onClick={() => setFilterType(tab.key)}
-            className={`pb-2.5 pt-2 px-4 text-sm font-semibold border-b-2 transition-all ${
+            className={`pb-1.5 pt-1 px-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
               filterType === tab.key
                 ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100'
@@ -394,30 +429,30 @@ const ExpenseList = () => {
       {/* Table Container */}
       <div className="bg-white dark:bg-slate-900 shadow-sm rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden transition-colors">
         {/* Table Toolbar & Filters */}
-        <div className="p-5 border-b border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="p-3 border-b border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 flex flex-col gap-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="relative max-w-xs w-full">
               <input 
                 type="text" 
                 placeholder="Search expenses and payroll..." 
-                className="w-full pl-3 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm font-sans"
+                className="w-full pl-3 pr-3 py-1.5 border border-gray-300 dark:border-slate-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm font-sans"
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
               />
             </div>
-            <div className="text-sm text-gray-500 dark:text-slate-400 font-medium">
+            <div className="text-xs text-gray-500 dark:text-slate-400 font-medium">
               Showing {displayedItems.length} of {totalRecords} results
             </div>
           </div>
 
           {/* Filters Bar */}
-          <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-100 dark:border-slate-800 shadow-sm text-sm">
-            <div className="flex flex-col min-w-[140px]">
-              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Status</span>
+          <div className="flex flex-wrap items-center gap-2.5 bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-gray-100 dark:border-slate-800 shadow-sm text-xs">
+            <div className="flex flex-col min-w-[120px]">
+              <span className="text-[9px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">Status</span>
               <select
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-md px-2 py-1 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer font-sans"
               >
                 <option value="">All Statuses</option>
                 <option value="PAID">PAID / Paid</option>
@@ -426,12 +461,12 @@ const ExpenseList = () => {
               </select>
             </div>
 
-            <div className="flex flex-col min-w-[140px]">
-              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Business Unit</span>
+            <div className="flex flex-col min-w-[130px]">
+              <span className="text-[9px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">Business Unit</span>
               <select
                 value={businessUnitFilter}
                 onChange={(e) => { setBusinessUnitFilter(e.target.value); setPage(1); }}
-                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-md px-2 py-1 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer font-sans"
               >
                 <option value="">All Business Units</option>
                 {businessUnits.map(bu => (
@@ -440,28 +475,28 @@ const ExpenseList = () => {
               </select>
             </div>
 
-            <div className="flex flex-col min-w-[130px]">
-              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">From Date</span>
+            <div className="flex flex-col min-w-[115px]">
+              <span className="text-[9px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">From Date</span>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
-                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-md px-2 py-0.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer font-sans"
               />
             </div>
 
-            <div className="flex flex-col min-w-[130px]">
-              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">To Date</span>
+            <div className="flex flex-col min-w-[115px]">
+              <span className="text-[9px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">To Date</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
-                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-md px-2 py-0.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer font-sans"
               />
             </div>
 
-            <div className="flex flex-col min-w-[160px]">
-              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1 tracking-wider">Sort By</span>
+            <div className="flex flex-col min-w-[130px]">
+              <span className="text-[9px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">Sort By</span>
               <select
                 value={`${sortBy}-${sortOrder}`}
                 onChange={(e) => {
@@ -470,12 +505,15 @@ const ExpenseList = () => {
                   setSortOrder(order);
                   setPage(1);
                 }}
-                className="border border-gray-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all cursor-pointer font-sans"
+                className="border border-gray-200 dark:border-slate-700 rounded-md px-2 py-1 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer font-sans"
               >
                 <option value="date-desc">Date (Latest first)</option>
                 <option value="date-asc">Date (Oldest first)</option>
                 <option value="amount-desc">Amount (Highest first)</option>
                 <option value="amount-asc">Amount (Lowest first)</option>
+                <option value="taxTotal-desc">GST (Highest first)</option>
+                <option value="tds-desc">TDS (Highest first)</option>
+                <option value="balanceDue-desc">Payable (Highest first)</option>
                 <option value="number-desc">ID / Number (Z-A)</option>
                 <option value="number-asc">ID / Number (A-Z)</option>
               </select>
@@ -490,7 +528,7 @@ const ExpenseList = () => {
                 setSortOrder('desc');
                 setPage(1);
               }}
-              className="mt-5 border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg px-4 py-1.5 transition-colors font-medium self-end font-sans"
+              className="mt-4 border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md px-3 py-1 transition-colors text-xs font-semibold self-end font-sans cursor-pointer"
             >
               Reset
             </button>
@@ -498,28 +536,28 @@ const ExpenseList = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800 font-sans text-xs">
             <thead className="bg-gray-50 dark:bg-slate-800/60">
               <tr>
-                <th className="px-4 py-2.5 w-12 text-center">
+                <th className="px-2 py-2 w-8 text-center">
                   <button onClick={toggleAll} className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300">
-                    {selectedIds.length === displayedItems.filter(x => x.type !== 'salary').length && displayedItems.filter(x => x.type !== 'salary').length > 0 ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
+                    {selectedIds.length === displayedItems.filter(x => x.type !== 'salary').length && displayedItems.filter(x => x.type !== 'salary').length > 0 ? <FaCheckSquare size={14} /> : <FaRegSquare size={14} />}
                   </button>
                 </th>
                 <th 
                   onClick={() => handleSort('date')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-2 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Date {renderSortIcon('date')}
                   </div>
                 </th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">
+                <th className="px-1.5 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">
                   Type
                 </th>
                 <th 
                   onClick={() => handleSort('number')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-2 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Number / ID {renderSortIcon('number')}
@@ -527,23 +565,15 @@ const ExpenseList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('partyName')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-2 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Vendor / Employee {renderSortIcon('partyName')}
                   </div>
                 </th>
                 <th 
-                  onClick={() => handleSort('clientOrMethod')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
-                >
-                  <div className="flex items-center">
-                    Ref Client / Method {renderSortIcon('clientOrMethod')}
-                  </div>
-                </th>
-                <th 
                   onClick={() => handleSort('status')}
-                  className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-1.5 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Status {renderSortIcon('status')}
@@ -551,47 +581,75 @@ const ExpenseList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('amount')}
-                  className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-2 py-2 text-right text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center justify-end">
                     Amount {renderSortIcon('amount')}
                   </div>
                 </th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">Actions</th>
+                <th 
+                  onClick={() => handleSort('taxTotal')}
+                  className="px-2 py-2 text-right text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                >
+                  <div className="flex items-center justify-end">
+                    Total GST {renderSortIcon('taxTotal')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('tds')}
+                  className="px-2 py-2 text-right text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                >
+                  <div className="flex items-center justify-end">
+                    TDS {renderSortIcon('tds')}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('balanceDue')}
+                  className="px-2 py-2 text-right text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                >
+                  <div className="flex items-center justify-end">
+                    Payable {renderSortIcon('balanceDue')}
+                  </div>
+                </th>
+                <th className="px-1.5 py-2 text-center text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-800/60">
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
-                    <td className="px-4 py-2 text-center"><Skeleton width="18px" height="16px" className="mx-auto" /></td>
-                    <td className="px-4 py-2"><Skeleton width="80px" height="16px" /></td>
-                    <td className="px-4 py-2"><Skeleton width="60px" height="16px" /></td>
-                    <td className="px-4 py-2"><Skeleton width="85px" height="16px" /></td>
-                    <td className="px-4 py-2"><Skeleton width="140px" height="16px" /></td>
-                    <td className="px-4 py-2"><Skeleton width="100px" height="16px" /></td>
-                    <td className="px-4 py-2"><Skeleton width="80px" height="20px" className="rounded-full" /></td>
-                    <td className="px-4 py-2 text-right"><Skeleton width="80px" height="16px" className="ml-auto" /></td>
-                    <td className="px-4 py-2 text-center"><Skeleton width="100px" height="16px" className="mx-auto" /></td>
+                    <td className="px-2 py-1.5 text-center"><Skeleton width="14px" height="14px" className="mx-auto" /></td>
+                    <td className="px-2 py-1.5"><Skeleton width="60px" height="14px" /></td>
+                    <td className="px-1.5 py-1.5"><Skeleton width="50px" height="14px" /></td>
+                    <td className="px-2 py-1.5"><Skeleton width="70px" height="14px" /></td>
+                    <td className="px-2 py-1.5"><Skeleton width="110px" height="14px" /></td>
+                    <td className="px-1.5 py-1.5"><Skeleton width="50px" height="16px" className="rounded-full" /></td>
+                    <td className="px-2 py-1.5 text-right"><Skeleton width="55px" height="14px" className="ml-auto" /></td>
+                    <td className="px-2 py-1.5 text-right"><Skeleton width="45px" height="14px" className="ml-auto" /></td>
+                    <td className="px-2 py-1.5 text-right"><Skeleton width="45px" height="14px" className="ml-auto" /></td>
+                    <td className="px-2 py-1.5 text-right"><Skeleton width="55px" height="14px" className="ml-auto" /></td>
+                    <td className="px-1.5 py-1.5 text-center"><Skeleton width="45px" height="14px" className="mx-auto" /></td>
                   </tr>
                 ))
               ) : displayedItems.length === 0 ? (
-                <tr><td colSpan="9" className="px-4 py-8 text-center text-gray-500 dark:text-slate-400 text-xs">No expenses found.</td></tr>
+                <tr><td colSpan="11" className="px-4 py-8 text-center text-gray-500 dark:text-slate-400 text-xs">No expenses found.</td></tr>
               ) : displayedItems.map(item => (
                 <tr key={`${item.type}-${item.id}`} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="px-4 py-2 text-center">
+                  <td className="px-2 py-1.5 text-center">
                     {item.type !== 'salary' ? (
                       <button onClick={() => toggleSelect(item.id)} className={selectedIds.includes(item.id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-400 dark:hover:text-slate-500'}>
-                        {selectedIds.includes(item.id) ? <FaCheckSquare size={18} /> : <FaRegSquare size={18} />}
+                        {selectedIds.includes(item.id) ? <FaCheckSquare size={14} /> : <FaRegSquare size={14} />}
                       </button>
                     ) : (
-                      <span className="text-gray-200 dark:text-slate-700">—</span>
+                      <span className="text-gray-300 dark:text-slate-700 text-xs">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-slate-400">
+                  <td className="px-2 py-1.5 whitespace-nowrap text-[11px] text-gray-500 dark:text-slate-400">
                     {item.type === 'salary' ? item.periodStr : fmtDate(item.date)}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
+                  <td className="px-1.5 py-1.5 whitespace-nowrap">
                     <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase border ${
                       item.type === 'vendor' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-900/50' :
                       item.type === 'category' ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-100 dark:border-purple-900/50' :
@@ -600,7 +658,7 @@ const ExpenseList = () => {
                       {item.type}
                     </span>
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
+                  <td className="px-2 py-1.5 whitespace-nowrap">
                     {item.type !== 'salary' ? (
                       <Link to={`/expenses/edit/${item.id}`} className="text-blue-600 dark:text-blue-400 font-semibold text-xs hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
                         {item.number}
@@ -609,19 +667,18 @@ const ExpenseList = () => {
                       <span className="text-gray-500 dark:text-slate-400 font-mono text-xs">{item.number}</span>
                     )}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    <div className="text-xs font-semibold text-gray-900 dark:text-slate-100">{item.partyName}</div>
+                  <td className="px-2 py-1.5 whitespace-nowrap max-w-[150px]">
+                    <div className="text-xs font-semibold text-gray-900 dark:text-slate-100 truncate max-w-[150px]" title={item.partyName}>
+                      {item.partyName}
+                    </div>
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-slate-400">
-                    {item.clientOrMethod}
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
+                  <td className="px-1.5 py-1.5 whitespace-nowrap">
                     {item.type === 'salary' ? (
                       <select
                         value={item.status.toUpperCase()}
                         disabled={updatingStatusId === item.id}
                         onChange={(e) => handleStatusChange(item, e.target.value)}
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all ${
                           PAYROLL_STATUS_STYLES[item.status.toLowerCase()] || PAYROLL_STATUS_STYLES.draft
                         }`}
                         title="Click to change status"
@@ -636,7 +693,7 @@ const ExpenseList = () => {
                         value={item.status}
                         disabled={updatingStatusId === item.id}
                         onChange={(e) => handleStatusChange(item, e.target.value)}
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all ${
                           STATUS_STYLES[item.status] || STATUS_STYLES.DRAFT
                         }`}
                         title="Click to change status"
@@ -649,23 +706,66 @@ const ExpenseList = () => {
                       </select>
                     )}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-right text-xs font-bold text-gray-900 dark:text-slate-100">
+                  <td className="px-2 py-1.5 whitespace-nowrap text-right text-xs font-bold text-gray-900 dark:text-slate-100 font-mono">
                     ₹{fmt(item.amount)}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-center text-xs">
-                    <div className="flex justify-center gap-3 items-center">
+                  <td className="px-2 py-1.5 whitespace-nowrap text-right text-xs font-mono">
+                    {item.taxTotal > 0 ? (
+                      <span className="font-semibold text-slate-700 dark:text-slate-200 text-[11px]">
+                        ₹{fmt(item.taxTotal)}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 dark:text-slate-500 text-[11px]">—</span>
+                    )}
+                  </td>
+                  <td className="px-2 py-1.5 whitespace-nowrap text-right text-xs font-mono">
+                    {item.tds > 0 ? (
+                      <div>
+                        <span className="font-semibold text-amber-600 dark:text-amber-400 text-[11px]">
+                          ₹{fmt(item.tds)}
+                        </span>
+                        {item.tdsSection && (
+                          <span className="text-[8px] text-gray-400 dark:text-slate-500 block">
+                            Sec {item.tdsSection}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 dark:text-slate-500 text-[11px]">—</span>
+                    )}
+                  </td>
+                  <td className="px-2 py-1.5 whitespace-nowrap text-right text-xs font-mono">
+                    <div className="flex flex-col items-end">
+                      <span className={`font-bold text-xs ${
+                        (item.balanceDue <= 0 || item.status?.toUpperCase() === 'PAID')
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-indigo-600 dark:text-indigo-400'
+                      }`}>
+                        ₹{fmt(item.balanceDue)}
+                      </span>
+                      {item.amountPaid > 0 && (
+                        <span className="text-[9px] text-gray-400 dark:text-slate-500">
+                          Paid: ₹{fmt(item.amountPaid)}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-1.5 py-1.5 whitespace-nowrap text-center text-xs font-medium">
+                    <div className="flex justify-center gap-1.5 items-center">
                       {item.type !== 'salary' ? (
                         <>
-                          <Link to={`/expenses/edit/${item.id}`} className="text-gray-400 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="Edit"><FaEdit size={16} /></Link>
+                          <Link to={`/expenses/edit/${item.id}`} className="text-gray-400 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-0.5" title="Edit">
+                            <FaEdit size={13} />
+                          </Link>
                           <button 
                             onClick={() => {
                               if (!isPro) return setShowPremiumModal(true);
                               handleDelete(item.id);
                             }} 
-                            className={`transition-colors ${isPro ? 'text-gray-400 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-500'}`} 
+                            className={`transition-colors p-0.5 ${isPro ? 'text-gray-400 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-500'}`} 
                             title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
                           >
-                            <FaTrash size={16} />
+                            <FaTrash size={13} />
                           </button>
                         </>
                       ) : (
@@ -673,10 +773,10 @@ const ExpenseList = () => {
                           to={`/payroll/${item.id}/payslip`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold hover:underline"
+                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold hover:underline text-xs"
                           title="View Payslip"
                         >
-                          <FaEye size={15} /> View Payslip
+                          <FaEye size={13} /> View
                         </Link>
                       )}
                     </div>
@@ -684,6 +784,28 @@ const ExpenseList = () => {
                 </tr>
               ))}
             </tbody>
+            {displayedItems.length > 0 && (
+              <tfoot className="bg-gray-50/90 dark:bg-slate-800/80 border-t-2 border-gray-200 dark:border-slate-700 font-semibold text-xs text-gray-900 dark:text-slate-100">
+                <tr>
+                  <td colSpan={6} className="px-2 py-2 text-right text-gray-500 dark:text-slate-400 uppercase tracking-wider text-[10px] font-bold">
+                    Page Total ({displayedItems.length}):
+                  </td>
+                  <td className="px-2 py-2 text-right font-mono font-bold text-xs">
+                    ₹{fmt(displayedItems.reduce((sum, i) => sum + (Number(i.amount) || 0), 0))}
+                  </td>
+                  <td className="px-2 py-2 text-right font-mono font-bold text-slate-700 dark:text-slate-300 text-xs">
+                    ₹{fmt(displayedItems.reduce((sum, i) => sum + (Number(i.taxTotal) || 0), 0))}
+                  </td>
+                  <td className="px-2 py-2 text-right font-mono font-bold text-amber-600 dark:text-amber-400 text-xs">
+                    ₹{fmt(displayedItems.reduce((sum, i) => sum + (Number(i.tds) || 0), 0))}
+                  </td>
+                  <td className="px-2 py-2 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs">
+                    ₹{fmt(displayedItems.reduce((sum, i) => sum + (Number(i.balanceDue) || 0), 0))}
+                  </td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
 
