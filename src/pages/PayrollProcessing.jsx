@@ -685,6 +685,7 @@ const PayrollProcessing = () => {
   // Integration States
   const [syncingAttendance, setSyncingAttendance] = useState(false);
   const [isHrmsEnabled, setIsHrmsEnabled] = useState(false);
+  const [publishingPayslips, setPublishingPayslips] = useState(false);
 
   // Modal Breakdown states
   const [breakdownEmployee, setBreakdownEmployee] = useState(null);
@@ -1124,6 +1125,19 @@ const PayrollProcessing = () => {
     }
   };
 
+  const handlePublishPayslipsToHrms = async () => {
+    try {
+      setPublishingPayslips(true);
+      const res = await api.post('/payroll/integration/publish-payslips', { month, year });
+      toast.success(res.data?.message || 'Payslips successfully sent to TalentCIO!');
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to send payslips to TalentCIO');
+    } finally {
+      setPublishingPayslips(false);
+    }
+  };
+
   const handleSegmentLopChange = (index, valStr) => {
     if (!breakdownEmployee) return;
     const val = Math.max(0, Number(valStr) || 0);
@@ -1360,7 +1374,7 @@ const PayrollProcessing = () => {
       } else if (skippedCount > 0) {
         toast(msgParts.join(', '), { icon: 'ℹ️' });
       } else {
-        toast.success(saveAsDraft ? 'Payroll saved as draft' : 'Payroll processed successfully');
+        toast.success(saveAsDraft ? 'Payroll saved as draft' : (isHrmsEnabled ? 'Payroll processed & payslips sent to TalentCIO!' : 'Payroll processed successfully'));
       }
 
       setSkippedSummaryList(skippedList);
@@ -1493,14 +1507,25 @@ const PayrollProcessing = () => {
             <FaDownload className="w-3 h-3" /> Download Inputs Only
           </button>
           {isHrmsEnabled && (
-            <button
-              type="button"
-              onClick={handleSyncAttendance}
-              disabled={syncingAttendance}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors shrink-0 whitespace-nowrap"
-            >
-              {syncingAttendance ? 'Syncing...' : 'Re-sync attendance from HRMS'}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={handleSyncAttendance}
+                disabled={syncingAttendance}
+                className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors shrink-0 whitespace-nowrap"
+              >
+                {syncingAttendance ? 'Syncing...' : 'Re-sync attendance from HRMS'}
+              </button>
+              <button
+                type="button"
+                onClick={handlePublishPayslipsToHrms}
+                disabled={publishingPayslips || saving}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors shrink-0 whitespace-nowrap flex items-center gap-1.5 shadow-xs"
+                title="Push generated payslips to TalentCIO for employees to view in their portal"
+              >
+                {publishingPayslips ? 'Sending to TalentCIO...' : 'Send Payslips to TalentCIO'}
+              </button>
+            </>
           )}
           {hasProcessedPayrolls && (
             <button
@@ -1778,6 +1803,12 @@ const PayrollProcessing = () => {
                 <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-amber-900 dark:text-amber-200 text-xs font-medium flex items-start gap-2">
                   <span className="text-base">⚠️</span>
                   <span><strong>{needsAttentionCount}</strong> employee{needsAttentionCount !== 1 ? 's have' : ' has'} pay-clamping or minimum-wage flags. Review before processing.</span>
+                </div>
+              )}
+              {isHrmsEnabled && (
+                <div className="bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 rounded-xl p-3 text-indigo-900 dark:text-indigo-200 text-xs font-medium flex items-center gap-2">
+                  <span className="text-base">🚀</span>
+                  <span>TalentCIO Connected: Processed payslips will be automatically published to TalentCIO for employee ESS access.</span>
                 </div>
               )}
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
