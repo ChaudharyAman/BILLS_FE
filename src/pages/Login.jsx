@@ -22,12 +22,29 @@ const Login = () => {
     setLoading(true);
     setError('');
 
+    const form = e.currentTarget;
+    const usernameVal = (form.elements?.username?.value || formData.username || '').trim();
+    const passwordVal = form.elements?.password?.value || formData.password || '';
+
+    if (!usernameVal || !passwordVal) {
+      setError('Please enter both username and password.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await api.post('/auth/login', formData);
+      const response = await api.post('/auth/login', {
+        username: usernameVal,
+        password: passwordVal,
+      });
       storeAuthSession(response.data);
       navigate('/invoices');
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid credentials');
+      if (!err.response) {
+        setError('Unable to connect to server. Please ensure the backend is running and reachable.');
+      } else {
+        setError(err.response?.data?.message || 'Invalid credentials');
+      }
     } finally {
       setLoading(false);
     }
