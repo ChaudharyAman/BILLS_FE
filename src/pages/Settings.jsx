@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import {
   FaSave, FaUpload, FaBuilding, FaCog, FaEye, FaEyeSlash,
@@ -78,6 +79,7 @@ const ICON_MAP = {
 const inputCls = 'w-full border border-slate-300 dark:border-slate-700 rounded-lg shadow-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 p-2 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-colors';
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState('company'); // 'company' | 'software' | 'sidebar'
   const [pageLoading, setPageLoading] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -478,9 +480,6 @@ const Settings = () => {
           </button>
           <button type="button" onClick={() => setTab('sidebar')} className={tabBtn('sidebar')}>
             🧭 Sidebar Layout
-          </button>
-          <button type="button" onClick={() => setTab('portal')} className={tabBtn('portal')}>
-            🔗 Public Portal
           </button>
         </div>
       </div>
@@ -1128,277 +1127,33 @@ const Settings = () => {
           </div>
         </div>
       )}
-      {/* ── PUBLIC PORTAL SETTINGS TAB ── */}
-      {tab === 'portal' && <PortalSettingsPanel />}
+      {/* ── PUBLIC PORTAL REDIRECT NOTICE ── */}
+      {tab === 'portal' && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-8 border border-slate-200 dark:border-slate-800 text-center max-w-xl mx-auto space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto text-2xl border border-teal-200 dark:border-teal-800">
+            <LucideIcons.Link size={28} />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+            Public Submission Portal Has Moved
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
+            Portal link generation, submitter instructions, and allowed categories are now managed directly from your Submissions Inbox.
+          </p>
+          <div>
+            <button
+              type="button"
+              onClick={() => navigate('/submissions?settings=open')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-medium text-sm transition-all shadow-sm cursor-pointer"
+            >
+              Open Submissions Inbox Settings
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Public Submission Portal Settings Panel
-// ─────────────────────────────────────────────────────────────────────────────
-import { toast } from 'react-hot-toast';
-import { FaLink, FaCopy, FaSync, FaInfoCircle } from 'react-icons/fa';
-
-function PortalSettingsPanel() {
-  const [config, setConfig] = useState({
-    enabled: false,
-    portalLink: null,
-    token: null,
-    companyDisplayName: '',
-    allowedCategories: ['invoice', 'expense', 'income', 'purchaseorder'],
-    instructionsText: '',
-    maxSubmissionsPerDay: 100,
-  });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    api.get('/settings/public-submissions')
-      .then((res) => {
-        setConfig(res.data);
-      })
-      .catch((err) => {
-        toast.error('Failed to load portal settings');
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  const shareableLink = config.token
-    ? `${window.location.origin}/submit/${config.token}`
-    : config.portalLink;
-
-  const handleCopy = () => {
-    if (!shareableLink) return;
-    navigator.clipboard.writeText(shareableLink);
-    setCopied(true);
-    toast.success('Portal link copied to clipboard');
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const res = await api.patch('/settings/public-submissions', {
-        enabled: config.enabled,
-        companyDisplayName: config.companyDisplayName,
-        allowedCategories: config.allowedCategories,
-        instructionsText: config.instructionsText,
-        maxSubmissionsPerDay: config.maxSubmissionsPerDay,
-      });
-      setConfig(res.data);
-      toast.success('Portal settings updated successfully');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update settings');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleRegenerate = async () => {
-    if (!window.confirm('Are you sure you want to regenerate the submission link? The current link will stop working immediately.')) {
-      return;
-    }
-    setRegenerating(true);
-    try {
-      const res = await api.post('/settings/public-submissions/regenerate-token');
-      setConfig(res.data);
-      toast.success('New submission link generated');
-    } catch (err) {
-      toast.error('Failed to regenerate token');
-    } finally {
-      setRegenerating(false);
-    }
-  };
-
-  const toggleCategory = (cat) => {
-    setConfig(prev => {
-      const exists = prev.allowedCategories.includes(cat);
-      const updated = exists
-        ? prev.allowedCategories.filter(c => c !== cat)
-        : [...prev.allowedCategories, cat];
-      return { ...prev, allowedCategories: updated };
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-800">
-        <div className="space-y-4 animate-pulse">
-          <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-1/4"></div>
-          <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
-          <div className="h-32 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-800 space-y-6 transition-colors">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <FaLink className="text-teal-600 dark:text-teal-400" /> Public Submission Portal
-        </h2>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-          Allow vendors, clients, and partners to securely upload invoices, bills, and receipts directly to your inbox without logging in.
-        </p>
-      </div>
-
-      <form onSubmit={handleSave} className="space-y-6">
-        {/* Toggle Enable */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
-          <div>
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 block">Enable Submission Link</span>
-            <span className="text-xs text-slate-500 dark:text-slate-400">Toggle public submissions on or off.</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setConfig(prev => ({ ...prev, enabled: !prev.enabled }))}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none
-              ${config.enabled ? 'bg-teal-600' : 'bg-slate-200 dark:bg-slate-700'}`}
-          >
-            <span
-              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
-                ${config.enabled ? 'translate-x-5' : 'translate-x-0'}`}
-            />
-          </button>
-        </div>
-
-        {config.enabled && (
-          <>
-            {/* Shareable Link Input */}
-            <div className="bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/60 rounded-xl p-4 space-y-3">
-              <span className="text-sm font-bold text-teal-800 dark:text-teal-300 block">Your Shareable Submission Link</span>
-              {shareableLink ? (
-                <div className="flex gap-2 flex-wrap sm:flex-nowrap">
-                  <input
-                    type="text"
-                    readOnly
-                    value={shareableLink}
-                    className="flex-1 bg-white dark:bg-slate-800 border border-teal-200 dark:border-teal-700 rounded-lg px-3 py-2 text-sm text-teal-900 dark:text-teal-200 font-mono focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className="bg-white dark:bg-slate-800 border border-teal-200 dark:border-teal-700 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <FaCopy /> {copied ? 'Copied' : 'Copy'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRegenerate}
-                    disabled={regenerating}
-                    className="bg-white dark:bg-slate-800 border border-teal-200 dark:border-teal-700 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <FaSync className={regenerating ? 'animate-spin' : ''} /> Regenerate Link
-                  </button>
-                </div>
-              ) : (
-                <p className="text-xs text-teal-700 dark:text-teal-400">Save the settings first to generate your link.</p>
-              )}
-              <p className="text-xs text-teal-600/90 dark:text-teal-400 flex items-start gap-1">
-                <FaInfoCircle className="mt-0.5 flex-shrink-0" />
-                Regenerating the link immediately invalidates the old one.
-              </p>
-            </div>
-
-            {/* Config Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Company Display Name</label>
-                <input
-                  type="text"
-                  value={config.companyDisplayName}
-                  onChange={(e) => setConfig(prev => ({ ...prev, companyDisplayName: e.target.value }))}
-                  placeholder="e.g. Acme Corp Inc."
-                  required
-                  maxLength={200}
-                  className={inputCls}
-                />
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">This name is visible to public uploaders on the portal landing page.</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Max Submissions per Day</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={10000}
-                  value={config.maxSubmissionsPerDay}
-                  onChange={(e) => setConfig(prev => ({ ...prev, maxSubmissionsPerDay: Math.max(1, parseInt(e.target.value, 10) || 0) }))}
-                  required
-                  className={inputCls}
-                />
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Daily submission limit to guard against system abuse.</p>
-              </div>
-            </div>
-
-            {/* Allowed Categories checkboxes */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Allowed Document Categories</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { id: 'invoice', label: 'Invoice' },
-                  { id: 'expense', label: 'Expense / Bill' },
-                  { id: 'income', label: 'Income / Receipt' },
-                  { id: 'purchaseorder', label: 'Purchase Order' },
-                ].map(cat => {
-                  const checked = config.allowedCategories.includes(cat.id);
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => toggleCategory(cat.id)}
-                      className={`border-2 rounded-xl p-3 text-sm font-medium transition-all text-center cursor-pointer
-                        ${checked
-                          ? 'border-teal-500 bg-teal-50 dark:bg-teal-950/50 text-teal-800 dark:text-teal-200'
-                          : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 bg-slate-50/50 dark:bg-slate-800/50'
-                        }`}
-                    >
-                      {cat.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {config.allowedCategories.length === 0 && (
-                <p className="text-red-500 text-xs mt-1">Please select at least one document category.</p>
-              )}
-            </div>
-
-            {/* Instructions Text */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Instructions for Submitters (Optional)</label>
-              <textarea
-                value={config.instructionsText}
-                onChange={(e) => setConfig(prev => ({ ...prev, instructionsText: e.target.value }))}
-                placeholder="e.g. Please upload clear scans of your invoices and ensure the GSTIN is visible. If you are a vendor, please select 'Invoice' as the category."
-                rows={3}
-                maxLength={2000}
-                className="w-full border border-slate-300 dark:border-slate-700 rounded-lg shadow-xs focus:ring-teal-500 focus:border-teal-500 p-2.5 text-sm resize-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
-              />
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Provide clear guidelines that will show at the top of the upload form.</p>
-            </div>
-          </>
-        )}
-
-        {/* Save button */}
-        <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
-          <button
-            type="submit"
-            disabled={saving || (config.enabled && config.allowedCategories.length === 0)}
-            className="bg-teal-600 hover:bg-teal-700 disabled:bg-gray-200 disabled:text-gray-400 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all hover:shadow"
-          >
-            {saving ? <FaSync className="animate-spin" /> : <FaSave />} Save Portal Settings
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
 
 export default Settings;
 

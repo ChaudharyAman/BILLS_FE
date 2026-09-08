@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/axios';
 import {
   FaInbox, FaCheckCircle, FaTimesCircle, FaExclamationTriangle,
@@ -23,8 +23,10 @@ import {
   FaChevronLeft, FaEdit, FaCheck, FaTimes, FaArrowRight,
   FaBolt, FaTrash, FaLayerGroup, FaPlus, FaBuilding, FaUser,
   FaListUl, FaPercentage, FaPhone, FaEnvelope, FaMapMarkerAlt, FaRedo,
+  FaCog, FaLink, FaCopy, FaLock,
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import PortalSettingsModal from '../components/PortalSettingsModal';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const CATEGORY_LABELS = {
@@ -80,6 +82,46 @@ function StatusBadge({ status }) {
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function PublicSubmissionsInbox() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Portal settings state
+  const [showPortalSettings, setShowPortalSettings] = useState(false);
+  const [portalConfig, setPortalConfig] = useState(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Fetch portal configuration to show status & quick share link in inbox
+  const fetchPortalConfig = useCallback(async () => {
+    try {
+      const res = await api.get('/settings/public-submissions');
+      setPortalConfig(res.data);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPortalConfig();
+  }, [fetchPortalConfig]);
+
+  // If redirected with ?settings=open or ?portalSettings=true, open settings modal automatically
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('settings') === 'open' || params.get('portalSettings') === 'true') {
+      setShowPortalSettings(true);
+    }
+  }, [location.search]);
+
+  const portalShareableLink = portalConfig?.token
+    ? `${window.location.origin}/submit/${portalConfig.token}`
+    : portalConfig?.portalLink;
+
+  const handleCopyPortalLink = () => {
+    if (!portalShareableLink) return;
+    navigator.clipboard.writeText(portalShareableLink);
+    setCopiedLink(true);
+    toast.success('Portal submission link copied!');
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
 
   // List state
   const [activeTab, setActiveTab] = useState('pending');
@@ -170,8 +212,10 @@ export default function PublicSubmissionsInbox() {
       setEditData(updatedParsed);
       setEditMode(false);
       toast.success('Changes saved');
+      return true;
     } catch {
       toast.error('Failed to save changes');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -212,6 +256,14 @@ export default function PublicSubmissionsInbox() {
   const handleApprove = async (approveMode = 'single') => {
     setActionLoading(true);
     try {
+      if (editMode) {
+        const saved = await saveEdit();
+        if (!saved) {
+          setActionLoading(false);
+          return;
+        }
+      }
+
       const payload = {
         category: approveCategory,
       };
@@ -349,18 +401,30 @@ export default function PublicSubmissionsInbox() {
     <div className="flex h-full min-h-screen font-sans text-slate-900 dark:text-slate-100 bg-gray-50 dark:bg-slate-950 transition-colors">
 
       {/* ── List panel ─────────────────────────────────────────────────────── */}
-      <div className={`flex flex-col w-full ${selected ? 'hidden lg:flex lg:w-2/5 xl:w-1/3' : 'flex'} border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors`}>
+      <div className={`flex flex-col w-full ${selected ? 'hidden lg:flex lg:w-[30%] lg:min-w-[320px]' : 'flex lg:w-[70%]'} border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300`}>
 
         {/* Header */}
         <div className="px-5 pt-5 pb-3 border-b border-gray-100 dark:border-slate-800">
-          <div className="flex items-center gap-2 mb-4">
-            <FaInbox className="text-indigo-600 dark:text-indigo-400 text-xl" />
-            <h1 className="text-lg font-bold text-gray-800 dark:text-slate-100">Submissions Inbox</h1>
-            {pendingCount > 0 && (
-              <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                {pendingCount}
-              </span>
-            )}
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <div className="flex items-center gap-2">
+              <FaInbox className="text-indigo-600 dark:text-indigo-400 text-xl" />
+              <h1 className="text-lg font-bold text-gray-800 dark:text-slate-100">Submissions Inbox</h1>
+              {pendingCount > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {pendingCount}
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowPortalSettings(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-teal-300 dark:border-teal-700 bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/60 shadow-2xs transition-all cursor-pointer"
+              title="Public Submission Portal Settings & Link"
+            >
+              <FaCog className="text-teal-600 dark:text-teal-400" />
+              <span>Portal Settings</span>
+            </button>
           </div>
 
           {/* Tab bar */}
@@ -410,20 +474,23 @@ export default function PublicSubmissionsInbox() {
                   ${selected?._id === sub._id ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-l-2 border-indigo-500' : ''}`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate">
-                      {sub.submitterName || 'Anonymous'}
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate">
+                        {sub.submitterName || 'Anonymous'}
+                      </p>
+                      {sub.parsedData?.grandTotal !== undefined && sub.parsedData?.grandTotal !== null && Number(sub.parsedData.grandTotal) > 0 && (
+                        <span className="text-xs font-bold text-teal-600 dark:text-teal-400">
+                          ₹{Number(sub.parsedData.grandTotal).toLocaleString('en-IN')}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
                       {CATEGORY_LABELS[sub.suggestedCategory] || '—'}
                       {' · '}
                       {fmtDate(sub.createdAt)}
+                      {sub.parsedData?.invoiceNumber && ` · #${sub.parsedData.invoiceNumber}`}
                     </p>
-                    {sub.parsedData?.invoiceNumber && (
-                      <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-                        #{sub.parsedData.invoiceNumber}
-                      </p>
-                    )}
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     <StatusBadge status={sub.status} />
@@ -461,7 +528,7 @@ export default function PublicSubmissionsInbox() {
 
       {/* ── Detail panel ──────────────────────────────────────────────────── */}
       {(selected || loadingDetail) ? (
-        <div className={`flex flex-col w-full lg:flex-1 bg-white dark:bg-slate-900 overflow-y-auto transition-colors`}>
+        <div className={`flex flex-col w-full lg:w-[70%] lg:flex-1 bg-white dark:bg-slate-900 overflow-y-auto transition-all duration-300`}>
 
           {/* Detail header */}
           <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 px-5 py-4 flex items-center gap-3">
@@ -1277,14 +1344,122 @@ export default function PublicSubmissionsInbox() {
           })()}
         </div>
       ) : (
-        /* ── Empty detail state for desktop ────────────────────────────── */
-        <div className="hidden lg:flex flex-1 items-center justify-center bg-gray-50 dark:bg-slate-950 transition-colors">
-          <div className="text-center">
-            <FaInbox className="text-5xl text-gray-200 dark:text-slate-800 mx-auto mb-3" />
-            <p className="text-gray-400 dark:text-slate-500 text-sm">Select a submission to review</p>
+        /* ── Empty detail state for desktop with Public Portal Overview (30% width) ── */
+        <div className="hidden lg:flex lg:w-[30%] flex-col items-center justify-center p-6 bg-gray-50/60 dark:bg-slate-950 transition-all duration-300">
+          <div className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5 text-center">
+            
+            {/* Icon & Title */}
+            <div className="flex flex-col items-center gap-3">
+              <div
+                className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border transition-all
+                  ${portalConfig?.enabled
+                    ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 border-teal-200 dark:border-teal-800/80 shadow-lg shadow-teal-500/10'
+                    : 'bg-slate-100 dark:bg-slate-800/90 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700/80'
+                  }`}
+              >
+                {portalConfig?.enabled ? <FaLink /> : <FaLock />}
+              </div>
+
+              <div className="space-y-1">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Public Submission Portal
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm mx-auto">
+                  {portalConfig?.enabled
+                    ? 'Allow vendors, clients, and partners to securely upload invoices, bills, and receipts directly to this inbox without logging in.'
+                    : 'Public submissions are currently turned off. External submitters visiting your link will see that uploads are closed until re-enabled.'
+                  }
+                </p>
+              </div>
+
+              {/* Status Badge */}
+              <div className="pt-1">
+                {portalConfig?.enabled ? (
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/70 whitespace-nowrap">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Portal Active & Receiving Files
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 whitespace-nowrap">
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    Portal Access Closed
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Share Link Preview if enabled */}
+            {portalConfig?.enabled && portalShareableLink ? (
+              <div className="bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 text-left space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Shareable Upload Link
+                  </span>
+                  <a
+                    href={portalShareableLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-colors"
+                    title="Open portal in new tab"
+                  >
+                    <span>Open</span>
+                    <FaExternalLinkAlt size={10} />
+                  </a>
+                </div>
+
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    readOnly
+                    value={portalShareableLink}
+                    onClick={(e) => e.target.select()}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-3 pr-22 py-2 text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none focus:ring-1 focus:ring-teal-500 truncate select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCopyPortalLink}
+                    className="absolute right-1 px-3 py-1 text-xs font-semibold rounded-md bg-teal-600 hover:bg-teal-700 active:scale-95 text-white shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  >
+                    {copiedLink ? <FaCheck size={11} className="text-emerald-200" /> : <FaCopy size={11} />}
+                    <span>{copiedLink ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Closed Portal Help Banner */
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/80 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+                Want to receive vendor bills or receipts? Turn on public submissions in portal settings anytime.
+              </div>
+            )}
+
+            {/* Action button */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowPortalSettings(true)}
+                className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-all cursor-pointer whitespace-nowrap bg-teal-600 hover:bg-teal-700 text-white border border-teal-500/30 hover:shadow"
+              >
+                <FaCog className="text-teal-200" />
+                <span>{portalConfig?.enabled ? 'Configure Portal Settings' : 'Enable or Configure Portal'}</span>
+              </button>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                Select any submission from the left list to review parsed invoice data, preview files, or approve transactions into your records.
+              </p>
+            </div>
+
           </div>
         </div>
       )}
+
+      {/* ── Public Submission Portal Settings Modal ── */}
+      <PortalSettingsModal
+        isOpen={showPortalSettings}
+        onClose={() => setShowPortalSettings(false)}
+        onSaved={(updated) => setPortalConfig(updated)}
+      />
     </div>
   );
 }
