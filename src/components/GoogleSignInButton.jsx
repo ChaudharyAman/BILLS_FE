@@ -8,6 +8,7 @@ import { FaSpinner } from 'react-icons/fa';
  * Automatically loads the client script if not already present.
  */
 export default function GoogleSignInButton({
+  clientId: propClientId,
   onSuccess,
   onError,
   disabled = false,
@@ -21,7 +22,11 @@ export default function GoogleSignInButton({
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [initFailed, setInitFailed] = useState(false);
 
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  // Resolution: prop > env > fallback to project client id
+  const clientId =
+    propClientId ||
+    import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+    '725664292682-ck24ngvdki7hs66qrvnm79lis1ov5e07.apps.googleusercontent.com';
 
   // Ensure GIS script is loaded
   useEffect(() => {
