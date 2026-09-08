@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api, { storeAuthSession } from '../api/axios';
 import { FaEye, FaEyeSlash, FaExclamationCircle, FaLock, FaEnvelope, FaChartLine, FaShieldAlt, FaChartPie } from 'react-icons/fa';
-import GoogleSignInButton from '../components/GoogleSignInButton';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -49,25 +48,6 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleGoogleSuccess = async (credential) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await api.post('/auth/google', { credential });
-      storeAuthSession(response.data);
-      window.dispatchEvent(new Event('auth-sync'));
-      navigate('/invoices');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Google sign-in failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleError = (err) => {
-    setError(typeof err === 'string' ? err : 'Google sign-in was cancelled or encountered an error.');
   };
 
   return (
@@ -218,36 +198,10 @@ const Login = () => {
             </button>
           </form>
 
-          <div className="flex items-center gap-3 my-1">
-            <div className="h-px flex-1 bg-slate-200" />
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-              Or continue with
-            </span>
-            <div className="h-px flex-1 bg-slate-200" />
-          </div>
-
-          <div className="flex justify-center">
-            <GoogleSignInButton
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-              disabled={loading}
-              text="signin_with"
-              theme="outline"
-              size="large"
-              shape="rectangular"
-              width={340}
-            />
-          </div>
-
           <p className="text-center text-xs font-semibold text-slate-400">
-
             Don't have an account?{' '}
             <Link to="/signup" className="text-blue-600 hover:text-blue-700 transition-colors">Sign up</Link>
           </p>
-          
-          <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-[11px] text-slate-400 font-medium text-center">
-            Demo: enter your username and password to log in.
-          </div>
         </div>
       </div>
     </div>

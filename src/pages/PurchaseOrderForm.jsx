@@ -56,7 +56,7 @@ const PurchaseOrderForm = () => {
   const docLabel = 'Purchase Order';
   const docNoLabel = 'Purchase Order no';
 
-  const STATUSES = ['DRAFT', 'SENT', 'ACCEPTED', 'RECEIVED', 'REJECTED', 'BILLED', 'CANCELLED'];
+  const STATUSES = ['DRAFT', 'SENT', 'ACCEPTED', 'RECEIVED', 'REJECTED', 'CANCELLED'];
 
   const [vendors, setVendors] = useState([]);
   const [itemsList, setItemsList] = useState([]);
@@ -733,6 +733,9 @@ const PurchaseOrderForm = () => {
                   {STATUSES.map(status => (
                     <option key={status} value={status}>{status}</option>
                   ))}
+                  {formData.status === 'BILLED' && (
+                    <option value="BILLED">BILLED</option>
+                  )}
                 </select>
               </div>
             </div>
