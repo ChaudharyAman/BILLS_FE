@@ -6,17 +6,20 @@ import Skeleton from '../components/Skeleton';
 import ExportDropdown from '../components/ExportDropdown';
 import Modal from '../components/Modal';
 import PdfInvoiceImporter from '../components/PdfInvoiceImporter';
+import { getStoredFilter, setStoredFilters, clearStoredFilters } from '../utils/filterStorage';
+
+const FILTER_STORAGE_KEY = 'flance_expenses_filters_pref';
 
 const ExpenseList = () => {
   const navigate = useNavigate();
   const initialCategory = new URLSearchParams(window.location.search).get('category') || '';
-  const [filterType, setFilterType] = useState('all');
+  const [filterType, setFilterType] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'filterType', 'all'));
   
   const [combinedItems, setCombinedItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'searchTerm', ''));
   const [categoryFilter] = useState(initialCategory);
-  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [rowsPerPage, setRowsPerPage] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'rowsPerPage', 50));
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
@@ -24,18 +27,32 @@ const ExpenseList = () => {
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
 
   // Filters & Sorting State
-  const [statusFilter, setStatusFilter] = useState('');
-  const [businessUnitFilter, setBusinessUnitFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'statusFilter', ''));
+  const [businessUnitFilter, setBusinessUnitFilter] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'businessUnitFilter', ''));
   const [businessUnits, setBusinessUnits] = useState([]);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [sortBy, setSortBy] = useState('date');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [startDate, setStartDate] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'startDate', ''));
+  const [endDate, setEndDate] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'endDate', ''));
+  const [sortBy, setSortBy] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'sortBy', 'date'));
+  const [sortOrder, setSortOrder] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'sortOrder', 'desc'));
 
   const userStr = localStorage.getItem('user');
   let userObj = null;
   try { userObj = userStr ? JSON.parse(userStr).user : null; } catch(e) {}
   const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
+
+  useEffect(() => {
+    setStoredFilters(FILTER_STORAGE_KEY, {
+      filterType,
+      rowsPerPage,
+      searchTerm,
+      statusFilter,
+      businessUnitFilter,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder,
+    });
+  }, [filterType, rowsPerPage, searchTerm, statusFilter, businessUnitFilter, startDate, endDate, sortBy, sortOrder]);
 
   useEffect(() => {
     api.get('/business-units?status=active').then(res => setBusinessUnits(res.data || [])).catch(() => {});
@@ -521,7 +538,11 @@ const ExpenseList = () => {
 
             <button
               onClick={() => {
+                clearStoredFilters(FILTER_STORAGE_KEY);
+                setFilterType('all');
+                setSearchTerm('');
                 setStatusFilter('');
+                setBusinessUnitFilter('');
                 setStartDate('');
                 setEndDate('');
                 setSortBy('date');

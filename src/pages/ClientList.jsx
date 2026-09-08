@@ -6,17 +6,20 @@ import Skeleton from '../components/Skeleton';
 import Modal from '../components/Modal';
 import ExportDropdown from '../components/ExportDropdown';
 import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
+import { getStoredFilter, setStoredFilters } from '../utils/filterStorage';
+
+const FILTER_STORAGE_KEY = 'flance_clients_filters_pref';
 
 const ClientList = () => {
   const navigate = useNavigate();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'searchTerm', ''));
   const [selectedClients, setSelectedClients] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'rowsPerPage', 10));
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
@@ -25,6 +28,10 @@ const ClientList = () => {
   let userObj = null;
   try { userObj = userStr ? JSON.parse(userStr).user : null; } catch(e) {}
   const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
+
+  useEffect(() => {
+    setStoredFilters(FILTER_STORAGE_KEY, { searchTerm, rowsPerPage });
+  }, [searchTerm, rowsPerPage]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {

@@ -5,19 +5,26 @@ import { FaPlus, FaSearch, FaChevronDown, FaSort, FaTrash, FaPencilAlt } from 'r
 import Skeleton from '../components/Skeleton';
 import ExportDropdown from '../components/ExportDropdown';
 import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
+import { getStoredFilter, setStoredFilters } from '../utils/filterStorage';
+
+const FILTER_STORAGE_KEY = 'flance_vendors_filters_pref';
 
 const VendorList = () => {
   const navigate = useNavigate();
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'searchTerm', ''));
   const [selectedVendors, setSelectedVendors] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'rowsPerPage', 10));
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+
+  useEffect(() => {
+    setStoredFilters(FILTER_STORAGE_KEY, { searchTerm, rowsPerPage });
+  }, [searchTerm, rowsPerPage]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {

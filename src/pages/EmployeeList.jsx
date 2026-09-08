@@ -8,6 +8,9 @@ import Skeleton from '../components/Skeleton';
 import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
 import { fmtMoney } from '../utils/payroll';
 import * as XLSX from 'xlsx';
+import { getStoredFilter, setStoredFilters } from '../utils/filterStorage';
+
+const FILTER_STORAGE_KEY = 'flance_employees_filters_pref';
 
 const fmtDate = (value) => value ? new Date(value).toLocaleDateString('en-IN') : '-';
 
@@ -15,12 +18,16 @@ const EmployeeList = () => {
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
-  const [department, setDepartment] = useState('');
+  const [search, setSearch] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'search', ''));
+  const [status, setStatus] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'status', ''));
+  const [department, setDepartment] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'department', ''));
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    setStoredFilters(FILTER_STORAGE_KEY, { search, status, department });
+  }, [search, status, department]);
   const [confirmEmployee, setConfirmEmployee] = useState(null);
   const [deleteEmployee, setDeleteEmployee] = useState(null);
   const [showImportModal, setShowImportModal] = useState(false);

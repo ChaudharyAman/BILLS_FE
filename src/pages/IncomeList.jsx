@@ -16,12 +16,16 @@ const STATUS_STYLES = {
   CANCELLED: 'bg-gray-200 text-gray-500 border-gray-300',
 };
 
+import { getStoredFilter, setStoredFilters, clearStoredFilters } from '../utils/filterStorage';
+
+const FILTER_STORAGE_KEY = 'flance_incomes_filters_pref';
+
 const IncomeList = () => {
   const navigate = useNavigate();
   const [incomes, setIncomes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [searchTerm, setSearchTerm] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'searchTerm', ''));
+  const [rowsPerPage, setRowsPerPage] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'rowsPerPage', 50));
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
@@ -30,14 +34,14 @@ const IncomeList = () => {
   const [isPdfScannerOpen, setIsPdfScannerOpen] = useState(false);
 
   // Filters State
-  const [statusFilter, setStatusFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [businessUnitFilter, setBusinessUnitFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'statusFilter', ''));
+  const [typeFilter, setTypeFilter] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'typeFilter', ''));
+  const [businessUnitFilter, setBusinessUnitFilter] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'businessUnitFilter', ''));
   const [businessUnits, setBusinessUnits] = useState([]);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [sortBy, setSortBy] = useState('createdAt');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [startDate, setStartDate] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'startDate', ''));
+  const [endDate, setEndDate] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'endDate', ''));
+  const [sortBy, setSortBy] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'sortBy', 'createdAt'));
+  const [sortOrder, setSortOrder] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'sortOrder', 'desc'));
 
   const userStr = localStorage.getItem('user');
   let userObj = null;
@@ -49,6 +53,20 @@ const IncomeList = () => {
       .then(res => setBusinessUnits(res.data || []))
       .catch(err => console.error('Failed to load business units:', err));
   }, []);
+
+  useEffect(() => {
+    setStoredFilters(FILTER_STORAGE_KEY, {
+      rowsPerPage,
+      searchTerm,
+      statusFilter,
+      typeFilter,
+      businessUnitFilter,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder,
+    });
+  }, [rowsPerPage, searchTerm, statusFilter, typeFilter, businessUnitFilter, startDate, endDate, sortBy, sortOrder]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -336,13 +354,15 @@ const IncomeList = () => {
                 setBusinessUnitFilter('');
                 setStartDate('');
                 setEndDate('');
+                setSearchTerm('');
                 setSortBy('createdAt');
                 setSortOrder('desc');
                 setPage(1);
+                clearStoredFilters(FILTER_STORAGE_KEY);
               }}
-              className="mt-5 border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg px-4 py-1.5 transition-colors font-medium self-end font-sans"
+              className="mt-5 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-700 dark:hover:text-red-300 rounded-lg px-4 py-1.5 transition-colors font-medium self-end font-sans"
             >
-              Reset
+              Reset Filters
             </button>
           </div>
         </div>
