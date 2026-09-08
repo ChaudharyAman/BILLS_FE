@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect } from 'react';
+import React, { Suspense, lazy, useEffect, useState, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import PageLoader from './components/PageLoader';
 import Layout from './components/Layout';
@@ -81,6 +81,7 @@ const BankStatementDashboard = lazyRetry(() => import('./pages/BankStatementDash
 // ── New: Public Submission Portal ────────────────────────────────────────────
 const PublicSubmitPage = lazyRetry(() => import('./pages/PublicSubmitPage'));
 const PublicSubmissionsInbox = lazyRetry(() => import('./pages/PublicSubmissionsInbox'));
+const SubmissionsInboxLogin = lazyRetry(() => import('./pages/SubmissionsInboxLogin'));
 const RecycleBin = lazyRetry(() => import('./pages/RecycleBin'));
 
 // ── Team Members & RBAC ──────────────────────────────────────────────────────
@@ -96,6 +97,62 @@ const RevenueReport = lazyRetry(() => import('./pages/reports/RevenueReport'));
 // Accounts
 const PaymentCollection = lazyRetry(() => import('./pages/accounts/PaymentCollection'));
 const AccountStatement = lazyRetry(() => import('./pages/accounts/AccountStatement'));
+
+const SubmissionsInboxRoute = () => {
+  const [authState, setAuthState] = useState('checking');
+
+  useEffect(() => {
+    let isMounted = true;
+    const verifySession = async () => {
+      try {
+        const response = await api.get('/auth/me');
+        if (isMounted) {
+          storeAuthSession(response.data);
+          setAuthState('authenticated');
+        }
+      } catch (error) {
+        if (isMounted) {
+          clearAuthSession();
+          setAuthState('unauthenticated');
+        }
+      }
+    };
+
+    verifySession();
+
+    const handleAuthSync = () => {
+      if (isMounted) {
+        verifySession();
+      }
+    };
+
+    window.addEventListener('auth-sync', handleAuthSync);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('auth-sync', handleAuthSync);
+    };
+  }, []);
+
+  if (authState === 'checking') {
+    return <PageLoader />;
+  }
+
+  if (authState === 'unauthenticated') {
+    return (
+      <SubmissionsInboxLogin
+        onLoginSuccess={() => {
+          setAuthState('authenticated');
+        }}
+      />
+    );
+  }
+
+  return (
+    <Layout>
+      <PublicSubmissionsInbox />
+    </Layout>
+  );
+};
 
 const AdminRoute = ({ children }) => {
   const userStr = localStorage.getItem('user');
@@ -226,6 +283,9 @@ function App() {
 
               {/* Public Submission Portal — no auth, no sidebar */}
               <Route path="/submit/:token" element={<PublicSubmitPage />} />
+
+              {/* Public Submissions Inbox with dedicated Google Sign-in gate */}
+              <Route path="/submissions" element={<SubmissionsInboxRoute />} />
 
               <Route
                 path="/invoices/:id/print"

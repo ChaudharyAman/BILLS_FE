@@ -13,7 +13,7 @@
  *   - Inline parsedData edit via PATCH before approving
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/axios';
 import {
@@ -21,9 +21,10 @@ import {
   FaClock, FaChevronRight, FaFileInvoice, FaReceipt,
   FaFilePdf, FaImage, FaExternalLinkAlt, FaSpinner,
   FaChevronLeft, FaEdit, FaCheck, FaTimes, FaArrowRight,
-  FaBolt, FaTrash, FaLayerGroup, FaPlus, FaBuilding, FaUser,
+  FaBolt, FaTrash, FaLayerGroup, FaPlus, FaBuilding, FaUser, FaUsers,
   FaListUl, FaPercentage, FaPhone, FaEnvelope, FaMapMarkerAlt, FaRedo,
-  FaCog, FaLink, FaCopy, FaLock,
+  FaCog, FaLink, FaCopy, FaLock, FaChevronDown, FaChevronUp,
+  FaSearch, FaFilter,
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import PortalSettingsModal from '../components/PortalSettingsModal';
@@ -132,6 +133,36 @@ export default function PublicSubmissionsInbox() {
   const [pendingCount, setPendingCount] = useState(0);
   const LIMIT = 20;
 
+  // View mode: 'all' (all submissions feed) | 'by-user' (segregated user groups)
+  const [viewMode, setViewMode] = useState('all');
+  // Submitter multi-select filter: array of submitter keys
+  const [selectedSubmitters, setSelectedSubmitters] = useState([]);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const userDropdownRef = useRef(null);
+
+  // Total unique submitters count & submitters summary from backend
+  const [totalSubmitters, setTotalSubmitters] = useState(0);
+  const [submittersList, setSubmittersList] = useState([]);
+  const submittersListRef = useRef([]);
+  useEffect(() => {
+    submittersListRef.current = submittersList;
+  }, [submittersList]);
+
+  // Expanded user state for segregated view
+  const [expandedUsers, setExpandedUsers] = useState({});
+
+  // Close user filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Detail pane state
   const [selected, setSelected]   = useState(null);   // full submission object
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -154,9 +185,20 @@ export default function PublicSubmissionsInbox() {
     setLoading(true);
     try {
       const params = { status: activeTab, page, limit: LIMIT };
+      if (selectedSubmitters.length > 0) {
+        const allQueryKeys = selectedSubmitters.flatMap((key) => {
+          const found = submittersListRef.current.find((s) => s.key === key);
+          return (found && Array.isArray(found.keys) && found.keys.length > 0) ? found.keys : [key];
+        });
+        params.submitter = allQueryKeys.join(',');
+      }
       const res = await api.get('/submissions', { params });
       setSubmissions(res.data.data || []);
       setTotal(res.data.total || 0);
+      setTotalSubmitters(res.data.totalSubmitters || 0);
+      if (Array.isArray(res.data.submitters)) {
+        setSubmittersList(res.data.submitters);
+      }
       if (res.data.pendingCount !== null && res.data.pendingCount !== undefined) {
         setPendingCount(res.data.pendingCount);
         window.dispatchEvent(new CustomEvent('submissions-updated', { detail: { count: res.data.pendingCount } }));
@@ -166,10 +208,114 @@ export default function PublicSubmissionsInbox() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, page]);
+  }, [activeTab, page, selectedSubmitters]);
 
   useEffect(() => { fetchList(); }, [fetchList]);
-  useEffect(() => { setPage(1); setSelected(null); }, [activeTab]);
+  useEffect(() => { setPage(1); setSelected(null); }, [activeTab, selectedSubmitters]);
+
+  // Group current submissions by unique user/submitter for the segregated view
+  const groupedByUser = React.useMemo(() => {
+    const map = new Map();
+    for (const sub of submissions) {
+      const emailKey = (sub.submitterEmail || '').trim().toLowerCase();
+      const nameKey = (sub.submitterName || '').trim();
+
+      let targetKey = null;
+      if (emailKey) {
+        targetKey = emailKey;
+      } else if (nameKey && nameKey.toLowerCase() !== 'anonymous') {
+        for (const [k, val] of map.entries()) {
+          if (val.name && val.name.toLowerCase() === nameKey.toLowerCase()) {
+            targetKey = k;
+            break;
+          }
+        }
+        if (!targetKey) targetKey = nameKey;
+      } else {
+        targetKey = 'Anonymous';
+      }
+
+      if (!map.has(targetKey)) {
+        map.set(targetKey, {
+          key: targetKey,
+          keys: [targetKey],
+          name: sub.submitterName || (sub.submitterEmail ? sub.submitterEmail.split('@')[0] : 'Anonymous'),
+          email: sub.submitterEmail || '',
+          avatar: sub.submitterAvatar || '',
+          isGoogleVerified: !!sub.isGoogleVerified,
+          submissions: [],
+        });
+      }
+      const grp = map.get(targetKey);
+      if (!grp.email && sub.submitterEmail) grp.email = sub.submitterEmail;
+      if (!grp.avatar && sub.submitterAvatar) grp.avatar = sub.submitterAvatar;
+      if (sub.isGoogleVerified) grp.isGoogleVerified = true;
+      if (sub.submitterEmail && !grp.keys.includes(sub.submitterEmail.toLowerCase())) {
+        grp.keys.push(sub.submitterEmail.toLowerCase());
+      }
+      if (sub.submitterName && !grp.keys.includes(sub.submitterName)) {
+        grp.keys.push(sub.submitterName);
+      }
+      grp.submissions.push(sub);
+    }
+    return Array.from(map.values());
+  }, [submissions]);
+
+  // Available submitters combining backend list or client submissions
+  const availableSubmitters = React.useMemo(() => {
+    if (submittersList && submittersList.length > 0) {
+      return submittersList;
+    }
+    return groupedByUser.map((g) => ({
+      key: g.key,
+      keys: g.keys || [g.key],
+      name: g.name,
+      email: g.email,
+      avatar: g.avatar,
+      isGoogleVerified: g.isGoogleVerified,
+      totalSubmissions: g.submissions.length,
+    }));
+  }, [submittersList, groupedByUser]);
+
+  // Filtered submitters by real-time search query
+  const filteredSubmitters = React.useMemo(() => {
+    if (!userSearchQuery.trim()) return availableSubmitters;
+    const q = userSearchQuery.trim().toLowerCase();
+    return availableSubmitters.filter(
+      (s) =>
+        (s.name && s.name.toLowerCase().includes(q)) ||
+        (s.email && s.email.toLowerCase().includes(q))
+    );
+  }, [availableSubmitters, userSearchQuery]);
+
+  const toggleSubmitter = (key) => {
+    setSelectedSubmitters((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  const handleSelectAllSubmitters = () => {
+    const allKeys = filteredSubmitters.map((s) => s.key);
+    setSelectedSubmitters((prev) => {
+      const merged = new Set([...prev, ...allKeys]);
+      return Array.from(merged);
+    });
+  };
+
+  const handleClearSubmitters = () => {
+    setSelectedSubmitters([]);
+  };
+
+  const handleRemoveSingleSubmitter = (keyToRemove) => {
+    setSelectedSubmitters((prev) => prev.filter((k) => k !== keyToRemove));
+  };
+
+  const toggleUserExpanded = (userKey) => {
+    setExpandedUsers((prev) => ({
+      ...prev,
+      [userKey]: prev[userKey] === false ? true : false,
+    }));
+  };
 
   // ── Fetch detail ───────────────────────────────────────────────────────────
   const openDetail = async (sub) => {
@@ -404,13 +550,15 @@ export default function PublicSubmissionsInbox() {
       <div className={`flex flex-col w-full ${selected ? 'hidden lg:flex lg:w-[30%] lg:min-w-[320px]' : 'flex lg:w-[70%]'} border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300`}>
 
         {/* Header */}
-        <div className="px-5 pt-5 pb-3 border-b border-gray-100 dark:border-slate-800">
-          <div className="flex items-center justify-between gap-2 mb-4">
-            <div className="flex items-center gap-2">
-              <FaInbox className="text-indigo-600 dark:text-indigo-400 text-xl" />
-              <h1 className="text-lg font-bold text-gray-800 dark:text-slate-100">Submissions Inbox</h1>
+        <div className="px-5 pt-5 pb-3 border-b border-gray-100 dark:border-slate-800 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <FaInbox className="text-indigo-600 dark:text-indigo-400 text-xl flex-shrink-0" />
+              <h1 className="text-lg font-bold text-gray-800 dark:text-slate-100 truncate">
+                Submissions Inbox
+              </h1>
               {pendingCount > 0 && (
-                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                <span className="bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">
                   {pendingCount}
                 </span>
               )}
@@ -419,12 +567,55 @@ export default function PublicSubmissionsInbox() {
             <button
               type="button"
               onClick={() => setShowPortalSettings(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-teal-300 dark:border-teal-700 bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/60 shadow-2xs transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-teal-300 dark:border-teal-700 bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/60 shadow-2xs transition-all cursor-pointer flex-shrink-0"
               title="Public Submission Portal Settings & Link"
             >
               <FaCog className="text-teal-600 dark:text-teal-400" />
               <span>Portal Settings</span>
             </button>
+          </div>
+
+          {/* Submissions & Total Users stats bar + View Mode Toggle */}
+          <div className="flex items-center justify-between gap-2 text-xs pt-0.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-semibold text-gray-700 dark:text-slate-200">
+                {total} {total === 1 ? 'doc' : 'docs'}
+              </span>
+              <span className="text-gray-300 dark:text-slate-600">•</span>
+              <span className="inline-flex items-center gap-1 font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/80 px-2 py-0.5 rounded-md">
+                <FaUsers size={11} className="text-purple-600 dark:text-purple-400" />
+                <span>{totalSubmitters || groupedByUser.length} {totalSubmitters === 1 ? 'User' : 'Users'}</span>
+              </span>
+            </div>
+
+            {/* View switcher: All vs By User */}
+            <div className="inline-flex bg-gray-100 dark:bg-slate-800 rounded-lg p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode('all')}
+                className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer ${
+                  viewMode === 'all'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-xs'
+                    : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200'
+                }`}
+                title="View all individual submissions"
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('by-user')}
+                className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                  viewMode === 'by-user'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-xs'
+                    : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200'
+                }`}
+                title="View submissions segregated by user"
+              >
+                <FaUser size={9} />
+                <span>By User</span>
+              </button>
+            </div>
           </div>
 
           {/* Tab bar */}
@@ -449,6 +640,250 @@ export default function PublicSubmissionsInbox() {
               );
             })}
           </div>
+
+          {/* Submitter searchable multi-select dropdown */}
+          <div className="relative" ref={userDropdownRef}>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsUserDropdownOpen((prev) => !prev)}
+                className={`flex-1 flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition-all cursor-pointer select-none ${
+                  selectedSubmitters.length > 0
+                    ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 text-indigo-900 dark:text-indigo-200 shadow-xs'
+                    : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/80'
+                }`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <FaUsers
+                    size={13}
+                    className={
+                      selectedSubmitters.length > 0
+                        ? 'text-indigo-600 dark:text-indigo-400 flex-shrink-0'
+                        : 'text-gray-400 dark:text-slate-500 flex-shrink-0'
+                    }
+                  />
+                  <span className="truncate font-medium">
+                    {selectedSubmitters.length === 0 ? (
+                      `All Users (${availableSubmitters.length || totalSubmitters || 0})`
+                    ) : selectedSubmitters.length === 1 ? (
+                      (() => {
+                        const s = availableSubmitters.find((u) => u.key === selectedSubmitters[0]);
+                        return s ? `${s.name} (${s.totalSubmissions || 1})` : selectedSubmitters[0];
+                      })()
+                    ) : (
+                      `${selectedSubmitters.length} Users Selected`
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {selectedSubmitters.length > 0 && (
+                    <span className="bg-indigo-600 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                      {selectedSubmitters.length}
+                    </span>
+                  )}
+                  <FaChevronDown
+                    size={11}
+                    className={`text-gray-400 dark:text-slate-400 transition-transform duration-200 ${
+                      isUserDropdownOpen ? 'rotate-180 text-indigo-600 dark:text-indigo-400' : ''
+                    }`}
+                  />
+                </div>
+              </button>
+
+              {selectedSubmitters.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearSubmitters}
+                  className="px-2.5 py-2 text-xs font-semibold text-gray-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Reset to All Users"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Dropdown Menu Popover */}
+            {isUserDropdownOpen && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl shadow-2xl z-40 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+                {/* Search Bar */}
+                <div className="p-2 border-b border-gray-100 dark:border-slate-800 bg-gray-50/80 dark:bg-slate-800/60">
+                  <div className="relative flex items-center">
+                    <FaSearch
+                      size={11}
+                      className="absolute left-2.5 text-gray-400 dark:text-slate-500 pointer-events-none"
+                    />
+                    <input
+                      type="text"
+                      value={userSearchQuery}
+                      onChange={(e) => setUserSearchQuery(e.target.value)}
+                      placeholder="Search users by name or email..."
+                      className="w-full pl-8 pr-7 py-1.5 text-xs bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1.5 focus:ring-indigo-500 text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500"
+                      autoFocus
+                    />
+                    {userSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setUserSearchQuery('')}
+                        className="absolute right-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 p-0.5 cursor-pointer text-xs"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sub-header actions */}
+                <div className="px-3 py-1.5 bg-slate-50/60 dark:bg-slate-800/40 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-gray-500 dark:text-slate-400">
+                  <span>
+                    {filteredSubmitters.length}{' '}
+                    {filteredSubmitters.length === 1 ? 'user' : 'users'}
+                    {userSearchQuery && ' found'}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllSubmitters}
+                      className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold cursor-pointer"
+                    >
+                      Select All
+                    </button>
+                    {selectedSubmitters.length > 0 && (
+                      <>
+                        <span className="text-gray-300 dark:text-slate-600">•</span>
+                        <button
+                          type="button"
+                          onClick={handleClearSubmitters}
+                          className="text-red-500 hover:underline font-medium cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Users list */}
+                <div className="max-h-56 overflow-y-auto divide-y divide-gray-50 dark:divide-slate-800/60 p-1">
+                  {filteredSubmitters.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-gray-400 dark:text-slate-500">
+                      No users match "{userSearchQuery}"
+                    </div>
+                  ) : (
+                    filteredSubmitters.map((s) => {
+                      const isSelected = selectedSubmitters.includes(s.key);
+                      return (
+                        <div
+                          key={s.key}
+                          onClick={() => toggleSubmitter(s.key)}
+                          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-colors select-none ${
+                            isSelected
+                              ? 'bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-950 dark:text-indigo-200'
+                              : 'hover:bg-gray-50 dark:hover:bg-slate-800/60 text-gray-700 dark:text-slate-300'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}} // handled by row onClick
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5 pointer-events-none cursor-pointer"
+                          />
+
+                          {/* Avatar */}
+                          {s.avatar ? (
+                            <img
+                              src={s.avatar}
+                              alt=""
+                              className="w-5 h-5 rounded-full object-cover border border-gray-200 dark:border-slate-700 flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                              {(s.name?.[0] || 'U').toUpperCase()}
+                            </div>
+                          )}
+
+                          {/* Info */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-semibold truncate leading-tight">
+                                {s.name}
+                              </span>
+                              {s.isGoogleVerified && (
+                                <FaCheckCircle
+                                  className="text-emerald-500 flex-shrink-0"
+                                  size={9}
+                                  title="Google Verified Submitter"
+                                />
+                              )}
+                            </div>
+                            {s.email && (
+                              <div className="text-[10px] text-gray-400 dark:text-slate-500 truncate leading-tight">
+                                {s.email}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Total count badge */}
+                          <span
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400'
+                            }`}
+                          >
+                            {s.totalSubmissions || 1}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Active selection chips */}
+          {selectedSubmitters.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+              <span className="text-[11px] text-gray-400 dark:text-slate-500 font-medium">
+                Filtered:
+              </span>
+              {selectedSubmitters.map((key) => {
+                const s = availableSubmitters.find((u) => u.key === key);
+                const displayName = s ? s.name : key;
+                const count = s?.totalSubmissions || 1;
+                return (
+                  <span
+                    key={key}
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 rounded-full text-xs font-medium shadow-2xs"
+                  >
+                    {s?.avatar ? (
+                      <img src={s.avatar} alt="" className="w-3.5 h-3.5 rounded-full object-cover" />
+                    ) : (
+                      <FaUser size={8} className="opacity-70" />
+                    )}
+                    <span className="truncate max-w-[100px]">{displayName}</span>
+                    <span className="text-[10px] opacity-75 font-semibold">({count})</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSingleSubmitter(key)}
+                      className="text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded-full w-3.5 h-3.5 inline-flex items-center justify-center text-[10px] cursor-pointer"
+                      title={`Remove ${displayName}`}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                );
+              })}
+              <button
+                type="button"
+                onClick={handleClearSubmitters}
+                className="text-[11px] text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 underline cursor-pointer ml-1"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
 
         {/* List */}
@@ -465,7 +900,111 @@ export default function PublicSubmissionsInbox() {
                 {activeTab === 'pending' ? 'New submissions will appear here.' : 'None to show.'}
               </p>
             </div>
+          ) : viewMode === 'by-user' ? (
+            /* ── By User Segregated View ─────────────────────────────── */
+            groupedByUser.map((userGroup) => {
+              const isExpanded = expandedUsers[userGroup.key] !== false; // expanded by default
+              const userSubmissions = userGroup.submissions;
+
+              return (
+                <div key={userGroup.key} className="border-b border-gray-100 dark:border-slate-800">
+                  {/* User Group Header */}
+                  <div
+                    onClick={() => toggleUserExpanded(userGroup.key)}
+                    className="w-full px-4 py-3 bg-slate-50/80 dark:bg-slate-800/50 hover:bg-slate-100/90 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer transition-colors select-none"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      {userGroup.avatar ? (
+                        <img
+                          src={userGroup.avatar}
+                          alt=""
+                          className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-slate-700 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                          {userGroup.name?.[0]?.toUpperCase() || 'U'}
+                        </div>
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-gray-900 dark:text-slate-100 truncate">
+                            {userGroup.name}
+                          </span>
+                          {userGroup.isGoogleVerified && (
+                            <span className="text-emerald-500 text-xs flex-shrink-0" title="Google Verified Submitter">
+                              <FaCheckCircle size={10} />
+                            </span>
+                          )}
+                        </div>
+                        {userGroup.email && (
+                          <p className="text-[11px] text-gray-400 dark:text-slate-500 truncate">
+                            {userGroup.email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full">
+                        {userSubmissions.length} {userSubmissions.length === 1 ? 'doc' : 'docs'}
+                      </span>
+                      <button
+                        type="button"
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 p-0.5 cursor-pointer"
+                        title={isExpanded ? 'Collapse' : 'Expand'}
+                      >
+                        {isExpanded ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Submissions of this user */}
+                  {isExpanded && (
+                    <div className="divide-y divide-gray-50 dark:divide-slate-800/40 bg-white dark:bg-slate-900/60 pl-2">
+                      {userSubmissions.map((sub) => (
+                        <button
+                          key={sub._id}
+                          type="button"
+                          onClick={() => openDetail(sub)}
+                          className={`w-full text-left px-4 py-3 hover:bg-indigo-50/70 dark:hover:bg-slate-800/50 transition-colors cursor-pointer flex items-center justify-between gap-2 border-l-2 ${
+                            selected?._id === sub._id
+                              ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30'
+                              : 'border-transparent'
+                          }`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-gray-800 dark:text-slate-200 truncate">
+                              {CATEGORY_LABELS[sub.suggestedCategory] || 'Document'}
+                              {sub.parsedData?.invoiceNumber ? ` · #${sub.parsedData.invoiceNumber}` : ''}
+                            </p>
+                            <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-slate-400 mt-0.5 flex-wrap">
+                              <span>{fmtDate(sub.createdAt)}</span>
+                              <span>•</span>
+                              <span>{sub.files?.length || 0} file{(sub.files?.length || 0) !== 1 ? 's' : ''}</span>
+                              {sub.parsedData?.grandTotal !== undefined && sub.parsedData?.grandTotal !== null && Number(sub.parsedData.grandTotal) > 0 && (
+                                <>
+                                  <span>•</span>
+                                  <span className="font-bold text-teal-600 dark:text-teal-400">
+                                    ₹{Number(sub.parsedData.grandTotal).toLocaleString('en-IN')}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex-shrink-0">
+                            <StatusBadge status={sub.status} />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })
           ) : (
+            /* ── All Submissions Flat Feed ─────────────────────────────── */
             submissions.map((sub) => (
               <button
                 key={sub._id}
@@ -476,9 +1015,17 @@ export default function PublicSubmissionsInbox() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
+                      {sub.submitterAvatar && (
+                        <img src={sub.submitterAvatar} alt="" className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700 flex-shrink-0" />
+                      )}
                       <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate">
                         {sub.submitterName || 'Anonymous'}
                       </p>
+                      {sub.isGoogleVerified && (
+                        <span className="text-emerald-500 text-xs flex-shrink-0" title="Google Verified Submitter">
+                          <FaCheckCircle size={11} />
+                        </span>
+                      )}
                       {sub.parsedData?.grandTotal !== undefined && sub.parsedData?.grandTotal !== null && Number(sub.parsedData.grandTotal) > 0 && (
                         <span className="text-xs font-bold text-teal-600 dark:text-teal-400">
                           ₹{Number(sub.parsedData.grandTotal).toLocaleString('en-IN')}
@@ -638,15 +1185,48 @@ export default function PublicSubmissionsInbox() {
             <div className="flex-1 p-5 space-y-5">
 
               {/* ── Submitter info ─────────────────────────────── */}
-              <section className="bg-gray-50 dark:bg-slate-800/60 rounded-xl p-4 space-y-1.5 text-sm text-slate-800 dark:text-slate-200">
-                <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">Submitter</h3>
-                {selected.submitterName  && <p><span className="text-gray-500 dark:text-slate-400">Name:</span>  {selected.submitterName}</p>}
-                {selected.submitterEmail && <p><span className="text-gray-500 dark:text-slate-400">Email:</span> {selected.submitterEmail}</p>}
-                {selected.submitterPhone && <p><span className="text-gray-500 dark:text-slate-400">Phone:</span> {selected.submitterPhone}</p>}
-                {selected.submitterNote  && <p><span className="text-gray-500 dark:text-slate-400">Note:</span>  <em>{selected.submitterNote}</em></p>}
-                {!selected.submitterName && !selected.submitterEmail && !selected.submitterPhone && (
-                  <p className="text-gray-400 dark:text-slate-500 italic">No submitter details provided</p>
-                )}
+              <section className="bg-gray-50 dark:bg-slate-800/60 rounded-xl p-4 space-y-2 text-sm text-slate-800 dark:text-slate-200">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Submitter Details</h3>
+                  <div className="flex items-center gap-2">
+                    {selected.isGoogleVerified && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                        <FaCheckCircle size={10} /> Google Verified
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sKey = selected.submitterEmail || selected.submitterName || 'Anonymous';
+                        setSelectedSubmitter(sKey);
+                        setViewMode('all');
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                      title="Filter inbox to only this user's submissions"
+                    >
+                      <FaUser size={9} />
+                      <span>Show only this user's data</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  {selected.submitterAvatar ? (
+                    <img src={selected.submitterAvatar} alt="" className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-700 flex-shrink-0 mt-0.5" />
+                  ) : selected.isGoogleVerified ? (
+                    <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
+                      {selected.submitterName?.[0] || 'G'}
+                    </div>
+                  ) : null}
+                  <div className="space-y-1 min-w-0 flex-1">
+                    {selected.submitterName  && <p><span className="text-gray-500 dark:text-slate-400">Name:</span>  {selected.submitterName}</p>}
+                    {selected.submitterEmail && <p><span className="text-gray-500 dark:text-slate-400">Email:</span> {selected.submitterEmail}</p>}
+                    {selected.submitterPhone && <p><span className="text-gray-500 dark:text-slate-400">Phone:</span> {selected.submitterPhone}</p>}
+                    {selected.submitterNote  && <p><span className="text-gray-500 dark:text-slate-400">Note:</span>  <em>{selected.submitterNote}</em></p>}
+                    {!selected.submitterName && !selected.submitterEmail && !selected.submitterPhone && (
+                      <p className="text-gray-400 dark:text-slate-500 italic">No submitter details provided</p>
+                    )}
+                  </div>
+                </div>
               </section>
 
               {/* ── Active File Card ────────────────────────────── */}
