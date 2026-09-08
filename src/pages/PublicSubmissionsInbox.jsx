@@ -22,17 +22,21 @@ import {
   FaFilePdf, FaImage, FaExternalLinkAlt, FaSpinner,
   FaChevronLeft, FaEdit, FaCheck, FaTimes, FaArrowRight,
   FaBolt, FaTrash, FaLayerGroup, FaPlus, FaBuilding, FaUser,
-  FaListUl, FaPercentage, FaPhone, FaEnvelope, FaMapMarkerAlt,
+  FaListUl, FaPercentage, FaPhone, FaEnvelope, FaMapMarkerAlt, FaRedo,
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const CATEGORY_LABELS = {
-  invoice:       'Invoice',
-  expense:       'Expense / Bill',
-  income:        'Income / Receipt',
-  purchaseorder: 'Purchase Order',
-  unknown:       'Unknown',
+  invoice:        'Invoice',
+  expense:        'Expense / Bill',
+  income:         'Income / Receipt',
+  purchaseorder:  'Purchase Order',
+  unknown:        'Unknown',
+  invoices:       'Invoice',
+  expenses:       'Expense / Bill',
+  incomes:        'Income / Receipt',
+  purchaseorders: 'Purchase Order',
 };
 
 const STATUS_CONFIG = {
@@ -113,6 +117,7 @@ export default function PublicSubmissionsInbox() {
       setTotal(res.data.total || 0);
       if (res.data.pendingCount !== null && res.data.pendingCount !== undefined) {
         setPendingCount(res.data.pendingCount);
+        window.dispatchEvent(new CustomEvent('submissions-updated', { detail: { count: res.data.pendingCount } }));
       }
     } catch (err) {
       toast.error('Failed to load submissions');
@@ -319,6 +324,24 @@ export default function PublicSubmissionsInbox() {
     }
   };
 
+  // ── Split multi-file submission into individual submissions ────────────────
+  const handleSplit = async () => {
+    if (!selected) return;
+    if (!window.confirm(`Are you sure you want to split this submission into ${selected.files.length} separate submissions? Each file will become its own entry in the inbox.`)) return;
+
+    setActionLoading(true);
+    try {
+      const res = await api.post(`/submissions/${selected._id}/split`);
+      toast.success(res.data.message || 'Submission split successfully!');
+      setSelected(null);
+      fetchList();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to split submission');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // ─────────────────────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────────────────────
@@ -483,40 +506,54 @@ export default function PublicSubmissionsInbox() {
           {/* File Tabs for multi-file submissions in a single open menu */}
           {selected && (selected.files || []).length > 1 && (
             <div className="flex-shrink-0 bg-slate-100/90 dark:bg-slate-950/70 border-b border-gray-200 dark:border-slate-800 px-5 py-3">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'thin' }}>
-                <span className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 mr-2 flex-shrink-0">
-                  <FaLayerGroup className="text-indigo-500" /> Files ({selected.files.length}):
-                </span>
-                {selected.files.map((file, idx) => {
-                  const isApproved = file.status === 'approved';
-                  const isActive = activeFileIndex === idx;
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => selectFileTab(idx)}
-                      className={`flex-shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border ${
-                        isActive
-                          ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20'
-                          : isApproved
-                          ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
-                          : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-750'
-                      }`}
-                    >
-                      <FaFilePdf className={isActive ? 'text-white' : isApproved ? 'text-emerald-500' : 'text-red-500'} />
-                      <span className="max-w-[150px] truncate">{file.originalName}</span>
-                      {isApproved ? (
-                        <span className="text-[10px] bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded-full">✓ Approved</span>
-                      ) : (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                          isActive ? 'bg-indigo-700 text-white' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                        }`}>
-                          Pending
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 flex-1 min-w-0" style={{ scrollbarWidth: 'thin' }}>
+                  <span className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 mr-2 flex-shrink-0">
+                    <FaLayerGroup className="text-indigo-500" /> Files ({selected.files.length}):
+                  </span>
+                  {selected.files.map((file, idx) => {
+                    const isApproved = file.status === 'approved';
+                    const isActive = activeFileIndex === idx;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => selectFileTab(idx)}
+                        className={`flex-shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border ${
+                          isActive
+                            ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20'
+                            : isApproved
+                            ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
+                            : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-750'
+                        }`}
+                      >
+                        <FaFilePdf className={isActive ? 'text-white' : isApproved ? 'text-emerald-500' : 'text-red-500'} />
+                        <span className="max-w-[150px] truncate">{file.originalName}</span>
+                        {isApproved ? (
+                          <span className="text-[10px] bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded-full">✓ Approved</span>
+                        ) : (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                            isActive ? 'bg-indigo-700 text-white' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                          }`}>
+                            Pending
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {selected.status === 'pending' && (
+                  <button
+                    type="button"
+                    onClick={handleSplit}
+                    disabled={actionLoading}
+                    className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 shadow-sm transition-all cursor-pointer"
+                    title="Split each file into its own standalone submission for independent review"
+                  >
+                    <FaLayerGroup /> Split into {selected.files.length} Submissions
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -592,7 +629,17 @@ export default function PublicSubmissionsInbox() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => handleParseFile(activeFileIndex)}
+                    disabled={parsingFile}
+                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                    title="Re-run AI extraction on this file"
+                  >
+                    {parsingFile ? <FaSpinner className="animate-spin" size={11} /> : <FaRedo size={11} />}
+                    <span>{parsingFile ? 'Parsing...' : 'Parse Again'}</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleViewFile(selected._id, activeFileIndex)}
@@ -652,14 +699,26 @@ export default function PublicSubmissionsInbox() {
                     )}
                   </div>
 
-                  {!isCurrentFileApproved && (selected.status === 'pending' || selected.status === 'needs-changes') && !editMode && (
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setEditMode(true)}
-                      className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+                      type="button"
+                      onClick={() => handleParseFile(activeFileIndex)}
+                      disabled={parsingFile}
+                      className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 rounded-lg text-xs font-semibold cursor-pointer transition-colors disabled:opacity-50"
+                      title="Re-run AI extraction on this file"
                     >
-                      <FaEdit /> Edit Fields
+                      {parsingFile ? <FaSpinner className="animate-spin" size={11} /> : <FaRedo size={11} />}
+                      <span>{parsingFile ? 'Parsing...' : 'Parse Again'}</span>
                     </button>
-                  )}
+                    {!isCurrentFileApproved && (selected.status === 'pending' || selected.status === 'needs-changes') && !editMode && (
+                      <button
+                        onClick={() => setEditMode(true)}
+                        className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+                      >
+                        <FaEdit /> Edit Fields
+                      </button>
+                    )}
+                  </div>
                   {editMode && (
                     <div className="flex gap-2">
                       <button
@@ -679,7 +738,7 @@ export default function PublicSubmissionsInbox() {
                   )}
                 </div>
 
-                {!isCurrentFileApproved && !currentFile?.parsedData && activeFileIndex > 0 && (
+                {!isCurrentFileApproved && (!currentFile?.parsedData || Object.keys(currentFile?.parsedData || {}).length === 0) && (
                   <div className="p-3.5 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between gap-3">
                     <div className="text-xs text-indigo-900 dark:text-indigo-200">
                       <span className="font-bold block flex items-center gap-1.5"><FaBolt className="text-amber-500" /> Data not yet extracted for File {activeFileIndex + 1}</span>
@@ -691,7 +750,7 @@ export default function PublicSubmissionsInbox() {
                       disabled={parsingFile}
                       className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 flex-shrink-0 shadow-sm transition-all cursor-pointer"
                     >
-                      {parsingFile ? <FaSpinner className="animate-spin" /> : <FaBolt />} Extract Data
+                      {parsingFile ? <FaSpinner className="animate-spin" /> : <FaBolt />} Parse Again
                     </button>
                   </div>
                 )}

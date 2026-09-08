@@ -34,7 +34,8 @@ const CATEGORY_LABELS = {
 };
 
 const ACCEPTED_TYPES = '.pdf,.jpg,.jpeg,.png';
-const MAX_FILE_SIZE  = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE  = 10 * 1024 * 1024; // 10 MB per file
+const MAX_TOTAL_SIZE = 14 * 1024 * 1024; // 14 MB total per submission
 const MAX_FILES      = 5;
 
 function formatBytes(bytes) {
@@ -106,6 +107,7 @@ export default function PublicSubmitPage() {
   const validateAndAddFiles = useCallback((incoming) => {
     const errors = [];
     const valid  = [];
+    let currentTotalSize = files.reduce((acc, f) => acc + (f.size || 0), 0);
 
     for (const f of incoming) {
       if (files.length + valid.length >= MAX_FILES) {
@@ -118,9 +120,14 @@ export default function PublicSubmitPage() {
         continue;
       }
       if (f.size > MAX_FILE_SIZE) {
-        errors.push(`"${f.name}" exceeds the 10 MB size limit (${formatBytes(f.size)}).`);
+        errors.push(`"${f.name}" exceeds the 10 MB single file limit (${formatBytes(f.size)}).`);
         continue;
       }
+      if (currentTotalSize + f.size > MAX_TOTAL_SIZE) {
+        errors.push(`Adding "${f.name}" exceeds the 14 MB total submission limit.`);
+        continue;
+      }
+      currentTotalSize += f.size;
       valid.push(f);
     }
 
