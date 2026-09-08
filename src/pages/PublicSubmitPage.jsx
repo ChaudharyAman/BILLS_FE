@@ -557,6 +557,7 @@ export default function PublicSubmitPage() {
 
           <div className="mt-6 flex justify-center">
             <GoogleSignInButton
+              clientId={portalInfo?.googleClientId}
               onSuccess={handleGoogleSuccess}
               onError={handleGoogleError}
               text="signin_with"
