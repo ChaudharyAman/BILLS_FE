@@ -699,26 +699,14 @@ export default function PublicSubmissionsInbox() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  {!isCurrentFileApproved && (selected.status === 'pending' || selected.status === 'needs-changes') && !editMode && (
                     <button
-                      type="button"
-                      onClick={() => handleParseFile(activeFileIndex)}
-                      disabled={parsingFile}
-                      className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 rounded-lg text-xs font-semibold cursor-pointer transition-colors disabled:opacity-50"
-                      title="Re-run AI extraction on this file"
+                      onClick={() => setEditMode(true)}
+                      className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
                     >
-                      {parsingFile ? <FaSpinner className="animate-spin" size={11} /> : <FaRedo size={11} />}
-                      <span>{parsingFile ? 'Parsing...' : 'Parse Again'}</span>
+                      <FaEdit /> Edit Fields
                     </button>
-                    {!isCurrentFileApproved && (selected.status === 'pending' || selected.status === 'needs-changes') && !editMode && (
-                      <button
-                        onClick={() => setEditMode(true)}
-                        className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
-                      >
-                        <FaEdit /> Edit Fields
-                      </button>
-                    )}
-                  </div>
+                  )}
                   {editMode && (
                     <div className="flex gap-2">
                       <button
