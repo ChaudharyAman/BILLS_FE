@@ -8,15 +8,18 @@ import Modal from '../components/Modal';
 import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
 import QuotaIndicator from '../components/QuotaIndicator';
 import PdfInvoiceImporter from '../components/PdfInvoiceImporter';
+import { getStoredFilter, setStoredFilters, clearStoredFilters } from '../utils/filterStorage';
+
+const FILTER_STORAGE_KEY = 'flance_purchase_orders_filters_pref';
 
 const PurchaseOrderList = () => {
   const navigate = useNavigate();
   const STATUS_OPTIONS = ['ALL', 'DRAFT', 'SENT', 'ACCEPTED', 'RECEIVED', 'REJECTED', 'BILLED', 'CANCELLED'];
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'searchTerm', ''));
+  const [statusFilter, setStatusFilter] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'statusFilter', 'ALL'));
+  const [rowsPerPage, setRowsPerPage] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'rowsPerPage', 10));
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
@@ -31,7 +34,7 @@ const PurchaseOrderList = () => {
   try { userObj = userStr ? JSON.parse(userStr).user : null; } catch(e) {}
   const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
 
-  const [businessUnitFilter, setBusinessUnitFilter] = useState('');
+  const [businessUnitFilter, setBusinessUnitFilter] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'businessUnitFilter', ''));
   const [businessUnits, setBusinessUnits] = useState([]);
 
   useEffect(() => {
@@ -39,6 +42,15 @@ const PurchaseOrderList = () => {
       .then(res => setBusinessUnits(res.data || []))
       .catch(err => console.error('Failed to load business units:', err));
   }, []);
+
+  useEffect(() => {
+    setStoredFilters(FILTER_STORAGE_KEY, {
+      rowsPerPage,
+      searchTerm,
+      statusFilter,
+      businessUnitFilter,
+    });
+  }, [rowsPerPage, searchTerm, statusFilter, businessUnitFilter]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -381,6 +393,20 @@ const PurchaseOrderList = () => {
                 </option>
               ))}
             </select>
+            {(searchTerm || statusFilter !== 'ALL' || businessUnitFilter) && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('ALL');
+                  setBusinessUnitFilter('');
+                  setPage(1);
+                  clearStoredFilters(FILTER_STORAGE_KEY);
+                }}
+                className="px-3 py-1.5 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
           <div className="text-sm text-gray-500 dark:text-slate-400">Showing {displayed.length} of {totalRecords}</div>
         </div>

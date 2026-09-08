@@ -514,7 +514,7 @@ const InvoiceForm = () => {
         paymentDate: fmt(inv.paymentDate),
         paymentMode: inv.paymentMode || '',
         paymentTerms: inv.paymentTerms || 'On Receipt',
-        status: inv.status || 'DRAFT',
+        status: inv.status === 'PAID' ? 'RECEIVED' : (inv.status || 'DRAFT'),
         businessUnit: inv.businessUnit?._id || inv.businessUnit || '',
         placeOfSupply: inv.placeOfSupply || '',
         reverseCharge: !!inv.reverseCharge,
@@ -1180,22 +1180,31 @@ const InvoiceForm = () => {
             )}
             <div>
               <label className={lbl}>Status</label>
-              <select className={inp} value={formData.status}
+              <select className={inp} value={formData.status === 'PAID' ? 'RECEIVED' : (formData.status || 'DRAFT')}
                 onChange={(e) => {
                   const val = e.target.value;
-                  if (val === 'PAID') {
+                  if (val === 'RECEIVED' || val === 'PAID') {
                     const total = getGrandTotal();
-                    setFormData({ ...formData, status: val, advancePaid: total });
+                    const finalTds = formData.tdsApplicable || formData.client_will_deduct_tds ? Number(formData.tds || 0) : 0;
+                    const paidAmount = Math.max(0, total - finalTds);
+                    setFormData({ ...formData, status: val, advancePaid: paidAmount });
                     setShowAdvance(true);
+                  } else if (val === 'UNPAID' || val === 'DRAFT' || val === 'CANCELLED') {
+                    if (formData.status === 'RECEIVED' || formData.status === 'PAID') {
+                      setFormData({ ...formData, status: val, advancePaid: 0 });
+                    } else {
+                      setFormData({ ...formData, status: val });
+                    }
                   } else {
                     setFormData({ ...formData, status: val });
                   }
                 }}>
-                <option value="DRAFT">Draft</option>
-                <option value="SENT">Sent</option>
-                <option value="PAID">Paid</option>
-                <option value="PARTIAL">Partial</option>
-                <option value="UNPAID">Unpaid</option>
+                <option value="DRAFT">DRAFT</option>
+                <option value="SENT">SENT</option>
+                <option value="UNPAID">UNPAID</option>
+                <option value="PARTIAL">PARTIAL</option>
+                <option value="RECEIVED">RECEIVED</option>
+                <option value="CANCELLED">CANCELLED</option>
               </select>
             </div>
             <div>

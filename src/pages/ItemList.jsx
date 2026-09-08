@@ -6,6 +6,9 @@ import Skeleton from '../components/Skeleton';
 import Modal from '../components/Modal';
 import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
 import ExportDropdown from '../components/ExportDropdown';
+import { getStoredFilter, setStoredFilters } from '../utils/filterStorage';
+
+const FILTER_STORAGE_KEY = 'flance_items_filters_pref';
 
 const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50];
 
@@ -13,14 +16,18 @@ const ItemList = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'searchTerm', ''));
   const [selectedItems, setSelectedItems] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'itemsPerPage', 10));
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+
+  useEffect(() => {
+    setStoredFilters(FILTER_STORAGE_KEY, { searchTerm, itemsPerPage });
+  }, [searchTerm, itemsPerPage]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {

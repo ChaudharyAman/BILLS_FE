@@ -7,13 +7,16 @@ import ExportDropdown from '../components/ExportDropdown';
 import Modal from '../components/Modal';
 import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
 import QuotaIndicator from '../components/QuotaIndicator';
+import { getStoredFilter, setStoredFilters, clearStoredFilters } from '../utils/filterStorage';
+
+const FILTER_STORAGE_KEY = 'flance_quotes_filters_pref';
 
 const QuoteList = () => {
   const navigate = useNavigate();
   const [quotes, setQuotes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'searchTerm', ''));
+  const [rowsPerPage, setRowsPerPage] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'rowsPerPage', 10));
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
@@ -25,14 +28,14 @@ const QuoteList = () => {
   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   // Sorting & Filtering State
-  const [statusFilter, setStatusFilter] = useState('');
-  const [businessUnitFilter, setBusinessUnitFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'statusFilter', ''));
+  const [businessUnitFilter, setBusinessUnitFilter] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'businessUnitFilter', ''));
   const [businessUnits, setBusinessUnits] = useState([]);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [dateTypeFilter, setDateTypeFilter] = useState('date'); // 'date' or 'validUntil'
-  const [sortBy, setSortBy] = useState('createdAt');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [startDate, setStartDate] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'startDate', ''));
+  const [endDate, setEndDate] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'endDate', ''));
+  const [dateTypeFilter, setDateTypeFilter] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'dateTypeFilter', 'date'));
+  const [sortBy, setSortBy] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'sortBy', 'createdAt'));
+  const [sortOrder, setSortOrder] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'sortOrder', 'desc'));
 
   const userStr = localStorage.getItem('user');
   let userObj = null;
@@ -44,6 +47,20 @@ const QuoteList = () => {
       .then(res => setBusinessUnits(res.data || []))
       .catch(err => console.error('Failed to load business units:', err));
   }, []);
+
+  useEffect(() => {
+    setStoredFilters(FILTER_STORAGE_KEY, {
+      rowsPerPage,
+      searchTerm,
+      statusFilter,
+      businessUnitFilter,
+      startDate,
+      endDate,
+      dateTypeFilter,
+      sortBy,
+      sortOrder,
+    });
+  }, [rowsPerPage, searchTerm, statusFilter, businessUnitFilter, startDate, endDate, dateTypeFilter, sortBy, sortOrder]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -553,10 +570,11 @@ const QuoteList = () => {
                       </select>
                   </div>
 
-                 {(statusFilter || startDate || endDate || searchTerm || dateTypeFilter !== 'date' || sortBy !== 'createdAt' || sortOrder !== 'desc') && (
+                 {(statusFilter || businessUnitFilter || startDate || endDate || searchTerm || dateTypeFilter !== 'date' || sortBy !== 'createdAt' || sortOrder !== 'desc') && (
                      <button
                         onClick={() => {
                             setStatusFilter('');
+                            setBusinessUnitFilter('');
                             setStartDate('');
                             setEndDate('');
                             setDateTypeFilter('date');
@@ -564,6 +582,7 @@ const QuoteList = () => {
                             setSortBy('createdAt');
                             setSortOrder('desc');
                             setPage(1);
+                            clearStoredFilters(FILTER_STORAGE_KEY);
                         }}
                         className="self-end px-4 py-2 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer"
                      >

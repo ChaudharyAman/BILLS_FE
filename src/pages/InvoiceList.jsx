@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { FaPlus, FaDownload, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaChevronDown, FaFilePdf } from 'react-icons/fa';
+import { FaPlus, FaDownload, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaChevronDown, FaFilePdf, FaFileInvoiceDollar, FaCheckCircle, FaClock, FaExclamationCircle } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 import ExportDropdown from '../components/ExportDropdown';
 import Modal from '../components/Modal';
@@ -30,6 +30,19 @@ const DOC_TYPES = [
   },
 ];
 
+const FILTER_STORAGE_KEY = 'flance_invoices_filters_pref';
+
+const getStoredFilter = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(FILTER_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed[key] !== undefined) return parsed[key];
+    }
+  } catch (e) {}
+  return fallback;
+};
+
 const InvoiceList = () => {
   const navigate = useNavigate();
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
@@ -47,13 +60,14 @@ const InvoiceList = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
   const [invoices, setInvoices] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [rowsPerPage, setRowsPerPage] = useState(() => getStoredFilter('rowsPerPage', 50));
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const [selectedInvoices, setSelectedInvoices] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => getStoredFilter('searchTerm', ''));
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [parsedImportInvoices, setParsedImportInvoices] = useState([]);
@@ -61,22 +75,40 @@ const InvoiceList = () => {
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [isPdfScannerOpen, setIsPdfScannerOpen] = useState(false);
 
-  // Sorting & Filtering State
-  const [statusFilter, setStatusFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [businessUnitFilter, setBusinessUnitFilter] = useState('');
+  // Sorting & Filtering State (persisted in localStorage)
+  const [statusFilter, setStatusFilter] = useState(() => getStoredFilter('statusFilter', ''));
+  const [typeFilter, setTypeFilter] = useState(() => getStoredFilter('typeFilter', ''));
+  const [businessUnitFilter, setBusinessUnitFilter] = useState(() => getStoredFilter('businessUnitFilter', ''));
   const [businessUnits, setBusinessUnits] = useState([]);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [dateTypeFilter, setDateTypeFilter] = useState('date'); // 'date' or 'dueDate'
-  const [sortBy, setSortBy] = useState('createdAt');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [startDate, setStartDate] = useState(() => getStoredFilter('startDate', ''));
+  const [endDate, setEndDate] = useState(() => getStoredFilter('endDate', ''));
+  const [dateTypeFilter, setDateTypeFilter] = useState(() => getStoredFilter('dateTypeFilter', 'date'));
+  const [sortBy, setSortBy] = useState(() => getStoredFilter('sortBy', 'createdAt'));
+  const [sortOrder, setSortOrder] = useState(() => getStoredFilter('sortOrder', 'desc'));
 
   useEffect(() => {
     api.get('/business-units?status=active')
       .then((res) => setBusinessUnits(res.data || []))
       .catch((err) => console.error('Failed to load business units:', err));
   }, []);
+
+  // Sync filters and sorting preferences to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({
+        rowsPerPage,
+        searchTerm,
+        statusFilter,
+        typeFilter,
+        businessUnitFilter,
+        startDate,
+        endDate,
+        dateTypeFilter,
+        sortBy,
+        sortOrder,
+      }));
+    } catch (e) {}
+  }, [rowsPerPage, searchTerm, statusFilter, typeFilter, businessUnitFilter, startDate, endDate, dateTypeFilter, sortBy, sortOrder]);
 
   // Debounced Search and Direct Filter Effect
   useEffect(() => {
@@ -107,6 +139,7 @@ const InvoiceList = () => {
       setInvoices(res.data.data || []);
       setTotalPages(res.data.totalPages || 1);
       setTotalRecords(res.data.total || 0);
+      setSummary(res.data.summary || null);
     } catch (error) {
       console.error('Error fetching invoices:', error);
     } finally {
@@ -158,12 +191,12 @@ const InvoiceList = () => {
     if (window.confirm(`Are you sure you want to delete the ${selectedInvoices.length} selected invoices?`)) {
       try {
         setLoading(true);
-        await Promise.all(selectedInvoices.map(id => api.delete(`/invoices/${id}`)));
+        await api.post('/invoices/bulk-delete', { ids: selectedInvoices });
         setSelectedInvoices([]);
         fetchInvoices();
       } catch (error) {
         console.error('Error deleting invoices:', error);
-        alert(error.response?.data?.message || 'Failed to delete some invoices');
+        alert(error.response?.data?.message || 'Failed to delete selected invoices');
       } finally {
         setLoading(false);
       }
@@ -439,6 +472,74 @@ const InvoiceList = () => {
       {/* Quota Indicator for Free Tier */}
       <QuotaIndicator type="invoices" />
 
+      {/* Dynamic Summary KPI Cards */}
+      {summary && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">Total Invoiced</span>
+              <span className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+                <FaFileInvoiceDollar size={14} />
+              </span>
+            </div>
+            <div className="mt-2 text-lg font-bold font-mono text-gray-900 dark:text-slate-100">
+              ₹{(summary.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="mt-0.5 text-[10px] text-gray-400 dark:text-slate-500">
+              {totalRecords} total {totalRecords === 1 ? 'invoice' : 'invoices'}
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">Total Received</span>
+              <span className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                <FaCheckCircle size={14} />
+              </span>
+            </div>
+            <div className="mt-2 text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
+              ₹{(summary.totalReceived || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="mt-0.5 text-[10px] text-gray-400 dark:text-slate-500">
+              Realized collections
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">Pending Receivable</span>
+              <span className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+                <FaClock size={14} />
+              </span>
+            </div>
+            <div className="mt-2 text-lg font-bold font-mono text-amber-600 dark:text-amber-400">
+              ₹{(summary.totalPending || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="mt-0.5 text-[10px] text-gray-400 dark:text-slate-500">
+              Awaiting settlement
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">Overdue</span>
+              <span className="p-1.5 rounded-lg bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400">
+                <FaExclamationCircle size={14} />
+              </span>
+            </div>
+            <div className="mt-2 text-lg font-bold font-mono text-red-600 dark:text-red-400">
+              ₹{(summary.overdueAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="mt-0.5 text-[10px] text-gray-400 dark:text-slate-500 flex items-center gap-1">
+              <span>{summary.overdueCount || 0} overdue</span>
+              {summary.overdueCount > 0 && (
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modern Table Section */}
       <div className="bg-white dark:bg-slate-900 shadow-sm rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden transition-colors">
         
@@ -567,11 +668,12 @@ const InvoiceList = () => {
                       </select>
                  </div>
 
-                 {(statusFilter || typeFilter || startDate || endDate || searchTerm || dateTypeFilter !== 'date' || sortBy !== 'createdAt' || sortOrder !== 'desc') && (
+                 {(statusFilter || typeFilter || businessUnitFilter || startDate || endDate || searchTerm || dateTypeFilter !== 'date' || sortBy !== 'createdAt' || sortOrder !== 'desc') && (
                      <button
                         onClick={() => {
                             setStatusFilter('');
                             setTypeFilter('');
+                            setBusinessUnitFilter('');
                             setStartDate('');
                             setEndDate('');
                             setDateTypeFilter('date');
@@ -579,6 +681,9 @@ const InvoiceList = () => {
                             setSortBy('createdAt');
                             setSortOrder('desc');
                             setPage(1);
+                            try {
+                              localStorage.removeItem(FILTER_STORAGE_KEY);
+                            } catch (e) {}
                         }}
                         className="self-end px-3 py-1 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-700 dark:hover:text-red-300 rounded-md text-xs font-semibold transition-all flex items-center gap-1 shadow-sm cursor-pointer"
                      >

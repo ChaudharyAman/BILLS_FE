@@ -202,10 +202,6 @@ const Login = () => {
             Don't have an account?{' '}
             <Link to="/signup" className="text-blue-600 hover:text-blue-700 transition-colors">Sign up</Link>
           </p>
-          
-          <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-[11px] text-slate-400 font-medium text-center">
-            Demo: enter your username and password to log in.
-          </div>
         </div>
       </div>
     </div>

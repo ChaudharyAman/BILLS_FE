@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
@@ -282,6 +282,37 @@ const Layout = ({ children }) => {
     return () => window.removeEventListener('auth-sync', onAuthSync);
   }, []);
 
+  // Pending submissions inbox badge count
+  const [pendingSubmissionsCount, setPendingSubmissionsCount] = useState(0);
+
+  const fetchPendingSubmissions = useCallback(async () => {
+    try {
+      const res = await api.get('/submissions', { params: { status: 'pending', limit: 1 } });
+      if (res.data?.pendingCount !== undefined && res.data?.pendingCount !== null) {
+        setPendingSubmissionsCount(res.data.pendingCount);
+      } else if (res.data?.total !== undefined) {
+        setPendingSubmissionsCount(res.data.total);
+      }
+    } catch {
+      // User may not have publicSubmissions permission or network is offline
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPendingSubmissions();
+
+    const onSubmissionsUpdated = (e) => {
+      if (e.detail?.count !== undefined) {
+        setPendingSubmissionsCount(e.detail.count);
+      } else {
+        fetchPendingSubmissions();
+      }
+    };
+
+    window.addEventListener('submissions-updated', onSubmissionsUpdated);
+    return () => window.removeEventListener('submissions-updated', onSubmissionsUpdated);
+  }, [fetchPendingSubmissions]);
+
   // Check user subscription tier — re-evaluated whenever syncTick changes
   let isPro = false;
   let isSuperAdmin = false;
@@ -550,6 +581,8 @@ const Layout = ({ children }) => {
 
     // Default item
     const itemActive = isActive(item.path);
+    const hasBadge = item.id === 'submissions_inbox' && pendingSubmissionsCount > 0;
+
     return (
       <Link
         key={item.id}
@@ -559,18 +592,36 @@ const Layout = ({ children }) => {
         onMouseLeave={hideTooltip}
         onClick={hideTooltip}
       >
-        <span className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2 flex-1 min-w-0'}`}>
+        <span className={`flex items-center ${isCollapsed ? 'justify-center relative' : 'gap-2 flex-1 min-w-0'}`}>
           {!isCollapsed && <span className="w-2.5 flex-shrink-0" />}
-          {renderIcon(
-            item,
-            currentIconSize,
-            itemActive 
-              ? 'text-white flex-shrink-0' 
-              : isDark
-                ? 'text-slate-400 group-hover:text-slate-200 flex-shrink-0'
-                : 'text-slate-600 group-hover:text-slate-800 flex-shrink-0'
+          <span className="relative flex items-center justify-center">
+            {renderIcon(
+              item,
+              currentIconSize,
+              itemActive 
+                ? 'text-white flex-shrink-0' 
+                : isDark
+                  ? 'text-slate-400 group-hover:text-slate-200 flex-shrink-0'
+                  : 'text-slate-600 group-hover:text-slate-800 flex-shrink-0'
+            )}
+            {isCollapsed && hasBadge && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
+            )}
+          </span>
+          {!isCollapsed && (
+            <>
+              <span className="truncate">{item.label}</span>
+              {hasBadge && (
+                <span className={`ml-auto px-1.5 py-0.5 text-[10px] font-bold rounded-full leading-none flex-shrink-0 ${
+                  itemActive 
+                    ? 'bg-white/20 text-white' 
+                    : 'bg-rose-500 text-white shadow-sm'
+                }`}>
+                  {pendingSubmissionsCount > 99 ? '99+' : pendingSubmissionsCount}
+                </span>
+              )}
+            </>
           )}
-          {!isCollapsed && <span className="truncate">{item.label}</span>}
         </span>
       </Link>
     );
