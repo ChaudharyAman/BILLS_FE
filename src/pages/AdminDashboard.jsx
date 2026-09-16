@@ -24,7 +24,83 @@ import {
   UserCheck,
   UserX,
   Key,
+  Layers,
+  Sliders,
+  Check,
+  CheckSquare,
+  Square,
+  Sparkles,
 } from 'lucide-react';
+
+export const SYSTEM_MODULE_CATEGORIES = [
+  {
+    id: 'sales',
+    title: 'Sales & Receivables',
+    modules: [
+      { id: 'invoices', name: 'Invoices', desc: 'Create, print, track and send customer invoices & tax bills' },
+      { id: 'quotes', name: 'Quotes & Estimates', desc: 'Quotations, estimates and client price offers' },
+      { id: 'proformas', name: 'Proforma Invoices', desc: 'Advance and pre-billing proforma invoices' },
+      { id: 'income', name: 'Income Entries', desc: 'Track incoming payments, direct sales and collections' },
+      { id: 'clients', name: 'Clients / Customers', desc: 'Customer directory, GSTIN profiles, addresses & ledgers' },
+      { id: 'recurringTransactions', name: 'Recurring Transactions', desc: 'Automated recurring billing and transaction scheduler' },
+    ],
+  },
+  {
+    id: 'purchases',
+    title: 'Purchases & Payables',
+    modules: [
+      { id: 'vendors', name: 'Vendors / Suppliers', desc: 'Supplier database, payables tracking & contact details' },
+      { id: 'purchaseOrders', name: 'Purchase Orders', desc: 'Procurement orders and PO-to-invoice conversion' },
+      { id: 'expenses', name: 'Expenses', desc: 'Record bills, operational expenses and vendor claims' },
+    ],
+  },
+  {
+    id: 'operations',
+    title: 'Operations & Assets',
+    modules: [
+      { id: 'items', name: 'Items / Inventory', desc: 'Products, services catalog, pricing & HSN/SAC codes' },
+      { id: 'assets', name: 'Fixed Assets', desc: 'Asset register, straight-line and WDV depreciation schedules' },
+      { id: 'projects', name: 'Projects', desc: 'Project budgets, cost allocation and milestone billing' },
+      { id: 'businessUnits', name: 'Business Units', desc: 'Multi-branch cost centers and business divisions' },
+      { id: 'departments', name: 'Departments', desc: 'Internal organizational departments' },
+    ],
+  },
+  {
+    id: 'payroll_hr',
+    title: 'Payroll & HR Suite',
+    modules: [
+      { id: 'employees', name: 'Employees & Staff', desc: 'Employee master records, contracts & statutory info' },
+      { id: 'payroll', name: 'Payroll Processing', desc: 'Indian statutory PF, ESI, PT, salary proration & payslips' },
+      { id: 'leaves', name: 'Leave Management', desc: 'Leave types, holiday calendars, requests & auto-LOP deduction' },
+      { id: 'reimbursements', name: 'Reimbursements', desc: 'Employee expense claims submission and payout approval' },
+      { id: 'loans', name: 'Employee Loans', desc: 'Staff advance loans and monthly payroll EMI deductions' },
+      { id: 'jobRoles', name: 'Job Roles & Designations', desc: 'Role definitions, designation tiers and rate cards' },
+    ],
+  },
+  {
+    id: 'finance',
+    title: 'Financial Control & Banking',
+    modules: [
+      { id: 'bankStatements', name: 'Bank Statements', desc: 'Statement upload, automatic matching and reconciliation' },
+      { id: 'budgets', name: 'Budgets & Limits', desc: 'Periodic departmental and category budget tracking' },
+      { id: 'categories', name: 'Categories', desc: 'Classification ledger and accounting categories' },
+      { id: 'liabilities', name: 'Liabilities & Debt', desc: 'Company credit lines, term loans and commercial debt' },
+      { id: 'reports', name: 'Reports & Tax Analytics', desc: 'P&L, Balance Sheet, Cash Flow, GSTR-1, GSTR-3B & TDS reports' },
+    ],
+  },
+  {
+    id: 'system',
+    title: 'System & Portal Extensions',
+    modules: [
+      { id: 'publicSubmissions', name: 'Public Submissions Portal', desc: 'Token-scoped links for vendor receipt upload & review inbox' },
+      { id: 'teamMembers', name: 'Team Members & RBAC', desc: 'Invite staff members and assign custom access roles' },
+      { id: 'settings', name: 'Company Settings', desc: 'Company profile, branding, logo, signature & invoice prefix' },
+      { id: 'subscription', name: 'Billing Subscription', desc: 'Plan status, payment records and self-service upgrades' },
+    ],
+  },
+];
+
+export const ALL_SYSTEM_MODULE_IDS = SYSTEM_MODULE_CATEGORIES.flatMap((c) => c.modules.map((m) => m.id));
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('companies'); // 'companies' | 'audit'
@@ -45,8 +121,9 @@ const AdminDashboard = () => {
   // ── Company Detail / Edit Modal State ──────────────────────────────────────
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [detailTab, setDetailTab] = useState('overview'); // 'overview' | 'team' | 'roles' | 'payments'
+  const [detailTab, setDetailTab] = useState('overview'); // 'overview' | 'modules' | 'team' | 'roles' | 'payments'
   const [isUpdating, setIsUpdating] = useState(false);
+  const [moduleSearchQuery, setModuleSearchQuery] = useState('');
 
   // Form State for User Edit
   const [planForm, setPlanForm] = useState({
@@ -56,6 +133,8 @@ const AdminDashboard = () => {
     billingCycle: 'monthly',
     isActive: true,
     role: 'user',
+    enabledModules: ALL_SYSTEM_MODULE_IDS,
+    modulePermissions: {},
   });
 
   // Company Team & Roles Data
@@ -191,6 +270,10 @@ const AdminDashboard = () => {
   const handleOpenCompanyDetail = async (owner, initialTab = 'overview') => {
     setSelectedOwner(owner);
     setDetailTab(initialTab);
+    const initialModules = Array.isArray(owner.enabledModules) && owner.enabledModules.length > 0
+      ? owner.enabledModules
+      : ALL_SYSTEM_MODULE_IDS;
+
     setPlanForm({
       plan: owner.subscription?.plan || 'free',
       status: owner.subscription?.status || 'active',
@@ -198,13 +281,77 @@ const AdminDashboard = () => {
       billingCycle: owner.subscription?.billingCycle || 'monthly',
       isActive: owner.isActive !== false,
       role: owner.role || 'user',
+      enabledModules: initialModules,
+      modulePermissions: owner.modulePermissions || {},
       newPassword: '',
       confirmPassword: '',
     });
+    setModuleSearchQuery('');
     setIsDetailModalOpen(true);
 
     // Fetch team and custom roles
     fetchCompanyTeamAndRoles(owner._id);
+  };
+
+  // ── Module & Permission Toggles ──────────────────────────────────────────
+  const handleToggleModule = (modId) => {
+    setPlanForm(prev => {
+      const current = prev.enabledModules || [];
+      const exists = current.includes(modId);
+      const next = exists ? current.filter(id => id !== modId) : [...current, modId];
+      return { ...prev, enabledModules: next };
+    });
+  };
+
+  const handleToggleCategoryModules = (categoryModules) => {
+    setPlanForm(prev => {
+      const current = new Set(prev.enabledModules || []);
+      const catIds = categoryModules.map(m => m.id);
+      const allEnabled = catIds.every(id => current.has(id));
+      if (allEnabled) {
+        catIds.forEach(id => current.delete(id));
+      } else {
+        catIds.forEach(id => current.add(id));
+      }
+      return { ...prev, enabledModules: Array.from(current) };
+    });
+  };
+
+  const handleToggleModuleAction = (modId, action) => {
+    setPlanForm(prev => {
+      const currentPerms = prev.modulePermissions || {};
+      const modObj = currentPerms[modId] || { view: true, create: true, edit: true, delete: true, approve: true };
+      const nextModObj = { ...modObj, [action]: !modObj[action] };
+      return {
+        ...prev,
+        modulePermissions: {
+          ...currentPerms,
+          [modId]: nextModObj,
+        }
+      };
+    });
+  };
+
+  const applyModulePreset = (presetName) => {
+    if (presetName === 'all') {
+      setPlanForm(prev => ({ ...prev, enabledModules: [...ALL_SYSTEM_MODULE_IDS] }));
+      toast.success('All modules enabled');
+    } else if (presetName === 'none') {
+      setPlanForm(prev => ({ ...prev, enabledModules: [] }));
+      toast.success('All modules disabled');
+    } else if (presetName === 'invoicing') {
+      const ids = ['invoices', 'quotes', 'proformas', 'clients', 'items', 'income', 'settings'];
+      setPlanForm(prev => ({ ...prev, enabledModules: ids }));
+      toast.success('Invoicing & Billing preset applied');
+    } else if (presetName === 'payroll') {
+      const ids = ['employees', 'payroll', 'leaves', 'reimbursements', 'loans', 'jobRoles', 'departments', 'settings'];
+      setPlanForm(prev => ({ ...prev, enabledModules: ids }));
+      toast.success('Payroll & HR preset applied');
+    } else if (presetName === 'erp') {
+      const ids = ['invoices', 'quotes', 'proformas', 'purchaseOrders', 'clients', 'vendors', 'items', 'expenses', 'income', 'bankStatements', 'reports', 'settings'];
+      setPlanForm(prev => ({ ...prev, enabledModules: ids }));
+      toast.success('Standard ERP preset applied');
+    }
   };
 
   const fetchCompanyTeamAndRoles = async (ownerId) => {
@@ -704,6 +851,15 @@ const AdminDashboard = () => {
                 Subscription & Access
               </button>
               <button
+                onClick={() => setDetailTab('modules')}
+                className={`py-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+                  detailTab === 'modules' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                Enabled Modules ({planForm.enabledModules?.length || 0}/{ALL_SYSTEM_MODULE_IDS.length})
+              </button>
+              <button
                 onClick={() => setDetailTab('team')}
                 className={`py-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
                   detailTab === 'team' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
@@ -844,6 +1000,244 @@ const AdminDashboard = () => {
                         )}
                       </div>
                     </div>
+
+                    {/* Enabled Modules & Permissions Summary Banner */}
+                    <div className="sm:col-span-2 p-4 bg-indigo-50/60 dark:bg-indigo-950/30 rounded-xl border border-indigo-200/80 dark:border-indigo-900/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                          <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                            Enabled Modules & Permissions
+                          </h4>
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                            {planForm.enabledModules?.length || 0} / {ALL_SYSTEM_MODULE_IDS.length} Active
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                          Control which business modules, tools, and features this company and its team members can access.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setDetailTab('modules')}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                      >
+                        <Sliders className="w-3.5 h-3.5" />
+                        Configure Modules
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: ENABLED MODULES & PERMISSIONS */}
+              {detailTab === 'modules' && (
+                <div className="space-y-6">
+                  {/* Controls Header & Presets */}
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                          <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                          Module Access & Permission Controls
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          Toggle system modules for this company. Disabled modules are immediately hidden in the sidebar and blocked across all APIs.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300">
+                          {planForm.enabledModules?.length || 0} of {ALL_SYSTEM_MODULE_IDS.length} Active
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Presets & Search */}
+                    <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Filter modules by name or description..."
+                          value={moduleSearchQuery}
+                          onChange={(e) => setModuleSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                        <span className="text-slate-400 font-medium mr-1">Presets:</span>
+                        <button
+                          type="button"
+                          onClick={() => applyModulePreset('all')}
+                          className="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium transition cursor-pointer"
+                        >
+                          All (29)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyModulePreset('invoicing')}
+                          className="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium transition cursor-pointer"
+                        >
+                          Invoicing Only
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyModulePreset('payroll')}
+                          className="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium transition cursor-pointer"
+                        >
+                          Payroll & HR
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyModulePreset('erp')}
+                          className="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium transition cursor-pointer"
+                        >
+                          Standard ERP
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyModulePreset('none')}
+                          className="px-2.5 py-1 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-medium transition cursor-pointer"
+                        >
+                          Deselect All
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Module Categories */}
+                  <div className="space-y-6">
+                    {SYSTEM_MODULE_CATEGORIES.map((category) => {
+                      const filteredModules = category.modules.filter((m) =>
+                        moduleSearchQuery
+                          ? m.name.toLowerCase().includes(moduleSearchQuery.toLowerCase()) ||
+                            m.desc.toLowerCase().includes(moduleSearchQuery.toLowerCase())
+                          : true
+                      );
+
+                      if (filteredModules.length === 0) return null;
+
+                      const categoryEnabledCount = category.modules.filter((m) =>
+                        planForm.enabledModules?.includes(m.id)
+                      ).length;
+                      const allCatEnabled = categoryEnabledCount === category.modules.length;
+
+                      return (
+                        <div key={category.id} className="space-y-3">
+                          <div className="flex justify-between items-center pb-1.5 border-b border-slate-200 dark:border-slate-800">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                                {category.title}
+                              </h4>
+                              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                ({categoryEnabledCount}/{category.modules.length} Enabled)
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCategoryModules(category.modules)}
+                              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-semibold cursor-pointer"
+                            >
+                              {allCatEnabled ? 'Disable Group' : 'Enable Group'}
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {filteredModules.map((mod) => {
+                              const isEnabled = planForm.enabledModules?.includes(mod.id);
+                              const perms = planForm.modulePermissions?.[mod.id] || {
+                                view: true,
+                                create: true,
+                                edit: true,
+                                delete: true,
+                                approve: true,
+                              };
+
+                              return (
+                                <div
+                                  key={mod.id}
+                                  className={`p-3.5 rounded-xl border transition-all ${
+                                    isEnabled
+                                      ? 'bg-white dark:bg-slate-800/90 border-indigo-200 dark:border-indigo-900/60 shadow-xs'
+                                      : 'bg-slate-50/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-75'
+                                  }`}
+                                >
+                                  <div className="flex justify-between items-start gap-3">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1.5">
+                                        <h5 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                                          {mod.name}
+                                        </h5>
+                                        {isEnabled ? (
+                                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                                            Active
+                                          </span>
+                                        ) : (
+                                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+                                            Disabled
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                                        {mod.desc}
+                                      </p>
+                                    </div>
+
+                                    {/* Master Switch */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleModule(mod.id)}
+                                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                        isEnabled ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'
+                                      }`}
+                                    >
+                                      <span
+                                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                                          isEnabled ? 'translate-x-4' : 'translate-x-0'
+                                        }`}
+                                      />
+                                    </button>
+                                  </div>
+
+                                  {/* Action Permissions Row */}
+                                  {isEnabled && (
+                                    <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700/60">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                          Permissions:
+                                        </span>
+                                        <div className="flex items-center gap-1.5">
+                                          {['view', 'create', 'edit', 'delete', 'approve'].map((action) => {
+                                            const hasAction = perms[action] !== false;
+                                            return (
+                                              <button
+                                                key={action}
+                                                type="button"
+                                                onClick={() => handleToggleModuleAction(mod.id, action)}
+                                                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition cursor-pointer capitalize flex items-center gap-0.5 ${
+                                                  hasAction
+                                                    ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/50'
+                                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 line-through border border-transparent'
+                                                }`}
+                                              >
+                                                {action}
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

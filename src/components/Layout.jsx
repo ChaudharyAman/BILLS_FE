@@ -40,6 +40,7 @@ import {
   Sun,
   Moon
 } from 'lucide-react';
+import usePermissions from '../hooks/usePermissions';
 import * as LucideIcons from 'lucide-react';
 import * as Icons from 'react-icons/fa';
 import api, { clearAuthSession } from '../api/axios';
@@ -362,12 +363,23 @@ const Layout = ({ children }) => {
   // Collapsible Sidebar Sections
   const [collapsedSections, setCollapsedSections] = useState({});
 
+  const { isModuleEnabled } = usePermissions();
+
+  const isItemVisible = useCallback((item) => {
+    if (!item || item.hidden) return false;
+    if (item.isSuperAdmin && !isSuperAdmin) return false;
+    if (item.moduleId && !isModuleEnabled(item.moduleId)) return false;
+    if (item.type === 'collapsible' && Array.isArray(item.children)) {
+      return item.children.some(child => isItemVisible(child));
+    }
+    return true;
+  }, [isSuperAdmin, isModuleEnabled]);
+
   const isSectionActive = (section) => {
     return section.items.some(item => {
-      if (item.hidden) return false;
-      if (item.isSuperAdmin && !isSuperAdmin) return false;
+      if (!isItemVisible(item)) return false;
       if (item.type === 'collapsible') {
-        return item.children.some(child => isActive(child.path));
+        return item.children.some(child => isItemVisible(child) && isActive(child.path));
       }
       return isActive(item.path);
     });
@@ -418,10 +430,7 @@ const Layout = ({ children }) => {
   };
 
   const renderSidebarItem = (item) => {
-    if (item.hidden) return null;
-
-    // Admin Panel super admin check
-    if (item.isSuperAdmin && !isSuperAdmin) return null;
+    if (!isItemVisible(item)) return null;
 
     const currentIconSize = isCollapsed ? 18 : 16;
 
@@ -514,7 +523,7 @@ const Layout = ({ children }) => {
               }`}>
                 {item.label}
               </div>
-              {item.children.map(child => (
+              {item.children.filter(isItemVisible).map(child => (
                 <Link
                   key={child.id}
                   to={child.path}
@@ -536,7 +545,7 @@ const Layout = ({ children }) => {
           {/* Inline submenu for expanded state */}
           {!isCollapsed && isOpen && (item.isPremium ? hasPremiumAccess : true) && (
             <div className="py-0.5 space-y-[1px]">
-              {item.children.map(child => {
+              {item.children.filter(isItemVisible).map(child => {
                 return (
                   <Link
                     key={child.id}
@@ -692,12 +701,8 @@ const Layout = ({ children }) => {
           {sidebarLayout.map(section => {
             if (section.hidden) return null;
             
-            // Check if all items in this section are hidden or super admin restricted
-            const hasVisibleItems = section.items.some(item => {
-              if (item.hidden) return false;
-              if (item.isSuperAdmin && !isSuperAdmin) return false;
-              return true;
-            });
+            // Check if any items in this section are visible and enabled
+            const hasVisibleItems = section.items.some(isItemVisible);
 
             if (!hasVisibleItems) return null;
 

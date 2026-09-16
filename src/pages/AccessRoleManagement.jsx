@@ -5,7 +5,7 @@ import { Shield, Plus, Lock, Check, Edit2, Trash2, ArrowLeft } from 'lucide-reac
 import { Link } from 'react-router-dom';
 import usePermissions from '../hooks/usePermissions';
 
-const MODULES = [
+const ALL_MODULES = [
   { id: 'expenses', label: 'Expenses' },
   { id: 'income', label: 'Income' },
   { id: 'invoices', label: 'Invoices' },
@@ -21,6 +21,7 @@ const MODULES = [
   { id: 'leaves', label: 'Leave Management' },
   { id: 'reimbursements', label: 'Reimbursements' },
   { id: 'loans', label: 'Employee Loans' },
+  { id: 'jobRoles', label: 'Job Roles & Designations' },
   { id: 'liabilities', label: 'Liabilities' },
   { id: 'assets', label: 'Assets' },
   { id: 'budgets', label: 'Budgets' },
@@ -33,14 +34,20 @@ const MODULES = [
   { id: 'settings', label: 'Company Settings' },
   { id: 'teamMembers', label: 'Team & Permissions' },
   { id: 'subscription', label: 'Billing Subscription' },
+  { id: 'publicSubmissions', label: 'Public Submissions' },
 ];
 
 const ACTIONS = ['view', 'create', 'edit', 'delete', 'approve'];
 
 const AccessRoleManagement = () => {
-  const { can, isOwner } = usePermissions();
+  const { can, isOwner, isModuleEnabled } = usePermissions();
   const canCreate = isOwner || can('teamMembers', 'create');
   const canDelete = isOwner || can('teamMembers', 'delete');
+
+  // Filter modules to only those enabled for this company
+  const visibleModules = React.useMemo(() => {
+    return ALL_MODULES.filter((mod) => isModuleEnabled(mod.id));
+  }, [isModuleEnabled]);
 
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +86,7 @@ const AccessRoleManagement = () => {
       setRoleDescription('');
       // Default initial permission matrix
       const initialMap = {};
-      MODULES.forEach((mod) => {
+      ALL_MODULES.forEach((mod) => {
         initialMap[mod.id] = { view: false, create: false, edit: false, delete: false, approve: false };
       });
       setPermissionsMap(initialMap);
@@ -119,28 +126,32 @@ const AccessRoleManagement = () => {
 
   const handleSelectAllModules = () => {
     if (editingRole?.isSystemRole) return;
-    const newMap = {};
-    MODULES.forEach((mod) => {
-      newMap[mod.id] = { view: true, create: true, edit: true, delete: true, approve: true };
+    setPermissionsMap((prev) => {
+      const newMap = { ...prev };
+      visibleModules.forEach((mod) => {
+        newMap[mod.id] = { view: true, create: true, edit: true, delete: true, approve: true };
+      });
+      return newMap;
     });
-    setPermissionsMap(newMap);
   };
 
   const handleClearAllModules = () => {
     if (editingRole?.isSystemRole) return;
-    const newMap = {};
-    MODULES.forEach((mod) => {
-      newMap[mod.id] = { view: false, create: false, edit: false, delete: false, approve: false };
+    setPermissionsMap((prev) => {
+      const newMap = { ...prev };
+      visibleModules.forEach((mod) => {
+        newMap[mod.id] = { view: false, create: false, edit: false, delete: false, approve: false };
+      });
+      return newMap;
     });
-    setPermissionsMap(newMap);
   };
 
-  const areAllCheckedAcrossAllModules = MODULES.every((mod) => {
+  const areAllCheckedAcrossAllModules = visibleModules.length > 0 && visibleModules.every((mod) => {
     const modPerms = permissionsMap[mod.id] || {};
     return ACTIONS.every((act) => Boolean(modPerms[act]));
   });
 
-  const areSomeCheckedAcrossAllModules = MODULES.some((mod) => {
+  const areSomeCheckedAcrossAllModules = visibleModules.length > 0 && visibleModules.some((mod) => {
     const modPerms = permissionsMap[mod.id] || {};
     return ACTIONS.some((act) => Boolean(modPerms[act]));
   }) && !areAllCheckedAcrossAllModules;
@@ -163,10 +174,18 @@ const AccessRoleManagement = () => {
     }
 
     try {
+      // Ensure any disabled modules are scrubbed to false
+      const cleanedPermissions = { ...permissionsMap };
+      ALL_MODULES.forEach((mod) => {
+        if (!isModuleEnabled(mod.id)) {
+          cleanedPermissions[mod.id] = { view: false, create: false, edit: false, delete: false, approve: false };
+        }
+      });
+
       const payload = {
         name: roleName.trim(),
         description: roleDescription.trim(),
-        permissions: permissionsMap,
+        permissions: cleanedPermissions,
       };
 
       if (editingRole) {
@@ -253,7 +272,10 @@ const AccessRoleManagement = () => {
 
               <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-                  {Object.keys(role.permissions || {}).length} modules configured
+                  {visibleModules.filter((m) => {
+                    const p = role.permissions?.[m.id] || (role.permissions?.get ? role.permissions.get(m.id) : null);
+                    return p && (p.view || p.create || p.edit || p.delete || p.approve);
+                  }).length} of {visibleModules.length} enabled modules
                 </span>
                 <button
                   onClick={() => handleOpenModal(role)}
@@ -312,7 +334,12 @@ const AccessRoleManagement = () => {
               {/* Permission Matrix Table */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Module Permissions Matrix</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    Module Permissions Matrix
+                    <span className="ml-1.5 text-xs font-normal text-slate-500 lowercase">
+                      ({visibleModules.length} enabled modules)
+                    </span>
+                  </span>
                   {!editingRole?.isSystemRole && (
                     <div className="flex items-center gap-2">
                       <button
@@ -360,41 +387,49 @@ const AccessRoleManagement = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
-                      {MODULES.map((mod) => {
-                        const modPerms = permissionsMap[mod.id] || {};
-                        const isRowAllChecked = ACTIONS.every((act) => Boolean(modPerms[act]));
-                        const isRowSomeChecked = ACTIONS.some((act) => Boolean(modPerms[act])) && !isRowAllChecked;
+                      {visibleModules.length === 0 ? (
+                        <tr>
+                          <td colSpan={ACTIONS.length + 2} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-xs italic">
+                            No modules are currently enabled for your organization.
+                          </td>
+                        </tr>
+                      ) : (
+                        visibleModules.map((mod) => {
+                          const modPerms = permissionsMap[mod.id] || {};
+                          const isRowAllChecked = ACTIONS.every((act) => Boolean(modPerms[act]));
+                          const isRowSomeChecked = ACTIONS.some((act) => Boolean(modPerms[act])) && !isRowAllChecked;
 
-                        return (
-                          <tr key={mod.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                            <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200 text-xs">{mod.label}</td>
-                            <td className="px-3 py-3 text-center bg-slate-50/70 dark:bg-slate-800/50 border-r border-l border-slate-100 dark:border-slate-800">
-                              <input
-                                type="checkbox"
-                                disabled={editingRole?.isSystemRole}
-                                checked={isRowAllChecked}
-                                ref={(el) => {
-                                  if (el) el.indeterminate = isRowSomeChecked;
-                                }}
-                                onChange={() => handleToggleRowAll(mod.id)}
-                                title={`Select / deselect all permissions for ${mod.label}`}
-                                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:cursor-not-allowed"
-                              />
-                            </td>
-                            {ACTIONS.map((act) => (
-                              <td key={act} className="px-3 py-3 text-center">
+                          return (
+                            <tr key={mod.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                              <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200 text-xs">{mod.label}</td>
+                              <td className="px-3 py-3 text-center bg-slate-50/70 dark:bg-slate-800/50 border-r border-l border-slate-100 dark:border-slate-800">
                                 <input
                                   type="checkbox"
                                   disabled={editingRole?.isSystemRole}
-                                  checked={Boolean(modPerms[act])}
-                                  onChange={() => handleTogglePermission(mod.id, act)}
+                                  checked={isRowAllChecked}
+                                  ref={(el) => {
+                                    if (el) el.indeterminate = isRowSomeChecked;
+                                  }}
+                                  onChange={() => handleToggleRowAll(mod.id)}
+                                  title={`Select / deselect all permissions for ${mod.label}`}
                                   className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:cursor-not-allowed"
                                 />
                               </td>
-                            ))}
-                          </tr>
-                        );
-                      })}
+                              {ACTIONS.map((act) => (
+                                <td key={act} className="px-3 py-3 text-center">
+                                  <input
+                                    type="checkbox"
+                                    disabled={editingRole?.isSystemRole}
+                                    checked={Boolean(modPerms[act])}
+                                    onChange={() => handleTogglePermission(mod.id, act)}
+                                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:cursor-not-allowed"
+                                  />
+                                </td>
+                              ))}
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
