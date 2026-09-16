@@ -332,10 +332,33 @@ const Layout = ({ children }) => {
   const hasPremiumAccess = isPro || isSuperAdmin;
 
   const isActive = (path, exact = false) => {
+    if (!path) return false;
+    const current = location.pathname;
+
     if (exact) {
-      return location.pathname === path;
+      return current === path;
     }
-    return location.pathname.startsWith(path);
+
+    // /settings is exclusively for Company Settings, not /settings/team or /settings/roles
+    if (path === '/settings') {
+      return current === '/settings' || current === '/settings/';
+    }
+
+    // Team & Permissions (/settings/team) also covers /settings/roles
+    if (path === '/settings/team') {
+      return current.startsWith('/settings/team') || current.startsWith('/settings/roles');
+    }
+
+    // /payroll dashboard is exact so it does not collide with /payroll/process, /payroll/calculator, etc.
+    if (path === '/payroll') {
+      return current === '/payroll' || current === '/payroll/';
+    }
+
+    // Exact match or sub-route match with path delimiter (e.g. /invoices and /invoices/new)
+    if (current === path) return true;
+    if (current.startsWith(path.endsWith('/') ? path : path + '/')) return true;
+
+    return false;
   };
 
   const [quotesOpen, setQuotesOpen] = useState(
