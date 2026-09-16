@@ -285,7 +285,7 @@ const PayslipGeneration = () => {
 
   const company = slip.company || {};
   const companyName = company.companyName || company.name || 'Company';
-  const companyLogo = company.logoUrl || '';
+  const companyLogo = company.showLogoOnDocuments !== false ? (company.logoUrl || '') : '';
   const rawAddress = company.address;
   const companyAddress = typeof rawAddress === 'string'
     ? rawAddress

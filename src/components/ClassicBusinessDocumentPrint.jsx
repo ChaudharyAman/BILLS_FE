@@ -128,6 +128,15 @@ const ClassicBusinessDocumentPrint = ({
   const fillerHeight = Math.max(0, 380 - safeItems.length * 72);
   const companyPan = getPan(company);
   const companyAddress = formatAddress(company?.address);
+  const isPO = /purchase\s*order/i.test(documentTitle || '');
+  const isQuote = /quote|quotation|proforma/i.test(documentTitle || '');
+  const isSignatureActive = company?.signatureEnabled !== false && (
+    isPO
+      ? company?.showSignatureOnPurchaseOrders !== false
+      : isQuote
+        ? company?.showSignatureOnQuotes !== false
+        : company?.showSignatureOnInvoices !== false
+  ) && (company?.signatureUrl || company?.signature);
   const termLines = (terms || '').trim()
     ? terms.split(/\r?\n/).filter(Boolean)
     : [];
@@ -421,20 +430,31 @@ const ClassicBusinessDocumentPrint = ({
           </div>
           <div style={{ padding: '14px 18px 10px', minHeight: 82, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <div style={{ fontSize: 14, fontWeight: 700 }}>for {company?.companyName}</div>
-            <div style={{
-              margin: '8px 0',
-              border: '1px dashed #000',
-              padding: '8px 12px',
-              background: '#fafafa',
-              fontSize: '9px',
-              textAlign: 'center',
-              lineHeight: '1.4',
-              color: '#333',
-              maxWidth: '220px'
-            }}>
-              <b>Digitally Signed Document</b><br />
-              This is a computer generated {documentTitle?.toLowerCase() || 'document'}, digitally signed, and does not require a physical signature.
-            </div>
+            {isSignatureActive ? (
+              <div style={{ margin: '6px 0', textAlign: 'right' }}>
+                <img
+                  src={company?.signatureUrl || company?.signature}
+                  alt="Signature"
+                  style={{ maxHeight: 50, maxWidth: 150, objectFit: 'contain', display: 'inline-block' }}
+                />
+                <div style={{ fontSize: 9, color: '#666' }}>Digitally Signed</div>
+              </div>
+            ) : (
+              <div style={{
+                margin: '8px 0',
+                border: '1px dashed #000',
+                padding: '8px 12px',
+                background: '#fafafa',
+                fontSize: '9px',
+                textAlign: 'center',
+                lineHeight: '1.4',
+                color: '#333',
+                maxWidth: '220px'
+              }}>
+                <b>Digitally Signed Document</b><br />
+                This is a computer generated {documentTitle?.toLowerCase() || 'document'}, digitally signed, and does not require a physical signature.
+              </div>
+            )}
             <div style={{ fontSize: 14, fontWeight: 700 }}>Authorised Signatory</div>
           </div>
         </div>

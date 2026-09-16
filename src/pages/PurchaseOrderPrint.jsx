@@ -201,7 +201,7 @@ const PurchaseOrderPrint = () => {
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20 }}>
           {/* Left: logo + company */}
           <div style={{ width:'50%' }}>
-            {(company.logoUrl||company.logo) && (
+            {(company.showLogoOnDocuments !== false) && (company.logoUrl||company.logo) && (
               <img src={company.logoUrl||company.logo} alt="logo"
                 style={{ maxHeight:55,maxWidth:180,objectFit:'contain',marginBottom:10,display:'block' }}/>
             )}
@@ -348,22 +348,40 @@ const PurchaseOrderPrint = () => {
               <R label="Total Value (in words)"  value={`₹ ${numberToWords(Math.round(grandTotal))}`}/>
             </div>
 
-            <div style={{ marginTop: 20, alignSelf: 'flex-end' }}>
-              <div style={{
-                border: `1px dashed ${TEAL}`,
-                borderRadius: '6px',
-                padding: '10px 14px',
-                background: '#f8fafc',
-                textAlign: 'center',
-                fontSize: '10px',
-                color: '#334155',
-                maxWidth: '280px',
-                lineHeight: '1.5',
-              }}>
-                <div style={{ fontWeight: 'bold', color: TEAL, textTransform: 'uppercase', fontSize: '9px', marginBottom: '4px', letterSpacing: '0.5px' }}>
-                  Digitally Signed Document
+            <div style={{ marginTop: 20, alignSelf: 'flex-end', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: TEAL, marginBottom: 4 }}>
+                for {company.companyName}
+              </div>
+              {(company.signatureEnabled !== false && company.showSignatureOnPurchaseOrders !== false && (company.signatureUrl || company.signature)) ? (
+                <div style={{ textAlign: 'center', marginBottom: 4 }}>
+                  <img
+                    src={company.signatureUrl || company.signature}
+                    alt="Digital Signature"
+                    style={{ maxHeight: 55, maxWidth: 160, objectFit: 'contain', display: 'block', margin: '0 auto 4px' }}
+                  />
+                  <div style={{ fontSize: 9, color: MUTED, fontStyle: 'italic' }}>Digitally Signed</div>
                 </div>
-                This is a computer generated purchase order, digitally signed, and does not require a physical signature.
+              ) : (
+                <div style={{
+                  border: `1px dashed ${TEAL}`,
+                  borderRadius: '6px',
+                  padding: '8px 12px',
+                  background: '#f8fafc',
+                  textAlign: 'center',
+                  fontSize: '10px',
+                  color: '#334155',
+                  maxWidth: '260px',
+                  lineHeight: '1.4',
+                  marginBottom: 4,
+                }}>
+                  <div style={{ fontWeight: 'bold', color: TEAL, textTransform: 'uppercase', fontSize: '9px', marginBottom: '3px', letterSpacing: '0.5px' }}>
+                    Digitally Signed Document
+                  </div>
+                  This is a computer generated purchase order, digitally signed, and does not require a physical signature.
+                </div>
+              )}
+              <div style={{ fontSize: 11, fontWeight: 700, color: TEXT }}>
+                Authorised Signatory
               </div>
             </div>
           </div>
