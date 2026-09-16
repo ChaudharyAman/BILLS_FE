@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import {
@@ -10,6 +10,7 @@ import * as Icons from 'react-icons/fa';
 import * as LucideIcons from 'lucide-react';
 import Skeleton from '../components/Skeleton';
 import { getSidebarLayout, saveSidebarLayout, resetSidebarLayout } from '../utils/sidebarConfig';
+import usePermissions from '../hooks/usePermissions';
 
 const ICON_MAP = {
   dashboard: LucideIcons.Home,
@@ -80,7 +81,15 @@ const inputCls = 'w-full border border-slate-300 dark:border-slate-700 rounded-l
 
 const Settings = () => {
   const navigate = useNavigate();
-  const [tab, setTab] = useState('company'); // 'company' | 'software' | 'sidebar'
+  const [tab, setTab] = useState(() => {
+    try {
+      const p = new URLSearchParams(window.location.search).get('tab');
+      if (p && ['company', 'software', 'sidebar', 'portal'].includes(p)) return p;
+    } catch {
+      // fallback
+    }
+    return 'company';
+  });
   const [pageLoading, setPageLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [softLoading, setSoftLoading] = useState(false);
@@ -88,12 +97,38 @@ const Settings = () => {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // ── Sidebar Preferences Settings ──────────────────────────────────────────
+  // ── Permissions & Scoped Sidebar Preferences ──────────────────────────────
+  const { user, can, isModuleEnabled } = usePermissions();
+  const isSuperAdmin = user?.role === 'superadmin';
+
+  const isItemPermitted = useCallback((item) => {
+    if (!item) return false;
+    if (item.isSuperAdmin && !isSuperAdmin) return false;
+    if (item.moduleId) {
+      if (!isModuleEnabled(item.moduleId)) return false;
+      if (can && !can(item.moduleId, 'view')) return false;
+    }
+    if (item.type === 'collapsible' && Array.isArray(item.children)) {
+      return item.children.some(child => isItemPermitted(child));
+    }
+    return true;
+  }, [isSuperAdmin, isModuleEnabled, can]);
+
+  const loadFilteredLayout = useCallback(() => {
+    const raw = getSidebarLayout();
+    return raw
+      .map(sec => ({
+        ...sec,
+        items: (sec.items || []).filter(isItemPermitted)
+      }))
+      .filter(sec => sec.items.length > 0);
+  }, [isItemPermitted]);
+
   const [customLayout, setCustomLayout] = useState([]);
 
   useEffect(() => {
-    setCustomLayout(getSidebarLayout());
-  }, []);
+    setCustomLayout(loadFilteredLayout());
+  }, [loadFilteredLayout]);
 
   const moveSectionUp = (index) => {
     if (index === 0) return;
@@ -178,7 +213,7 @@ const Settings = () => {
   const handleResetSidebarLayout = () => {
     if (window.confirm('Are you sure you want to reset sidebar layout to default?')) {
       resetSidebarLayout();
-      setCustomLayout(getSidebarLayout());
+      setCustomLayout(loadFilteredLayout());
       alert('Sidebar layout reset to defaults!');
     }
   };
@@ -1005,154 +1040,166 @@ const Settings = () => {
               </div>
 
               {/* List of Custom Sections */}
-              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
-                {customLayout.map((section, secIdx) => (
-                  <div
-                    key={section.id}
-                    className={`p-4 rounded-xl border transition-all ${
-                      section.hidden
-                        ? 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 opacity-60'
-                        : 'bg-gradient-to-r from-teal-500/5 to-transparent border-teal-600/20 dark:border-teal-500/30 shadow-xs'
-                    }`}
-                  >
-                    {/* Section Header */}
-                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 tracking-wide uppercase">
-                          {section.title}
-                        </span>
-                        {section.hidden && (
-                          <span className="text-[10px] font-medium bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full">
-                            Hidden
+              {customLayout.length === 0 ? (
+                <div className="text-center py-12 text-slate-500 dark:text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                  <p className="text-sm font-medium">No enabled navigation items available to configure.</p>
+                </div>
+              ) : (
+                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+                  {customLayout.map((section, secIdx) => (
+                    <div
+                      key={section.id}
+                      className={`p-4 rounded-xl border transition-all ${
+                        section.hidden
+                          ? 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 opacity-60'
+                          : 'bg-gradient-to-r from-teal-500/5 to-transparent border-teal-600/20 dark:border-teal-500/30 shadow-xs'
+                      }`}
+                    >
+                      {/* Section Header */}
+                      <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 tracking-wide uppercase">
+                            {section.title}
                           </span>
-                        )}
+                          {section.hidden && (
+                            <span className="text-[10px] font-medium bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-full">
+                              Hidden
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-1.5">
+                          {/* Section Up/Down Arrows */}
+                          <button
+                            type="button"
+                            disabled={secIdx === 0}
+                            onClick={() => moveSectionUp(secIdx)}
+                            className="p-1 rounded bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-slate-800 cursor-pointer"
+                            title="Move section up"
+                          >
+                            <FaArrowUp size={11} />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={secIdx === customLayout.length - 1}
+                            onClick={() => moveSectionDown(secIdx)}
+                            className="p-1 rounded bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-slate-800 cursor-pointer"
+                            title="Move section down"
+                          >
+                            <FaArrowDown size={11} />
+                          </button>
+                          {/* Visibility Toggle */}
+                          <button
+                            type="button"
+                            onClick={() => toggleSectionVisibility(secIdx)}
+                            className={`p-1 rounded border transition-colors cursor-pointer ${
+                              section.hidden
+                                ? 'bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400'
+                                : 'bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/60 border-teal-200 dark:border-teal-800 text-teal-600 dark:text-teal-400'
+                            }`}
+                            title={section.hidden ? 'Show category' : 'Hide category'}
+                          >
+                            {section.hidden ? <FaEyeSlash size={12} /> : <FaEye size={12} />}
+                          </button>
+                        </div>
                       </div>
-                      
-                      <div className="flex items-center gap-1.5">
-                        {/* Section Up/Down Arrows */}
-                        <button
-                          type="button"
-                          disabled={secIdx === 0}
-                          onClick={() => moveSectionUp(secIdx)}
-                          className="p-1 rounded bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-slate-800 cursor-pointer"
-                          title="Move section up"
-                        >
-                          <FaArrowUp size={11} />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={secIdx === customLayout.length - 1}
-                          onClick={() => moveSectionDown(secIdx)}
-                          className="p-1 rounded bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-30 disabled:hover:bg-white dark:disabled:hover:bg-slate-800 cursor-pointer"
-                          title="Move section down"
-                        >
-                          <FaArrowDown size={11} />
-                        </button>
-                        {/* Visibility Toggle */}
-                        <button
-                          type="button"
-                          onClick={() => toggleSectionVisibility(secIdx)}
-                          className={`p-1 rounded border transition-colors cursor-pointer ${
-                            section.hidden
-                              ? 'bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400'
-                              : 'bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/60 border-teal-200 dark:border-teal-800 text-teal-600 dark:text-teal-400'
-                          }`}
-                          title={section.hidden ? 'Show category' : 'Hide category'}
-                        >
-                          {section.hidden ? <FaEyeSlash size={12} /> : <FaEye size={12} />}
-                        </button>
-                      </div>
-                    </div>
 
-                    {/* Section Items */}
-                    {!section.hidden ? (
-                      <div className="space-y-2">
-                        {section.items.map((item, itemIdx) => {
-                          const ItemIcon = Icons[item.iconName] || Icons.FaMinus;
-                          return (
-                            <div
-                              key={item.id}
-                              className={`flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-800/90 border border-slate-100 dark:border-slate-700 shadow-xs transition-all ${
-                                item.hidden ? 'opacity-40 border-dashed bg-slate-50 dark:bg-slate-800/50' : 'hover:border-teal-500/30'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="text-slate-400 dark:text-slate-500">
-                                  <ItemIcon size={13} className={item.isSpecial ? "text-amber-400" : "text-slate-500 dark:text-slate-400"} />
-                                </span>
-                                <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                                  {item.label}
-                                </span>
-                                {item.isPremium && (
-                                  <span className="text-[8px] font-bold bg-amber-500/20 text-amber-500 px-1 py-0.5 rounded uppercase">
-                                    Pro
-                                  </span>
-                                )}
-                                {item.isSuperAdmin && (
-                                  <span className="text-[8px] font-bold bg-red-500/20 text-red-500 px-1 py-0.5 rounded uppercase">
-                                    Admin
-                                  </span>
-                                )}
-                              </div>
-
-                              <div className="flex items-center gap-1.5">
-                                {/* Select Heading Dropdown */}
-                                <select
-                                  value={section.id}
-                                  onChange={(e) => moveItemToSection(secIdx, itemIdx, e.target.value)}
-                                  className="text-[10px] border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 focus:outline-none max-w-[110px] truncate cursor-pointer transition-all hover:bg-slate-100 dark:hover:bg-slate-700 mr-1"
-                                  title="Move to another heading"
-                                >
-                                  {customLayout.map(s => (
-                                    <option key={s.id} value={s.id} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
-                                      Heading: {s.title}
-                                    </option>
-                                  ))}
-                                </select>
-
-                                {/* Item Up/Down Arrows */}
-                                <button
-                                  type="button"
-                                  disabled={itemIdx === 0}
-                                  onClick={() => moveItemUp(secIdx, itemIdx)}
-                                  className="p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors disabled:opacity-20 cursor-pointer"
-                                  title="Move item up"
-                                >
-                                  <FaArrowUp size={10} />
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={itemIdx === section.items.length - 1}
-                                  onClick={() => moveItemDown(secIdx, itemIdx)}
-                                  className="p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors disabled:opacity-20 cursor-pointer"
-                                  title="Move item down"
-                                >
-                                  <FaArrowDown size={10} />
-                                </button>
-                                {/* Visibility Toggle */}
-                                <button
-                                  type="button"
-                                  onClick={() => toggleItemVisibility(secIdx, itemIdx)}
-                                  className={`p-1 rounded transition-colors cursor-pointer ${
-                                    item.hidden
-                                      ? 'text-rose-400 hover:text-rose-600'
-                                      : 'text-teal-500 hover:text-teal-700'
+                      {/* Section Items */}
+                      {!section.hidden ? (
+                        section.items.length > 0 ? (
+                          <div className="space-y-2">
+                            {section.items.map((item, itemIdx) => {
+                              const ItemIcon = Icons[item.iconName] || Icons.FaMinus;
+                              return (
+                                <div
+                                  key={item.id}
+                                  className={`flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-800/90 border border-slate-100 dark:border-slate-700 shadow-xs transition-all ${
+                                    item.hidden ? 'opacity-40 border-dashed bg-slate-50 dark:bg-slate-800/50' : 'hover:border-teal-500/30'
                                   }`}
-                                  title={item.hidden ? 'Show tab' : 'Hide tab'}
                                 >
-                                  {item.hidden ? <FaEyeSlash size={11} /> : <FaEye size={11} />}
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center py-1">Items inside this section are currently hidden.</p>
-                    )}
-                  </div>
-                ))}
-              </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-slate-400 dark:text-slate-500">
+                                      <ItemIcon size={13} className={item.isSpecial ? "text-amber-400" : "text-slate-500 dark:text-slate-400"} />
+                                    </span>
+                                    <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
+                                      {item.label}
+                                    </span>
+                                    {item.isPremium && (
+                                      <span className="text-[8px] font-bold bg-amber-500/20 text-amber-500 px-1 py-0.5 rounded uppercase">
+                                        Pro
+                                      </span>
+                                    )}
+                                    {item.isSuperAdmin && (
+                                      <span className="text-[8px] font-bold bg-red-500/20 text-red-500 px-1 py-0.5 rounded uppercase">
+                                        Admin
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5">
+                                    {/* Select Heading Dropdown */}
+                                    <select
+                                      value={section.id}
+                                      onChange={(e) => moveItemToSection(secIdx, itemIdx, e.target.value)}
+                                      className="text-[10px] border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 focus:outline-none max-w-[110px] truncate cursor-pointer transition-all hover:bg-slate-100 dark:hover:bg-slate-700 mr-1"
+                                      title="Move to another heading"
+                                    >
+                                      {customLayout.map(s => (
+                                        <option key={s.id} value={s.id} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+                                          Heading: {s.title}
+                                        </option>
+                                      ))}
+                                    </select>
+
+                                    {/* Item Up/Down Arrows */}
+                                    <button
+                                      type="button"
+                                      disabled={itemIdx === 0}
+                                      onClick={() => moveItemUp(secIdx, itemIdx)}
+                                      className="p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors disabled:opacity-20 cursor-pointer"
+                                      title="Move item up"
+                                    >
+                                      <FaArrowUp size={10} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={itemIdx === section.items.length - 1}
+                                      onClick={() => moveItemDown(secIdx, itemIdx)}
+                                      className="p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors disabled:opacity-20 cursor-pointer"
+                                      title="Move item down"
+                                    >
+                                      <FaArrowDown size={10} />
+                                    </button>
+                                    {/* Visibility Toggle */}
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleItemVisibility(secIdx, itemIdx)}
+                                      className={`p-1 rounded transition-colors cursor-pointer ${
+                                        item.hidden
+                                          ? 'text-rose-400 hover:text-rose-600'
+                                          : 'text-teal-500 hover:text-teal-700'
+                                      }`}
+                                      title={item.hidden ? 'Show tab' : 'Hide tab'}
+                                    >
+                                      {item.hidden ? <FaEyeSlash size={11} /> : <FaEye size={11} />}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center py-2 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
+                            No items in this section. Move tabs here or hide this section.
+                          </p>
+                        )
+                      ) : (
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center py-1">Items inside this section are currently hidden.</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Save Layout Action */}
               <div className="flex justify-end pt-4 mt-6 border-t border-slate-100 dark:border-slate-800">

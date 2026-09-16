@@ -116,7 +116,7 @@ const LOCAL_STORAGE_KEY = 'mbf_sidebar_layout_v8';
  * Merges a parsed custom layout from localStorage with the absolute default layout,
  * ensuring any new sections or items introduced in codebase updates are not lost.
  */
-function mergeWithDefaults(customLayout) {
+export function mergeWithDefaults(customLayout) {
   if (!Array.isArray(customLayout)) return DEFAULT_SIDEBAR_SECTIONS;
 
   // 1. Map of all default items globally for validation and merging
@@ -216,7 +216,8 @@ export const getSidebarLayout = () => {
 
 export const saveSidebarLayout = (layout) => {
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(layout));
+    const merged = mergeWithDefaults(layout);
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
     window.dispatchEvent(new Event('sidebar-layout-sync'));
   } catch (e) {
     console.error('Failed to save sidebar layout', e);

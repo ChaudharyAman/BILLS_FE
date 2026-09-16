@@ -386,17 +386,20 @@ const Layout = ({ children }) => {
   // Collapsible Sidebar Sections
   const [collapsedSections, setCollapsedSections] = useState({});
 
-  const { isModuleEnabled } = usePermissions();
+  const { isModuleEnabled, can } = usePermissions();
 
   const isItemVisible = useCallback((item) => {
     if (!item || item.hidden) return false;
     if (item.isSuperAdmin && !isSuperAdmin) return false;
-    if (item.moduleId && !isModuleEnabled(item.moduleId)) return false;
+    if (item.moduleId) {
+      if (!isModuleEnabled(item.moduleId)) return false;
+      if (can && !can(item.moduleId, 'view')) return false;
+    }
     if (item.type === 'collapsible' && Array.isArray(item.children)) {
       return item.children.some(child => isItemVisible(child));
     }
     return true;
-  }, [isSuperAdmin, isModuleEnabled]);
+  }, [isSuperAdmin, isModuleEnabled, can]);
 
   const isSectionActive = (section) => {
     return section.items.some(item => {
