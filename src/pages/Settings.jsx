@@ -195,6 +195,11 @@ const Settings = () => {
     website: '',
     logoUrl: '',
     signatureUrl: '',
+    signatureEnabled: true,
+    showSignatureOnInvoices: true,
+    showSignatureOnQuotes: true,
+    showSignatureOnPurchaseOrders: true,
+    showLogoOnDocuments: true,
     bankDetails: {
       accountName: '',
       bankName: '',
@@ -242,6 +247,11 @@ const Settings = () => {
           website: d.website || '',
           logoUrl: d.logoUrl || '',
           signatureUrl: d.signatureUrl || '',
+          signatureEnabled: d.signatureEnabled !== false,
+          showSignatureOnInvoices: d.showSignatureOnInvoices !== false,
+          showSignatureOnQuotes: d.showSignatureOnQuotes !== false,
+          showSignatureOnPurchaseOrders: d.showSignatureOnPurchaseOrders !== false,
+          showLogoOnDocuments: d.showLogoOnDocuments !== false,
           bankDetails: {
             accountName: d.bankDetails?.accountName || '',
             bankName: d.bankDetails?.bankName || '',
@@ -353,6 +363,14 @@ const Settings = () => {
       data.append('bankDetails[accountNumber]', formData.bankDetails.accountNumber);
       data.append('bankDetails[branch]', formData.bankDetails.branch);
       data.append('bankDetails[ifscCode]', formData.bankDetails.ifscCode);
+
+      data.append('signatureEnabled', formData.signatureEnabled);
+      data.append('showSignatureOnInvoices', formData.showSignatureOnInvoices);
+      data.append('showSignatureOnQuotes', formData.showSignatureOnQuotes);
+      data.append('showSignatureOnPurchaseOrders', formData.showSignatureOnPurchaseOrders);
+      data.append('showLogoOnDocuments', formData.showLogoOnDocuments);
+      data.append('logoUrl', formData.logoUrl);
+      data.append('signatureUrl', formData.signatureUrl);
 
       if (formData.logoFile) {
         data.append('logo', formData.logoFile);
@@ -506,68 +524,183 @@ const Settings = () => {
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-800 transition-colors">
           <form onSubmit={handleCompanySubmit} className="space-y-6">
 
-            {/* Logo + Core Info */}
-            <div className="flex flex-col md:flex-row gap-8 items-start border-b border-slate-100 dark:border-slate-800 pb-6">
-              {/* Logo */}
-              <div className="w-full md:w-1/3">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Company Logo</label>
-                <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-4 flex flex-col items-center justify-center min-h-[160px] bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative">
-                  {formData.logoUrl ? (
-                    <div className="relative w-full flex justify-center">
-                      <img src={formData.logoUrl} alt="Logo" className="max-h-32 object-contain" />
-                      <button type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, logoUrl: '', logoFile: null }))}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600">
-                        ✕
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="text-center text-slate-400 dark:text-slate-500">
-                      <div className="mx-auto w-12 h-12 mb-2 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400">
-                        <FaUpload size={20} />
-                      </div>
-                      <span className="text-xs">Click to upload logo</span>
-                      <span className="block text-[10px] mt-1">(Max 5MB)</span>
-                    </div>
-                  )}
-                  <input type="file" accept="image/*"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={handleLogoUpload} />
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">Appears on your invoices.</p>
+            {/* ── SECTION 1: BRANDING & DOCUMENT APPEARANCE ── */}
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-6 space-y-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Branding & Document Appearance</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Configure company logo, digital signature, and choose which documents they appear on.
+                </p>
               </div>
 
-              {/* Signature */}
-              <div className="w-full md:w-1/3">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Digital Signature</label>
-                <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-4 flex flex-col items-center justify-center min-h-[160px] bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative">
-                  {formData.signatureUrl ? (
-                    <div className="relative w-full flex justify-center">
-                      <img src={formData.signatureUrl} alt="Signature" className="max-h-32 object-contain" />
-                      <button type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, signatureUrl: '', signatureFile: null }))}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600">
-                        ✕
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                {/* 1A: Company Logo */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Company Logo</label>
+                    <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-indigo-600 dark:text-indigo-400 select-none">
+                      <input
+                        type="checkbox"
+                        name="showLogoOnDocuments"
+                        checked={formData.showLogoOnDocuments}
+                        onChange={(e) => setFormData(prev => ({ ...prev, showLogoOnDocuments: e.target.checked }))}
+                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      />
+                      <span>Show on Documents</span>
+                    </label>
+                  </div>
+
+                  <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-4 flex flex-col items-center justify-center min-h-[160px] bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative">
+                    {formData.logoUrl ? (
+                      <div className="relative w-full flex justify-center">
+                        <img src={formData.logoUrl} alt="Logo" className="max-h-32 object-contain" />
+                        <button type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, logoUrl: '', logoFile: null }))}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 cursor-pointer">
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-center text-slate-400 dark:text-slate-500">
+                        <div className="mx-auto w-12 h-12 mb-2 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400">
+                          <FaUpload size={20} />
+                        </div>
+                        <span className="text-xs font-medium">Click to upload logo</span>
+                        <span className="block text-[10px] mt-1 text-slate-400">(Max 5MB • PNG, JPG, WebP)</span>
+                      </div>
+                    )}
+                    <input type="file" accept="image/*"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={handleLogoUpload} />
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                    {formData.showLogoOnDocuments ? '✓ Appears on invoices, quotes & purchase orders' : '✕ Hidden on printed documents'}
+                  </p>
+                </div>
+
+                {/* 1B: Digital Signature */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Digital Signature</label>
+                    <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Authorised Signatory</span>
+                  </div>
+
+                  <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-4 flex flex-col items-center justify-center min-h-[160px] bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative">
+                    {formData.signatureUrl ? (
+                      <div className="relative w-full flex justify-center">
+                        <img src={formData.signatureUrl} alt="Signature" className="max-h-32 object-contain" />
+                        <button type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, signatureUrl: '', signatureFile: null }))}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 cursor-pointer">
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-center text-slate-400 dark:text-slate-500">
+                        <div className="mx-auto w-12 h-12 mb-2 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400">
+                          <FaUpload size={20} />
+                        </div>
+                        <span className="text-xs font-medium">Upload Signature</span>
+                        <span className="block text-[10px] mt-1 text-slate-400">(Max 5MB • PNG, JPG, WebP)</span>
+                      </div>
+                    )}
+                    <input type="file" accept="image/*"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={handleSignatureUpload} />
+                  </div>
+
+                  {/* Document Choice Controls */}
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700/60 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        Show Signature On Documents:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, signatureEnabled: !prev.signatureEnabled }))}
+                        className={`px-3 py-1 text-xs font-bold rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                          formData.signatureEnabled
+                            ? 'bg-emerald-600 text-white shadow-xs hover:bg-emerald-700'
+                            : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${formData.signatureEnabled ? 'bg-white animate-pulse' : 'bg-slate-400'}`} />
+                        {formData.signatureEnabled ? 'Enabled' : 'Disabled'}
                       </button>
                     </div>
-                  ) : (
-                    <div className="text-center text-slate-400 dark:text-slate-500">
-                      <div className="mx-auto w-12 h-12 mb-2 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400">
-                        <FaUpload size={20} />
-                      </div>
-                      <span className="text-xs">Upload Signature</span>
-                      <span className="block text-[10px] mt-1">(Max 5MB)</span>
-                    </div>
-                  )}
-                  <input type="file" accept="image/*"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={handleSignatureUpload} />
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">Appears on invoice print views.</p>
-              </div>
 
-              {/* Fields */}
-              <div className="w-full md:w-2/3 space-y-4">
+                    {formData.signatureEnabled ? (
+                      <div className="space-y-2 pt-1">
+                        <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                          Select which documents show your uploaded signature:
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <label className={`flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer transition-all select-none ${
+                            formData.showSignatureOnInvoices
+                              ? 'bg-indigo-50/80 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-200 font-semibold shadow-xs'
+                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
+                          }`}>
+                            <input
+                              type="checkbox"
+                              checked={formData.showSignatureOnInvoices}
+                              onChange={(e) => setFormData(prev => ({ ...prev, showSignatureOnInvoices: e.target.checked }))}
+                              className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            />
+                            <span>Invoices</span>
+                          </label>
+
+                          <label className={`flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer transition-all select-none ${
+                            formData.showSignatureOnQuotes
+                              ? 'bg-indigo-50/80 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-200 font-semibold shadow-xs'
+                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
+                          }`}>
+                            <input
+                              type="checkbox"
+                              checked={formData.showSignatureOnQuotes}
+                              onChange={(e) => setFormData(prev => ({ ...prev, showSignatureOnQuotes: e.target.checked }))}
+                              className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            />
+                            <span>Quotes</span>
+                          </label>
+
+                          <label className={`flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer transition-all select-none ${
+                            formData.showSignatureOnPurchaseOrders
+                              ? 'bg-indigo-50/80 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-200 font-semibold shadow-xs'
+                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
+                          }`}>
+                            <input
+                              type="checkbox"
+                              checked={formData.showSignatureOnPurchaseOrders}
+                              onChange={(e) => setFormData(prev => ({ ...prev, showSignatureOnPurchaseOrders: e.target.checked }))}
+                              className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            />
+                            <span>Purchase Orders</span>
+                          </label>
+                        </div>
+                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 pt-0.5 font-medium">
+                          ✓ Uploaded signature image will appear above &quot;Authorised Signatory&quot; on selected documents.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-600 p-3 bg-white dark:bg-slate-900/60 text-center space-y-1">
+                        <div className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                          Digitally Signed Document
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                          This is a computer generated tax invoice, digitally signed, and does not require a physical signature
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── SECTION 2: COMPANY INFORMATION ── */}
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-6 space-y-4">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Company Information</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Company Name</label>
                   <input type="text" name="companyName" value={formData.companyName}
@@ -585,6 +718,12 @@ const Settings = () => {
                   <input type="text" name="gstin" value={formData.gstin}
                     onChange={handleChange} className={`${inputCls} uppercase`}
                     placeholder="e.g. 29ABCDE1234F1Z5" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">PAN</label>
+                  <input type="text" name="pan" value={formData.pan}
+                    onChange={handleChange} className={`${inputCls} uppercase`}
+                    placeholder="e.g. ABCDE1234F" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Website</label>

@@ -96,7 +96,7 @@ const ModernTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra
       {/* ── ROW 1: Logo+Company (left) | Invoice Title (right) ── */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 28 }}>
         <div style={{ width: '50%', paddingTop: 18 }}>
-          {(company.logoUrl || company.logo) && (
+          {(company.showLogoOnDocuments !== false) && (company.logoUrl || company.logo) && (
             <img src={company.logoUrl || company.logo} alt="logo"
               style={{ maxHeight:55, maxWidth:180, objectFit:'contain', marginBottom:10, display:'block' }}/>
           )}
@@ -345,22 +345,40 @@ const ModernTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra
             vWidth="220px" 
           />
           
-          <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <div style={{
-              border: '1px dashed #1e5f78',
-              borderRadius: '6px',
-              padding: '10px 14px',
-              background: '#f8fafc',
-              textAlign: 'center',
-              fontSize: '10px',
-              color: '#334155',
-              maxWidth: '280px',
-              lineHeight: '1.5',
-            }}>
-              <div style={{ fontWeight: 'bold', color: '#1e5f78', textTransform: 'uppercase', fontSize: '9px', marginBottom: '4px', letterSpacing: '0.5px' }}>
-                Digitally Signed Document
+          <div style={{ marginTop: 30, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: DARK, marginBottom: 6 }}>
+              for {company.companyName}
+            </div>
+            {(company.signatureEnabled !== false && company.showSignatureOnInvoices !== false && (company.signatureUrl || company.signature)) ? (
+              <div style={{ textAlign: 'center', marginBottom: 6 }}>
+                <img
+                  src={company.signatureUrl || company.signature}
+                  alt="Signature"
+                  style={{ maxHeight: 55, maxWidth: 160, objectFit: 'contain', display: 'block', margin: '0 auto 4px' }}
+                />
+                <div style={{ fontSize: 9, color: MUTED, fontStyle: 'italic' }}>Digitally Signed</div>
               </div>
-              This is a computer generated {invType.toLowerCase()}, digitally signed, and does not require a physical signature.
+            ) : (
+              <div style={{
+                border: '1px dashed #1e5f78',
+                borderRadius: '6px',
+                padding: '8px 12px',
+                background: '#f8fafc',
+                textAlign: 'center',
+                fontSize: '10px',
+                color: '#334155',
+                maxWidth: '260px',
+                lineHeight: '1.4',
+                marginBottom: 6,
+              }}>
+                <div style={{ fontWeight: 'bold', color: '#1e5f78', textTransform: 'uppercase', fontSize: '9px', marginBottom: '3px', letterSpacing: '0.5px' }}>
+                  Digitally Signed Document
+                </div>
+                This is a computer generated {invType.toLowerCase()}, digitally signed, and does not require a physical signature.
+              </div>
+            )}
+            <div style={{ fontSize: 11, fontWeight: 700, color: DARK }}>
+              Authorised Signatory
             </div>
           </div>
         </div>
@@ -602,21 +620,32 @@ const ClassicTemplateOld = ({ invoice, company, client, items, hasTax, isIntra, 
           </div>
           <div style={{ textAlign: 'right', marginTop: '10px' }}>
             <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>for {company.companyName}</div>
-            <div style={{
-              margin: '8px 0',
-              border: '1px dashed #000',
-              padding: '8px 12px',
-              background: '#fafafa',
-              fontSize: '9px',
-              textAlign: 'center',
-              lineHeight: '1.4',
-              color: '#333',
-              maxWidth: '220px',
-              display: 'inline-block'
-            }}>
-              <b>Digitally Signed Document</b><br />
-              This is a computer generated {invType.toLowerCase()}, digitally signed, and does not require a physical signature.
-            </div>
+            {(company.signatureEnabled !== false && company.showSignatureOnInvoices !== false && (company.signatureUrl || company.signature)) ? (
+              <div style={{ margin: '6px 0', textAlign: 'right' }}>
+                <img
+                  src={company.signatureUrl || company.signature}
+                  alt="Signature"
+                  style={{ maxHeight: 45, maxWidth: 140, objectFit: 'contain', display: 'inline-block' }}
+                />
+                <div style={{ fontSize: '8px', color: '#666' }}>Digitally Signed</div>
+              </div>
+            ) : (
+              <div style={{
+                margin: '8px 0',
+                border: '1px dashed #000',
+                padding: '8px 12px',
+                background: '#fafafa',
+                fontSize: '9px',
+                textAlign: 'center',
+                lineHeight: '1.4',
+                color: '#333',
+                maxWidth: '220px',
+                display: 'inline-block'
+              }}>
+                <b>Digitally Signed Document</b><br />
+                This is a computer generated {invType.toLowerCase()}, digitally signed, and does not require a physical signature.
+              </div>
+            )}
             <div style={{ fontWeight: 'bold', marginTop: '4px' }}>Authorised Signatory</div>
           </div>
         </div>
@@ -976,20 +1005,31 @@ const ClassicTemplate = ({ invoice, company, client, bank, items, hasTax, isIntr
           </div>
           <div style={{ padding: '14px 18px 10px', minHeight: 82, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <div style={{ fontSize: 14, fontWeight: 700 }}>for {company.companyName}</div>
-            <div style={{
-              margin: '8px 0',
-              border: '1px dashed #000',
-              padding: '8px 12px',
-              background: '#fafafa',
-              fontSize: '9px',
-              textAlign: 'center',
-              lineHeight: '1.4',
-              color: '#333',
-              maxWidth: '220px'
-            }}>
-              <b>Digitally Signed Document</b><br />
-              This is a computer generated {invType.toLowerCase()}, digitally signed, and does not require a physical signature.
-            </div>
+            {(company.signatureEnabled !== false && company.showSignatureOnInvoices !== false && (company.signatureUrl || company.signature)) ? (
+              <div style={{ margin: '6px 0', textAlign: 'right' }}>
+                <img
+                  src={company.signatureUrl || company.signature}
+                  alt="Signature"
+                  style={{ maxHeight: 50, maxWidth: 150, objectFit: 'contain', display: 'inline-block' }}
+                />
+                <div style={{ fontSize: 9, color: '#666' }}>Digitally Signed</div>
+              </div>
+            ) : (
+              <div style={{
+                margin: '8px 0',
+                border: '1px dashed #000',
+                padding: '8px 12px',
+                background: '#fafafa',
+                fontSize: '9px',
+                textAlign: 'center',
+                lineHeight: '1.4',
+                color: '#333',
+                maxWidth: '220px'
+              }}>
+                <b>Digitally Signed Document</b><br />
+                This is a computer generated {invType.toLowerCase()}, digitally signed, and does not require a physical signature.
+              </div>
+            )}
             <div style={{ fontSize: 14, fontWeight: 700 }}>Authorised Signatory</div>
           </div>
         </div>

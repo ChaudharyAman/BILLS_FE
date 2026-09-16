@@ -3,69 +3,69 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
     id: 'overview',
     title: 'Overview',
     items: [
-      { id: 'dashboard', label: 'Dashboard', path: '/dashboard', iconName: 'FaThLarge' },
-      { id: 'bank_statement', label: 'Bank Statement', path: '/bank-statement', iconName: 'FaUniversity' }
+      { id: 'dashboard', label: 'Dashboard', path: '/dashboard', iconName: 'FaThLarge', moduleId: null },
+      { id: 'bank_statement', label: 'Bank Statement', path: '/bank-statement', iconName: 'FaUniversity', moduleId: 'bankStatements' }
     ]
   },
   {
     id: 'sales_receivables',
     title: 'Sales & Receivables',
     items: [
-      { id: 'clients', label: 'Clients / Customers', path: '/clients', iconName: 'FaUsers' },
-      { id: 'invoices', label: 'Invoices', path: '/invoices', iconName: 'FaFileInvoice' },
+      { id: 'clients', label: 'Clients / Customers', path: '/clients', iconName: 'FaUsers', moduleId: 'clients' },
+      { id: 'invoices', label: 'Invoices', path: '/invoices', iconName: 'FaFileInvoice', moduleId: 'invoices' },
       {
         id: 'quotes_proformas',
         label: 'Quotes & Proformas',
         iconName: 'FaClipboardList',
         type: 'collapsible',
         children: [
-          { id: 'quotes', label: 'Quotes', path: '/quotes' },
-          { id: 'proformas', label: 'Proformas', path: '/proformas' }
+          { id: 'quotes', label: 'Quotes', path: '/quotes', moduleId: 'quotes' },
+          { id: 'proformas', label: 'Proformas', path: '/proformas', moduleId: 'proformas' }
         ]
       },
-      { id: 'incomes', label: 'Incomes', path: '/incomes', iconName: 'FaPlus' },
-      { id: 'recurring', label: 'Recurring', path: '/recurring', iconName: 'FaRedo' }
+      { id: 'incomes', label: 'Incomes', path: '/incomes', iconName: 'FaPlus', moduleId: 'income' },
+      { id: 'recurring', label: 'Recurring', path: '/recurring', iconName: 'FaRedo', moduleId: 'recurringTransactions' }
     ]
   },
   {
     id: 'purchases_payables',
     title: 'Purchases & Payables',
     items: [
-      { id: 'vendors', label: 'Vendors / Suppliers', path: '/vendors', iconName: 'FaTruck' },
-      { id: 'purchase_orders', label: 'Purchase Orders', path: '/purchase-orders', iconName: 'FaShoppingCart' },
-      { id: 'expenses', label: 'Expenses', path: '/expenses', iconName: 'FaMinus' }
+      { id: 'vendors', label: 'Vendors / Suppliers', path: '/vendors', iconName: 'FaTruck', moduleId: 'vendors' },
+      { id: 'purchase_orders', label: 'Purchase Orders', path: '/purchase-orders', iconName: 'FaShoppingCart', moduleId: 'purchaseOrders' },
+      { id: 'expenses', label: 'Expenses', path: '/expenses', iconName: 'FaMinus', moduleId: 'expenses' }
     ]
   },
   {
     id: 'operations_assets',
     title: 'Operations & Assets',
     items: [
-      { id: 'inventory', label: 'Inventory', path: '/items', iconName: 'FaBox' },
-      { id: 'assets', label: 'Assets', path: '/assets', iconName: 'FaUniversity' },
-      { id: 'projects', label: 'Projects', path: '/projects', iconName: 'FaProjectDiagram' },
-      { id: 'business_units', label: 'Business Units', path: '/business-units', iconName: 'FaBuilding' }
+      { id: 'inventory', label: 'Inventory', path: '/items', iconName: 'FaBox', moduleId: 'items' },
+      { id: 'assets', label: 'Assets', path: '/assets', iconName: 'FaUniversity', moduleId: 'assets' },
+      { id: 'projects', label: 'Projects', path: '/projects', iconName: 'FaProjectDiagram', moduleId: 'projects' },
+      { id: 'business_units', label: 'Business Units', path: '/business-units', iconName: 'FaBuilding', moduleId: 'businessUnits' }
     ]
   },
   {
     id: 'human_resources',
     title: 'Payroll',
     items: [
-      { id: 'payroll_dashboard', label: 'Dashboard', path: '/payroll', iconName: 'FaMoneyBillWave' },
-      { id: 'employees', label: 'Employees', path: '/employees', iconName: 'FaUsers' },
-      { id: 'payroll_process', label: 'Process Payroll', path: '/payroll/process', iconName: 'FaCalculator' },
-      { id: 'payroll_calculator', label: 'Salary Calculator', path: '/payroll/calculator', iconName: 'FaCalculator' },
-      { id: 'payroll_reports', label: 'Reports', path: '/payroll/reports', iconName: 'FaChartBar' },
-      { id: 'payroll_settings', label: 'Settings', path: '/payroll/settings', iconName: 'FaCog' },
-      { id: 'payroll_portal', label: 'Employee Portal (ESS)', path: '/payroll/portal', iconName: 'FaUserTie' }
+      { id: 'payroll_dashboard', label: 'Dashboard', path: '/payroll', iconName: 'FaMoneyBillWave', moduleId: 'payroll' },
+      { id: 'employees', label: 'Employees', path: '/employees', iconName: 'FaUsers', moduleId: 'employees' },
+      { id: 'payroll_process', label: 'Process Payroll', path: '/payroll/process', iconName: 'FaCalculator', moduleId: 'payroll' },
+      { id: 'payroll_calculator', label: 'Salary Calculator', path: '/payroll/calculator', iconName: 'FaCalculator', moduleId: 'payroll' },
+      { id: 'payroll_reports', label: 'Reports', path: '/payroll/reports', iconName: 'FaChartBar', moduleId: 'payroll' },
+      { id: 'payroll_settings', label: 'Settings', path: '/payroll/settings', iconName: 'FaCog', moduleId: 'payroll' },
+      { id: 'payroll_portal', label: 'Employee Portal (ESS)', path: '/payroll/portal', iconName: 'FaUserTie', moduleId: 'payroll' }
     ]
   },
   {
     id: 'financial_control',
     title: 'Financial Control',
     items: [
-      { id: 'budgets', label: 'Budgets', path: '/budgets', iconName: 'FaBalanceScale' },
-      { id: 'categories', label: 'Categories', path: '/categories', iconName: 'FaTags' },
-      { id: 'liabilities', label: 'Liabilities & Debt', path: '/liabilities', iconName: 'FaCreditCard' },
+      { id: 'budgets', label: 'Budgets', path: '/budgets', iconName: 'FaBalanceScale', moduleId: 'budgets' },
+      { id: 'categories', label: 'Categories', path: '/categories', iconName: 'FaTags', moduleId: 'categories' },
+      { id: 'liabilities', label: 'Liabilities & Debt', path: '/liabilities', iconName: 'FaCreditCard', moduleId: 'liabilities' },
       {
         id: 'accounts_group',
         label: 'Accounts',
@@ -73,8 +73,8 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
         type: 'collapsible',
         isPremium: true,
         children: [
-          { id: 'accounts_payments', label: 'Payment Collection', path: '/accounts/payments' },
-          { id: 'accounts_statements', label: 'Account Statements', path: '/accounts/statements' }
+          { id: 'accounts_payments', label: 'Payment Collection', path: '/accounts/payments', moduleId: 'income' },
+          { id: 'accounts_statements', label: 'Account Statements', path: '/accounts/statements', moduleId: 'reports' }
         ]
       },
       {
@@ -84,13 +84,13 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
         type: 'collapsible',
         isPremium: true,
         children: [
-          { id: 'tax_dashboard_reports', label: 'Tax Dashboard', path: '/tax-dashboard' },
-          { id: 'reports_gst', label: 'GST Reports', path: '/reports/gst' },
-          { id: 'reports_tds', label: 'TDS Summary', path: '/reports/tds' },
-          { id: 'reports_revenue', label: 'Revenue Reports', path: '/reports/revenue' },
-          { id: 'reports_profit_loss', label: 'Profit & Loss', path: '/reports/profit-loss' },
-          { id: 'reports_balance_sheet', label: 'Balance Sheet', path: '/reports/balance-sheet' },
-          { id: 'reports_cash_flow', label: 'Cash Flow', path: '/reports/cash-flow' }
+          { id: 'tax_dashboard_reports', label: 'Tax Dashboard', path: '/tax-dashboard', moduleId: 'reports' },
+          { id: 'reports_gst', label: 'GST Reports', path: '/reports/gst', moduleId: 'reports' },
+          { id: 'reports_tds', label: 'TDS Summary', path: '/reports/tds', moduleId: 'reports' },
+          { id: 'reports_revenue', label: 'Revenue Reports', path: '/reports/revenue', moduleId: 'reports' },
+          { id: 'reports_profit_loss', label: 'Profit & Loss', path: '/reports/profit-loss', moduleId: 'reports' },
+          { id: 'reports_balance_sheet', label: 'Balance Sheet', path: '/reports/balance-sheet', moduleId: 'reports' },
+          { id: 'reports_cash_flow', label: 'Cash Flow', path: '/reports/cash-flow', moduleId: 'reports' }
         ]
       }
     ]
@@ -100,17 +100,17 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
     title: 'System & Settings',
     items: [
       // Public Submission Inbox — shown with a badge in Layout.jsx
-      { id: 'submissions_inbox', label: 'Submissions Inbox', path: '/submissions', iconName: 'FaInbox' },
-      { id: 'recycle_bin', label: 'Recycle Bin', path: '/recycle-bin', iconName: 'FaTrash' },
-      { id: 'team_settings', label: 'Team & Permissions', path: '/settings/team', iconName: 'FaUsers' },
-      { id: 'upgrade', label: 'Upgrade', path: '/subscription', iconName: 'FaStar', isSpecial: true },
-      { id: 'settings', label: 'Settings', path: '/settings', iconName: 'FaCog' },
-      { id: 'admin_panel', label: 'Admin Panel', path: '/admin', iconName: 'FaLock', isSuperAdmin: true }
+      { id: 'submissions_inbox', label: 'Submissions Inbox', path: '/submissions', iconName: 'FaInbox', moduleId: 'publicSubmissions' },
+      { id: 'recycle_bin', label: 'Recycle Bin', path: '/recycle-bin', iconName: 'FaTrash', moduleId: 'settings' },
+      { id: 'team_settings', label: 'Team & Permissions', path: '/settings/team', iconName: 'FaUsers', moduleId: 'teamMembers' },
+      { id: 'upgrade', label: 'Upgrade', path: '/subscription', iconName: 'FaStar', isSpecial: true, moduleId: 'subscription' },
+      { id: 'settings', label: 'Settings', path: '/settings', iconName: 'FaCog', moduleId: 'settings' },
+      { id: 'admin_panel', label: 'Admin Panel', path: '/admin', iconName: 'FaLock', isSuperAdmin: true, moduleId: null }
     ]
   }
 ];
 
-const LOCAL_STORAGE_KEY = 'mbf_sidebar_layout_v7';
+const LOCAL_STORAGE_KEY = 'mbf_sidebar_layout_v8';
 
 /**
  * Merges a parsed custom layout from localStorage with the absolute default layout,
