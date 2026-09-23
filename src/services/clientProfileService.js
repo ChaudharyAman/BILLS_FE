@@ -20,6 +20,11 @@ export const deleteProfile = async (id) => {
   return response.data;
 };
 
+export const setDefaultProfile = async (id) => {
+  const response = await api.post(`/profiles/${id}/set-default`);
+  return response.data;
+};
+
 export const getActiveProfileId = () => {
   return sessionStorage.getItem('activeProfileId') || localStorage.getItem('activeProfileId') || null;
 };

@@ -12,12 +12,14 @@ import {
   ExternalLink,
   ShieldCheck,
   Check,
+  Star,
 } from 'lucide-react';
 import {
   getMyProfiles,
   createProfile,
   updateProfile,
   deleteProfile,
+  setDefaultProfile,
   getActiveProfileId,
   setActiveProfileId,
 } from '../services/clientProfileService';
@@ -95,14 +97,34 @@ export default function ClientProfileManagement({ embedded = false }) {
       if (editingProfile) {
         await updateProfile(editingProfile._id, formData);
         setSuccess('Profile updated successfully');
+        if (formData.isDefault) {
+          setActiveProfileId(editingProfile._id);
+          setActiveId(editingProfile._id);
+        }
       } else {
-        await createProfile(formData);
+        const created = await createProfile(formData);
         setSuccess('Profile created successfully');
+        if (formData.isDefault && created?._id) {
+          setActiveProfileId(created._id);
+          setActiveId(created._id);
+        }
       }
       setShowModal(false);
       fetchProfiles();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save profile');
+    }
+  };
+
+  const handleSetDefault = async (id) => {
+    setError('');
+    setSuccess('');
+    try {
+      await setDefaultProfile(id);
+      setSuccess('Default workspace updated successfully');
+      fetchProfiles();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to set default profile');
     }
   };
 
@@ -263,6 +285,15 @@ export default function ClientProfileManagement({ embedded = false }) {
                       >
                         <Share2 size={15} />
                       </button>
+                      {!p.isDefault && (
+                        <button
+                          onClick={() => handleSetDefault(p._id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
+                          title="Set as Default Workspace"
+                        >
+                          <Star size={15} />
+                        </button>
+                      )}
                       {!p.isDefault && (
                         <button
                           onClick={() => handleDelete(p._id, p.name)}

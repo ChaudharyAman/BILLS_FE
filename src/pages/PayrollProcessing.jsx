@@ -311,7 +311,7 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
       );
 
     case 'variableTransactions':
-    case 'commission':
+    case 'commission': {
       const commSum = (row?.variableTransactions || []).reduce((sum, t) => sum + (t.amount || 0), 0);
       return (
         <div key={fieldKey} className="flex flex-col gap-0.5">
@@ -319,9 +319,10 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
           <span className="text-[9px] text-blue-600 dark:text-blue-400 font-bold">Commission</span>
         </div>
       );
+    }
 
     case 'retainer':
-    case 'skipPeriod':
+    case 'skipPeriod': {
       const isSkipped = Boolean(row?._skipPeriod);
       const retainerVal = row?.snapshot?.master?.monthlyCTC ?? snapshot?.master?.monthlyCTC ?? employee.monthlyCTC ?? 0;
       return (
@@ -341,6 +342,7 @@ const RenderPeriodInputField = ({ fieldKey, employee, row, snapshot, isExistingD
           </label>
         </div>
       );
+    }
 
     default:
       return null;
