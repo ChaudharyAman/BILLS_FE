@@ -367,6 +367,8 @@ const QuoteForm = ({ docType = 'quote' }) => {
     + (showCustomAmount ? Number(formData.customChargeAmount) || 0 : 0)
     - (showDiscountTotal ? Number(formData.discountTotal) || 0 : 0);
 
+  const getGrandTotal = () => grandTotal;
+
   // ── Submit ───────────────────────────────────────────────────────────────────
   const handleSubmit = async (e, saveAsDraft = false) => {
     e.preventDefault();

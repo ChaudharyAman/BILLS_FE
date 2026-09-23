@@ -1748,7 +1748,10 @@ export const getSalarySplits = (employeeInput, configInput, monthNum, yearNum, p
   const hoursWorked = isHourly ? (Number(adjustments?.hoursWorked) || Number(employee.hoursWorked) || 0) : 0;
 
   const workingDays = isHourly ? totalDaysInMonth : Math.max(Number(workingDaysCount) || config.defaultWorkingDays, 1);
-  const paidDays = isHourly ? workingDays : Math.max(Math.min(Number(paidDaysCount) ?? workingDays, workingDays), 0);
+  const rawPaidDays = (paidDaysCount !== null && paidDaysCount !== undefined && !isNaN(Number(paidDaysCount)))
+    ? Number(paidDaysCount)
+    : workingDays;
+  const paidDays = isHourly ? workingDays : Math.max(Math.min(rawPaidDays, workingDays), 0);
   const prorate = isHourly ? 1.0 : (workingDays > 0 ? paidDays / workingDays : 1);
 
   const lopStrategy = adjustments.lopStrategy || 'proportional';

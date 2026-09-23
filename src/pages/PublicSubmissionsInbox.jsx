@@ -1198,7 +1198,7 @@ export default function PublicSubmissionsInbox() {
                       type="button"
                       onClick={() => {
                         const sKey = selected.submitterEmail || selected.submitterName || 'Anonymous';
-                        setSelectedSubmitter(sKey);
+                        setSelectedSubmitters([sKey]);
                         setViewMode('all');
                       }}
                       className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
