@@ -3,7 +3,7 @@ import * as LucideIcons from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   { id: 'All', label: 'All Documents', icon: LucideIcons.Folder, color: 'text-blue-500 bg-blue-50 dark:bg-blue-900/30' },
   { id: 'Registration & Legal', label: 'Registration & Legal', icon: LucideIcons.Building2, color: 'text-purple-500 bg-purple-50 dark:bg-purple-900/30' },
   { id: 'Tax & GST', label: 'Tax & GST', icon: LucideIcons.Receipt, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30' },
@@ -12,6 +12,17 @@ const CATEGORIES = [
   { id: 'Brand & Letterheads', label: 'Brand & Letterheads', icon: LucideIcons.Palette, color: 'text-rose-500 bg-rose-50 dark:bg-rose-900/30' },
   { id: 'Contracts & Policies', label: 'Contracts & Policies', icon: LucideIcons.FileCheck, color: 'text-teal-500 bg-teal-50 dark:bg-teal-900/30' },
   { id: 'General Documents', label: 'General Documents', icon: LucideIcons.FileText, color: 'text-slate-500 bg-slate-50 dark:bg-slate-800' },
+];
+
+const FOLDER_COLORS = [
+  { id: 'indigo', label: 'Indigo', class: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30' },
+  { id: 'purple', label: 'Purple', class: 'text-purple-500 bg-purple-50 dark:bg-purple-900/30' },
+  { id: 'rose', label: 'Rose', class: 'text-rose-500 bg-rose-50 dark:bg-rose-900/30' },
+  { id: 'emerald', label: 'Emerald', class: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30' },
+  { id: 'teal', label: 'Teal', class: 'text-teal-500 bg-teal-50 dark:bg-teal-900/30' },
+  { id: 'amber', label: 'Amber', class: 'text-amber-500 bg-amber-50 dark:bg-amber-900/30' },
+  { id: 'blue', label: 'Blue', class: 'text-blue-500 bg-blue-50 dark:bg-blue-900/30' },
+  { id: 'slate', label: 'Slate', class: 'text-slate-500 bg-slate-50 dark:bg-slate-800' },
 ];
 
 const formatBytes = (bytes) => {
@@ -66,6 +77,13 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
   const [categoryCounts, setCategoryCounts] = useState({});
   const [totalStorage, setTotalStorage] = useState(0);
 
+  // Custom Folders State
+  const [customFolders, setCustomFolders] = useState([]);
+  const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderColor, setNewFolderColor] = useState(FOLDER_COLORS[0].class);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+
   // Upload Modal State
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadTitle, setUploadTitle] = useState('');
@@ -96,6 +114,9 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
         setDocuments(res.data.data || []);
         setCategoryCounts(res.data.categoryCounts || {});
         setTotalStorage(res.data.totalStorageBytes || 0);
+        if (Array.isArray(res.data.customFolders)) {
+          setCustomFolders(res.data.customFolders);
+        }
       }
     } catch (err) {
       console.error('Error fetching company documents:', err);
@@ -108,6 +129,88 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
   useEffect(() => {
     fetchDocuments();
   }, [selectedCategory]);
+
+  // Compute merged categories list
+  const allCategories = [
+    ...DEFAULT_CATEGORIES,
+    ...customFolders.map((f) => ({
+      id: f.name,
+      label: f.name,
+      icon: LucideIcons[f.icon] || LucideIcons.Folder,
+      color: f.color || 'text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30',
+      isCustom: true,
+      _id: f._id,
+    })),
+  ];
+
+  // Include any extra active categories from counts that aren't yet in list
+  Object.keys(categoryCounts).forEach((catName) => {
+    if (!allCategories.some((c) => c.id === catName)) {
+      allCategories.push({
+        id: catName,
+        label: catName,
+        icon: LucideIcons.Folder,
+        color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30',
+        isCustom: true,
+      });
+    }
+  });
+
+  const handleCreateFolder = async (e) => {
+    e.preventDefault();
+    if (!newFolderName.trim()) {
+      toast.error('Please enter a folder name');
+      return;
+    }
+    const cleanName = newFolderName.trim();
+    if (cleanName.toLowerCase() === 'all') {
+      toast.error('"All" is a reserved folder name.');
+      return;
+    }
+    if (allCategories.some((c) => c.label.toLowerCase() === cleanName.toLowerCase())) {
+      toast.error('A folder with this name already exists.');
+      return;
+    }
+
+    try {
+      setCreatingFolder(true);
+      const res = await api.post('/company-documents/folders', {
+        name: cleanName,
+        color: newFolderColor,
+        icon: 'Folder',
+      });
+      if (res.data?.success) {
+        toast.success(`Folder "${cleanName}" created!`);
+        const created = res.data.data;
+        setCustomFolders((prev) => [...prev, created]);
+        setSelectedCategory(cleanName);
+        setUploadCategory(cleanName);
+        setNewFolderName('');
+        setIsNewFolderOpen(false);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to create folder');
+    } finally {
+      setCreatingFolder(false);
+    }
+  };
+
+  const handleDeleteFolder = async (folderIdOrName, e) => {
+    e.stopPropagation();
+    if (!window.confirm(`Are you sure you want to delete this folder? Any documents inside will be moved to "General Documents".`)) {
+      return;
+    }
+    try {
+      await api.delete(`/company-documents/folders/${folderIdOrName}`);
+      toast.success('Folder deleted');
+      if (selectedCategory === folderIdOrName) {
+        setSelectedCategory('All');
+      }
+      fetchDocuments();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete folder');
+    }
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -306,29 +409,53 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
 
         {/* Categories Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          {CATEGORIES.map((cat) => {
-            const Icon = cat.icon;
+          {allCategories.map((cat) => {
+            const Icon = cat.icon || LucideIcons.Folder;
             const isSelected = selectedCategory === cat.id;
             const count = cat.id === 'All' ? documents.length : (categoryCounts[cat.id] || 0);
             return (
-              <button
-                type="button"
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shrink-0 border ${
-                  isSelected
-                    ? 'bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30 shadow-xs'
-                    : 'bg-white/50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 border-slate-200/60 dark:border-white/5 hover:bg-white dark:hover:bg-slate-800'
-                }`}
-              >
-                <Icon size={13} />
-                <span>{cat.label}</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-slate-200/60 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                  {count}
-                </span>
-              </button>
+              <div key={cat.id} className="inline-flex items-center shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+                    isSelected
+                      ? 'bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30 shadow-xs'
+                      : 'bg-white/50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 border-slate-200/60 dark:border-white/5 hover:bg-white dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <Icon size={13} />
+                  <span>{cat.label}</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-slate-200/60 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    {count}
+                  </span>
+                  {cat.isCustom && (
+                    <span
+                      onClick={(e) => handleDeleteFolder(cat._id || cat.id, e)}
+                      title="Delete folder"
+                      className="hover:text-rose-500 dark:hover:text-rose-400 p-0.5 ml-0.5 rounded cursor-pointer transition-colors"
+                    >
+                      <LucideIcons.X size={12} />
+                    </span>
+                  )}
+                </button>
+              </div>
             );
           })}
+
+          {/* + Add Folder Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setNewFolderName('');
+              setIsNewFolderOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/70 dark:bg-slate-900/60 border border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-500 text-slate-600 hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400 transition-all cursor-pointer shrink-0 shadow-2xs"
+            title="Create a new custom folder"
+          >
+            <LucideIcons.FolderPlus size={13} className="text-teal-600 dark:text-teal-400" />
+            <span>+ Add Folder</span>
+          </button>
         </div>
       </div>
 
@@ -538,19 +665,51 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
               {/* Category & Reference Number */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Category <span className="text-rose-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300">
+                      Folder / Category <span className="text-rose-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewFolderName('');
+                        setIsNewFolderOpen(true);
+                      }}
+                      className="text-[11px] font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 flex items-center gap-1 cursor-pointer"
+                    >
+                      <LucideIcons.FolderPlus size={12} />
+                      <span>+ New Folder</span>
+                    </button>
+                  </div>
                   <select
                     value={uploadCategory}
-                    onChange={(e) => setUploadCategory(e.target.value)}
+                    onChange={(e) => {
+                      if (e.target.value === '__NEW__') {
+                        setNewFolderName('');
+                        setIsNewFolderOpen(true);
+                      } else {
+                        setUploadCategory(e.target.value);
+                      }
+                    }}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-800/70 text-slate-900 dark:text-slate-100 text-xs focus:ring-2 focus:ring-teal-500/30 focus:outline-none"
                   >
-                    {CATEGORIES.filter((c) => c.id !== 'All').map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
+                    <optgroup label="Default Folders">
+                      {DEFAULT_CATEGORIES.filter((c) => c.id !== 'All').map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                    {customFolders.length > 0 && (
+                      <optgroup label="Custom Folders">
+                        {customFolders.map((f) => (
+                          <option key={f.name} value={f.name}>
+                            {f.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <option value="__NEW__">+ Create New Folder...</option>
                   </select>
                 </div>
 
@@ -686,6 +845,109 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CREATE NEW FOLDER MODAL ── */}
+      {isNewFolderOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in"
+          onClick={() => setIsNewFolderOpen(false)}
+        >
+          <div
+            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-teal-500/15 text-teal-600 flex items-center justify-center">
+                  <LucideIcons.FolderPlus size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Create New Document Folder
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Add a custom folder to organize your company files.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsNewFolderOpen(false)}
+                className="w-7 h-7 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 flex items-center justify-center cursor-pointer text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateFolder} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Folder Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  placeholder="e.g. HR &amp; Contracts, Insurance, Audits, Certificates"
+                  autoFocus
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-800/70 text-slate-900 dark:text-slate-100 text-xs focus:ring-2 focus:ring-teal-500/30 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  Folder Theme Color
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {FOLDER_COLORS.map((col) => (
+                    <button
+                      type="button"
+                      key={col.id}
+                      onClick={() => setNewFolderColor(col.class)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-medium transition-all cursor-pointer ${
+                        newFolderColor === col.class
+                          ? 'ring-2 ring-teal-500 border-teal-500 font-bold'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      <span className={`w-2.5 h-2.5 rounded-full ${col.class.split(' ')[0].replace('text-', 'bg-')}`} />
+                      <span>{col.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setIsNewFolderOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingFolder}
+                  className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  {creatingFolder ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LucideIcons.FolderPlus size={14} />
+                      <span>Create Folder</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
