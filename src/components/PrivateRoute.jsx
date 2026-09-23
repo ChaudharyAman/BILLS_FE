@@ -10,6 +10,17 @@ const PrivateRoute = ({ children }) => {
     let isCancelled = false;
 
     const verifySession = async () => {
+      const isSharedSession =
+        sessionStorage.getItem('isSharedSession') === 'true' ||
+        sessionStorage.getItem('isSharedViewOnly') === 'true';
+      const shareToken = sessionStorage.getItem('token');
+      if (isSharedSession && shareToken) {
+        if (!isCancelled) {
+          setAuthState('authenticated');
+        }
+        return;
+      }
+
       try {
         const response = await api.get('/auth/me');
         if (!isCancelled) {

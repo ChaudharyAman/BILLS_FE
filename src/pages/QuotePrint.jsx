@@ -4,6 +4,7 @@ import api from '../api/axios';
 import { FaPrint, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 import ClassicBusinessDocumentPrint from '../components/ClassicBusinessDocumentPrint';
+import usePermissions from '../hooks/usePermissions';
 
 // ── Helpers ─────────────────────────────────────────────────────
 function numberToWords(num) {
@@ -48,6 +49,7 @@ function TD(align) {
 const QuotePrint = ({ docType = 'quote' }) => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { can } = usePermissions();
   const isProforma = docType === 'proforma';
 
   const apiBase  = isProforma ? '/proformas' : '/quotes';
@@ -103,7 +105,12 @@ const QuotePrint = ({ docType = 'quote' }) => {
   );
   if (!doc) return <div style={{ padding:40, textAlign:'center', color:'#e00' }}>Document not found.</div>;
 
-  const company    = settings || {};
+  const company = {
+    ...((doc.profile && typeof doc.profile === 'object') ? doc.profile : {}),
+    ...(settings || {}),
+  };
+  if (!company.companyName && company.name) company.companyName = company.name;
+  if (!company.logoUrl && company.logo) company.logoUrl = company.logo;
   const client     = doc.client || {};
   const items      = doc.items  || [];
   const grandTotal = Number(doc.grandTotal) || 0;
@@ -141,16 +148,18 @@ const QuotePrint = ({ docType = 'quote' }) => {
             <option value="modern">Modern Template</option>
             <option value="classic">Classic GST Template</option>
           </select>
-          {doc.status!=='CONVERTED' && (
+          {can('invoices', 'create') && doc.status!=='CONVERTED' && (
             <button onClick={handleConvert} disabled={converting}
               style={{ display:'flex',alignItems:'center',gap:6,padding:'7px 14px',background:'#7c3aed',color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontSize:13,fontWeight:700 }}>
               <FaArrowRight size={13}/> Convert to Invoice
             </button>
           )}
-          <button onClick={()=>window.print()}
-            style={{ display:'flex',alignItems:'center',gap:6,padding:'7px 20px',background:PRIMARY,color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontSize:13,fontWeight:700 }}>
-            <FaPrint size={13}/> Print / Download
-          </button>
+          {can(isProforma ? 'proformas' : 'quotes', 'pdf') && (
+            <button onClick={()=>window.print()}
+              style={{ display:'flex',alignItems:'center',gap:6,padding:'7px 20px',background:PRIMARY,color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontSize:13,fontWeight:700 }}>
+              <FaPrint size={13}/> Print / Download
+            </button>
+          )}
         </div>
       </div>
 

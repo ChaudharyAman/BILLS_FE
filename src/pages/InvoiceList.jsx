@@ -1,15 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { FaPlus, FaDownload, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaChevronDown, FaFilePdf, FaFileInvoiceDollar, FaCheckCircle, FaClock, FaExclamationCircle } from 'react-icons/fa';
+import { FaPlus, FaDownload, FaCheckSquare, FaRegSquare, FaEdit, FaTrash, FaEye, FaChevronDown, FaFilePdf, FaFileInvoiceDollar, FaCheckCircle, FaClock, FaExclamationCircle, FaPaperPlane, FaEllipsisV } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 import ExportDropdown from '../components/ExportDropdown';
 import Modal from '../components/Modal';
 import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
 import QuotaIndicator from '../components/QuotaIndicator';
 import PdfInvoiceImporter from '../components/PdfInvoiceImporter';
+import SendInvoiceModal from '../components/SendInvoiceModal';
 import { FaFileAlt } from 'react-icons/fa';
 import { mapInvoiceImportRows } from '../utils/invoiceImport';
+import usePermissions from '../hooks/usePermissions';
 
 const DOC_TYPES = [
   {
@@ -45,8 +47,11 @@ const getStoredFilter = (key, fallback) => {
 
 const InvoiceList = () => {
   const navigate = useNavigate();
+  const { can } = usePermissions();
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   const typeMenuRef = useRef(null);
+  const [actionMenuId, setActionMenuId] = useState(null);
+  const actionMenuRef = useRef(null);
 
   const userStr = localStorage.getItem('user');
   let userObj = null;
@@ -55,7 +60,10 @@ const InvoiceList = () => {
 
   // Close dropdown on outside click
   useEffect(() => {
-    const handler = (e) => { if (typeMenuRef.current && !typeMenuRef.current.contains(e.target)) setTypeMenuOpen(false); };
+    const handler = (e) => {
+      if (typeMenuRef.current && !typeMenuRef.current.contains(e.target)) setTypeMenuOpen(false);
+      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) setActionMenuId(null);
+    };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
@@ -86,10 +94,16 @@ const InvoiceList = () => {
   const [sortBy, setSortBy] = useState(() => getStoredFilter('sortBy', 'createdAt'));
   const [sortOrder, setSortOrder] = useState(() => getStoredFilter('sortOrder', 'desc'));
 
+  const [settings, setSettings] = useState(null);
+  const [emailModalInvoice, setEmailModalInvoice] = useState(null);
+
   useEffect(() => {
     api.get('/business-units?status=active')
       .then((res) => setBusinessUnits(res.data || []))
       .catch((err) => console.error('Failed to load business units:', err));
+    api.get('/settings')
+      .then((res) => setSettings(res.data))
+      .catch((err) => console.error('Failed to load settings:', err));
   }, []);
 
   // Sync filters and sorting preferences to localStorage
@@ -359,47 +373,49 @@ const InvoiceList = () => {
             <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage and track your invoice history</p>
         </div>
         <div className="flex gap-3 flex-wrap">
-           <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
-             <ExportDropdown 
-                disabled={!isPro}
-                data={displayedInvoices}
-                getExportData={fetchInvoicesForExport}
-                filename="Flance_Invoices"
-                columns={[
-                   { header: 'Client Name', key: 'client.name' },
-                   { header: 'Client GSTIN', key: 'client.gstin' },
-                   { header: 'Invoice Number', key: 'invoiceNo' },
-                   { header: 'Creator Name', key: 'user.username' },
-                   { header: 'Client Phone Number', key: 'client.phone' },
-                   { header: 'Client Email', key: 'client.email' },
-                   { header: 'Client City', key: 'client.address.city' },
-                   { header: 'Client State', key: 'client.address.state' },
-                   { header: 'P.O. Number', key: 'transport.poNumber' },
-                   { header: 'P.O. Date', key: 'transport.poDate' },
-                   { header: 'Issue Date', key: 'date' },
-                   { header: 'Due Date', key: 'dueDate' },
-                   { header: 'Payment Mode', key: 'paymentMode' },
-                   { header: 'Financial Year', key: 'fy' },
-                   { header: 'Currency', key: 'currency' },
-                   { header: 'Amount', key: 'subTotal' },
-                   { header: 'Tax', key: 'taxTotal' },
-                   { header: 'Total', key: 'grandTotal' },
-                   { header: 'Status', key: 'status' },
-                   { header: 'Amount Paid', key: 'advancePaid' },
-                   { header: 'Balance', key: 'balanceDue' },
-                   { header: 'Dr. / Cr.', key: 'drCr' },
-                   { header: 'Date Of Payment', key: 'paymentDate' },
-                   { header: 'Type', key: 'invoiceType' },
-                   { header: 'Private notes', key: 'notes' },
-                   { header: 'Payments', key: 'paymentMode' },
-                   { header: 'Discount', key: 'discountTotal' },
-                   { header: 'TDS', key: 'tds' },
-                   { header: 'TCS', key: 'tcs' },
-                ]}
-             />
-           </div>
+           {can('invoices', 'export') && (
+             <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
+               <ExportDropdown 
+                  disabled={!isPro}
+                  data={displayedInvoices}
+                  getExportData={fetchInvoicesForExport}
+                  filename="Flance_Invoices"
+                  columns={[
+                     { header: 'Client Name', key: 'client.name' },
+                     { header: 'Client GSTIN', key: 'client.gstin' },
+                     { header: 'Invoice Number', key: 'invoiceNo' },
+                     { header: 'Creator Name', key: 'user.username' },
+                     { header: 'Client Phone Number', key: 'client.phone' },
+                     { header: 'Client Email', key: 'client.email' },
+                     { header: 'Client City', key: 'client.address.city' },
+                     { header: 'Client State', key: 'client.address.state' },
+                     { header: 'P.O. Number', key: 'transport.poNumber' },
+                     { header: 'P.O. Date', key: 'transport.poDate' },
+                     { header: 'Issue Date', key: 'date' },
+                     { header: 'Due Date', key: 'dueDate' },
+                     { header: 'Payment Mode', key: 'paymentMode' },
+                     { header: 'Financial Year', key: 'fy' },
+                     { header: 'Currency', key: 'currency' },
+                     { header: 'Amount', key: 'subTotal' },
+                     { header: 'Tax', key: 'taxTotal' },
+                     { header: 'Total', key: 'grandTotal' },
+                     { header: 'Status', key: 'status' },
+                     { header: 'Amount Paid', key: 'advancePaid' },
+                     { header: 'Balance', key: 'balanceDue' },
+                     { header: 'Dr. / Cr.', key: 'drCr' },
+                     { header: 'Date Of Payment', key: 'paymentDate' },
+                     { header: 'Type', key: 'invoiceType' },
+                     { header: 'Private notes', key: 'notes' },
+                     { header: 'Payments', key: 'paymentMode' },
+                     { header: 'Discount', key: 'discountTotal' },
+                     { header: 'TDS', key: 'tds' },
+                     { header: 'TCS', key: 'tcs' },
+                  ]}
+               />
+             </div>
+           )}
            
-           {selectedInvoices.length > 0 && (
+           {can('invoices', 'delete') && selectedInvoices.length > 0 && (
              <button
                onClick={handleBulkDelete}
                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
@@ -408,64 +424,70 @@ const InvoiceList = () => {
              </button>
            )}
            
-           <button
-              onClick={() => setIsPdfScannerOpen(true)}
-              className="bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-900/50 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/60 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
-            >
-              <FaFilePdf size={16} /> Scan PDF
-            </button>
+           {can('invoices', 'create') && (
+             <button
+                onClick={() => setIsPdfScannerOpen(true)}
+                className="bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-900/50 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/60 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+              >
+                <FaFilePdf size={16} /> Scan PDF
+              </button>
+           )}
 
-           <button
-              onClick={() => isPro ? setIsCsvModalOpen(true) : setShowPremiumModal(true)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm ${
-                isPro 
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60' 
-                  : 'bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 border border-gray-200 dark:border-slate-700 opacity-70 cursor-not-allowed'
-              }`}
-            >
-              <FaFileAlt size={16} /> Bulk Import
-            </button>
+           {can('invoices', 'create') && (
+             <button
+                onClick={() => isPro ? setIsCsvModalOpen(true) : setShowPremiumModal(true)}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm ${
+                  isPro 
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60' 
+                    : 'bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 border border-gray-200 dark:border-slate-700 opacity-70 cursor-not-allowed'
+                }`}
+              >
+                <FaFileAlt size={16} /> Bulk Import
+              </button>
+           )}
 
           {/* Unified New Document button */}
-          <div className="relative" ref={typeMenuRef}>
-            <div className="flex">
-              <button
-                onClick={() => navigate('/invoices/new?type=Tax+Invoice')}
-                className="bg-blue-600 hover:bg-blue-700 text-white pl-4 pr-3 py-2 rounded-l-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm border-r border-blue-500"
-              >
-                <FaPlus size={16} /> New Document
-              </button>
-              <button
-                onClick={() => setTypeMenuOpen(o => !o)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-2 rounded-r-lg shadow-sm transition-all"
-                title="Choose document type"
-              >
-                <FaChevronDown size={16} />
-              </button>
-            </div>
-
-            {typeMenuOpen && (
-              <div className="absolute right-0 mt-1 w-72 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden">
-                {DOC_TYPES.map(({ section, items }) => (
-                  <div key={section}>
-                    <div className="px-4 py-2 text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider bg-gray-50 dark:bg-slate-900/80 border-b border-gray-100 dark:border-slate-700">
-                      {section}
-                    </div>
-                    {items.map(({ label, desc, path }) => (
-                      <button
-                        key={label}
-                        onClick={() => { navigate(path); setTypeMenuOpen(false); }}
-                        className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-slate-700/60 transition-colors group border-b border-gray-50 dark:border-slate-700/40 last:border-0"
-                      >
-                        <div className="text-sm font-semibold text-gray-800 dark:text-slate-100 group-hover:text-blue-700 dark:group-hover:text-blue-400">{label}</div>
-                        <div className="text-xs text-gray-400 dark:text-slate-400 mt-0.5">{desc}</div>
-                      </button>
-                    ))}
-                  </div>
-                ))}
+          {can('invoices', 'create') && (
+            <div className="relative" ref={typeMenuRef}>
+              <div className="flex">
+                <button
+                  onClick={() => navigate('/invoices/new?type=Tax+Invoice')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white pl-4 pr-3 py-2 rounded-l-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm border-r border-blue-500"
+                >
+                  <FaPlus size={16} /> New Document
+                </button>
+                <button
+                  onClick={() => setTypeMenuOpen(o => !o)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-2 rounded-r-lg shadow-sm transition-all"
+                  title="Choose document type"
+                >
+                  <FaChevronDown size={16} />
+                </button>
               </div>
-            )}
-          </div>
+
+              {typeMenuOpen && (
+                <div className="absolute right-0 mt-1 w-72 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                  {DOC_TYPES.map(({ section, items }) => (
+                    <div key={section}>
+                      <div className="px-4 py-2 text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider bg-gray-50 dark:bg-slate-900/80 border-b border-gray-100 dark:border-slate-700">
+                        {section}
+                      </div>
+                      {items.map(({ label, desc, path }) => (
+                        <button
+                          key={label}
+                          onClick={() => { navigate(path); setTypeMenuOpen(false); }}
+                          className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-slate-700/60 transition-colors group border-b border-gray-50 dark:border-slate-700/40 last:border-0"
+                        >
+                          <div className="text-sm font-semibold text-gray-800 dark:text-slate-100 group-hover:text-blue-700 dark:group-hover:text-blue-400">{label}</div>
+                          <div className="text-xs text-gray-400 dark:text-slate-400 mt-0.5">{desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       
@@ -693,15 +715,17 @@ const InvoiceList = () => {
              </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-h-[300px]">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800 font-sans text-xs">
             <thead className="bg-gray-50 dark:bg-slate-800/60">
               <tr>
-                <th className="px-2 py-2 w-8 text-center">
-                  <button onClick={toggleSelectAll} className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
-                    {selectedInvoices.length === invoices.length && invoices.length > 0 ? <FaCheckSquare size={14} /> : <FaRegSquare size={14} />}
-                  </button>
-                </th>
+                {can('invoices', 'delete') && (
+                  <th className="px-2 py-2 w-8 text-center">
+                    <button onClick={toggleSelectAll} className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
+                      {selectedInvoices.length === invoices.length && invoices.length > 0 ? <FaCheckSquare size={14} /> : <FaRegSquare size={14} />}
+                    </button>
+                  </th>
+                )}
                 <th 
                   onClick={() => handleSort('invoiceNo')}
                   className="px-2 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
@@ -791,7 +815,7 @@ const InvoiceList = () => {
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
-                     <td className="px-2 py-1.5 text-center"><Skeleton width="14px" height="14px" className="mx-auto" /></td>
+                     {can('invoices', 'delete') && <td className="px-2 py-1.5 text-center"><Skeleton width="14px" height="14px" className="mx-auto" /></td>}
                      <td className="px-2 py-1.5"><Skeleton width="70px" height="14px" /></td>
                      <td className="px-1.5 py-1.5"><Skeleton width="50px" height="14px" /></td>
                      <td className="px-2 py-1.5">
@@ -809,9 +833,9 @@ const InvoiceList = () => {
                   </tr>
                 ))
               ) : displayedInvoices.length === 0 ? (
-                <tr><td colSpan="12" className="px-4 py-8 text-center text-gray-500 dark:text-slate-400 text-xs">No invoices found.</td></tr>
+                <tr><td colSpan={can('invoices', 'delete') ? 12 : 11} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400 text-xs">No invoices found.</td></tr>
               ) : (
-                displayedInvoices.map((inv) => {
+                displayedInvoices.map((inv, index) => {
                   const grandTotal = Number(inv.grandTotal || 0);
                   const totalGst = Number(inv.taxTotal || (inv.totalCGST || 0) + (inv.totalSGST || 0) + (inv.totalIGST || 0) || 0);
                   const tdsVal = Number(inv.tds || inv.tdsAmount || inv.tdsReceivable || 0);
@@ -824,11 +848,13 @@ const InvoiceList = () => {
 
                   return (
                     <tr key={inv._id} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors group">
-                      <td className="px-2 py-1.5 text-center">
-                        <button onClick={() => toggleSelect(inv._id)} className={`${selectedInvoices.includes(inv._id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-400 dark:hover:text-slate-500'}`}>
-                           {selectedInvoices.includes(inv._id) ? <FaCheckSquare size={14} /> : <FaRegSquare size={14} />}
-                       </button>
-                      </td>
+                      {can('invoices', 'delete') && (
+                        <td className="px-2 py-1.5 text-center">
+                          <button onClick={() => toggleSelect(inv._id)} className={`${selectedInvoices.includes(inv._id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-400 dark:hover:text-slate-500'}`}>
+                             {selectedInvoices.includes(inv._id) ? <FaCheckSquare size={14} /> : <FaRegSquare size={14} />}
+                         </button>
+                        </td>
+                      )}
                       
                       {/* Invoice No */}
                       <td className="px-2 py-1.5 whitespace-nowrap">
@@ -962,36 +988,97 @@ const InvoiceList = () => {
                           </div>
                       </td>
    
-                      {/* Actions */}
-                      <td className="px-1.5 py-1.5 whitespace-nowrap text-center text-xs font-medium">
-                          <div className="flex justify-center gap-1.5">
-                              <Link to={`/invoices/${inv._id}/print`} className="text-gray-400 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-0.5" title="View">
-                                  <FaEye size={13} />
+                      {/* Actions 3-Dot Menu */}
+                      <td className="px-1.5 py-1.5 whitespace-nowrap text-center text-xs font-medium relative">
+                        <div className="relative inline-block text-left" ref={actionMenuId === inv._id ? actionMenuRef : null}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActionMenuId(prev => prev === inv._id ? null : inv._id);
+                            }}
+                            className={`p-1.5 rounded-lg text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors focus:outline-none ${actionMenuId === inv._id ? 'bg-gray-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm' : ''}`}
+                            title="Actions"
+                          >
+                            <FaEllipsisV size={13} />
+                          </button>
+
+                          {actionMenuId === inv._id && (
+                            <div 
+                              className={`absolute right-0 ${
+                                index >= Math.max(1, displayedInvoices.length - 2) ? 'bottom-full mb-1' : 'top-full mt-1'
+                              } w-40 bg-white dark:bg-slate-800 rounded-xl shadow-xl ring-1 ring-black/5 dark:ring-white/10 border border-gray-200 dark:border-slate-700 py-1.5 z-50 text-left text-xs font-medium text-slate-700 dark:text-slate-200 animate-in fade-in zoom-in-95 duration-150`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Link 
+                                to={`/invoices/${inv._id}/print`} 
+                                onClick={() => setActionMenuId(null)}
+                                className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-slate-700/80 text-gray-700 dark:text-slate-200 transition-colors"
+                              >
+                                <FaEye size={13} className="text-gray-400 dark:text-slate-400" />
+                                <span>{can('invoices', 'pdf') ? 'View / Print' : 'View'}</span>
                               </Link>
-                              <Link to={`/invoices/edit/${inv._id}`} className="text-gray-400 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-0.5" title="Edit">
-                                  <FaEdit size={13} />
-                              </Link>
-                              <button 
-                                  onClick={async () => {
+
+                              {can('invoices', 'email') && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActionMenuId(null);
+                                    setEmailModalInvoice(inv);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-teal-50 dark:hover:bg-teal-950/40 text-teal-700 dark:text-teal-300 transition-colors"
+                                >
+                                  <FaPaperPlane size={12} className="text-teal-600 dark:text-teal-400" />
+                                  <span>Send Email</span>
+                                </button>
+                              )}
+
+                              {can('invoices', 'edit') && (
+                                <Link 
+                                  to={`/invoices/edit/${inv._id}`} 
+                                  onClick={() => setActionMenuId(null)}
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-gray-100 dark:hover:bg-slate-700/80 text-gray-700 dark:text-slate-200 transition-colors"
+                                >
+                                  <FaEdit size={13} className="text-gray-400 dark:text-slate-400" />
+                                  <span>Edit</span>
+                                </Link>
+                              )}
+
+                              {can('invoices', 'delete') && (
+                                <>
+                                  <div className="border-t border-gray-100 dark:border-slate-700 my-1" />
+                                  <button 
+                                    type="button"
+                                    onClick={async () => {
+                                      setActionMenuId(null);
                                       if (!isPro) {
                                         setShowPremiumModal(true);
                                         return;
                                       }
-                                      if(window.confirm('Are you sure you want to delete this invoice?')) {
-                                          try {
-                                              await api.delete(`/invoices/${inv._id}`);
-                                              fetchInvoices();
-                                          } catch(err) {
-                                              alert('Failed to delete');
-                                          }
+                                      if (window.confirm('Are you sure you want to delete this invoice?')) {
+                                        try {
+                                          await api.delete(`/invoices/${inv._id}`);
+                                          fetchInvoices();
+                                        } catch(err) {
+                                          alert('Failed to delete');
+                                        }
                                       }
-                                  }} 
-                                  className={`transition-colors p-0.5 ${isPro ? 'text-gray-400 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-500'}`}
-                                  title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
-                              >
-                                  <FaTrash size={13} />
-                              </button>
-                          </div>
+                                    }} 
+                                    className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-left transition-colors ${
+                                      isPro 
+                                        ? 'hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400' 
+                                        : 'text-gray-400 dark:text-slate-500 hover:bg-gray-50 dark:hover:bg-slate-700/50'
+                                    }`}
+                                    title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
+                                  >
+                                    <FaTrash size={12} className={isPro ? 'text-red-500 dark:text-red-400' : 'text-gray-300 dark:text-slate-600'} />
+                                    <span>{isPro ? 'Delete' : 'Delete (Pro)'}</span>
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1223,6 +1310,17 @@ const InvoiceList = () => {
         isOpen={isPdfScannerOpen}
         onClose={() => setIsPdfScannerOpen(false)}
         onImportSuccess={() => { setIsPdfScannerOpen(false); fetchInvoices(); }}
+      />
+
+      {/* Send Invoice via SMTP Modal */}
+      <SendInvoiceModal
+        isOpen={Boolean(emailModalInvoice)}
+        onClose={() => setEmailModalInvoice(null)}
+        invoice={emailModalInvoice}
+        settings={settings}
+        onEmailSent={() => {
+          fetchInvoices();
+        }}
       />
 
     </div>

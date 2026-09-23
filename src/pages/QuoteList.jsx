@@ -8,11 +8,13 @@ import Modal from '../components/Modal';
 import CsvAndExcelUploader from '../components/CsvAndExcelUploader';
 import QuotaIndicator from '../components/QuotaIndicator';
 import { getStoredFilter, setStoredFilters, clearStoredFilters } from '../utils/filterStorage';
+import usePermissions from '../hooks/usePermissions';
 
 const FILTER_STORAGE_KEY = 'flance_quotes_filters_pref';
 
 const QuoteList = () => {
   const navigate = useNavigate();
+  const { can } = usePermissions();
   const [quotes, setQuotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'searchTerm', ''));
@@ -371,7 +373,7 @@ const QuoteList = () => {
           <p className="text-gray-500 dark:text-slate-400 mt-1">Create and manage quotations for your clients</p>
         </div>
         <div className="flex gap-3 flex-wrap">
-          {selectedIds.length > 0 && (
+          {can('quotes', 'delete') && selectedIds.length > 0 && (
             <button
               onClick={handleBulkDelete}
               className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
@@ -379,82 +381,88 @@ const QuoteList = () => {
               <FaTrash size={14} /> Delete Selected ({selectedIds.length})
             </button>
           )}
-          <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
-            <ExportDropdown 
-                disabled={!isPro}
-                data={exportRows}
-                getExportData={fetchQuotesForExport}
-                filename="Flance_Quotes"
-                columns={[
-                   { header: 'Quote Number', key: 'quoteNo' },
-                   { header: 'Date', key: 'date' },
-                   { header: 'Valid Until', key: 'validUntil' },
-                   { header: 'Status', key: 'status' },
-                   { header: 'Invoice Type', key: 'invoiceType' },
-                   { header: 'Payment Mode', key: 'paymentMode' },
-                   { header: 'Payment Terms', key: 'paymentTerms' },
-                   { header: 'Place of Supply', key: 'placeOfSupply' },
-                   { header: 'Reverse Charge', key: 'reverseCharge' },
-                   { header: 'Client Name', key: 'client.name' },
-                   { header: 'Client GSTIN', key: 'client.gstin' },
-                   { header: 'Client Phone Number', key: 'client.phone' },
-                   { header: 'Client Email', key: 'client.email' },
-                   { header: 'Client Address Line 1', key: 'client.address.line1' },
-                   { header: 'Client Address Line 2', key: 'client.address.line2' },
-                   { header: 'Client City', key: 'client.address.city' },
-                   { header: 'Client State', key: 'client.address.state' },
-                   { header: 'Client ZIP', key: 'client.address.zip' },
-                   { header: 'Client Country', key: 'client.address.country' },
-                   { header: 'Shipping Address Line 1', key: 'shippingAddress.line1' },
-                   { header: 'Shipping Address Line 2', key: 'shippingAddress.line2' },
-                   { header: 'Shipping City', key: 'shippingAddress.city' },
-                   { header: 'Shipping State', key: 'shippingAddress.state' },
-                   { header: 'Shipping ZIP', key: 'shippingAddress.zip' },
-                   { header: 'Shipping Country', key: 'shippingAddress.country' },
-                   { header: 'Transport Mode', key: 'transport.mode' },
-                   { header: 'Vehicle Number', key: 'transport.vehicleNumber' },
-                   { header: 'P.O. Number', key: 'transport.poNumber' },
-                   { header: 'P.O. Date', key: 'transport.poDate' },
-                   { header: 'E-Way Bill No', key: 'transport.eWayBillNo' },
-                   { header: 'Sub Total', key: 'subTotal' },
-                   { header: 'Tax Total', key: 'taxTotal' },
-                   { header: 'Total CGST', key: 'totalCGST' },
-                   { header: 'Total SGST', key: 'totalSGST' },
-                   { header: 'Total IGST', key: 'totalIGST' },
-                   { header: 'Shipping Charges', key: 'shippingCharges' },
-                   { header: 'Packaging Charges', key: 'packagingCharges' },
-                   { header: 'Custom Charge Label', key: 'customChargeLabel' },
-                   { header: 'Discount Total', key: 'discountTotal' },
-                   { header: 'Grand Total', key: 'grandTotal' },
-                   { header: 'Creator Name', key: 'creatorName' },
-                   { header: 'Financial Year', key: 'financialYear' },
-                   { header: 'Type', key: 'type' },
-                   { header: 'Converted', key: 'converted' },
-                   { header: 'Private notes', key: 'notes' },
-                   { header: 'Terms', key: 'terms' },
-                   { header: 'Bank Account Name', key: 'bankDetails.accountName' },
-                   { header: 'Bank Name', key: 'bankDetails.bankName' },
-                   { header: 'Bank Account Number', key: 'bankDetails.accountNumber' },
-                   { header: 'Bank Branch', key: 'bankDetails.branch' },
-                   { header: 'Bank IFSC Code', key: 'bankDetails.ifscCode' },
-                   { header: 'Items', key: 'exportItemsSummary' }
-                ]}
-            />
-          </div>
-          <button
-              onClick={() => isPro ? setIsCsvModalOpen(true) : setShowPremiumModal(true)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm ${
-                isPro 
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
-                  : 'bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 border border-gray-200 dark:border-slate-700 opacity-70 cursor-not-allowed'
-              }`}
-            >
-              <FaFileAlt size={16} /> Bulk Import
-            </button>
-          <Link to="/quotes/new"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm">
-            <FaPlus size={16} /> New Quote
-          </Link>
+          {can('quotes', 'export') && (
+            <div onClick={() => !isPro && setShowPremiumModal(true)} className={!isPro ? 'cursor-pointer' : ''}>
+              <ExportDropdown 
+                 disabled={!isPro}
+                 data={exportRows}
+                 getExportData={fetchQuotesForExport}
+                 filename="Flance_Quotes"
+                 columns={[
+                    { header: 'Quote Number', key: 'quoteNo' },
+                    { header: 'Date', key: 'date' },
+                    { header: 'Valid Until', key: 'validUntil' },
+                    { header: 'Status', key: 'status' },
+                    { header: 'Invoice Type', key: 'invoiceType' },
+                    { header: 'Payment Mode', key: 'paymentMode' },
+                    { header: 'Payment Terms', key: 'paymentTerms' },
+                    { header: 'Place of Supply', key: 'placeOfSupply' },
+                    { header: 'Reverse Charge', key: 'reverseCharge' },
+                    { header: 'Client Name', key: 'client.name' },
+                    { header: 'Client GSTIN', key: 'client.gstin' },
+                    { header: 'Client Phone Number', key: 'client.phone' },
+                    { header: 'Client Email', key: 'client.email' },
+                    { header: 'Client Address Line 1', key: 'client.address.line1' },
+                    { header: 'Client Address Line 2', key: 'client.address.line2' },
+                    { header: 'Client City', key: 'client.address.city' },
+                    { header: 'Client State', key: 'client.address.state' },
+                    { header: 'Client ZIP', key: 'client.address.zip' },
+                    { header: 'Client Country', key: 'client.address.country' },
+                    { header: 'Shipping Address Line 1', key: 'shippingAddress.line1' },
+                    { header: 'Shipping Address Line 2', key: 'shippingAddress.line2' },
+                    { header: 'Shipping City', key: 'shippingAddress.city' },
+                    { header: 'Shipping State', key: 'shippingAddress.state' },
+                    { header: 'Shipping ZIP', key: 'shippingAddress.zip' },
+                    { header: 'Shipping Country', key: 'shippingAddress.country' },
+                    { header: 'Transport Mode', key: 'transport.mode' },
+                    { header: 'Vehicle Number', key: 'transport.vehicleNumber' },
+                    { header: 'P.O. Number', key: 'transport.poNumber' },
+                    { header: 'P.O. Date', key: 'transport.poDate' },
+                    { header: 'E-Way Bill No', key: 'transport.eWayBillNo' },
+                    { header: 'Sub Total', key: 'subTotal' },
+                    { header: 'Tax Total', key: 'taxTotal' },
+                    { header: 'Total CGST', key: 'totalCGST' },
+                    { header: 'Total SGST', key: 'totalSGST' },
+                    { header: 'Total IGST', key: 'totalIGST' },
+                    { header: 'Shipping Charges', key: 'shippingCharges' },
+                    { header: 'Packaging Charges', key: 'packagingCharges' },
+                    { header: 'Custom Charge Label', key: 'customChargeLabel' },
+                    { header: 'Discount Total', key: 'discountTotal' },
+                    { header: 'Grand Total', key: 'grandTotal' },
+                    { header: 'Creator Name', key: 'creatorName' },
+                    { header: 'Financial Year', key: 'financialYear' },
+                    { header: 'Type', key: 'type' },
+                    { header: 'Converted', key: 'converted' },
+                    { header: 'Private notes', key: 'notes' },
+                    { header: 'Terms', key: 'terms' },
+                    { header: 'Bank Account Name', key: 'bankDetails.accountName' },
+                    { header: 'Bank Name', key: 'bankDetails.bankName' },
+                    { header: 'Bank Account Number', key: 'bankDetails.accountNumber' },
+                    { header: 'Bank Branch', key: 'bankDetails.branch' },
+                    { header: 'Bank IFSC Code', key: 'bankDetails.ifscCode' },
+                    { header: 'Items', key: 'exportItemsSummary' }
+                 ]}
+              />
+            </div>
+          )}
+          {can('quotes', 'create') && (
+            <button
+                onClick={() => isPro ? setIsCsvModalOpen(true) : setShowPremiumModal(true)}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm ${
+                  isPro 
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
+                    : 'bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 border border-gray-200 dark:border-slate-700 opacity-70 cursor-not-allowed'
+                }`}
+              >
+                <FaFileAlt size={16} /> Bulk Import
+              </button>
+          )}
+          {can('quotes', 'create') && (
+            <Link to="/quotes/new"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all text-sm">
+              <FaPlus size={16} /> New Quote
+            </Link>
+          )}
         </div>
       </div>
 
@@ -596,11 +604,13 @@ const QuoteList = () => {
           <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800 font-sans">
             <thead className="bg-gray-50 dark:bg-slate-800/75">
               <tr>
-                <th className="px-4 py-2 w-10 text-center">
-                  <button onClick={toggleAll} className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
-                    {selectedIds.length === quotes.length && quotes.length > 0 ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
-                  </button>
-                </th>
+                {can('quotes', 'delete') && (
+                  <th className="px-4 py-2 w-10 text-center">
+                    <button onClick={toggleAll} className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
+                      {selectedIds.length === quotes.length && quotes.length > 0 ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
+                    </button>
+                  </th>
+                )}
                 <th 
                   onClick={() => handleSort('quoteNo')}
                   className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors select-none group"
@@ -658,7 +668,7 @@ const QuoteList = () => {
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
-                    <td className="px-4 py-2 text-center"><Skeleton width="16px" height="16px" className="mx-auto" /></td>
+                    {can('quotes', 'delete') && <td className="px-4 py-2 text-center"><Skeleton width="16px" height="16px" className="mx-auto" /></td>}
                     <td className="px-4 py-2"><Skeleton width="80px" height="16px" /></td>
                     <td className="px-4 py-2"><Skeleton width="120px" height="16px" /></td>
                     <td className="px-4 py-2"><Skeleton width="60px" height="16px" /></td>
@@ -669,15 +679,17 @@ const QuoteList = () => {
                   </tr>
                 ))
               ) : displayed.length === 0 ? (
-                <tr><td colSpan="8" className="px-4 py-8 text-center text-gray-500 dark:text-slate-400 text-xs">No quotes found.</td></tr>
+                <tr><td colSpan={can('quotes', 'delete') ? 8 : 7} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400 text-xs">No quotes found.</td></tr>
               ) : (
                 displayed.map(q => (
                   <tr key={q._id} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors group">
-                    <td className="px-4 py-2 text-center">
-                      <button onClick={() => toggleSelect(q._id)} className={selectedIds.includes(q._id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-400 dark:hover:text-slate-400'}>
-                        {selectedIds.includes(q._id) ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
-                      </button>
-                    </td>
+                    {can('quotes', 'delete') && (
+                      <td className="px-4 py-2 text-center">
+                        <button onClick={() => toggleSelect(q._id)} className={selectedIds.includes(q._id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-400 dark:hover:text-slate-400'}>
+                          {selectedIds.includes(q._id) ? <FaCheckSquare size={16} /> : <FaRegSquare size={16} />}
+                        </button>
+                      </td>
+                    )}
                     <td className="px-4 py-2 whitespace-nowrap">
                       <Link to={`/quotes/${q._id}/print`} className="text-blue-600 dark:text-blue-400 text-xs font-semibold hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
                         {q.quoteNo}
@@ -696,7 +708,7 @@ const QuoteList = () => {
                       ) : '—'}
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap">
-                      {q.status === 'CONVERTED' ? (
+                      {!can('quotes', 'edit') || q.status === 'CONVERTED' ? (
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_STYLES[q.status] || STATUS_STYLES.DRAFT}`}>
                           {q.status}
                         </span>
@@ -733,26 +745,30 @@ const QuoteList = () => {
                     <td className="px-4 py-2 whitespace-nowrap text-center">
                       <div className="flex justify-center gap-2 items-center">
                         <Link to={`/quotes/${q._id}/print`} className="text-gray-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="View"><FaEye size={16} /></Link>
-                        {q.status !== 'CONVERTED' ? (
-                          <Link to={`/quotes/edit/${q._id}`} className="text-gray-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="Edit"><FaEdit size={16} /></Link>
-                        ) : (
-                          <span className="text-gray-200 dark:text-slate-700 cursor-not-allowed" title="Converted quotations cannot be edited"><FaEdit size={16} /></span>
+                        {can('quotes', 'edit') && (
+                          q.status !== 'CONVERTED' ? (
+                            <Link to={`/quotes/edit/${q._id}`} className="text-gray-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="Edit"><FaEdit size={16} /></Link>
+                          ) : (
+                            <span className="text-gray-200 dark:text-slate-700 cursor-not-allowed" title="Converted quotations cannot be edited"><FaEdit size={16} /></span>
+                          )
                         )}
-                        {q.status !== 'CONVERTED' && (
+                        {can('invoices', 'create') && q.status !== 'CONVERTED' && (
                           <button onClick={() => handleConvert(q._id)} className="text-gray-400 dark:text-slate-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors" title="Convert to Invoice">
                             <FaArrowRight size={16} />
                           </button>
                         )}
-                        <button 
-                          onClick={() => {
-                            if (!isPro) return setShowPremiumModal(true);
-                            handleDelete(q._id);
-                          }} 
-                          className={`transition-colors ${isPro ? 'text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-500'}`} 
-                          title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
-                        >
-                          <FaTrash size={16} />
-                        </button>
+                        {can('quotes', 'delete') && (
+                          <button 
+                            onClick={() => {
+                              if (!isPro) return setShowPremiumModal(true);
+                              handleDelete(q._id);
+                            }} 
+                            className={`transition-colors ${isPro ? 'text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-500'}`} 
+                            title={isPro ? "Delete" : "Pro Feature - Upgrade to Delete"}
+                          >
+                            <FaTrash size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

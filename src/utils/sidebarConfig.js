@@ -3,7 +3,7 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
     id: 'overview',
     title: 'Overview',
     items: [
-      { id: 'dashboard', label: 'Dashboard', path: '/dashboard', iconName: 'FaThLarge', moduleId: null },
+      { id: 'dashboard', label: 'Dashboard', path: '/dashboard', iconName: 'FaThLarge', moduleId: 'reports' },
       { id: 'bank_statement', label: 'Bank Statement', path: '/bank-statement', iconName: 'FaUniversity', moduleId: 'bankStatements' }
     ]
   },
@@ -96,6 +96,13 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
     ]
   },
   {
+    id: 'documents',
+    title: 'Documents',
+    items: [
+      { id: 'company_documents', label: 'Documents', path: '/company-documents', iconName: 'FaFolder', moduleId: 'settings' }
+    ]
+  },
+  {
     id: 'system_settings',
     title: 'System & Settings',
     items: [
@@ -110,7 +117,8 @@ export const DEFAULT_SIDEBAR_SECTIONS = [
   }
 ];
 
-const LOCAL_STORAGE_KEY = 'mbf_sidebar_layout_v8';
+const LOCAL_STORAGE_KEY = 'mbf_sidebar_layout_v10';
+const LEGACY_STORAGE_KEY = 'mbf_sidebar_layout_v9';
 
 /**
  * Merges a parsed custom layout from localStorage with the absolute default layout,
@@ -144,6 +152,11 @@ export function mergeWithDefaults(customLayout) {
       customItems.forEach(customItem => {
         const defaultItem = defaultItemsMap[customItem.id];
         if (defaultItem) {
+          // If company_documents was previously in system_settings by default,
+          // migrate it to its new dedicated 'documents' section
+          if (customSec.id === 'system_settings' && customItem.id === 'company_documents') {
+            return;
+          }
           mergedItems.push({
             ...defaultItem,
             hidden: !!customItem.hidden
@@ -204,8 +217,22 @@ export function mergeWithDefaults(customLayout) {
 
 export const getSidebarLayout = () => {
   try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_SIDEBAR_SECTIONS));
+    let raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!raw) {
+      const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacyRaw) {
+        try {
+          const parsedLegacy = JSON.parse(legacyRaw);
+          const migrated = mergeWithDefaults(parsedLegacy);
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(migrated));
+          localStorage.removeItem(LEGACY_STORAGE_KEY);
+          return JSON.parse(JSON.stringify(migrated));
+        } catch {
+          // ignore error and proceed
+        }
+      }
+      return JSON.parse(JSON.stringify(DEFAULT_SIDEBAR_SECTIONS));
+    }
     const parsed = JSON.parse(raw);
     return JSON.parse(JSON.stringify(mergeWithDefaults(parsed)));
   } catch (e) {

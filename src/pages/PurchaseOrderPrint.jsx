@@ -101,7 +101,12 @@ const PurchaseOrderPrint = () => {
   );
   if (!doc) return <div style={{ padding:40, textAlign:'center', color:'#e00' }}>Document not found.</div>;
 
-  const company    = settings || {};
+  const company = {
+    ...((doc.profile && typeof doc.profile === 'object') ? doc.profile : {}),
+    ...(settings || {}),
+  };
+  if (!company.companyName && company.name) company.companyName = company.name;
+  if (!company.logoUrl && company.logo) company.logoUrl = company.logo;
   const vendor     = doc.vendor || {};
   const items      = doc.items  || [];
   const grandTotal = Number(doc.grandTotal) || 0;
