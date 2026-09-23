@@ -29,9 +29,21 @@ const api = axios.create({
 // Add a request interceptor to inject the Bearer token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
+    const isShared =
+      sessionStorage.getItem('isSharedSession') === 'true' ||
+      sessionStorage.getItem('isSharedViewOnly') === 'true' ||
+      window.location.pathname.startsWith('/shared');
+    const token = isShared
+      ? (sessionStorage.getItem('token') || localStorage.getItem('authToken'))
+      : (localStorage.getItem('authToken') || sessionStorage.getItem('token'));
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    const activeProfileId = isShared
+      ? (sessionStorage.getItem('activeProfileId') || localStorage.getItem('activeProfileId'))
+      : (localStorage.getItem('activeProfileId') || sessionStorage.getItem('activeProfileId'));
+    if (activeProfileId) {
+      config.headers['X-Profile-Id'] = activeProfileId;
     }
     return config;
   },
@@ -47,9 +59,23 @@ api.interceptors.response.use(
   },
   (error) => {
     // If the request fails with a 401 (Unauthorized) error, redirect to login
-    const url = error.config?.url;
+    const url = error.config?.url || '';
     const isAuthProbe = url === '/auth/me';
-    if (error.response && error.response.status === 401 && url !== '/auth/logout' && !isAuthProbe) {
+    const isShared =
+      sessionStorage.getItem('isSharedSession') === 'true' ||
+      sessionStorage.getItem('isSharedViewOnly') === 'true' ||
+      Boolean(sessionStorage.getItem('token')) ||
+      window.location.pathname.startsWith('/shared');
+
+    const isPublicOrShare =
+      isShared ||
+      url.startsWith('/shared') ||
+      url.includes('/shared/') ||
+      url.startsWith('/public') ||
+      Boolean(error.response?.data?.requiresPasscode) ||
+      window.location.pathname.startsWith('/submit');
+
+    if (error.response && error.response.status === 401 && url !== '/auth/logout' && !isAuthProbe && !isPublicOrShare) {
       clearAuthSession();
       if (window.location.pathname !== '/login') {
         // Call logout to clear the HttpOnly JWT cookie server-side

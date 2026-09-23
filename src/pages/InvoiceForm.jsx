@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import api from '../api/axios';
-import { FaPlus, FaTrash, FaChevronDown, FaUpload } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaChevronDown, FaUpload, FaPaperPlane, FaPrint } from 'react-icons/fa';
 import Modal from '../components/Modal';
 import ClientForm from './ClientForm';
 import ItemForm from './ItemForm';
@@ -9,6 +9,8 @@ import Skeleton from '../components/Skeleton';
 import CsvUploader from '../components/CsvUploader';
 import ItemSelect from '../components/ItemSelect';
 import AttachmentUploader from '../components/AttachmentUploader';
+import SendInvoiceModal from '../components/SendInvoiceModal';
+
 
 const INVOICE_TYPES = ['Invoice', 'Retail Invoice', 'Tax Invoice', 'Excise Invoice'];
 const STANDARD_TAX_RATES = [0, 5, 12, 18, 28];
@@ -169,6 +171,8 @@ const InvoiceForm = () => {
   const [catalogReady, setCatalogReady] = useState(false);
   const [isSyncingPdfItems, setIsSyncingPdfItems] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [settings, setSettings] = useState(null);
+  const [isSendEmailOpen, setIsSendEmailOpen] = useState(false);
 
   const getInitialInvoiceState = () => {
     if (!id) {
@@ -446,6 +450,7 @@ const InvoiceForm = () => {
       setItemsList(ir.data.data || []);
       setPurchaseOrders(por.data.data || []);
       setBusinessUnits(bur.data || []);
+      setSettings(sr.data || null);
       setCompanyTaxProfile({
         state: sr.data?.address?.state || '',
         gstin: sr.data?.gstin || '',
@@ -948,14 +953,36 @@ const InvoiceForm = () => {
             ))}
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-2.5">
+          {id && (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate(`/invoices/${id}/print`)}
+                className="px-3 py-2 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 text-sm font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+                title="Print / Preview Invoice"
+              >
+                <FaPrint size={12} />
+                <span>Print</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSendEmailOpen(true)}
+                className="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+                title="Send invoice via email (SMTP)"
+              >
+                <FaPaperPlane size={12} />
+                <span>Send Email</span>
+              </button>
+            </>
+          )}
           <button onClick={() => {
             localStorage.removeItem(id ? `flance_draft_invoice_edit_${id}` : 'flance_draft_invoice_new');
             navigate('/invoices');
-          }} className="px-4 py-2 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 text-sm font-medium transition-colors">
+          }} className="px-4 py-2 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 text-sm font-medium transition-colors cursor-pointer">
             Cancel
           </button>
-          <button onClick={handleSubmit} disabled={loading} data-testid="save-invoice" className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 transition-colors">
+          <button onClick={handleSubmit} disabled={loading} data-testid="save-invoice" className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 transition-colors cursor-pointer">
             {loading ? 'Saving...' : 'Save Invoice'}
           </button>
         </div>
@@ -1987,6 +2014,19 @@ const InvoiceForm = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Send Invoice Modal */}
+      {id && (
+        <SendInvoiceModal
+          isOpen={isSendEmailOpen}
+          onClose={() => setIsSendEmailOpen(false)}
+          invoice={{ ...formData, _id: id }}
+          settings={settings}
+          onEmailSent={() => {
+            fetchInvoice(id);
+          }}
+        />
+      )}
 
     </div>
   );

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { FaPrint, FaArrowLeft } from 'react-icons/fa';
+import { FaPrint, FaArrowLeft, FaPaperPlane } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
+import SendInvoiceModal from '../components/SendInvoiceModal';
+import usePermissions from '../hooks/usePermissions';
 
 // ── Helpers ─────────────────────────────────────────────────────
 function numberToWords(num) {
@@ -1041,10 +1043,12 @@ const ClassicTemplate = ({ invoice, company, client, bank, items, hasTax, isIntr
 const InvoicePrint = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { can } = usePermissions();
   const [invoice, setInvoice]   = useState(null);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [template, setTemplate] = useState('modern');
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -1078,7 +1082,12 @@ const InvoicePrint = () => {
   );
 
   // ── Data ────────────────────────────────────────────────────────
-  const company     = settings || {};
+  const company = {
+    ...((invoice.profile && typeof invoice.profile === 'object') ? invoice.profile : {}),
+    ...(settings || {}),
+  };
+  if (!company.companyName && company.name) company.companyName = company.name;
+  if (!company.logoUrl && company.logo) company.logoUrl = company.logo;
   const client      = invoice.client || {};
   const bank        = invoice.bankDetails || {};
   const items       = invoice.items  || [];
@@ -1119,13 +1128,36 @@ const InvoicePrint = () => {
             <option value="modern">Modern Template</option>
             <option value="classic">Classic GST Template</option>
           </select>
+
+          {can('invoices', 'email') && (
+            <button 
+              onClick={() => setEmailModalOpen(true)}
+              style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 16px', background:'#0d9488', color:'#fff', border:'none', borderRadius:6, cursor:'pointer', fontSize:13, fontWeight:500, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+              title="Send Invoice to client via configured SMTP email"
+            >
+              <FaPaperPlane size={12}/> Send Email
+            </button>
+          )}
           
-          <button onClick={() => window.print()}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 20px', background:TEAL, color:'#fff', border:'none', borderRadius:6, cursor:'pointer', fontSize:13, fontWeight:400 }}>
-            <FaPrint size={13}/> Print / Download
-          </button>
+          {can('invoices', 'pdf') && (
+            <button onClick={() => window.print()}
+              style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 20px', background:TEAL, color:'#fff', border:'none', borderRadius:6, cursor:'pointer', fontSize:13, fontWeight:400 }}>
+              <FaPrint size={13}/> Print / Download
+            </button>
+          )}
         </div>
       </div>
+
+      <SendInvoiceModal
+        isOpen={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        invoice={invoice}
+        settings={settings}
+        template={template}
+        onEmailSent={() => {
+          setInvoice(prev => prev ? { ...prev, status: 'SENT' } : prev);
+        }}
+      />
 
       <div style={{ paddingBottom: '40px' }}>
         {template === 'modern' ? (

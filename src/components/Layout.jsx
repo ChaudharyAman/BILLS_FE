@@ -11,6 +11,7 @@ import {
   Users,
   BarChart3,
   Folder,
+  FolderArchive,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
@@ -46,6 +47,8 @@ import * as Icons from 'react-icons/fa';
 import api, { clearAuthSession } from '../api/axios';
 import { getSidebarLayout } from '../utils/sidebarConfig';
 import { getStoredTheme, setGlobalTheme } from '../utils/theme';
+import ProfileSwitcher from './ProfileSwitcher';
+import ShareBanner from './ShareBanner';
 
 const ICON_SIZE = 16;
 
@@ -79,6 +82,7 @@ const ICON_MAP = {
   accounts_group: Wallet,
   reports_group: BarChart3,
   submissions_inbox: Inbox,
+  company_documents: FolderArchive,
   recycle_bin: Trash2,
   team_settings: Users,
   upgrade: Sparkles,
@@ -315,21 +319,31 @@ const Layout = ({ children }) => {
   }, [fetchPendingSubmissions]);
 
   // Check user subscription tier — re-evaluated whenever syncTick changes
+  const isSharedSession =
+    sessionStorage.getItem('isSharedSession') === 'true' ||
+    sessionStorage.getItem('isSharedViewOnly') === 'true' ||
+    localStorage.getItem('isSharedViewOnly') === 'true';
+  const isSharedViewOnly = isSharedSession;
+
   let isPro = false;
   let isSuperAdmin = false;
   let currentUser = null;
   try {
     const userStr = localStorage.getItem('user');
-    const userObj = userStr ? JSON.parse(userStr).user : null;
-    currentUser = userObj;
-    isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
-    isSuperAdmin = userObj?.role === 'superadmin';
+    if (userStr && !isSharedSession) {
+      const parsed = JSON.parse(userStr);
+      currentUser = parsed?.user || parsed;
+      isPro = currentUser?.subscription?.plan === 'pro' && currentUser?.subscription?.status === 'active';
+      isSuperAdmin = currentUser?.role === 'superadmin';
+    } else if (isSharedSession) {
+      currentUser = { username: 'Shared Workspace', role: 'share_viewer' };
+    }
   } catch (e) {
     console.error('Failed to parse user from localStorage', e);
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   void syncTick; // ensure syncTick is in the dependency chain for linters
-  const hasPremiumAccess = isPro || isSuperAdmin;
+  const hasPremiumAccess = !isSharedSession && (isPro || isSuperAdmin);
 
   const isActive = (path, exact = false) => {
     if (!path) return false;
@@ -386,17 +400,35 @@ const Layout = ({ children }) => {
   // Collapsible Sidebar Sections
   const [collapsedSections, setCollapsedSections] = useState({});
 
-  const { isModuleEnabled } = usePermissions();
+  const { isModuleEnabled, can } = usePermissions();
 
   const isItemVisible = useCallback((item) => {
     if (!item || item.hidden) return false;
+
+    // Strict Security Guard for Shared View Sessions:
+    if (isSharedViewOnly) {
+      // Never show admin panel or superadmin items to shared users
+      if (item.isSuperAdmin || item.id === 'admin_panel') return false;
+      // Never show owner/admin management settings
+      if (['settings', 'team_settings', 'upgrade', 'recycle_bin'].includes(item.id)) return false;
+      // For dashboard, ensure reports/financialReports is explicitly allowed in shareRules
+      if (item.id === 'dashboard') {
+        return isModuleEnabled('reports') || isModuleEnabled('financialReports');
+      }
+    }
+
     if (item.isSuperAdmin && !isSuperAdmin) return false;
-    if (item.moduleId && !isModuleEnabled(item.moduleId)) return false;
+
+    const targetModuleId = item.id === 'dashboard' ? 'reports' : item.moduleId;
+    if (targetModuleId) {
+      if (!isModuleEnabled(targetModuleId)) return false;
+      if (can && !can(targetModuleId, 'view')) return false;
+    }
     if (item.type === 'collapsible' && Array.isArray(item.children)) {
       return item.children.some(child => isItemVisible(child));
     }
     return true;
-  }, [isSuperAdmin, isModuleEnabled]);
+  }, [isSuperAdmin, isSharedViewOnly, isModuleEnabled, can]);
 
   const isSectionActive = (section) => {
     return section.items.some(item => {
@@ -702,11 +734,15 @@ const Layout = ({ children }) => {
                   <h1 className={`text-[15px] font-bold leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     Flance
                   </h1>
-                  {hasPremiumAccess && (
+                  {isSharedSession ? (
+                    <span className="text-[9px] font-semibold tracking-wider uppercase mt-0.5 text-amber-500">
+                      {sessionStorage.getItem('shareAccessLevel') === 'CAN_EDIT' ? 'Collaborator' : 'Shared View'}
+                    </span>
+                  ) : hasPremiumAccess ? (
                     <span className={`text-[9px] font-semibold tracking-wider uppercase mt-0.5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
                       {isSuperAdmin ? 'Super Admin' : 'Pro Plan'}
                     </span>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -761,38 +797,16 @@ const Layout = ({ children }) => {
         </nav>
 
         {/* Bottom Bar (User Profile, Theme Toggle & Logout) */}
-        <div className={`border-t p-2 flex flex-col gap-1.5 ${
+        <div className={`p-2 border-t flex flex-col gap-1.5 ${
           isDark ? 'border-slate-800/80 bg-[#0b1120]' : 'border-slate-200/80 bg-slate-50/50'
         }`}>
-          {currentUser && (
-            <Link
-              to="/settings?tab=software"
-              className={`flex items-center ${isCollapsed ? 'justify-center p-1' : 'gap-2 px-2 py-1.5'} rounded-lg transition-colors group text-left ${
-                isDark ? 'hover:bg-slate-800/70' : 'hover:bg-slate-200/60'
-              }`}
-              title="Account Settings"
-            >
-              <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-slate-200/40 bg-gradient-to-tr from-teal-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-xs">
-                {currentUser.avatar ? (
-                  <img src={currentUser.avatar} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <span>{String(currentUser.username || 'U').charAt(0).toUpperCase()}</span>
-                )}
-              </div>
-              {!isCollapsed && (
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className={`text-[12px] font-semibold truncate leading-tight group-hover:text-blue-500 ${
-                    isDark ? 'text-slate-200' : 'text-slate-800'
-                  }`}>
-                    {currentUser.username}
-                  </span>
-                  <span className={`text-[10px] truncate ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                    {currentUser.email}
-                  </span>
-                </div>
-              )}
-            </Link>
-          )}
+          {/* Multifunctional User & Workspace Profile Card */}
+          <ProfileSwitcher
+            currentUser={currentUser}
+            isSuperAdmin={isSuperAdmin}
+            isCollapsed={isCollapsed}
+            isDark={isDark}
+          />
 
           {!isCollapsed ? (
             <div className="flex items-center justify-between px-2.5 py-0.5">
@@ -837,35 +851,57 @@ const Layout = ({ children }) => {
             </button>
           )}
 
-          <button
-            onClick={async (e) => {
-              hideTooltip();
-              try {
-                await api.post('/auth/logout');
-              } catch (err) {
-                console.error('Logout failed', err);
-              }
-              clearAuthSession();
-              window.location.href = '/login';
-            }}
-            onMouseEnter={(e) => showTooltip('Logout', e)}
-            onMouseLeave={hideTooltip}
-            data-testid="logout-button"
-            className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-2 px-2.5'} py-1.5 rounded-md text-[12px] font-medium transition-all duration-150 w-full ${
-              isDark 
-                ? 'text-slate-400 hover:text-red-400 hover:bg-red-950/30' 
-                : 'text-slate-600 hover:text-red-600 hover:bg-red-50'
-            }`}
-          >
-            <LogOut size={isCollapsed ? 16 : 14} strokeWidth={1.8} />
-            {!isCollapsed && <span>Logout</span>}
-          </button>
+          {isSharedSession ? (
+            <button
+              onClick={() => {
+                sessionStorage.clear();
+                window.location.href = '/login';
+              }}
+              onMouseEnter={(e) => showTooltip('Exit Workspace', e)}
+              onMouseLeave={hideTooltip}
+              className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-2 px-2.5'} py-1.5 rounded-md text-[12px] font-medium transition-all duration-150 w-full ${
+                isDark 
+                  ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-950/30' 
+                  : 'text-amber-700 hover:text-amber-800 hover:bg-amber-50'
+              }`}
+            >
+              <LogOut size={isCollapsed ? 16 : 14} strokeWidth={1.8} />
+              {!isCollapsed && <span>Exit Workspace</span>}
+            </button>
+          ) : (
+            <button
+              onClick={async (e) => {
+                hideTooltip();
+                try {
+                  await api.post('/auth/logout');
+                } catch (err) {
+                  console.error('Logout failed', err);
+                }
+                clearAuthSession();
+                window.location.href = '/login';
+              }}
+              onMouseEnter={(e) => showTooltip('Logout', e)}
+              onMouseLeave={hideTooltip}
+              data-testid="logout-button"
+              className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-2 px-2.5'} py-1.5 rounded-md text-[12px] font-medium transition-all duration-150 w-full ${
+                isDark 
+                  ? 'text-slate-400 hover:text-red-400 hover:bg-red-950/30' 
+                  : 'text-slate-600 hover:text-red-600 hover:bg-red-50'
+              }`}
+            >
+              <LogOut size={isCollapsed ? 16 : 14} strokeWidth={1.8} />
+              {!isCollapsed && <span>Logout</span>}
+            </button>
+          )}
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 h-full overflow-y-auto no-scrollbar">
-        {children}
+      <main className="flex-1 h-full overflow-y-auto no-scrollbar flex flex-col">
+        <ShareBanner />
+        <div className="flex-1">
+          {children}
+        </div>
       </main>
 
       {/* Premium Upgrade Modal */}

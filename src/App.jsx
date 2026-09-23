@@ -83,11 +83,17 @@ const PublicSubmitPage = lazyRetry(() => import('./pages/PublicSubmitPage'));
 const PublicSubmissionsInbox = lazyRetry(() => import('./pages/PublicSubmissionsInbox'));
 const SubmissionsInboxLogin = lazyRetry(() => import('./pages/SubmissionsInboxLogin'));
 const RecycleBin = lazyRetry(() => import('./pages/RecycleBin'));
+const CompanyDocuments = lazyRetry(() => import('./pages/CompanyDocuments'));
 
 // ── Team Members & RBAC ──────────────────────────────────────────────────────
 const TeamSettings = lazyRetry(() => import('./pages/TeamSettings'));
 const AccessRoleManagement = lazyRetry(() => import('./pages/AccessRoleManagement'));
 const AcceptInvite = lazyRetry(() => import('./pages/AcceptInvite'));
+
+// ── Client Profiles & View-Only Shares ───────────────────────────────────────
+const ClientProfileManagement = lazyRetry(() => import('./pages/ClientProfileManagement'));
+const ProfileShareSettings = lazyRetry(() => import('./pages/ProfileShareSettings'));
+const SharedProfileView = lazyRetry(() => import('./pages/SharedProfileView'));
 
 // Reports
 const GstReport = lazyRetry(() => import('./pages/reports/GstReport'));
@@ -154,7 +160,67 @@ const SubmissionsInboxRoute = () => {
   );
 };
 
+const getFirstAllowedSharedPath = () => {
+  try {
+    const isShared =
+      sessionStorage.getItem('isSharedSession') === 'true' ||
+      sessionStorage.getItem('isSharedViewOnly') === 'true' ||
+      localStorage.getItem('isSharedViewOnly') === 'true';
+    if (!isShared) return '/dashboard';
+    const rulesStr = sessionStorage.getItem('shareRules');
+    const rules = rulesStr ? JSON.parse(rulesStr) : null;
+    const mods = rules?.modules || [];
+
+    // If dashboard/reports is allowed, stay on dashboard
+    if (mods.includes('reports') || mods.includes('financialReports')) {
+      return '/dashboard';
+    }
+
+    const pathMap = {
+      invoices: '/invoices',
+      quotes: '/quotes',
+      proformas: '/proformas',
+      purchaseOrders: '/purchase-orders',
+      expenses: '/expenses',
+      incomes: '/incomes',
+      income: '/incomes',
+      items: '/items',
+      clients: '/clients',
+      vendors: '/vendors',
+      employees: '/employees',
+      payroll: '/payroll',
+      budgets: '/budgets',
+      recurringTransactions: '/recurring',
+      bankStatements: '/bank-statement',
+      categories: '/categories',
+      liabilities: '/liabilities',
+      assets: '/assets',
+      projects: '/projects',
+      businessUnits: '/business-units',
+      publicSubmissions: '/submissions',
+    };
+
+    for (const m of mods) {
+      if (pathMap[m]) return pathMap[m];
+    }
+
+    const token = sessionStorage.getItem('shareLinkToken');
+    return token ? `/shared/${token}` : '/dashboard';
+  } catch {
+    return '/dashboard';
+  }
+};
+
 const AdminRoute = ({ children }) => {
+  const isShared =
+    sessionStorage.getItem('isSharedSession') === 'true' ||
+    sessionStorage.getItem('isSharedViewOnly') === 'true' ||
+    localStorage.getItem('isSharedViewOnly') === 'true';
+  if (isShared) {
+    const target = getFirstAllowedSharedPath();
+    return <Navigate to={target} replace />;
+  }
+
   const userStr = localStorage.getItem('user');
   let role = '';
   if (userStr) {
@@ -167,6 +233,85 @@ const AdminRoute = ({ children }) => {
   if (role !== 'superadmin') {
     return <Navigate to="/dashboard" replace />;
   }
+  return children;
+};
+
+const DashboardRoute = () => {
+  const isShared =
+    sessionStorage.getItem('isSharedSession') === 'true' ||
+    sessionStorage.getItem('isSharedViewOnly') === 'true' ||
+    localStorage.getItem('isSharedViewOnly') === 'true';
+  if (isShared) {
+    let allowed = false;
+    try {
+      const rulesStr = sessionStorage.getItem('shareRules');
+      const rules = rulesStr ? JSON.parse(rulesStr) : null;
+      const mods = rules?.modules || [];
+      allowed = mods.includes('reports') || mods.includes('financialReports');
+    } catch {}
+
+    if (!allowed) {
+      const target = getFirstAllowedSharedPath();
+      return <Navigate to={target} replace />;
+    }
+  }
+  return <FinancialDashboard />;
+};
+
+const RootRoute = () => {
+  const isShared =
+    sessionStorage.getItem('isSharedSession') === 'true' ||
+    sessionStorage.getItem('isSharedViewOnly') === 'true' ||
+    localStorage.getItem('isSharedViewOnly') === 'true';
+  if (isShared) {
+    const target = getFirstAllowedSharedPath();
+    return <Navigate to={target} replace />;
+  }
+  return <Navigate to="/dashboard" replace />;
+};
+
+const SharedModuleRoute = ({ module, action = 'view', fallback, children }) => {
+  const isShared =
+    sessionStorage.getItem('isSharedSession') === 'true' ||
+    sessionStorage.getItem('isSharedViewOnly') === 'true' ||
+    localStorage.getItem('isSharedViewOnly') === 'true';
+
+  if (isShared) {
+    let rules = null;
+    try {
+      const stored = sessionStorage.getItem('shareRules');
+      rules = stored ? JSON.parse(stored) : null;
+    } catch {}
+
+    const mods = rules?.modules || [];
+    const isModuleAllowed =
+      mods.length === 0 ||
+      mods.includes(module) ||
+      (module === 'reports' && (mods.includes('reports') || mods.includes('financialReports'))) ||
+      (module === 'financialReports' && (mods.includes('reports') || mods.includes('financialReports'))) ||
+      (module === 'income' && (mods.includes('income') || mods.includes('incomes'))) ||
+      (module === 'incomes' && (mods.includes('income') || mods.includes('incomes')));
+
+    if (!isModuleAllowed) {
+      return <Navigate to={getFirstAllowedSharedPath()} replace />;
+    }
+
+    const accessLevel = rules?.accessLevel || sessionStorage.getItem('shareAccessLevel') || 'VIEW_ONLY';
+    const isViewOnly = accessLevel === 'VIEW_ONLY';
+
+    if (action !== 'view') {
+      if (isViewOnly) {
+        return <Navigate to={fallback || `/${module}`} replace />;
+      }
+      if (action === 'delete') {
+        return <Navigate to={fallback || `/${module}`} replace />;
+      }
+      if (rules?.modulePermissions?.[module] === 'view') {
+        return <Navigate to={fallback || `/${module}`} replace />;
+      }
+    }
+  }
+
   return children;
 };
 
@@ -245,6 +390,13 @@ function App() {
     let isCancelled = false;
 
     const restoreSession = async () => {
+      const isShared =
+        sessionStorage.getItem('isSharedSession') === 'true' ||
+        sessionStorage.getItem('isSharedViewOnly') === 'true' ||
+        Boolean(sessionStorage.getItem('token'));
+      if (isShared || window.location.pathname.startsWith('/shared/') || window.location.pathname.startsWith('/submit/')) {
+        return;
+      }
       const rawUser = localStorage.getItem('user');
 
       if (rawUser) return;
@@ -283,6 +435,9 @@ function App() {
 
               {/* Public Submission Portal — no auth, no sidebar */}
               <Route path="/submit/:token" element={<PublicSubmitPage />} />
+
+              {/* Public Shared Workspace View — unauthenticated / passcode gated */}
+              <Route path="/shared/:token" element={<SharedProfileView />} />
 
               {/* Public Submissions Inbox with dedicated Google Sign-in gate */}
               <Route path="/submissions" element={<SubmissionsInboxRoute />} />
@@ -325,54 +480,54 @@ function App() {
                 <PrivateRoute>
                   <Layout>
                     <Routes>
-                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                      <Route path="/dashboard" element={<FinancialDashboard />} />
+                      <Route path="/" element={<RootRoute />} />
+                      <Route path="/dashboard" element={<DashboardRoute />} />
                       <Route path="/tax-dashboard" element={<TaxDashboard />} />
                       <Route path="/bank-statement" element={<BankStatementDashboard />} />
 
                       {/* Invoices */}
-                      <Route path="/invoices" element={<InvoiceList />} />
-                      <Route path="/invoices/new" element={<InvoiceForm />} />
-                      <Route path="/invoices/edit/:id" element={<InvoiceForm />} />
+                      <Route path="/invoices" element={<SharedModuleRoute module="invoices"><InvoiceList /></SharedModuleRoute>} />
+                      <Route path="/invoices/new" element={<SharedModuleRoute module="invoices" action="create" fallback="/invoices"><InvoiceForm /></SharedModuleRoute>} />
+                      <Route path="/invoices/edit/:id" element={<SharedModuleRoute module="invoices" action="edit" fallback="/invoices"><InvoiceForm /></SharedModuleRoute>} />
 
                       {/* Quotes */}
-                      <Route path="/quotes" element={<QuoteList />} />
-                      <Route path="/quotes/new" element={<QuoteForm docType="quote" />} />
-                      <Route path="/quotes/edit/:id" element={<QuoteForm docType="quote" />} />
+                      <Route path="/quotes" element={<SharedModuleRoute module="quotes"><QuoteList /></SharedModuleRoute>} />
+                      <Route path="/quotes/new" element={<SharedModuleRoute module="quotes" action="create" fallback="/quotes"><QuoteForm docType="quote" /></SharedModuleRoute>} />
+                      <Route path="/quotes/edit/:id" element={<SharedModuleRoute module="quotes" action="edit" fallback="/quotes"><QuoteForm docType="quote" /></SharedModuleRoute>} />
 
                       {/* Proformas */}
-                      <Route path="/proformas" element={<ProformaList />} />
-                      <Route path="/proformas/new" element={<QuoteForm docType="proforma" />} />
-                      <Route path="/proformas/edit/:id" element={<QuoteForm docType="proforma" />} />
+                      <Route path="/proformas" element={<SharedModuleRoute module="proformas"><ProformaList /></SharedModuleRoute>} />
+                      <Route path="/proformas/new" element={<SharedModuleRoute module="proformas" action="create" fallback="/proformas"><QuoteForm docType="proforma" /></SharedModuleRoute>} />
+                      <Route path="/proformas/edit/:id" element={<SharedModuleRoute module="proformas" action="edit" fallback="/proformas"><QuoteForm docType="proforma" /></SharedModuleRoute>} />
 
                       {/* Clients */}
-                      <Route path="/clients" element={<ClientList />} />
-                      <Route path="/clients/new" element={<ClientForm />} />
-                      <Route path="/clients/edit/:id" element={<ClientForm />} />
+                      <Route path="/clients" element={<SharedModuleRoute module="clients"><ClientList /></SharedModuleRoute>} />
+                      <Route path="/clients/new" element={<SharedModuleRoute module="clients" action="create" fallback="/clients"><ClientForm /></SharedModuleRoute>} />
+                      <Route path="/clients/edit/:id" element={<SharedModuleRoute module="clients" action="edit" fallback="/clients"><ClientForm /></SharedModuleRoute>} />
 
                       {/* Vendors */}
-                      <Route path="/vendors" element={<VendorList />} />
-                      <Route path="/vendors/new" element={<VendorForm />} />
-                      <Route path="/vendors/edit/:id" element={<VendorForm />} />
+                      <Route path="/vendors" element={<SharedModuleRoute module="vendors"><VendorList /></SharedModuleRoute>} />
+                      <Route path="/vendors/new" element={<SharedModuleRoute module="vendors" action="create" fallback="/vendors"><VendorForm /></SharedModuleRoute>} />
+                      <Route path="/vendors/edit/:id" element={<SharedModuleRoute module="vendors" action="edit" fallback="/vendors"><VendorForm /></SharedModuleRoute>} />
 
-                      <Route path="/items" element={<ItemList />} />
-                      <Route path="/items/new" element={<ItemForm />} />
-                      <Route path="/items/edit/:id" element={<ItemForm />} />
+                      <Route path="/items" element={<SharedModuleRoute module="items"><ItemList /></SharedModuleRoute>} />
+                      <Route path="/items/new" element={<SharedModuleRoute module="items" action="create" fallback="/items"><ItemForm /></SharedModuleRoute>} />
+                      <Route path="/items/edit/:id" element={<SharedModuleRoute module="items" action="edit" fallback="/items"><ItemForm /></SharedModuleRoute>} />
 
                       {/* Purchase Orders */}
-                      <Route path="/purchase-orders" element={<PurchaseOrderList />} />
-                      <Route path="/purchase-orders/new" element={<PurchaseOrderForm />} />
-                      <Route path="/purchase-orders/edit/:id" element={<PurchaseOrderForm />} />
+                      <Route path="/purchase-orders" element={<SharedModuleRoute module="purchaseOrders"><PurchaseOrderList /></SharedModuleRoute>} />
+                      <Route path="/purchase-orders/new" element={<SharedModuleRoute module="purchaseOrders" action="create" fallback="/purchase-orders"><PurchaseOrderForm /></SharedModuleRoute>} />
+                      <Route path="/purchase-orders/edit/:id" element={<SharedModuleRoute module="purchaseOrders" action="edit" fallback="/purchase-orders"><PurchaseOrderForm /></SharedModuleRoute>} />
 
                       {/* Incomes */}
-                      <Route path="/incomes" element={<IncomeList />} />
-                      <Route path="/incomes/new" element={<IncomeForm />} />
-                      <Route path="/incomes/edit/:id" element={<IncomeForm />} />
+                      <Route path="/incomes" element={<SharedModuleRoute module="incomes"><IncomeList /></SharedModuleRoute>} />
+                      <Route path="/incomes/new" element={<SharedModuleRoute module="incomes" action="create" fallback="/incomes"><IncomeForm /></SharedModuleRoute>} />
+                      <Route path="/incomes/edit/:id" element={<SharedModuleRoute module="incomes" action="edit" fallback="/incomes"><IncomeForm /></SharedModuleRoute>} />
 
                       {/* Expenses */}
-                      <Route path="/expenses" element={<ExpenseList />} />
-                      <Route path="/expenses/new" element={<ExpenseForm />} />
-                      <Route path="/expenses/edit/:id" element={<ExpenseForm />} />
+                      <Route path="/expenses" element={<SharedModuleRoute module="expenses"><ExpenseList /></SharedModuleRoute>} />
+                      <Route path="/expenses/new" element={<SharedModuleRoute module="expenses" action="create" fallback="/expenses"><ExpenseForm /></SharedModuleRoute>} />
+                      <Route path="/expenses/edit/:id" element={<SharedModuleRoute module="expenses" action="edit" fallback="/expenses"><ExpenseForm /></SharedModuleRoute>} />
 
                       {/* Finance Setup */}
                       <Route path="/categories" element={<CategoryManagement />} />
@@ -415,6 +570,10 @@ function App() {
                       <Route path="/submissions" element={<PublicSubmissionsInbox />} />
 
                       <Route path="/subscription" element={<Subscription />} />
+                      <Route path="/profiles" element={<Navigate to="/settings?tab=workspaces" replace />} />
+                      <Route path="/profiles/:profileId/shares" element={<ProfileShareSettings />} />
+                      <Route path="/company-documents" element={<CompanyDocuments />} />
+                      <Route path="/documents" element={<Navigate to="/company-documents" replace />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/settings/team" element={<TeamSettings />} />
                       <Route path="/settings/roles" element={<AccessRoleManagement />} />
