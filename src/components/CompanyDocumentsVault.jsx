@@ -98,6 +98,49 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
   const [previewDoc, setPreviewDoc] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Send Email State
+  const [emailDoc, setEmailDoc] = useState(null);
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [ccEmail, setCcEmail] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  const handleOpenSendEmail = (doc) => {
+    setEmailDoc(doc);
+    setRecipientEmail('');
+    setCcEmail('');
+    setEmailSubject(`Document: ${doc.title || doc.originalName}`);
+    setEmailMessage(
+      `Hello,\n\nPlease find attached the document "${doc.title}" (${doc.originalName}) from our Documents Vault.\n\nBest regards.`
+    );
+  };
+
+  const handleSendEmailSubmit = async (e) => {
+    e.preventDefault();
+    if (!recipientEmail.trim()) {
+      toast.error('Recipient email address is required.');
+      return;
+    }
+    try {
+      setSendingEmail(true);
+      const res = await api.post('/company-documents/send-email', {
+        documentIds: [emailDoc._id],
+        recipientEmail: recipientEmail.trim(),
+        cc: ccEmail.trim() || undefined,
+        subject: emailSubject.trim(),
+        message: emailMessage.trim(),
+      });
+      toast.success(res.data?.message || 'Document sent successfully!');
+      setEmailDoc(null);
+    } catch (err) {
+      console.error('Error sending document email:', err);
+      toast.error(err.response?.data?.message || 'Failed to send document email');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const fetchDocuments = async () => {
     try {
       setLoading(true);
@@ -548,6 +591,14 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
+                      onClick={() => handleOpenSendEmail(doc)}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                      title="Send Document via Email"
+                    >
+                      <LucideIcons.Send size={14} />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => openPreview(doc)}
                       className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-teal-600 transition-colors cursor-pointer"
                       title="View / Preview Document"
@@ -943,6 +994,157 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
                     <>
                       <LucideIcons.FolderPlus size={14} />
                       <span>Create Folder</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Send Document Email Modal */}
+      {emailDoc && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={() => setEmailDoc(null)}
+        >
+          <div
+            className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <LucideIcons.Mail size={17} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Send Document via Email
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Dispatch document attachment directly via SMTP
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEmailDoc(null)}
+                className="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 flex items-center justify-center cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Document Preview Chip */}
+            <div className="p-3 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/50 dark:border-indigo-800/30 flex items-center justify-between gap-2.5 text-xs">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center shrink-0 border border-indigo-200/50 dark:border-white/10 text-indigo-600">
+                  <LucideIcons.FileText size={15} />
+                </div>
+                <div className="truncate flex-1 min-w-0">
+                  <div className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                    {emailDoc.title}
+                  </div>
+                  <div className="text-[10.5px] text-slate-400 truncate">
+                    {emailDoc.originalName}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="px-2 py-0.5 rounded-full text-[9.5px] font-semibold bg-indigo-100/80 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                  {emailDoc.category}
+                </span>
+                <span className="text-[10px] font-mono text-slate-400">
+                  {formatBytes(emailDoc.sizeBytes)}
+                </span>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSendEmailSubmit} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Recipient Email <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  placeholder="client@company.com"
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  CC Email (Optional)
+                </label>
+                <input
+                  type="email"
+                  value={ccEmail}
+                  onChange={(e) => setCcEmail(e.target.value)}
+                  placeholder="team@company.com"
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Subject Line
+                </label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Personal Message / Note
+                </label>
+                <textarea
+                  rows={4}
+                  value={emailMessage}
+                  onChange={(e) => setEmailMessage(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 resize-y"
+                />
+              </div>
+
+              {/* Delivery notice */}
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-400 pt-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Delivering securely via configured SMTP Server</span>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setEmailDoc(null)}
+                  disabled={sendingEmail}
+                  className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendingEmail}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  {sendingEmail ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Sending Email...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LucideIcons.Send size={13} />
+                      <span>Send Document</span>
                     </>
                   )}
                 </button>
