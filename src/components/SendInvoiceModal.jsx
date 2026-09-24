@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as LucideIcons from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
+import DocumentVaultPickerModal from './DocumentVaultPickerModal';
 
 const formatFileSize = (bytes) => {
   if (!bytes || isNaN(bytes)) return '';
@@ -30,6 +31,8 @@ const SendInvoiceModal = ({ isOpen, onClose, invoice, settings, template = 'clas
   const [attachInvoiceFiles, setAttachInvoiceFiles] = useState(true);
   const [invoiceAttachments, setInvoiceAttachments] = useState([]);
   const [selectedAttachmentIds, setSelectedAttachmentIds] = useState([]);
+  const [selectedVaultDocs, setSelectedVaultDocs] = useState([]);
+  const [isVaultPickerOpen, setIsVaultPickerOpen] = useState(false);
   const [extraAttachments, setExtraAttachments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCc, setShowCc] = useState(false);
@@ -48,6 +51,7 @@ const SendInvoiceModal = ({ isOpen, onClose, invoice, settings, template = 'clas
       );
       setAttachPdf(true);
       setAttachInvoiceFiles(true);
+      setSelectedVaultDocs([]);
       setExtraAttachments([]);
       setCcEmail('');
       setShowCc(false);
@@ -136,6 +140,7 @@ const SendInvoiceModal = ({ isOpen, onClose, invoice, settings, template = 'clas
         attachPdf,
         attachInvoiceFiles,
         selectedAttachmentIds,
+        companyDocumentIds: selectedVaultDocs.map((d) => d._id),
         extraAttachments: extraAttachments.map(({ filename, contentType, content }) => ({
           filename,
           contentType,
@@ -167,6 +172,7 @@ const SendInvoiceModal = ({ isOpen, onClose, invoice, settings, template = 'clas
   const totalFilesToSend =
     (attachPdf ? 1 : 0) +
     (attachInvoiceFiles ? selectedAttachmentIds.length : 0) +
+    selectedVaultDocs.length +
     extraAttachments.length;
 
   const inputCls =
@@ -487,7 +493,77 @@ const SendInvoiceModal = ({ isOpen, onClose, invoice, settings, template = 'clas
                 )}
               </div>
 
-              {/* 3. Extra On-the-Fly Uploads */}
+              {/* 3. Documents from Company Vault / Folders */}
+              <div className="space-y-2 pt-1 border-t border-slate-200/60 dark:border-white/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <LucideIcons.Folder size={14} className="text-indigo-500" />
+                    <span>Attach from Documents Vault ({selectedVaultDocs.length})</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsVaultPickerOpen(true)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 cursor-pointer transition-colors bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-2.5 py-1 rounded-xl border border-indigo-200/60 dark:border-indigo-800/40 shadow-2xs"
+                  >
+                    <LucideIcons.FolderPlus size={13} />
+                    <span>+ Select from Documents</span>
+                  </button>
+                </div>
+
+                {selectedVaultDocs.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {selectedVaultDocs.map((doc) => (
+                      <div
+                        key={doc._id}
+                        className="p-2.5 rounded-xl bg-white dark:bg-slate-900/80 border border-indigo-500/30 flex items-center justify-between gap-2.5 text-xs shadow-xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          {getFileIcon(doc.mimeType, doc.originalName)}
+                          <div className="truncate flex-1 min-w-0 pr-2">
+                            <span className="font-semibold text-slate-800 dark:text-slate-200" title={doc.title}>
+                              {doc.title}
+                            </span>
+                            <span className="text-[11px] text-slate-400 dark:text-slate-500 ml-1.5 font-normal">
+                              ({doc.originalName})
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="px-2 py-0.5 rounded-md text-[9.5px] font-semibold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40">
+                            {doc.category || 'Vault'}
+                          </span>
+                          {doc.sizeBytes && (
+                            <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                              {formatFileSize(doc.sizeBytes)}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedVaultDocs((prev) => prev.filter((d) => d._id !== doc._id))}
+                            className="w-5 h-5 rounded-md hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 flex items-center justify-center transition-colors cursor-pointer"
+                            title="Remove attachment"
+                          >
+                            <LucideIcons.X size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-xl bg-white/50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-white/10 flex items-center justify-between gap-2 text-[11px] text-slate-400 dark:text-slate-500">
+                    <span>No company documents selected from vault folder.</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsVaultPickerOpen(true)}
+                      className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold cursor-pointer"
+                    >
+                      Browse Documents &gt;
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* 4. Extra On-the-Fly Uploads */}
               <div className="space-y-2 pt-1 border-t border-slate-200/60 dark:border-white/10">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -599,6 +675,13 @@ const SendInvoiceModal = ({ isOpen, onClose, invoice, settings, template = 'clas
           </div>
         </form>
       </div>
+
+      <DocumentVaultPickerModal
+        isOpen={isVaultPickerOpen}
+        onClose={() => setIsVaultPickerOpen(false)}
+        onConfirm={(docs) => setSelectedVaultDocs(docs)}
+        alreadySelectedIds={selectedVaultDocs.map((d) => d._id)}
+      />
     </div>
   );
 };
