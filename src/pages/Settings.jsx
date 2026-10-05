@@ -114,9 +114,12 @@ const Settings = () => {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // ── SMTP Email State ──────────────────────────────────────────────────────
-  const [smtpData, setSmtpData] = useState({
-    enabled: false,
+  // ── Multi-SMTP Email State ────────────────────────────────────────────────
+  const [smtpConfigs, setSmtpConfigs] = useState([]);
+  const [showSmtpModal, setShowSmtpModal] = useState(false);
+  const [editingSmtpId, setEditingSmtpId] = useState(null);
+  const [smtpForm, setSmtpForm] = useState({
+    title: '',
     host: '',
     port: 587,
     secure: false,
@@ -125,45 +128,63 @@ const Settings = () => {
     fromEmail: '',
     fromName: '',
     replyTo: '',
+    enabled: true,
+    isDefault: false,
   });
   const [smtpLoading, setSmtpLoading] = useState(false);
   const [testEmailLoading, setTestEmailLoading] = useState(false);
   const [testRecipient, setTestRecipient] = useState('');
+  const [testSelectedConfigId, setTestSelectedConfigId] = useState('');
   const [testResult, setTestResult] = useState(null);
   const [showSmtpPassword, setShowSmtpPassword] = useState(false);
   const [smtpPreset, setSmtpPreset] = useState('custom');
+  const [smtpViewMode, setSmtpViewMode] = useState('list'); // 'list' | 'grid'
+  const [smtpSearchQuery, setSmtpSearchQuery] = useState('');
+
+  const filteredSmtpConfigs = useMemo(() => {
+    if (!smtpSearchQuery.trim()) return smtpConfigs;
+    const q = smtpSearchQuery.toLowerCase().trim();
+    return smtpConfigs.filter(c =>
+      (c.title || '').toLowerCase().includes(q) ||
+      (c.host || '').toLowerCase().includes(q) ||
+      (c.fromEmail || '').toLowerCase().includes(q) ||
+      (c.fromName || '').toLowerCase().includes(q) ||
+      (c.auth?.user || c.user || '').toLowerCase().includes(q) ||
+      (c.replyTo || '').toLowerCase().includes(q)
+    );
+  }, [smtpConfigs, smtpSearchQuery]);
 
   const handleApplyPreset = (presetKey) => {
     setSmtpPreset(presetKey);
     if (presetKey === 'gmail') {
-      setSmtpData(prev => ({
+      setSmtpForm(prev => ({
         ...prev,
-        enabled: true,
+        title: prev.title || 'Gmail Mailer',
         host: 'smtp.gmail.com',
         port: 587,
         secure: false,
         fromEmail: prev.fromEmail || prev.user || '',
       }));
     } else if (presetKey === 'brevo') {
-      setSmtpData(prev => ({
+      setSmtpForm(prev => ({
         ...prev,
-        enabled: true,
+        title: prev.title || 'Brevo Mailer',
         host: 'smtp-relay.brevo.com',
         port: 587,
         secure: false,
         fromEmail: prev.fromEmail || prev.user || '',
       }));
     } else if (presetKey === 'office365') {
-      setSmtpData(prev => ({
+      setSmtpForm(prev => ({
         ...prev,
-        enabled: true,
+        title: prev.title || 'Microsoft 365 Mailer',
         host: 'smtp.office365.com',
         port: 587,
         secure: false,
         fromEmail: prev.fromEmail || prev.user || '',
       }));
     } else {
-      setSmtpData(prev => ({
+      setSmtpForm(prev => ({
         ...prev,
         host: '',
         port: 587,
@@ -172,10 +193,10 @@ const Settings = () => {
     }
   };
 
-  const handleSmtpChange = (e) => {
+  const handleSmtpFormChange = (e) => {
     const { name, value, type, checked } = e.target;
     const val = type === 'checkbox' ? checked : value;
-    setSmtpData(prev => {
+    setSmtpForm(prev => {
       const next = { ...prev, [name]: val };
       if (name === 'port') {
         const numPort = Number(val);
@@ -189,45 +210,161 @@ const Settings = () => {
     });
   };
 
-  const handleSaveSmtp = async (e) => {
+  const handleOpenAddSmtp = () => {
+    setEditingSmtpId(null);
+    setSmtpForm({
+      title: '',
+      host: '',
+      port: 587,
+      secure: false,
+      user: '',
+      pass: '',
+      fromEmail: '',
+      fromName: formData.companyName || '',
+      replyTo: '',
+      enabled: true,
+      isDefault: smtpConfigs.length === 0,
+    });
+    setSmtpPreset('custom');
+    setShowSmtpPassword(false);
+    setShowSmtpModal(true);
+  };
+
+  const handleOpenEditSmtp = (cfg) => {
+    setEditingSmtpId(cfg._id || cfg.title);
+    setSmtpForm({
+      title: cfg.title || 'SMTP Server',
+      host: cfg.host || '',
+      port: cfg.port || 587,
+      secure: Boolean(cfg.secure),
+      user: cfg.auth?.user || cfg.user || '',
+      pass: cfg.auth?.pass || cfg.pass || '',
+      fromEmail: cfg.fromEmail || '',
+      fromName: cfg.fromName || '',
+      replyTo: cfg.replyTo || '',
+      enabled: cfg.enabled !== false,
+      isDefault: Boolean(cfg.isDefault),
+    });
+    if (cfg.host?.includes('gmail')) setSmtpPreset('gmail');
+    else if (cfg.host?.includes('brevo')) setSmtpPreset('brevo');
+    else if (cfg.host?.includes('office365') || cfg.host?.includes('outlook')) setSmtpPreset('office365');
+    else setSmtpPreset('custom');
+    setShowSmtpPassword(false);
+    setShowSmtpModal(true);
+  };
+
+  const handleSaveSmtpForm = async (e) => {
     if (e) e.preventDefault();
+    if (!smtpForm.title.trim()) {
+      toast.error('Please provide a title for this SMTP server.');
+      return;
+    }
+    if (!smtpForm.host.trim()) {
+      toast.error('SMTP Host is required.');
+      return;
+    }
     setSmtpLoading(true);
     try {
-      const isEnabled = smtpData.enabled || Boolean(smtpData.host && smtpData.user);
-      const payload = {
-        smtp: {
-          enabled: isEnabled,
-          host: (smtpData.host || '').trim(),
-          port: Number(smtpData.port) || 587,
-          secure: Boolean(smtpData.secure),
-          auth: {
-            user: (smtpData.user || '').trim(),
-            pass: smtpData.pass,
-          },
-          fromEmail: (smtpData.fromEmail || '').trim(),
-          fromName: (smtpData.fromName || '').trim(),
-          replyTo: (smtpData.replyTo || '').trim(),
+      let updatedConfigs = [...smtpConfigs];
+      const newConfigItem = {
+        _id: editingSmtpId || undefined,
+        title: smtpForm.title.trim(),
+        host: smtpForm.host.trim(),
+        port: Number(smtpForm.port) || 587,
+        secure: Boolean(smtpForm.secure),
+        auth: {
+          user: (smtpForm.user || '').trim(),
+          pass: smtpForm.pass,
         },
+        fromEmail: (smtpForm.fromEmail || '').trim(),
+        fromName: (smtpForm.fromName || '').trim(),
+        replyTo: (smtpForm.replyTo || '').trim(),
+        enabled: Boolean(smtpForm.enabled),
+        isDefault: Boolean(smtpForm.isDefault),
       };
-      const res = await api.put('/settings', payload);
-      if (res.data?.smtp) {
-        setSmtpData(prev => ({
-          ...prev,
-          enabled: Boolean(res.data.smtp.enabled),
-          pass: res.data.smtp.auth?.pass || prev.pass,
+
+      if (editingSmtpId) {
+        updatedConfigs = updatedConfigs.map(c => {
+          if ((c._id && c._id === editingSmtpId) || c.title === editingSmtpId) {
+            return { ...c, ...newConfigItem, _id: c._id };
+          }
+          return c;
+        });
+      } else {
+        updatedConfigs.push(newConfigItem);
+      }
+
+      if (newConfigItem.isDefault || updatedConfigs.length === 1) {
+        updatedConfigs = updatedConfigs.map(c => ({
+          ...c,
+          isDefault: (c._id && newConfigItem._id ? c._id === newConfigItem._id : c.title === newConfigItem.title) || updatedConfigs.length === 1,
         }));
       }
 
-      toast.success('SMTP email settings saved successfully!');
+      const res = await api.put('/settings', { smtpConfigs: updatedConfigs });
+      if (res.data?.smtpConfigs) {
+        setSmtpConfigs(res.data.smtpConfigs);
+      } else {
+        setSmtpConfigs(updatedConfigs);
+      }
+      setShowSmtpModal(false);
+      toast.success('SMTP configuration saved successfully!');
     } catch (err) {
-      console.error('Error saving SMTP settings:', err);
-      toast.error(err.response?.data?.message || 'Failed to save SMTP settings.');
+      console.error('Error saving SMTP configuration:', err);
+      toast.error(err.response?.data?.message || 'Failed to save SMTP configuration.');
     } finally {
       setSmtpLoading(false);
     }
   };
 
-  const handleTestSmtp = async () => {
+  const handleSetDefaultSmtp = async (targetId) => {
+    try {
+      const updated = smtpConfigs.map(c => ({
+        ...c,
+        isDefault: c._id === targetId || c.title === targetId,
+      }));
+      setSmtpConfigs(updated);
+      await api.put('/settings', { smtpConfigs: updated });
+      toast.success('Default SMTP server updated!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update default SMTP server.');
+    }
+  };
+
+  const handleDeleteSmtp = async (targetId, title) => {
+    if (!window.confirm(`Are you sure you want to delete the SMTP configuration "${title}"?`)) {
+      return;
+    }
+    try {
+      let updated = smtpConfigs.filter(c => (c._id ? c._id !== targetId : c.title !== targetId));
+      if (updated.length > 0 && !updated.some(c => c.isDefault)) {
+        updated[0].isDefault = true;
+      }
+      setSmtpConfigs(updated);
+      await api.put('/settings', { smtpConfigs: updated });
+      toast.success(`SMTP configuration "${title}" deleted.`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete SMTP configuration.');
+    }
+  };
+
+  const handleToggleEnableSmtp = async (targetId) => {
+    try {
+      const updated = smtpConfigs.map(c => {
+        if (c._id === targetId || c.title === targetId) {
+          return { ...c, enabled: !c.enabled };
+        }
+        return c;
+      });
+      setSmtpConfigs(updated);
+      await api.put('/settings', { smtpConfigs: updated });
+      toast.success('SMTP status updated!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update SMTP status.');
+    }
+  };
+
+  const handleTestSmtp = async (directConfig = null) => {
     const targetEmail = testRecipient.trim() || formData.email;
     if (!targetEmail) {
       toast.error('Please enter a recipient email for the test.');
@@ -236,17 +373,39 @@ const Settings = () => {
     setTestEmailLoading(true);
     setTestResult(null);
     try {
-      const payload = {
-        testRecipient: targetEmail,
-        host: (smtpData.host || '').trim(),
-        port: Number(smtpData.port) || 587,
-        secure: Boolean(smtpData.secure),
-        user: (smtpData.user || '').trim(),
-        pass: smtpData.pass,
-        fromEmail: (smtpData.fromEmail || '').trim() || (smtpData.user || '').trim(),
-        fromName: (smtpData.fromName || '').trim() || formData.companyName,
-        replyTo: (smtpData.replyTo || '').trim(),
-      };
+      let payload = { testRecipient: targetEmail };
+      if (directConfig && directConfig.host) {
+        payload = {
+          ...payload,
+          title: directConfig.title,
+          host: (directConfig.host || '').trim(),
+          port: Number(directConfig.port) || 587,
+          secure: Boolean(directConfig.secure),
+          user: (directConfig.auth?.user || directConfig.user || '').trim(),
+          pass: directConfig.auth?.pass || directConfig.pass || '',
+          fromEmail: (directConfig.fromEmail || directConfig.user || '').trim(),
+          fromName: (directConfig.fromName || '').trim() || formData.companyName,
+          replyTo: (directConfig.replyTo || '').trim(),
+          configId: directConfig._id,
+        };
+      } else if (testSelectedConfigId) {
+        const found = smtpConfigs.find(c => c._id === testSelectedConfigId || c.title === testSelectedConfigId);
+        if (found) {
+          payload = {
+            ...payload,
+            title: found.title,
+            host: (found.host || '').trim(),
+            port: Number(found.port) || 587,
+            secure: Boolean(found.secure),
+            user: (found.auth?.user || found.user || '').trim(),
+            pass: found.auth?.pass || found.pass || '',
+            fromEmail: (found.fromEmail || found.user || '').trim(),
+            fromName: (found.fromName || '').trim() || formData.companyName,
+            replyTo: (found.replyTo || '').trim(),
+            configId: found._id,
+          };
+        }
+      }
       const res = await api.post('/settings/smtp/test', payload);
       setTestResult({ success: true, message: res.data.message });
       toast.success(res.data.message);
@@ -465,9 +624,16 @@ const Settings = () => {
           },
         });
 
-        if (d.smtp) {
-          setSmtpData({
+        if (Array.isArray(d.smtpConfigs) && d.smtpConfigs.length > 0) {
+          setSmtpConfigs(d.smtpConfigs);
+          const def = d.smtpConfigs.find(c => c.isDefault) || d.smtpConfigs[0];
+          if (def) setTestSelectedConfigId(def._id || def.title);
+        } else if (d.smtp && d.smtp.host) {
+          const initial = [{
+            _id: 'default',
+            title: 'Primary SMTP Server',
             enabled: Boolean(d.smtp.enabled),
+            isDefault: true,
             host: d.smtp.host || '',
             port: d.smtp.port || 587,
             secure: Boolean(d.smtp.secure),
@@ -476,11 +642,9 @@ const Settings = () => {
             fromEmail: d.smtp.fromEmail || '',
             fromName: d.smtp.fromName || '',
             replyTo: d.smtp.replyTo || '',
-          });
-          if (d.smtp.host?.includes('gmail')) setSmtpPreset('gmail');
-          else if (d.smtp.host?.includes('brevo')) setSmtpPreset('brevo');
-          else if (d.smtp.host?.includes('office365') || d.smtp.host?.includes('outlook')) setSmtpPreset('office365');
-          else if (d.smtp.host) setSmtpPreset('custom');
+          }];
+          setSmtpConfigs(initial);
+          setTestSelectedConfigId('default');
         }
         if (d.email) {
           setTestRecipient(prev => prev || d.email);
@@ -1607,369 +1771,493 @@ const Settings = () => {
 
       {/* ── EMAIL / SMTP SETTINGS ── */}
       {tab === 'smtp' && (
-        <div className="space-y-6 max-w-4xl mx-auto">
-          {/* Main Configuration Card */}
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 border border-white/80 dark:border-white/10 shadow-[0_12px_40px_-10px_rgba(0,0,0,0.05),inset_0_1px_1px_rgba(255,255,255,0.8)] dark:shadow-[0_12px_40px_-10px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.05)] transition-colors">
-            
-            {/* Header & Enable Toggle */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100/80 dark:border-slate-800/80">
-              <div className="flex items-start gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-500/15 via-white/80 to-white/40 dark:from-teal-500/20 dark:via-slate-800/80 dark:to-slate-800/40 backdrop-blur-xl text-teal-600 dark:text-teal-400 flex items-center justify-center border border-teal-500/20 dark:border-white/10 shadow-[0_4px_16px_rgba(20,184,166,0.15),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.1)] flex-shrink-0">
-                  <LucideIcons.Mail size={22} />
+        <div className="space-y-6 max-w-5xl mx-auto">
+          {/* Main Header Card */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800 shadow-xs transition-colors">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 flex items-center justify-center border border-teal-200/60 dark:border-teal-800/60 flex-shrink-0 shadow-2xs">
+                  <LucideIcons.Mail size={18} />
                 </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    SMTP Email Server
-                    {smtpData.enabled ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800/80 shadow-xs">
-                        Custom Active
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800/80 text-slate-500 border border-slate-200/80 dark:border-slate-700/80">
-                        Default System Mailer
-                      </span>
-                    )}
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Send invoices, payslips, quotes, and receipts directly from your custom domain or SMTP relay.
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                      SMTP Email Servers
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200/80 dark:border-teal-800/80">
+                      {smtpConfigs.length} {smtpConfigs.length === 1 ? 'Server' : 'Servers'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                    Manage multiple outgoing mail relays with custom sender names, titles, and routing. Your designated default server automatically dispatches invoices, quotes, and payslips.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 self-start sm:self-center bg-white/60 dark:bg-slate-800/50 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 shadow-xs">
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 select-none">
-                  Enable Custom SMTP
-                </span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="enabled"
-                    checked={smtpData.enabled}
-                    onChange={handleSmtpChange}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-teal-600"></div>
-                </label>
-              </div>
+              <button
+                type="button"
+                onClick={handleOpenAddSmtp}
+                className="whitespace-nowrap shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer self-start sm:self-center"
+              >
+                <LucideIcons.Plus size={15} />
+                <span>Add SMTP Server</span>
+              </button>
             </div>
+          </div>
 
-            {/* Provider Quick Presets */}
-            <div className="pt-6 pb-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
-                Quick Provider Presets
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => handleApplyPreset('gmail')}
-                  className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer backdrop-blur-md ${
-                    smtpPreset === 'gmail'
-                      ? 'border-teal-500/80 bg-gradient-to-br from-teal-50/90 to-white/90 dark:from-teal-950/40 dark:to-slate-800/80 text-teal-950 dark:text-teal-100 shadow-[0_4px_20px_rgba(20,184,166,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.08)] ring-1 ring-teal-500/30'
-                      : 'border-slate-200/70 dark:border-white/10 hover:border-slate-300 dark:hover:border-slate-700 bg-white/60 dark:bg-slate-800/40 hover:bg-white/90 dark:hover:bg-slate-800/80'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center border border-rose-200/60 dark:border-rose-800/40">
-                      <LucideIcons.Mail size={15} className="text-rose-600 dark:text-rose-400" />
-                    </div>
-                    {smtpPreset === 'gmail' && <LucideIcons.Check size={14} className="text-teal-600 dark:text-teal-400" />}
-                  </div>
-                  <div className="text-xs font-bold">Gmail / Google</div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">smtp.gmail.com:587</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleApplyPreset('brevo')}
-                  className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer backdrop-blur-md ${
-                    smtpPreset === 'brevo'
-                      ? 'border-teal-500/80 bg-gradient-to-br from-teal-50/90 to-white/90 dark:from-teal-950/40 dark:to-slate-800/80 text-teal-950 dark:text-teal-100 shadow-[0_4px_20px_rgba(20,184,166,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.08)] ring-1 ring-teal-500/30'
-                      : 'border-slate-200/70 dark:border-white/10 hover:border-slate-300 dark:hover:border-slate-700 bg-white/60 dark:bg-slate-800/40 hover:bg-white/90 dark:hover:bg-slate-800/80'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/50 flex items-center justify-center border border-sky-200/60 dark:border-sky-800/40">
-                      <LucideIcons.Send size={15} className="text-sky-600 dark:text-sky-400" />
-                    </div>
-                    {smtpPreset === 'brevo' && <LucideIcons.Check size={14} className="text-teal-600 dark:text-teal-400" />}
-                  </div>
-                  <div className="text-xs font-bold">Brevo (Sendinblue)</div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">smtp-relay.brevo.com:587</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleApplyPreset('office365')}
-                  className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer backdrop-blur-md ${
-                    smtpPreset === 'office365'
-                      ? 'border-teal-500/80 bg-gradient-to-br from-teal-50/90 to-white/90 dark:from-teal-950/40 dark:to-slate-800/80 text-teal-950 dark:text-teal-100 shadow-[0_4px_20px_rgba(20,184,166,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.08)] ring-1 ring-teal-500/30'
-                      : 'border-slate-200/70 dark:border-white/10 hover:border-slate-300 dark:hover:border-slate-700 bg-white/60 dark:bg-slate-800/40 hover:bg-white/90 dark:hover:bg-slate-800/80'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center border border-blue-200/60 dark:border-blue-800/40">
-                      <LucideIcons.Layers size={15} className="text-blue-600 dark:text-blue-400" />
-                    </div>
-                    {smtpPreset === 'office365' && <LucideIcons.Check size={14} className="text-teal-600 dark:text-teal-400" />}
-                  </div>
-                  <div className="text-xs font-bold">Microsoft 365</div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">smtp.office365.com:587</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleApplyPreset('custom')}
-                  className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer backdrop-blur-md ${
-                    smtpPreset === 'custom'
-                      ? 'border-teal-500/80 bg-gradient-to-br from-teal-50/90 to-white/90 dark:from-teal-950/40 dark:to-slate-800/80 text-teal-950 dark:text-teal-100 shadow-[0_4px_20px_rgba(20,184,166,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.08)] ring-1 ring-teal-500/30'
-                      : 'border-slate-200/70 dark:border-white/10 hover:border-slate-300 dark:hover:border-slate-700 bg-white/60 dark:bg-slate-800/40 hover:bg-white/90 dark:hover:bg-slate-800/80'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="w-7 h-7 rounded-lg bg-teal-50 dark:bg-teal-950/50 flex items-center justify-center border border-teal-200/60 dark:border-teal-800/40">
-                      <LucideIcons.Server size={15} className="text-teal-600 dark:text-teal-400" />
-                    </div>
-                    {smtpPreset === 'custom' && <LucideIcons.Check size={14} className="text-teal-600 dark:text-teal-400" />}
-                  </div>
-                  <div className="text-xs font-bold">Custom SMTP</div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Custom Host & Port</div>
-                </button>
+          {/* Header & Controls: Title, Search, and View Mode Toggle */}
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Configured Mail Servers ({smtpSearchQuery ? `${filteredSmtpConfigs.length} of ${smtpConfigs.length}` : smtpConfigs.length})
+                </h3>
+                {smtpSearchQuery && (
+                  <span className="text-xs text-slate-500">
+                    Filtering by &quot;{smtpSearchQuery}&quot;
+                  </span>
+                )}
               </div>
 
-              {(smtpPreset === 'gmail' || /gmail|google/i.test(smtpData.host)) && (
-                <div className="mt-3 p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
-                  <LucideIcons.Info size={18} className="flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-                  <div className="space-y-1 leading-relaxed">
-                    <strong>Important for Gmail / Google Workspace:</strong> Google does not accept your personal account password on SMTP and will reject it with <em>535 5.7.8 Authentication failed</em>. You must generate a 16-character <strong>App Password</strong>:
-                    <ol className="list-decimal ml-4 mt-1 space-y-0.5 font-medium">
-                      <li>Go to your Google Account → <strong>Security</strong></li>
-                      <li>Verify that <strong>2-Step Verification</strong> is turned ON</li>
-                      <li>Click <strong>App passwords</strong> (or search for &quot;App passwords&quot;)</li>
-                      <li>Create an app named &quot;Flance Mailer&quot; and copy the 16 letters</li>
-                      <li>Paste the code into the password field below (spaces are stripped automatically)</li>
-                    </ol>
+              {smtpConfigs.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  {/* Search Input */}
+                  <div className="relative flex-1 sm:w-64">
+                    <LucideIcons.Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={smtpSearchQuery}
+                      onChange={(e) => setSmtpSearchQuery(e.target.value)}
+                      placeholder="Search mail servers..."
+                      className="w-full pl-8 pr-7 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    />
+                    {smtpSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSmtpSearchQuery('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+                      >
+                        <LucideIcons.X size={12} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* View Mode Toggle: List vs Grid */}
+                  <div className="flex items-center bg-slate-100 dark:bg-slate-800/90 rounded-xl p-0.5 border border-slate-200/80 dark:border-slate-700/80">
+                    <button
+                      type="button"
+                      onClick={() => setSmtpViewMode('list')}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        smtpViewMode === 'list'
+                          ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                      }`}
+                      title="List View"
+                    >
+                      <LucideIcons.List size={13} />
+                      <span>List</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSmtpViewMode('grid')}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        smtpViewMode === 'grid'
+                          ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                      }`}
+                      title="Grid View"
+                    >
+                      <LucideIcons.LayoutGrid size={13} />
+                      <span>Grid</span>
+                    </button>
                   </div>
                 </div>
               )}
             </div>
 
-
-            {/* Server Settings Form */}
-            <form onSubmit={handleSaveSmtp} className="space-y-6 pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    SMTP Host {smtpData.enabled && <span className="text-red-500">*</span>}
-                  </label>
-                  <input
-                    type="text"
-                    name="host"
-                    value={smtpData.host}
-                    onChange={handleSmtpChange}
-                    placeholder="e.g. smtp.gmail.com or smtp.mailgun.org"
-                    className={inputCls}
-                    required={smtpData.enabled}
-                  />
+            {smtpConfigs.length === 0 ? (
+              <div className="p-10 text-center bg-white/70 dark:bg-slate-900/60 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 text-slate-500 space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                  <LucideIcons.Mail size={22} />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Port {smtpData.enabled && <span className="text-red-500">*</span>}
-                  </label>
-                  <input
-                    type="number"
-                    name="port"
-                    value={smtpData.port}
-                    onChange={handleSmtpChange}
-                    placeholder="587"
-                    className={inputCls}
-                    required={smtpData.enabled}
-                  />
-                </div>
-              </div>
-
-              {/* Encryption & Auth */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    SMTP Username / Email
-                  </label>
-                  <input
-                    type="text"
-                    name="user"
-                    value={smtpData.user}
-                    onChange={handleSmtpChange}
-                    placeholder="your-email@domain.com"
-                    className={inputCls}
-                    autoComplete="off"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    SMTP Password / App Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showSmtpPassword ? 'text' : 'password'}
-                      name="pass"
-                      value={smtpData.pass}
-                      onChange={handleSmtpChange}
-                      placeholder={smtpData.pass ? '••••••••' : 'Enter password or app password'}
-                      className={`${inputCls} pr-10 font-mono`}
-                      autoComplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowSmtpPassword(!showSmtpPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                    >
-                      {showSmtpPassword ? <LucideIcons.EyeOff size={16} /> : <LucideIcons.Eye size={16} />}
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Stored securely with AES-256-GCM encryption at rest. Leave as dots to preserve existing.
+                  <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">No Custom SMTP Servers</h4>
+                  <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                    The platform is currently using the system mailer. Add your custom SMTP servers to send branded emails from your own domain.
                   </p>
                 </div>
-              </div>
-
-              {/* Security Option */}
-              <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-700">
-                <input
-                  type="checkbox"
-                  id="smtpSecure"
-                  name="secure"
-                  checked={smtpData.secure}
-                  onChange={handleSmtpChange}
-                  className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 cursor-pointer"
-                />
-                <label htmlFor="smtpSecure" className="text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-                  <strong>Use SSL/TLS Connection</strong> (Typically checked for port 465; uncheck for STARTTLS on port 587 or 25)
-                </label>
-              </div>
-
-              {/* Sender Details */}
-              <div className="border-t border-slate-100 dark:border-slate-800 pt-5 space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                  Sender Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      From Email
-                    </label>
-                    <input
-                      type="email"
-                      name="fromEmail"
-                      value={smtpData.fromEmail}
-                      onChange={handleSmtpChange}
-                      placeholder="e.g. billing@company.com"
-                      className={inputCls}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      From Name (Display Name)
-                    </label>
-                    <input
-                      type="text"
-                      name="fromName"
-                      value={smtpData.fromName}
-                      onChange={handleSmtpChange}
-                      placeholder="e.g. Acme Corp Invoicing"
-                      className={inputCls}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Reply-To Email (Optional)
-                    </label>
-                    <input
-                      type="email"
-                      name="replyTo"
-                      value={smtpData.replyTo}
-                      onChange={handleSmtpChange}
-                      placeholder="e.g. support@company.com"
-                      className={inputCls}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Save Button */}
-              <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
-                  type="submit"
-                  disabled={smtpLoading}
-                  className="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold text-sm transition-all shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  type="button"
+                  onClick={handleOpenAddSmtp}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                 >
-                  {smtpLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Saving Settings...</span>
-                    </>
-                  ) : (
-                    <>
-                      <LucideIcons.Save size={16} />
-                      <span>Save SMTP Settings</span>
-                    </>
-                  )}
+                  <LucideIcons.Plus size={15} />
+                  <span>Add First SMTP Server</span>
                 </button>
               </div>
-            </form>
+            ) : filteredSmtpConfigs.length === 0 ? (
+              <div className="p-8 text-center bg-white/70 dark:bg-slate-900/60 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 text-slate-500 space-y-2">
+                <p className="text-sm">No mail servers match &quot;{smtpSearchQuery}&quot;</p>
+                <button
+                  type="button"
+                  onClick={() => setSmtpSearchQuery('')}
+                  className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline cursor-pointer"
+                >
+                  Clear search filter
+                </button>
+              </div>
+            ) : smtpViewMode === 'list' ? (
+              /* ── LIST VIEW ── */
+              <div className="space-y-2">
+                {filteredSmtpConfigs.map((cfg, idx) => {
+                  const isGmail = /gmail|google/i.test(cfg.host || '');
+                  const isBrevo = /brevo|sendinblue/i.test(cfg.host || '');
+                  const isOffice = /office365|outlook/i.test(cfg.host || '');
+
+                  return (
+                    <div
+                      key={cfg._id || idx}
+                      className={`py-2 px-3 sm:py-2.5 sm:px-3.5 rounded-xl border transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3 ${
+                        cfg.isDefault
+                          ? 'bg-teal-50/30 dark:bg-teal-950/10 border-teal-500/40 dark:border-teal-500/30 shadow-xs'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs'
+                      }`}
+                    >
+                      {/* Left: Icon & Server Info */}
+                      <div className="flex items-center gap-2.5 min-w-[220px] max-w-sm">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-slate-200/70 dark:border-white/10 bg-slate-50 dark:bg-slate-800/80 shadow-2xs">
+                          {isGmail ? (
+                            <LucideIcons.Mail size={15} className="text-rose-600 dark:text-rose-400" />
+                          ) : isBrevo ? (
+                            <LucideIcons.Send size={15} className="text-sky-600 dark:text-sky-400" />
+                          ) : isOffice ? (
+                            <LucideIcons.Layers size={15} className="text-blue-600 dark:text-blue-400" />
+                          ) : (
+                            <LucideIcons.Server size={15} className="text-teal-600 dark:text-teal-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="font-bold text-xs text-slate-800 dark:text-slate-100 truncate" title={cfg.title}>
+                              {cfg.title || 'SMTP Server'}
+                            </h4>
+                            {cfg.isDefault && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 uppercase tracking-wider">
+                                <LucideIcons.Star size={9} className="fill-amber-500 text-amber-500" />
+                                Default
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleEnableSmtp(cfg._id || cfg.title)}
+                              className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider border cursor-pointer transition-colors ${
+                                cfg.enabled
+                                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
+                              }`}
+                              title={cfg.enabled ? 'Click to disable' : 'Click to enable'}
+                            >
+                              ● {cfg.enabled ? 'Active' : 'Disabled'}
+                            </button>
+                          </div>
+                          <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 truncate mt-0.5">
+                            {cfg.host}:{cfg.port || 587} • {cfg.secure ? 'SSL/TLS' : 'STARTTLS'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Middle: Sender Details */}
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2 px-1 text-left">
+                        <div className="min-w-0">
+                          <span className="text-[9px] uppercase font-bold tracking-wider text-slate-400 block leading-tight">From Sender</span>
+                          <span className="font-medium text-slate-700 dark:text-slate-300 truncate block text-[11px] leading-normal" title={`${cfg.fromName || ''} <${cfg.fromEmail || cfg.auth?.user || cfg.user || 'system'}>`}>
+                            {cfg.fromName ? `${cfg.fromName} ` : ''}&lt;{cfg.fromEmail || cfg.auth?.user || cfg.user || 'system'}&gt;
+                          </span>
+                        </div>
+                        {(cfg.auth?.user || cfg.user) && (
+                          <div className="min-w-0">
+                            <span className="text-[9px] uppercase font-bold tracking-wider text-slate-400 block leading-tight">Login User</span>
+                            <span className="font-mono text-slate-600 dark:text-slate-300 truncate block text-[11px] leading-normal" title={cfg.auth?.user || cfg.user}>
+                              {cfg.auth?.user || cfg.user}
+                            </span>
+                          </div>
+                        )}
+                        {cfg.replyTo && (
+                          <div className="min-w-0">
+                            <span className="text-[9px] uppercase font-bold tracking-wider text-slate-400 block leading-tight">Reply-To</span>
+                            <span className="text-slate-500 dark:text-slate-400 truncate block text-[11px] leading-normal" title={cfg.replyTo}>
+                              {cfg.replyTo}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right: Actions */}
+                      <div className="flex items-center gap-1 shrink-0 self-end lg:self-center">
+                        {!cfg.isDefault && (
+                          <button
+                            type="button"
+                            onClick={() => handleSetDefaultSmtp(cfg._id || cfg.title)}
+                            className="h-7 px-2 text-[10px] font-semibold text-slate-600 dark:text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg border border-slate-200/80 dark:border-slate-800 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            title="Set as Default Outgoing Server"
+                          >
+                            <LucideIcons.Star size={11} />
+                            <span className="hidden sm:inline">Set Default</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTestSelectedConfigId(cfg._id || cfg.title);
+                            handleTestSmtp(cfg);
+                          }}
+                          className="h-7 px-2 text-[10px] font-semibold text-teal-600 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/80 dark:bg-teal-950/40 dark:hover:bg-teal-900/60 rounded-lg border border-teal-200/60 dark:border-teal-800/60 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                          title="Test this server"
+                        >
+                          <LucideIcons.Send size={11} />
+                          <span>Test</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditSmtp(cfg)}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800 transition-colors cursor-pointer"
+                          title="Edit Server"
+                        >
+                          <LucideIcons.Edit2 size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSmtp(cfg._id || cfg.title, cfg.title)}
+                          disabled={smtpConfigs.length <= 1}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200/80 dark:border-slate-800 transition-colors cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
+                          title={smtpConfigs.length <= 1 ? "Cannot delete the only configured server" : "Delete Server"}
+                        >
+                          <LucideIcons.Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* ── GRID VIEW ── */
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {filteredSmtpConfigs.map((cfg, idx) => {
+                  const isGmail = /gmail|google/i.test(cfg.host || '');
+                  const isBrevo = /brevo|sendinblue/i.test(cfg.host || '');
+                  const isOffice = /office365|outlook/i.test(cfg.host || '');
+
+                  return (
+                    <div
+                      key={cfg._id || idx}
+                      className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
+                        cfg.isDefault
+                          ? 'bg-teal-50/30 dark:bg-teal-950/10 border-teal-500/40 dark:border-teal-500/30 shadow-xs'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xs hover:border-slate-300 dark:hover:border-slate-700'
+                      }`}
+                    >
+                      {/* Top Row: Icon, Title & Badges */}
+                      <div>
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-slate-200/70 dark:border-white/10 bg-slate-50 dark:bg-slate-800/80 shadow-2xs">
+                              {isGmail ? (
+                                <LucideIcons.Mail size={15} className="text-rose-600 dark:text-rose-400" />
+                              ) : isBrevo ? (
+                                <LucideIcons.Send size={15} className="text-sky-600 dark:text-sky-400" />
+                              ) : isOffice ? (
+                                <LucideIcons.Layers size={15} className="text-blue-600 dark:text-blue-400" />
+                              ) : (
+                                <LucideIcons.Server size={15} className="text-teal-600 dark:text-teal-400" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="font-bold text-xs text-slate-800 dark:text-slate-100 truncate" title={cfg.title}>
+                                {cfg.title || 'SMTP Server'}
+                              </h4>
+                              <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 truncate">
+                                {cfg.host}:{cfg.port || 587} • {cfg.secure ? 'SSL/TLS' : 'STARTTLS'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            {cfg.isDefault && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 uppercase tracking-wider">
+                                <LucideIcons.Star size={9} className="fill-amber-500 text-amber-500" />
+                                Default
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleEnableSmtp(cfg._id || cfg.title)}
+                              className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider border cursor-pointer transition-colors ${
+                                cfg.enabled
+                                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
+                              }`}
+                              title={cfg.enabled ? 'Click to disable' : 'Click to enable'}
+                            >
+                              ● {cfg.enabled ? 'Active' : 'Disabled'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Configuration Details Box */}
+                        <div className="mt-2.5 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-slate-400 text-[10px]">From Sender:</span>
+                            <span className="font-medium truncate text-slate-700 dark:text-slate-200 text-right">
+                              {cfg.fromName ? `${cfg.fromName} ` : ''}&lt;{cfg.fromEmail || cfg.auth?.user || cfg.user || 'system'}&gt;
+                            </span>
+                          </div>
+                          {(cfg.auth?.user || cfg.user) && (
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-slate-400 text-[10px]">Login User:</span>
+                              <span className="font-mono text-[10px] truncate text-slate-600 dark:text-slate-300 text-right">
+                                {cfg.auth?.user || cfg.user}
+                              </span>
+                            </div>
+                          )}
+                          {cfg.replyTo && (
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-slate-400 text-[10px]">Reply-To:</span>
+                              <span className="text-[10px] truncate text-slate-500 dark:text-slate-400 text-right">
+                                {cfg.replyTo}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Controls */}
+                      <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+                        <div>
+                          {!cfg.isDefault && (
+                            <button
+                              type="button"
+                              onClick={() => handleSetDefaultSmtp(cfg._id || cfg.title)}
+                              className="h-7 px-2 text-[10px] font-semibold text-slate-600 dark:text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg border border-slate-200/80 dark:border-slate-800 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                              title="Set as Default Outgoing Server"
+                            >
+                              <LucideIcons.Star size={11} />
+                              <span>Set Default</span>
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTestSelectedConfigId(cfg._id || cfg.title);
+                              handleTestSmtp(cfg);
+                            }}
+                            className="h-7 px-2 text-[10px] font-semibold text-teal-600 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/80 dark:bg-teal-950/40 dark:hover:bg-teal-900/60 rounded-lg border border-teal-200/60 dark:border-teal-800/60 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            title="Test this server"
+                          >
+                            <LucideIcons.Send size={11} />
+                            <span>Test</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditSmtp(cfg)}
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800 transition-colors cursor-pointer"
+                            title="Edit Server"
+                          >
+                            <LucideIcons.Edit2 size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSmtp(cfg._id || cfg.title, cfg.title)}
+                            disabled={smtpConfigs.length <= 1}
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200/80 dark:border-slate-800 transition-colors cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
+                            title={smtpConfigs.length <= 1 ? "Cannot delete the only configured server" : "Delete Server"}
+                          >
+                            <LucideIcons.Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Test Email Verification Box */}
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 border border-white/80 dark:border-white/10 shadow-[0_12px_40px_-10px_rgba(0,0,0,0.05),inset_0_1px_1px_rgba(255,255,255,0.8)] dark:shadow-[0_12px_40px_-10px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.05)] transition-colors">
-            <div className="flex items-start gap-3.5 mb-5">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500/15 via-white/80 to-white/40 dark:from-emerald-500/20 dark:via-slate-800/80 dark:to-slate-800/40 backdrop-blur-xl text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 dark:border-white/10 shadow-[0_4px_16px_rgba(16,185,129,0.15),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.1)] flex-shrink-0">
-                <LucideIcons.Send size={18} />
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800 shadow-xs transition-colors">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800/60 flex-shrink-0 shadow-2xs">
+                <LucideIcons.Send size={16} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   Send Test Verification Email
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Confirm connection with your mail server and receive a formatted test email to verify credentials before saving.
+                  Confirm connection with any of your configured mail servers and receive a formatted test email to verify credentials.
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              <div className="flex-1 w-full">
-                <input
-                  type="email"
-                  value={testRecipient}
-                  onChange={(e) => setTestRecipient(e.target.value)}
-                  placeholder="Enter recipient email address (e.g. your email)"
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Select server to test */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Select Server to Test
+                </label>
+                <select
+                  value={testSelectedConfigId}
+                  onChange={(e) => setTestSelectedConfigId(e.target.value)}
                   className={inputCls}
-                />
+                >
+                  {smtpConfigs.map((c, i) => (
+                    <option key={c._id || i} value={c._id || c.title}>
+                      {c.title} {c.isDefault ? '(Default)' : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <button
-                type="button"
-                onClick={handleTestSmtp}
-                disabled={testEmailLoading}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-semibold text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 flex-shrink-0"
-              >
-                {testEmailLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    <span>Verifying & Sending...</span>
-                  </>
-                ) : (
-                  <>
-                    <LucideIcons.Send size={15} />
-                    <span>Send Test Email</span>
-                  </>
-                )}
-              </button>
+
+              {/* Recipient Email */}
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Recipient Email Address
+                </label>
+                <div className="flex gap-2.5">
+                  <input
+                    type="email"
+                    value={testRecipient}
+                    onChange={(e) => setTestRecipient(e.target.value)}
+                    placeholder="Enter recipient email (e.g. your email)"
+                    className={inputCls}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleTestSmtp()}
+                    disabled={testEmailLoading}
+                    className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-semibold text-xs sm:text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
+                  >
+                    {testEmailLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        <span>Verifying...</span>
+                      </>
+                    ) : (
+                      <>
+                        <LucideIcons.Send size={15} />
+                        <span>Send Test</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {testResult && (
               <div
-                className={`mt-4 p-4 rounded-xl border flex items-start gap-3 transition-all ${
+                className={`mt-4 p-4 rounded-2xl border flex items-start gap-3 transition-all ${
                   testResult.success
                     ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/80 text-emerald-900 dark:text-emerald-200'
                     : 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800/80 text-red-900 dark:text-red-200'
@@ -1978,17 +2266,359 @@ const Settings = () => {
                 {testResult.success ? (
                   <LucideIcons.CheckCircle2 size={20} className="text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
                 ) : (
-                  <LucideIcons.AlertTriangle size={20} className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <LucideIcons.AlertCircle size={20} className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                 )}
                 <div className="text-xs">
                   <div className="font-bold mb-0.5">
                     {testResult.success ? 'Verification Succeeded' : 'Verification Failed'}
                   </div>
-                  <div className="opacity-90">{testResult.message}</div>
+                  <div className="opacity-90 leading-relaxed">{testResult.message}</div>
                 </div>
               </div>
             )}
           </div>
+
+          {/* ── ADD / EDIT SMTP MODAL ── */}
+          {showSmtpModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm overflow-y-auto">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-2xl w-full p-6 sm:p-7 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center border border-teal-500/20">
+                      <LucideIcons.Mail size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        {editingSmtpId ? 'Edit SMTP Configuration' : 'Add New SMTP Server'}
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Configure connection and sender parameters for this mailer.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSmtpModal(false)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    <LucideIcons.X size={18} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveSmtpForm} className="space-y-4 pt-4">
+                  {/* Provider Quick Presets */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                      Quick Provider Presets
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset('gmail')}
+                        className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                          smtpPreset === 'gmail'
+                            ? 'border-teal-500/80 bg-teal-50/70 dark:bg-teal-950/40 text-teal-950 dark:text-teal-100 ring-1 ring-teal-500/30'
+                            : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <LucideIcons.Mail size={15} className="text-rose-600 dark:text-rose-400" />
+                          {smtpPreset === 'gmail' && <LucideIcons.Check size={13} className="text-teal-600 dark:text-teal-400" />}
+                        </div>
+                        <div className="text-xs font-bold">Gmail / Google</div>
+                        <div className="text-[10px] text-slate-400">smtp.gmail.com</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset('brevo')}
+                        className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                          smtpPreset === 'brevo'
+                            ? 'border-teal-500/80 bg-teal-50/70 dark:bg-teal-950/40 text-teal-950 dark:text-teal-100 ring-1 ring-teal-500/30'
+                            : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <LucideIcons.Send size={15} className="text-sky-600 dark:text-sky-400" />
+                          {smtpPreset === 'brevo' && <LucideIcons.Check size={13} className="text-teal-600 dark:text-teal-400" />}
+                        </div>
+                        <div className="text-xs font-bold">Brevo</div>
+                        <div className="text-[10px] text-slate-400">smtp-relay.brevo.com</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset('office365')}
+                        className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                          smtpPreset === 'office365'
+                            ? 'border-teal-500/80 bg-teal-50/70 dark:bg-teal-950/40 text-teal-950 dark:text-teal-100 ring-1 ring-teal-500/30'
+                            : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <LucideIcons.Layers size={15} className="text-blue-600 dark:text-blue-400" />
+                          {smtpPreset === 'office365' && <LucideIcons.Check size={13} className="text-teal-600 dark:text-teal-400" />}
+                        </div>
+                        <div className="text-xs font-bold">Office 365</div>
+                        <div className="text-[10px] text-slate-400">smtp.office365.com</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset('custom')}
+                        className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                          smtpPreset === 'custom'
+                            ? 'border-teal-500/80 bg-teal-50/70 dark:bg-teal-950/40 text-teal-950 dark:text-teal-100 ring-1 ring-teal-500/30'
+                            : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <LucideIcons.Server size={15} className="text-teal-600 dark:text-teal-400" />
+                          {smtpPreset === 'custom' && <LucideIcons.Check size={13} className="text-teal-600 dark:text-teal-400" />}
+                        </div>
+                        <div className="text-xs font-bold">Custom SMTP</div>
+                        <div className="text-[10px] text-slate-400">Custom Host/Port</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Gmail App Password Note */}
+                  {(smtpPreset === 'gmail' || /gmail|google/i.test(smtpForm.host)) && (
+                    <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+                      <LucideIcons.Info size={16} className="flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                      <div className="space-y-0.5 leading-relaxed">
+                        <strong>Google requires an App Password:</strong> Go to Google Account → Security → 2-Step Verification → <strong>App Passwords</strong>. Create an app password and paste the 16 characters below.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Title & Host */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Configuration Title / Label *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        name="title"
+                        value={smtpForm.title}
+                        onChange={handleSmtpFormChange}
+                        placeholder="e.g. Primary Invoicing Mailer, Support Desk, Sales Outreach"
+                        className={inputCls}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        SMTP Host *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        name="host"
+                        value={smtpForm.host}
+                        onChange={handleSmtpFormChange}
+                        placeholder="e.g. smtp.gmail.com"
+                        className={inputCls}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Port *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        name="port"
+                        value={smtpForm.port}
+                        onChange={handleSmtpFormChange}
+                        placeholder="587"
+                        className={inputCls}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Username & Password */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        SMTP Username / Email
+                      </label>
+                      <input
+                        type="text"
+                        name="user"
+                        value={smtpForm.user}
+                        onChange={handleSmtpFormChange}
+                        placeholder="your-email@domain.com"
+                        className={inputCls}
+                        autoComplete="off"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        SMTP Password / App Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showSmtpPassword ? 'text' : 'password'}
+                          name="pass"
+                          value={smtpForm.pass}
+                          onChange={handleSmtpFormChange}
+                          placeholder={smtpForm.pass ? '••••••••' : 'Enter password'}
+                          className={`${inputCls} pr-10 font-mono`}
+                          autoComplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                        >
+                          {showSmtpPassword ? <LucideIcons.EyeOff size={16} /> : <LucideIcons.Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SSL/TLS Checkbox */}
+                  <div className="flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                    <input
+                      type="checkbox"
+                      id="formSmtpSecure"
+                      name="secure"
+                      checked={smtpForm.secure}
+                      onChange={handleSmtpFormChange}
+                      className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 cursor-pointer"
+                    />
+                    <label htmlFor="formSmtpSecure" className="text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+                      <strong>Use SSL/TLS Connection</strong> (Check for port 465; uncheck for port 587 or 25)
+                    </label>
+                  </div>
+
+                  {/* Sender Details */}
+                  <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                      Sender Information
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          From Email
+                        </label>
+                        <input
+                          type="email"
+                          name="fromEmail"
+                          value={smtpForm.fromEmail}
+                          onChange={handleSmtpFormChange}
+                          placeholder="billing@company.com"
+                          className={inputCls}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          From Display Name
+                        </label>
+                        <input
+                          type="text"
+                          name="fromName"
+                          value={smtpForm.fromName}
+                          onChange={handleSmtpFormChange}
+                          placeholder="Acme Invoicing"
+                          className={inputCls}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          Reply-To Email (Optional)
+                        </label>
+                        <input
+                          type="email"
+                          name="replyTo"
+                          value={smtpForm.replyTo}
+                          onChange={handleSmtpFormChange}
+                          placeholder="support@company.com"
+                          className={inputCls}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Toggles: Default & Enabled */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="isDefault"
+                        checked={smtpForm.isDefault}
+                        onChange={handleSmtpFormChange}
+                        className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                      />
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Set as default outgoing server
+                      </span>
+                    </label>
+
+                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="enabled"
+                        checked={smtpForm.enabled}
+                        onChange={handleSmtpFormChange}
+                        className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                      />
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Enable this SMTP server
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* Modal Footer */}
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => handleTestSmtp(smtpForm)}
+                      disabled={testEmailLoading || !smtpForm.host}
+                      className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                    >
+                      <LucideIcons.Send size={13} />
+                      <span>{testEmailLoading ? 'Testing...' : 'Test Connection'}</span>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowSmtpModal(false)}
+                        className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={smtpLoading}
+                        className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        {smtpLoading ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <LucideIcons.Save size={14} />
+                            <span>{editingSmtpId ? 'Save Changes' : 'Create SMTP Server'}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

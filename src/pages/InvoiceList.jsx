@@ -56,7 +56,8 @@ const InvoiceList = () => {
   const userStr = localStorage.getItem('user');
   let userObj = null;
   try { userObj = userStr ? JSON.parse(userStr).user : null; } catch(e) {}
-  const isPro = userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active';
+  const isSharedSession = sessionStorage.getItem('isSharedSession') === 'true' || sessionStorage.getItem('isSharedViewOnly') === 'true';
+  const isPro = isSharedSession || (userObj?.subscription?.plan === 'pro' && userObj?.subscription?.status === 'active') || userObj?.role === 'superadmin';
 
   // Close dropdown on outside click
   useEffect(() => {

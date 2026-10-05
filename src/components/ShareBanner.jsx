@@ -31,7 +31,8 @@ export default function ShareBanner() {
     sessionStorage.removeItem('shareRules');
     localStorage.removeItem('isSharedViewOnly');
     localStorage.removeItem('shareWatermark');
-    window.location.href = '/login';
+    const hasExistingAuth = Boolean(localStorage.getItem('authToken'));
+    window.location.href = hasExistingAuth ? '/invoices' : '/login';
   };
 
   if (isCanEdit) {

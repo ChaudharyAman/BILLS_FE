@@ -188,9 +188,34 @@ export default function ProfileSwitcher({ currentUser, isSuperAdmin, isCollapsed
               }`}>
                 {user?.username || 'User'}
               </span>
-              <span className={`text-[10px] truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className={`text-[10px] truncate leading-tight ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 {user?.email || ''}
               </span>
+              <div className="flex items-center gap-1.5 min-w-0 mt-0.5">
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0 shadow-xs"
+                  style={{ backgroundColor: activeProfile?.color || '#3b82f6' }}
+                />
+                <span className={`text-[10px] font-medium truncate ${
+                  isDark ? 'text-blue-400' : 'text-blue-600'
+                }`} title={`Workspace: ${activeProfile?.name || 'Default'}`}>
+                  {activeProfile?.name || 'Default'}
+                </span>
+                {activeProfile?.code && (
+                  <span className={`text-[8.5px] font-mono shrink-0 ${
+                    isDark ? 'text-slate-500' : 'text-slate-400'
+                  }`}>
+                    [{activeProfile.code}]
+                  </span>
+                )}
+                {isCurrentProfileShared && (
+                  <span className={`text-[8px] px-1 py-0.2 rounded font-medium shrink-0 uppercase ${
+                    isDark ? 'bg-amber-500/20 text-amber-300' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    Shared
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -221,7 +246,7 @@ export default function ProfileSwitcher({ currentUser, isSuperAdmin, isCollapsed
                 ? 'hover:bg-slate-800/80 border-transparent'
                 : 'hover:bg-slate-100 border-transparent'
           }`}
-          title={`User: ${user?.username || 'User'} • Profile: ${activeProfile?.name || 'Default'}`}
+          title={`User: ${user?.username || 'User'} • Workspace: ${activeProfile?.name || 'Default'}`}
         >
           <div className="relative shrink-0">
             <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-slate-200/40 bg-gradient-to-tr from-teal-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-xs">
@@ -234,7 +259,7 @@ export default function ProfileSwitcher({ currentUser, isSuperAdmin, isCollapsed
             <span
               className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-[#0f172a]"
               style={{ backgroundColor: activeProfile?.color || '#3b82f6' }}
-              title={`Active Profile: ${activeProfile?.name || 'Default'}`}
+              title={`Active Workspace: ${activeProfile?.name || 'Default'}`}
             />
           </div>
         </button>
@@ -293,6 +318,25 @@ export default function ProfileSwitcher({ currentUser, isSuperAdmin, isCollapsed
                   {user?.isOwner || activeProfile?.source === 'owner' ? 'Owner' : user?.role || 'Admin'}
                 </span>
               )}
+            </div>
+
+            {/* Current Active Workspace Indicator */}
+            <div className={`mt-2 pt-2 border-t flex items-center justify-between text-[11px] ${
+              isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-100 text-slate-500'
+            }`}>
+              <span className="flex items-center gap-1.5">
+                <Briefcase size={12} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
+                <span>Current Workspace:</span>
+              </span>
+              <span className={`font-semibold flex items-center gap-1.5 truncate max-w-[125px] ${
+                isDark ? 'text-blue-400' : 'text-blue-600'
+              }`} title={activeProfile?.name || 'Default'}>
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: activeProfile?.color || '#3b82f6' }}
+                />
+                <span className="truncate">{activeProfile?.name || 'Default'}</span>
+              </span>
             </div>
           </div>
 
