@@ -10,6 +10,7 @@ import CsvUploader from '../components/CsvUploader';
 import ItemSelect from '../components/ItemSelect';
 import AttachmentUploader from '../components/AttachmentUploader';
 import SendInvoiceModal from '../components/SendInvoiceModal';
+import { PAYMENT_METHODS } from '../utils/paymentMethods';
 
 
 const INVOICE_TYPES = ['Invoice', 'Retail Invoice', 'Tax Invoice', 'Excise Invoice'];
@@ -1222,11 +1223,13 @@ const InvoiceForm = () => {
               <select className={inp} value={formData.paymentMode}
                 data-testid="invoice-payment-mode"
                 onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}>
-                <option value="">Select</option>
-                <option>Cash</option>
-                <option>Cheque</option>
-                <option>Bank Transfer</option>
-                <option>UPI</option>
+                <option value="">Select Payment Mode</option>
+                {PAYMENT_METHODS.map(method => (
+                  <option key={method} value={method}>{method}</option>
+                ))}
+                {formData.paymentMode && !PAYMENT_METHODS.includes(formData.paymentMode) && (
+                  <option value={formData.paymentMode}>{formData.paymentMode}</option>
+                )}
               </select>
             </div>
             <div>
