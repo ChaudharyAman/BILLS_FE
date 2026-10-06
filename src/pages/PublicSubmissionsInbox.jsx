@@ -182,6 +182,15 @@ export default function PublicSubmissionsInbox() {
 
   // Inbox search filter (by reference number SUB-..., submitter, bill number, filename)
   const [inboxSearch, setInboxSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce API search requests by 300ms to avoid network thrashing on each keystroke
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(inboxSearch.trim());
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [inboxSearch]);
 
   // Edit state
   const [editMode, setEditMode]   = useState(false);
@@ -200,8 +209,8 @@ export default function PublicSubmissionsInbox() {
     setLoading(true);
     try {
       const params = { status: activeTab, page, limit: LIMIT };
-      if (inboxSearch.trim()) {
-        params.search = inboxSearch.trim();
+      if (debouncedSearch) {
+        params.search = debouncedSearch;
       }
       if (selectedSubmitters.length > 0) {
         const allQueryKeys = selectedSubmitters.flatMap((key) => {
@@ -226,22 +235,49 @@ export default function PublicSubmissionsInbox() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, page, selectedSubmitters, inboxSearch]);
+  }, [activeTab, page, selectedSubmitters, debouncedSearch]);
 
   useEffect(() => { fetchList(); }, [fetchList]);
-  useEffect(() => { setPage(1); setSelected(null); }, [activeTab, selectedSubmitters, inboxSearch]);
+  useEffect(() => { setPage(1); setSelected(null); }, [activeTab, selectedSubmitters, debouncedSearch]);
 
-  // Client-side quick filter across loaded submissions
+  // Client-side quick filter across loaded submissions for instant keystroke feedback
   const filteredSubmissions = React.useMemo(() => {
-    if (!inboxSearch.trim()) return submissions;
-    const q = inboxSearch.trim().toLowerCase();
+    const rawQ = inboxSearch.trim().toLowerCase();
+    if (!rawQ) return submissions;
+
+    // Check if user is typing reference number: e.g. "sub", "sub-", "sub-97", "97089fdc"
+    const isSubOnly = /^sub\s*[-–—]?\s*$/i.test(rawQ);
+    const cleanRefQ = rawQ.replace(/^sub\s*[-–—]?\s*/i, '').trim().replace(/\s+/g, '');
+
     return submissions.filter((sub) => {
-      const ref = (sub.referenceNumber || `SUB-${sub._id.slice(-8)}`).toLowerCase();
+      const ref = (sub.referenceNumber || (sub._id ? `SUB-${String(sub._id).slice(-8).toUpperCase()}` : '')).toLowerCase();
+      const refHex = ref.replace(/^sub-/, '');
       const name = (sub.submitterName || '').toLowerCase();
       const email = (sub.submitterEmail || '').toLowerCase();
       const invNo = (sub.parsedData?.invoiceNumber || '').toLowerCase();
       const fileName = (sub.files?.[0]?.originalName || '').toLowerCase();
-      return ref.includes(q) || name.includes(q) || email.includes(q) || invNo.includes(q) || fileName.includes(q);
+
+      // Anonymous matching
+      if (/^anon(ymous)?$/i.test(rawQ) && (!name || name === 'anonymous')) {
+        return true;
+      }
+
+      // If user typed "SUB" or "SUB-", all reference numbers match
+      if (isSubOnly && ref.startsWith('sub')) {
+        return true;
+      }
+
+      // Match reference number either with prefix (e.g. "sub-9708") or by suffix/hex directly (e.g. "9708")
+      if (ref.includes(rawQ) || (cleanRefQ && refHex.includes(cleanRefQ))) {
+        return true;
+      }
+
+      return (
+        name.includes(rawQ) ||
+        email.includes(rawQ) ||
+        invNo.includes(rawQ) ||
+        fileName.includes(rawQ)
+      );
     });
   }, [submissions, inboxSearch]);
 
