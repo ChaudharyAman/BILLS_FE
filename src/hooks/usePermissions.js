@@ -121,6 +121,11 @@ export function usePermissions() {
     return Boolean(modPerms[action]);
   }, [isSharedSession, isSharedViewOnly, isSharedCanEdit, shareRules, isModuleEnabled, authData?.role, isOwner, permissions]);
 
+  const isPro =
+    isSharedSession ||
+    (authData?.subscription?.plan === 'pro' && authData?.subscription?.status === 'active') ||
+    authData?.role === 'superadmin';
+
   return {
     isOwner,
     isSharedSession,
@@ -133,6 +138,8 @@ export function usePermissions() {
     enabledModules,
     user: authData,
     permissions,
+    isPro,
+    hasPremiumAccess: isPro,
   };
 }
 

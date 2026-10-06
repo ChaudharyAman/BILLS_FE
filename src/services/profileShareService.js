@@ -20,6 +20,11 @@ export const revokeProfileShare = async (profileId, shareId) => {
   return response.data;
 };
 
+export const sendShareEmail = async (profileId, shareId, data) => {
+  const response = await api.post(`/profiles/${profileId}/shares/${shareId}/send-email`, data);
+  return response.data;
+};
+
 export const getPublicShareMetadata = async (token, passcode = null) => {
   const config = passcode ? { headers: { 'x-share-passcode': passcode } } : {};
   const response = await api.get(`/shared/${token}`, config);

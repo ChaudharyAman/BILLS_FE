@@ -337,13 +337,15 @@ const Layout = ({ children }) => {
       isSuperAdmin = currentUser?.role === 'superadmin';
     } else if (isSharedSession) {
       currentUser = { username: 'Shared Workspace', role: 'share_viewer' };
+      isPro = true;
     }
   } catch (e) {
     console.error('Failed to parse user from localStorage', e);
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   void syncTick; // ensure syncTick is in the dependency chain for linters
-  const hasPremiumAccess = !isSharedSession && (isPro || isSuperAdmin);
+  // Shared workspace sessions inherit the workspace owner's Pro features that were shared with them
+  const hasPremiumAccess = isSharedSession || isPro || isSuperAdmin;
 
   const isActive = (path, exact = false) => {
     if (!path) return false;
@@ -389,6 +391,7 @@ const Layout = ({ children }) => {
   );
 
   const handlePremiumClick = (e, path) => {
+    if (isSharedSession) return;
     if (!hasPremiumAccess) {
       e.preventDefault();
       setShowPremiumModal(true);
@@ -855,7 +858,10 @@ const Layout = ({ children }) => {
             <button
               onClick={() => {
                 sessionStorage.clear();
-                window.location.href = '/login';
+                localStorage.removeItem('isSharedViewOnly');
+                localStorage.removeItem('shareWatermark');
+                const hasExistingAuth = Boolean(localStorage.getItem('authToken'));
+                window.location.href = hasExistingAuth ? '/invoices' : '/login';
               }}
               onMouseEnter={(e) => showTooltip('Exit Workspace', e)}
               onMouseLeave={hideTooltip}

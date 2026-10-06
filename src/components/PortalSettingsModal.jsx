@@ -3,9 +3,10 @@ import api from '../api/axios';
 import { toast } from 'react-hot-toast';
 import {
   FaLink, FaCopy, FaSync, FaInfoCircle, FaSave,
-  FaExternalLinkAlt, FaCheck, FaTimes, FaShieldAlt,
+  FaExternalLinkAlt, FaCheck, FaTimes, FaShieldAlt, FaEnvelope
 } from 'react-icons/fa';
 import Modal from './Modal';
+import PortalShareEmailModal from './PortalShareEmailModal';
 
 const inputCls = 'w-full border border-slate-300 dark:border-slate-700 rounded-lg shadow-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 p-2 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-colors';
 
@@ -23,6 +24,7 @@ export default function PortalSettingsModal({ isOpen, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -99,11 +101,12 @@ export default function PortalSettingsModal({ isOpen, onClose, onSaved }) {
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Public Submission Portal Settings"
-    >
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Public Submission Portal Settings"
+      >
       {loading ? (
         <div className="space-y-4 py-6 animate-pulse">
           <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
@@ -181,6 +184,14 @@ export default function PortalSettingsModal({ isOpen, onClose, onSaved }) {
                         <span>{copied ? 'Copied' : 'Copy'}</span>
                       </button>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailModal(true)}
+                      className="bg-teal-600 hover:bg-teal-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs whitespace-nowrap flex-shrink-0"
+                      title="Share upload link via email"
+                    >
+                      <FaEnvelope /> Share on Mail
+                    </button>
                     <button
                       type="button"
                       onClick={handleRegenerate}
@@ -314,5 +325,15 @@ export default function PortalSettingsModal({ isOpen, onClose, onSaved }) {
         </form>
       )}
     </Modal>
+
+    {/* Public Submission Portal Share via Email Modal */}
+    <PortalShareEmailModal
+      isOpen={showEmailModal}
+      onClose={() => setShowEmailModal(false)}
+      portalLink={shareableLink}
+      companyName={config?.companyDisplayName}
+      allowedCategories={config?.allowedCategories}
+    />
+    </>
   );
 }
