@@ -171,9 +171,6 @@ export default function PortalShareEmailModal({
               <span className="text-xs font-bold text-teal-800 dark:text-teal-300">
                 {companyName || 'Public Submission Portal'}
               </span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-teal-700 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/60 px-2 py-0.5 rounded-md border border-teal-200 dark:border-teal-800">
-                Direct Upload · No Login Required
-              </span>
             </div>
 
             <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-teal-200/70 dark:border-teal-800/60 px-3 py-1.5 rounded-lg">

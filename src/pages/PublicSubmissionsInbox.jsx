@@ -170,6 +170,19 @@ export default function PublicSubmissionsInbox() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [activeFileIndex, setActiveFileIndex] = useState(0);
 
+  // Copy Reference Number state & helper
+  const [copiedRef, setCopiedRef] = useState('');
+  const handleCopyRef = (ref) => {
+    if (!ref) return;
+    navigator.clipboard.writeText(ref);
+    setCopiedRef(ref);
+    toast.success(`Copied ${ref}`);
+    setTimeout(() => setCopiedRef(''), 2500);
+  };
+
+  // Inbox search filter (by reference number SUB-..., submitter, bill number, filename)
+  const [inboxSearch, setInboxSearch] = useState('');
+
   // Edit state
   const [editMode, setEditMode]   = useState(false);
   const [editData, setEditData]   = useState({});
@@ -187,6 +200,9 @@ export default function PublicSubmissionsInbox() {
     setLoading(true);
     try {
       const params = { status: activeTab, page, limit: LIMIT };
+      if (inboxSearch.trim()) {
+        params.search = inboxSearch.trim();
+      }
       if (selectedSubmitters.length > 0) {
         const allQueryKeys = selectedSubmitters.flatMap((key) => {
           const found = submittersListRef.current.find((s) => s.key === key);
@@ -210,15 +226,29 @@ export default function PublicSubmissionsInbox() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, page, selectedSubmitters]);
+  }, [activeTab, page, selectedSubmitters, inboxSearch]);
 
   useEffect(() => { fetchList(); }, [fetchList]);
-  useEffect(() => { setPage(1); setSelected(null); }, [activeTab, selectedSubmitters]);
+  useEffect(() => { setPage(1); setSelected(null); }, [activeTab, selectedSubmitters, inboxSearch]);
+
+  // Client-side quick filter across loaded submissions
+  const filteredSubmissions = React.useMemo(() => {
+    if (!inboxSearch.trim()) return submissions;
+    const q = inboxSearch.trim().toLowerCase();
+    return submissions.filter((sub) => {
+      const ref = (sub.referenceNumber || `SUB-${sub._id.slice(-8)}`).toLowerCase();
+      const name = (sub.submitterName || '').toLowerCase();
+      const email = (sub.submitterEmail || '').toLowerCase();
+      const invNo = (sub.parsedData?.invoiceNumber || '').toLowerCase();
+      const fileName = (sub.files?.[0]?.originalName || '').toLowerCase();
+      return ref.includes(q) || name.includes(q) || email.includes(q) || invNo.includes(q) || fileName.includes(q);
+    });
+  }, [submissions, inboxSearch]);
 
   // Group current submissions by unique user/submitter for the segregated view
   const groupedByUser = React.useMemo(() => {
     const map = new Map();
-    for (const sub of submissions) {
+    for (const sub of filteredSubmissions) {
       const emailKey = (sub.submitterEmail || '').trim().toLowerCase();
       const nameKey = (sub.submitterName || '').trim();
 
@@ -902,18 +932,44 @@ export default function PublicSubmissionsInbox() {
           )}
         </div>
 
+        {/* Quick Search */}
+        <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40 flex-shrink-0">
+          <div className="relative flex items-center">
+            <FaSearch className="absolute left-3 text-gray-400 text-xs pointer-events-none" />
+            <input
+              type="text"
+              value={inboxSearch}
+              onChange={(e) => setInboxSearch(e.target.value)}
+              placeholder="Search by Reference Number (SUB-...), Submitter, or Bill #..."
+              className="w-full pl-8 pr-7 py-1.5 text-xs bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-gray-800 dark:text-slate-200 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all shadow-2xs"
+            />
+            {inboxSearch && (
+              <button
+                type="button"
+                onClick={() => setInboxSearch('')}
+                className="absolute right-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 text-xs cursor-pointer p-0.5"
+                title="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* List */}
         <div className="flex-1 overflow-y-auto divide-y divide-gray-50 dark:divide-slate-800/60">
           {loading ? (
             <div className="flex items-center justify-center h-40">
               <FaSpinner className="animate-spin text-2xl text-indigo-400" />
             </div>
-          ) : submissions.length === 0 ? (
+          ) : filteredSubmissions.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-center p-6">
               <FaInbox className="text-3xl text-gray-300 dark:text-slate-600 mb-3" />
-              <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">No {activeTab} submissions</p>
+              <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">
+                {inboxSearch ? `No submissions match "${inboxSearch}"` : `No ${activeTab} submissions`}
+              </p>
               <p className="text-gray-400 dark:text-slate-500 text-xs mt-1">
-                {activeTab === 'pending' ? 'New submissions will appear here.' : 'None to show.'}
+                {inboxSearch ? 'Try a different search term or reference number.' : (activeTab === 'pending' ? 'New submissions will appear here.' : 'None to show.')}
               </p>
             </div>
           ) : viewMode === 'by-user' ? (
@@ -990,11 +1046,16 @@ export default function PublicSubmissionsInbox() {
                           }`}
                         >
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs font-semibold text-gray-800 dark:text-slate-200 truncate">
-                              {CATEGORY_LABELS[sub.suggestedCategory] || 'Document'}
-                              {sub.parsedData?.invoiceNumber ? ` · #${sub.parsedData.invoiceNumber}` : ''}
-                            </p>
-                            <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-slate-400 mt-0.5 flex-wrap">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono text-[11px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/80 px-2 py-0.5 rounded-md flex-shrink-0 shadow-2xs">
+                                {sub.referenceNumber || `SUB-${sub._id.slice(-8).toUpperCase()}`}
+                              </span>
+                              <p className="text-xs font-semibold text-gray-800 dark:text-slate-200 truncate">
+                                {CATEGORY_LABELS[sub.suggestedCategory] || 'Document'}
+                                {sub.parsedData?.invoiceNumber ? ` · #${sub.parsedData.invoiceNumber}` : ''}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-slate-400 mt-1 flex-wrap">
                               <span>{fmtDate(sub.createdAt)}</span>
                               <span>•</span>
                               <span>{sub.files?.length || 0} file{(sub.files?.length || 0) !== 1 ? 's' : ''}</span>
@@ -1021,34 +1082,37 @@ export default function PublicSubmissionsInbox() {
             })
           ) : (
             /* ── All Submissions Flat Feed ─────────────────────────────── */
-            submissions.map((sub) => (
+            filteredSubmissions.map((sub) => (
               <button
                 key={sub._id}
                 onClick={() => openDetail(sub)}
-                className={`w-full text-left px-5 py-4 hover:bg-indigo-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer
+                className={`w-full text-left px-5 py-3.5 hover:bg-indigo-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer
                   ${selected?._id === sub._id ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-l-2 border-indigo-500' : ''}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {sub.submitterAvatar && (
                         <img src={sub.submitterAvatar} alt="" className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700 flex-shrink-0" />
                       )}
                       <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate">
                         {sub.submitterName || 'Anonymous'}
                       </p>
+                      <span className="font-mono text-[11px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/80 px-2 py-0.5 rounded-md flex-shrink-0 shadow-2xs">
+                        {sub.referenceNumber || `SUB-${sub._id.slice(-8).toUpperCase()}`}
+                      </span>
                       {sub.isGoogleVerified && (
                         <span className="text-emerald-500 text-xs flex-shrink-0" title="Google Verified Submitter">
                           <FaCheckCircle size={11} />
                         </span>
                       )}
                       {sub.parsedData?.grandTotal !== undefined && sub.parsedData?.grandTotal !== null && Number(sub.parsedData.grandTotal) > 0 && (
-                        <span className="text-xs font-bold text-teal-600 dark:text-teal-400">
+                        <span className="text-xs font-bold text-teal-600 dark:text-teal-400 ml-auto">
                           ₹{Number(sub.parsedData.grandTotal).toLocaleString('en-IN')}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
                       {CATEGORY_LABELS[sub.suggestedCategory] || '—'}
                       {' · '}
                       {fmtDate(sub.createdAt)}
@@ -1104,12 +1168,26 @@ export default function PublicSubmissionsInbox() {
             <div className="flex-1 min-w-0">
               {selected && (
                 <>
-                  <h2 className="font-bold text-gray-800 dark:text-slate-100 truncate">
-                    {selected.submitterName || 'Anonymous'}&nbsp;
-                    <span className="font-normal text-gray-400 dark:text-slate-500 text-sm">
-                      (SUB-{selected._id.slice(-8).toUpperCase()})
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="font-bold text-gray-800 dark:text-slate-100 text-base truncate">
+                      {selected.submitterName || 'Anonymous'}
+                    </h2>
+                    <span className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/80 px-2.5 py-0.5 rounded-lg shadow-2xs">
+                      {selected.referenceNumber || `SUB-${selected._id.slice(-8).toUpperCase()}`}
+                      <button
+                        type="button"
+                        onClick={() => handleCopyRef(selected.referenceNumber || `SUB-${selected._id.slice(-8).toUpperCase()}`)}
+                        className="text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-200 p-0.5 cursor-pointer transition-colors"
+                        title="Copy reference number"
+                      >
+                        {copiedRef === (selected.referenceNumber || `SUB-${selected._id.slice(-8).toUpperCase()}`) ? (
+                          <FaCheck className="text-emerald-500 text-[10px]" />
+                        ) : (
+                          <FaCopy className="text-[10px]" />
+                        )}
+                      </button>
                     </span>
-                  </h2>
+                  </div>
                   <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
                     {fmtDate(selected.createdAt)}
                     {selected.submitterEmail && ` · ${selected.submitterEmail}`}
@@ -1233,14 +1311,29 @@ export default function PublicSubmissionsInbox() {
                       {selected.submitterName?.[0] || 'G'}
                     </div>
                   ) : null}
-                  <div className="space-y-1 min-w-0 flex-1">
-                    {selected.submitterName  && <p><span className="text-gray-500 dark:text-slate-400">Name:</span>  {selected.submitterName}</p>}
+                  <div className="space-y-1.5 min-w-0 flex-1 text-xs">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-gray-500 dark:text-slate-400 font-medium">Your Reference Number:</span>
+                      <span className="font-mono font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded text-xs inline-flex items-center gap-1.5 shadow-2xs">
+                        {selected.referenceNumber || `SUB-${selected._id.slice(-8).toUpperCase()}`}
+                        <button
+                          type="button"
+                          onClick={() => handleCopyRef(selected.referenceNumber || `SUB-${selected._id.slice(-8).toUpperCase()}`)}
+                          className="text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-200 p-0.5 cursor-pointer transition-colors"
+                          title="Copy reference number"
+                        >
+                          {copiedRef === (selected.referenceNumber || `SUB-${selected._id.slice(-8).toUpperCase()}`) ? (
+                            <FaCheck className="text-emerald-500 text-[10px]" />
+                          ) : (
+                            <FaCopy className="text-[10px]" />
+                          )}
+                        </button>
+                      </span>
+                    </div>
+                    {selected.submitterName  && <p><span className="text-gray-500 dark:text-slate-400">Name:</span>  <span className="font-semibold text-gray-800 dark:text-slate-200">{selected.submitterName}</span></p>}
                     {selected.submitterEmail && <p><span className="text-gray-500 dark:text-slate-400">Email:</span> {selected.submitterEmail}</p>}
                     {selected.submitterPhone && <p><span className="text-gray-500 dark:text-slate-400">Phone:</span> {selected.submitterPhone}</p>}
                     {selected.submitterNote  && <p><span className="text-gray-500 dark:text-slate-400">Note:</span>  <em>{selected.submitterNote}</em></p>}
-                    {!selected.submitterName && !selected.submitterEmail && !selected.submitterPhone && (
-                      <p className="text-gray-400 dark:text-slate-500 italic">No submitter details provided</p>
-                    )}
                   </div>
                 </div>
               </section>

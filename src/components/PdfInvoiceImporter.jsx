@@ -501,62 +501,63 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'in
                 </div>
 
                 {extractedData.items?.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                  <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+                    <table className="w-full text-sm text-slate-900">
                       <thead>
-                        <tr className="bg-gray-100 text-gray-600 text-xs font-bold uppercase">
-                          <th className="px-3 py-2 text-left rounded-l-lg">#</th>
-                          <th className="px-3 py-2 text-left">Item / Description</th>
-                          <th className="px-3 py-2 text-right">Qty</th>
-                          <th className="px-3 py-2 text-right">Rate</th>
-                          <th className="px-3 py-2 text-right">GST %</th>
-                          <th className="px-3 py-2 text-right">Amount</th>
-                          <th className="px-3 py-2 text-center rounded-r-lg">
+                        <tr className="bg-slate-100 text-slate-700 text-xs font-bold uppercase tracking-wider border-b border-gray-200">
+                          <th className="px-3 py-2.5 text-left rounded-tl-xl w-10">#</th>
+                          <th className="px-3 py-2.5 text-left min-w-[220px]">Item / Description</th>
+                          <th className="px-3 py-2.5 text-right w-20">Qty</th>
+                          <th className="px-3 py-2.5 text-right w-28">Rate</th>
+                          <th className="px-3 py-2.5 text-right w-20">GST %</th>
+                          <th className="px-3 py-2.5 text-right w-28">Amount</th>
+                          <th className="px-3 py-2.5 text-center rounded-tr-xl w-12">
                             <span className="sr-only">Actions</span>
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-gray-200 bg-white">
                         {extractedData.items.map((item, idx) => (
-                          <tr key={idx} className="hover:bg-white/80 transition-colors">
-                            <td className="px-3 py-2 text-gray-400 text-xs">{idx + 1}</td>
-                            <td className="px-3 py-2">
+                          <tr key={idx} className="hover:bg-blue-50/40 transition-colors group">
+                            <td className="px-3 py-2.5 text-slate-600 font-semibold text-xs text-center">{idx + 1}</td>
+                            <td className="px-3 py-2.5">
                               <input
                                 type="text"
                                 value={item.name || ''}
                                 onChange={e => updateItem(idx, 'name', e.target.value)}
-                                className="w-full bg-transparent border-0 border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-0 text-sm px-0 py-0.5 outline-none transition-colors"
+                                placeholder="Item name / description"
+                                className="w-full bg-transparent border-0 border-b border-transparent group-hover:border-gray-300 focus:border-blue-600 focus:ring-0 text-sm font-semibold text-slate-900 placeholder:text-slate-400 px-1 py-1 outline-none transition-colors"
                               />
                             </td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-2.5">
                               <input
                                 type="number"
                                 value={item.quantity || ''}
                                 onChange={e => updateItem(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                                className="w-16 bg-transparent border-0 border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-0 text-sm text-right px-0 py-0.5 outline-none transition-colors"
+                                className="w-20 bg-transparent border-0 border-b border-transparent group-hover:border-gray-300 focus:border-blue-600 focus:ring-0 text-sm font-semibold text-slate-900 text-right px-1 py-1 outline-none transition-colors"
                               />
                             </td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-2.5">
                               <input
                                 type="number"
                                 value={item.price || ''}
                                 onChange={e => updateItem(idx, 'price', parseFloat(e.target.value) || 0)}
-                                className="w-24 bg-transparent border-0 border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-0 text-sm text-right px-0 py-0.5 outline-none transition-colors"
+                                className="w-24 bg-transparent border-0 border-b border-transparent group-hover:border-gray-300 focus:border-blue-600 focus:ring-0 text-sm font-semibold text-slate-900 text-right px-1 py-1 outline-none transition-colors"
                               />
                             </td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-2.5">
                               <input
                                 type="number"
                                 value={item.gst || ''}
                                 onChange={e => updateItem(idx, 'gst', parseFloat(e.target.value) || 0)}
-                                className="w-16 bg-transparent border-0 border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-0 text-sm text-right px-0 py-0.5 outline-none transition-colors"
+                                className="w-20 bg-transparent border-0 border-b border-transparent group-hover:border-gray-300 focus:border-blue-600 focus:ring-0 text-sm font-semibold text-slate-900 text-right px-1 py-1 outline-none transition-colors"
                               />
                             </td>
-                            <td className="px-3 py-2 text-right font-semibold text-gray-900">
+                            <td className="px-3 py-2.5 text-right font-bold text-slate-900">
                               ₹{(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </td>
-                            <td className="px-3 py-2 text-center">
-                              <button onClick={() => removeItem(idx)} className="text-gray-300 hover:text-red-500 transition-colors" title="Remove item">
+                            <td className="px-3 py-2.5 text-center">
+                              <button onClick={() => removeItem(idx)} className="text-slate-400 hover:text-red-600 transition-colors p-1 rounded hover:bg-red-50" title="Remove item">
                                 <FaTrash size={13} />
                               </button>
                             </td>
@@ -566,7 +567,7 @@ const PdfInvoiceImporter = ({ isOpen, onClose, onImportSuccess, targetType = 'in
                     </table>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400 text-center py-4">No items extracted. Add items manually or try another PDF.</p>
+                  <p className="text-sm text-slate-500 text-center py-4">No items extracted. Add items manually or try another PDF.</p>
                 )}
               </div>
 
@@ -642,15 +643,15 @@ const EditableField = ({ label, value, onChange, type = 'text' }) => {
   const isEmpty = !displayValue;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-100 p-2.5 hover:border-blue-200 transition-colors group">
-      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{label}</label>
+    <div className="bg-white rounded-lg border border-gray-200 p-2.5 hover:border-blue-300 focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 transition-colors group">
+      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">{label}</label>
       <input
         type={type}
         value={displayValue}
         onChange={e => onChange(e.target.value)}
         placeholder={`Enter ${label.toLowerCase()}`}
-        className={`w-full bg-transparent border-0 text-sm font-medium px-0 py-0 outline-none focus:ring-0 transition-colors
-          ${isEmpty ? 'text-red-400 italic placeholder:text-red-300' : 'text-gray-900 placeholder:text-gray-300'}`}
+        className={`w-full bg-transparent border-0 text-sm font-semibold px-0 py-0 outline-none focus:ring-0 transition-colors
+          ${isEmpty ? 'text-amber-700 italic placeholder:text-amber-500/70' : 'text-slate-900 placeholder:text-slate-400'}`}
       />
     </div>
   );
