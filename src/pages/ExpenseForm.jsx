@@ -1063,6 +1063,12 @@ const ExpenseForm = () => {
                     </div>
                   )}
                   {formData.tds_applicable && (
+                    <div className="flex justify-between items-center px-4 text-xs font-bold text-slate-700 dark:text-slate-200 border-t border-gray-100 dark:border-slate-800 pt-1.5">
+                      <span>Total Amount:</span>
+                      <span>₹ {totals.grandTotal.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {formData.tds_applicable && (
                     <div className="flex justify-between items-center px-4 text-xs font-bold text-red-500 dark:text-red-400">
                       <span>TDS @ {formData.tds_rate}% ({formData.tds_section}):</span>
                       <span>-₹ {formData.tds_amount.toFixed(2)}</span>
