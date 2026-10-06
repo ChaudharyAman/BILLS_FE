@@ -483,23 +483,6 @@ const InvoiceForm = () => {
     try {
       setLoading(true);
 
-      const savedDraft = localStorage.getItem(`flance_draft_invoice_edit_${invoiceId}`);
-      if (savedDraft) {
-        try {
-          const parsed = JSON.parse(savedDraft);
-          setFormData(parsed);
-          if (parsed.shippingCharges > 0) setShowShipping(true);
-          if (Number(parsed.packagingCharges) !== 0) setShowCustomAmount(true);
-          if (parsed.discountTotal > 0) setShowDiscountTotal(true);
-          if (parsed.advancePaid > 0) setShowAdvance(true);
-          setIsLoaded(true);
-          setLoading(false);
-          return;
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
       const res = await api.get(`/invoices/${invoiceId}`);
       const inv = res.data;
       const fmt = (d) => d ? new Date(d).toISOString().split('T')[0] : '';
