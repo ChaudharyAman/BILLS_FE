@@ -333,7 +333,7 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
 
   const downloadFile = (docId, filename) => {
     const downloadUrl = `${api.defaults.baseURL || '/api'}/company-documents/${docId}/download`;
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('token');
     
     // Fetch with auth or direct window open
     api.get(`/company-documents/${docId}/download`, { responseType: 'blob' })

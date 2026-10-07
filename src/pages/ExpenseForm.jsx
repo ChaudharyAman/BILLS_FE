@@ -4,6 +4,7 @@ import api from '../api/axios';
 import { FaCalendarAlt, FaCheck, FaTimes, FaPlus } from 'react-icons/fa';
 import { buildPdfTransactionPatch } from '../utils/pdfTransactionImport';
 import AttachmentUploader from '../components/AttachmentUploader';
+import { PAYMENT_METHODS } from '../utils/paymentMethods';
 
 const ExpenseForm = () => {
   const { id } = useParams();
@@ -89,10 +90,15 @@ const ExpenseForm = () => {
         
         let prefix = 'EXP-';
         let suffix = data.expenseNumber || '';
-        if (data.expenseNumber && data.expenseNumber.includes('-')) {
-            const parts = data.expenseNumber.split('-');
-            prefix = parts[0] + '-';
-            suffix = parts[1];
+        if (data.expenseNumber) {
+          const lastDash = data.expenseNumber.lastIndexOf('-');
+          if (lastDash !== -1) {
+            prefix = data.expenseNumber.substring(0, lastDash + 1);
+            suffix = data.expenseNumber.substring(lastDash + 1);
+          } else {
+            prefix = '';
+            suffix = data.expenseNumber;
+          }
         }
 
         const initialData = {
@@ -103,6 +109,9 @@ const ExpenseForm = () => {
             tds_rate: data.tds_rate || 0,
             tds_amount: data.tds_amount || 0,
             net_vendor_payment: data.net_vendor_payment || 0,
+            originalExpenseNumber: data.expenseNumber || '',
+            originalPrefix: prefix,
+            originalSuffix: suffix,
         };
         initialValues.current = initialData;
 
@@ -419,8 +428,20 @@ const ExpenseForm = () => {
       }
 
       const suffix = formData.expenseNumberSuffix?.trim() || String(Date.now()).slice(-6);
+      const rawPrefix = formData.expenseNumberPrefix?.trim();
+      const cleanPrefix = rawPrefix ? (rawPrefix.endsWith('-') ? rawPrefix : `${rawPrefix}-`) : '';
+      
+      let computedExpenseNumber = `${cleanPrefix}${suffix}`;
+      if (id && initialValues.current?.originalExpenseNumber) {
+        const origPrefix = initialValues.current.originalPrefix;
+        const origSuffix = initialValues.current.originalSuffix;
+        if (rawPrefix === origPrefix && suffix === origSuffix) {
+          computedExpenseNumber = initialValues.current.originalExpenseNumber;
+        }
+      }
+
       const payload = {
-        expenseNumber: `${formData.expenseNumberPrefix}${suffix}`,
+        expenseNumber: computedExpenseNumber,
         date: formData.date,
         dueDate: formData.dueDate || null,
         paymentMethod: formData.paymentMethod,
@@ -600,8 +621,11 @@ const ExpenseForm = () => {
                   <input 
                     type="text" 
                     className="w-24 border border-gray-200 dark:border-slate-700 rounded text-sm px-3 py-2 text-gray-900 dark:text-slate-100 text-center uppercase focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-sans bg-[#f8f9fa] dark:bg-slate-800 shadow-sm font-normal" 
-                    value={formData.expenseNumberPrefix.replace(/-$/, '')} 
-                    onChange={e => setFormData(p => ({ ...p, expenseNumberPrefix: e.target.value }))}
+                    value={formData.expenseNumberPrefix ? formData.expenseNumberPrefix.replace(/-+$/, '') : ''} 
+                    onChange={e => {
+                      const val = e.target.value.trim().toUpperCase();
+                      setFormData(p => ({ ...p, expenseNumberPrefix: val ? `${val}-` : '' }));
+                    }}
                   />
                   -
                   <input 
@@ -625,12 +649,13 @@ const ExpenseForm = () => {
                   value={formData.paymentMethod}
                   onChange={e => setFormData(p => ({ ...p, paymentMethod: e.target.value }))}
                 >
-                  <option value=""></option>
-                  <option value="Cash">Cash</option>
-                  <option value="Bank Transfer">Bank Transfer</option>
-                  <option value="Credit Card">Credit Card</option>
-                  <option value="Cheque">Cheque</option>
-                  <option value="UPI">UPI</option>
+                  <option value="">Select Payment Method</option>
+                  {PAYMENT_METHODS.map(method => (
+                    <option key={method} value={method}>{method}</option>
+                  ))}
+                  {formData.paymentMethod && !PAYMENT_METHODS.includes(formData.paymentMethod) && (
+                    <option value={formData.paymentMethod}>{formData.paymentMethod}</option>
+                  )}
                   </select>
                 </div>
               </div>
@@ -1037,6 +1062,12 @@ const ExpenseForm = () => {
                     <div className="flex justify-between items-center px-4 text-xs font-semibold text-slate-500 dark:text-slate-400">
                       <span>GST:</span>
                       <span className="text-slate-700 dark:text-slate-200">₹ {totals.taxTotal.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {formData.tds_applicable && (
+                    <div className="flex justify-between items-center px-4 text-xs font-bold text-slate-700 dark:text-slate-200 border-t border-gray-100 dark:border-slate-800 pt-1.5">
+                      <span>Total Amount:</span>
+                      <span>₹ {totals.grandTotal.toFixed(2)}</span>
                     </div>
                   )}
                   {formData.tds_applicable && (

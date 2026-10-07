@@ -79,7 +79,7 @@ const SummaryRow = ({ label, value, green, red, isBoldValue, vWidth = '220px' })
 );
 
 // ── MODERN TEMPLATE ───────────────────────────────────────────────
-const ModernTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra, hasExcise, hasDiscount, grandTotal, amountDue, rounded, balanceDue, advancePaid, tds, taxRate, invType }) => {
+const ModernTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra, hasExcise, hasDiscount, grandTotal, amountDue, rounded, balanceDue, advancePaid, tds, taxRate, invType, columnsConfig = {} }) => {
   const companyAddr = addrStr(company.address);
   const clientAddr  = addrStr(client.address);
   const shipAddr    = invoice.shippingAddress?.line1 ? addrStr(invoice.shippingAddress) : (client.shippingAddress?.line1 ? addrStr(client.shippingAddress) : clientAddr);
@@ -87,6 +87,34 @@ const ModernTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra
   const isTdsApplicable = invoice.tds_applicable !== undefined ? invoice.tds_applicable : invoice.tdsApplicable;
   const tdsSection = invoice.tds_section !== undefined ? invoice.tds_section : invoice.tdsSection;
   const tdsRate = invoice.tds_rate !== undefined ? invoice.tds_rate : invoice.tdsRate;
+  
+  const colCfg = {
+    sno: true,
+    name: true,
+    description: true,
+    hsnSac: true,
+    qty: true,
+    unit: true,
+    rate: true,
+    discount: true,
+    taxableAmount: true,
+    taxBreakdown: true,
+    total: true,
+    ...columnsConfig,
+  };
+
+  const showSno = colCfg.sno !== false;
+  const showName = colCfg.name !== false;
+  const showDesc = colCfg.description !== false;
+  const showItem = showName || showDesc;
+  const showHsn = colCfg.hsnSac !== false;
+  const showQty = colCfg.qty === true || colCfg.qty !== false;
+  const showUnit = colCfg.unit === true || colCfg.unit !== false;
+  const showRate = colCfg.rate !== false;
+  const showDiscount = colCfg.discount !== false && hasDiscount;
+  const showTaxable = colCfg.taxableAmount !== false && hasTax;
+  const showTaxBreakdown = colCfg.taxBreakdown !== false && hasTax;
+  const showTotal = colCfg.total !== false;
   
   return (
     <div id="invoice-print-modern" style={{
@@ -185,17 +213,19 @@ const ModernTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra
       <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11, marginBottom:0 }}>
         <thead>
           <tr>
-            <th style={TH('center','4%')}>S.No</th>
-            <th style={TH('left', '32%')}>Item{'\n'}Description</th>
-            <th style={TH('center','10%')}>HSN/SAC</th>
-            <th style={TH('right','10%')}>{'Price\n(₹)'}</th>
-            {hasDiscount && <th style={TH('right', '8%')}>{'Discount\n(%)'}</th>}
-            {hasTax && <th style={TH('right','12%')}>{'Taxable\nValue (₹)'}</th>}
-            {hasTax && isIntra  && <th style={TH('right','10%')}>{'CGST\n(₹)'}</th>}
-            {hasTax && isIntra  && <th style={TH('right','10%')}>{'SGST\n(₹)'}</th>}
-            {hasTax && !isIntra && <th style={TH('right','10%')}>{'IGST\n(₹)'}</th>}
+            {showSno && <th style={TH('center','4%')}>S.No</th>}
+            {showItem && <th style={TH('left', 'auto')}>Item{'\n'}Description</th>}
+            {showHsn && <th style={TH('center','10%')}>HSN/SAC</th>}
+            {showQty && <th style={TH('right','8%')}>Qty</th>}
+            {showUnit && <th style={TH('center','6%')}>Unit</th>}
+            {showRate && <th style={TH('right','10%')}>{'Price\n(₹)'}</th>}
+            {showDiscount && <th style={TH('right', '8%')}>{'Discount\n(%)'}</th>}
+            {showTaxable && <th style={TH('right','12%')}>{'Taxable\nValue (₹)'}</th>}
+            {showTaxBreakdown && isIntra  && <th style={TH('right','10%')}>{'CGST\n(₹)'}</th>}
+            {showTaxBreakdown && isIntra  && <th style={TH('right','10%')}>{'SGST\n(₹)'}</th>}
+            {showTaxBreakdown && !isIntra && <th style={TH('right','10%')}>{'IGST\n(₹)'}</th>}
             {hasExcise && <th style={TH('right','8%')}>{'Excise\n(₹)'}</th>}
-            <th style={{ ...TH('right','12%'), borderRight:'none' }}>{'Amount\n(₹)'}</th>
+            {showTotal && <th style={{ ...TH('right','12%'), borderRight:'none' }}>{'Amount\n(₹)'}</th>}
           </tr>
         </thead>
         <tbody>
@@ -211,30 +241,34 @@ const ModernTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra
             const rowBg   = i % 2 === 0 ? '#fff' : '#f8f8f8';
             return (
               <tr key={i} style={{ background: rowBg }}>
-                <td style={{ ...TD('center'), fontWeight:700 }}>{i + 1}</td>
-                <td style={TD('left', true)}>
-                  <div style={{ fontWeight:700, color: TEAL }}>{item.name}</div>
-                  {item.description && (
-                    <div style={{ color: MUTED, fontSize:10, marginTop:1, whiteSpace:'pre-wrap' }}>{item.description}</div>
-                  )}
-                </td>
-                <td style={{ ...TD('center'), fontWeight:700 }}>{item.hsnCode || ''}</td>
-                <td style={{ ...TD('right'), fontWeight:700 }}>{fmt(rate)}</td>
-                {hasDiscount && <td style={TD('right')}>{discPct > 0 ? `${discPct}%` : ''}</td>}
-                {hasTax && <td style={{ ...TD('right'), fontWeight:700 }}>{fmt(taxable)}</td>}
-                {hasTax && isIntra && (
+                {showSno && <td style={{ ...TD('center'), fontWeight:700 }}>{i + 1}</td>}
+                {showItem && (
+                  <td style={TD('left', true)}>
+                    {showName && <div style={{ fontWeight:700, color: TEAL }}>{item.name}</div>}
+                    {showDesc && item.description && (
+                      <div style={{ color: MUTED, fontSize:10, marginTop:1, whiteSpace:'pre-wrap' }}>{item.description}</div>
+                    )}
+                  </td>
+                )}
+                {showHsn && <td style={{ ...TD('center'), fontWeight:700 }}>{item.hsnCode || ''}</td>}
+                {showQty && <td style={{ ...TD('right'), fontWeight:700 }}>{qty}</td>}
+                {showUnit && <td style={{ ...TD('center'), fontWeight:500 }}>{item.unit || ''}</td>}
+                {showRate && <td style={{ ...TD('right'), fontWeight:700 }}>{fmt(rate)}</td>}
+                {showDiscount && <td style={TD('right')}>{discPct > 0 ? `${discPct}%` : ''}</td>}
+                {showTaxable && <td style={{ ...TD('right'), fontWeight:700 }}>{fmt(taxable)}</td>}
+                {showTaxBreakdown && isIntra && (
                   <td style={{ ...TD('right'), fontWeight:700 }}>
                     {fmt(cgstAmt)}
                     {cgstR > 0 && <><br/><span style={{ fontSize:9, color: MUTED, fontWeight:400 }}>{cgstR}%</span></>}
                   </td>
                 )}
-                {hasTax && isIntra && (
+                {showTaxBreakdown && isIntra && (
                   <td style={{ ...TD('right'), fontWeight:700 }}>
                     {fmt(sgstAmt)}
                     {cgstR > 0 && <><br/><span style={{ fontSize:9, color: MUTED, fontWeight:400 }}>{cgstR}%</span></>}
                   </td>
                 )}
-                {hasTax && !isIntra && (
+                {showTaxBreakdown && !isIntra && (
                   <td style={{ ...TD('right'), fontWeight:700 }}>
                     {fmt(igstAmt)}
                     {item.taxRate > 0 && <><br/><span style={{ fontSize:9, color: MUTED, fontWeight:400 }}>{item.taxRate}%</span></>}
@@ -246,22 +280,22 @@ const ModernTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra
                     <span style={{ fontSize:9, color: MUTED, fontWeight:400 }}>BED {item.bedPercent}%</span>
                   </td>
                 )}
-                <td style={{ ...TD('right'), fontWeight:700 }}>{fmt(item.amount)}</td>
+                {showTotal && <td style={{ ...TD('right'), fontWeight:700 }}>{fmt(item.amount)}</td>}
               </tr>
             );
           })}
         </tbody>
         <tfoot>
           <tr style={{ background:'#eef5f8' }}>
-            <td colSpan={4 + (hasDiscount ? 1 : 0)} style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, fontSize:11, color: TEXT, borderTop:`2px solid ${TEAL}` }}>
+            <td colSpan={Math.max(1, [showSno, showItem, showHsn, showQty, showUnit, showRate, showDiscount].filter(Boolean).length)} style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, fontSize:11, color: TEXT, borderTop:`2px solid ${TEAL}` }}>
               Total {taxRate > 0 ? `@${taxRate}%` : ''}
             </td>
-            {hasTax && (
+            {showTaxable && (
               <td style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                 {fmt(invoice.subTotal)}
               </td>
             )}
-            {hasTax && isIntra && (
+            {showTaxBreakdown && isIntra && (
               <>
                 <td style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                   {fmt(invoice.totalCGST)}
@@ -271,7 +305,7 @@ const ModernTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra
                 </td>
               </>
             )}
-            {hasTax && !isIntra && (
+            {showTaxBreakdown && !isIntra && (
               <td style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
                 {fmt(invoice.totalIGST)}
               </td>
@@ -281,9 +315,11 @@ const ModernTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra
                 {fmt(invoice.exciseDuty?.totalExcise)}
               </td>
             )}
-            <td style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
-              {fmt(invoice.grandTotal)}
-            </td>
+            {showTotal && (
+              <td style={{ padding:'4px 8px', textAlign:'right', fontWeight:400, borderTop:`2px solid ${TEAL}` }}>
+                {fmt(invoice.grandTotal)}
+              </td>
+            )}
           </tr>
         </tfoot>
       </table>
@@ -658,7 +694,7 @@ const ClassicTemplateOld = ({ invoice, company, client, items, hasTax, isIntra, 
 
 
 // ── Main Component ───────────────────────────────────────────────
-const ClassicTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra, grandTotal, invType }) => {
+const ClassicTemplate = ({ invoice, company, client, bank, items, hasTax, isIntra, grandTotal, invType, columnsConfig = {} }) => {
   const border = '1px solid #000';
   const rowBorder = '1px solid #000';
   const isTdsApplicable = invoice.tds_applicable !== undefined ? invoice.tds_applicable : invoice.tdsApplicable;
@@ -677,6 +713,43 @@ const ClassicTemplate = ({ invoice, company, client, bank, items, hasTax, isIntr
   const distinctTaxRates = [...new Set(safeItems.map((item) => Number(item.taxRate) || 0).filter((rate) => rate > 0))];
   const uniformTaxRate = distinctTaxRates.length === 1 ? distinctTaxRates[0] : null;
   const fillerHeight = Math.max(0, 380 - safeItems.length * 72);
+
+  const colCfg = {
+    sno: true,
+    name: true,
+    description: true,
+    hsnSac: true,
+    qty: true,
+    unit: true,
+    listPrice: true,
+    discount: true,
+    rate: true,
+    total: true,
+    ...columnsConfig,
+  };
+
+  const showSno = colCfg.sno !== false;
+  const showName = colCfg.name !== false;
+  const showDesc = colCfg.description !== false;
+  const showItem = showName || showDesc;
+  const showHsn = colCfg.hsnSac !== false;
+  const showQty = colCfg.qty !== false;
+  const showUnit = colCfg.unit !== false;
+  const showListPrice = colCfg.listPrice !== false;
+  const showDiscount = colCfg.discount !== false;
+  const showRate = colCfg.rate !== false;
+  const showTotal = colCfg.total !== false;
+  const visibleClassicColCount = [
+    showSno,
+    showItem,
+    showHsn,
+    showQty,
+    showUnit,
+    showListPrice,
+    showDiscount,
+    showRate,
+    showTotal
+  ].filter(Boolean).length || 1;
 
 
   const taxSummaryRows = Object.values(safeItems.reduce((acc, item) => {
@@ -808,15 +881,15 @@ const ClassicTemplate = ({ invoice, company, client, bank, items, hasTax, isIntr
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <thead>
           <tr>
-            <th style={{ ...tableHead, width: '3.8%', textAlign: 'center' }}>S.N.</th>
-            <th style={{ ...tableHead, width: '26.7%', textAlign: 'left' }}>Description of Goods</th>
-            <th style={{ ...tableHead, width: '10%', textAlign: 'left' }}>HSN/SAC<br />Code</th>
-            <th style={{ ...tableHead, width: '7%', textAlign: 'right' }}>Qty.</th>
-            <th style={{ ...tableHead, width: '6%', textAlign: 'left' }}>Unit</th>
-            <th style={{ ...tableHead, width: '11%', textAlign: 'right' }}>List Price</th>
-            <th style={{ ...tableHead, width: '9%', textAlign: 'left' }}>Discount</th>
-            <th style={{ ...tableHead, width: '11.5%', textAlign: 'right' }}>Price</th>
-            <th style={{ ...tableHead, width: '15.0%', textAlign: 'right', borderRight: 'none' }}>Amount(`)</th>
+            {showSno && <th style={{ ...tableHead, width: '3.8%', textAlign: 'center' }}>S.N.</th>}
+            {showItem && <th style={{ ...tableHead, width: 'auto', textAlign: 'left' }}>Description of Goods</th>}
+            {showHsn && <th style={{ ...tableHead, width: '10%', textAlign: 'left' }}>HSN/SAC<br />Code</th>}
+            {showQty && <th style={{ ...tableHead, width: '7%', textAlign: 'right' }}>Qty.</th>}
+            {showUnit && <th style={{ ...tableHead, width: '6%', textAlign: 'left' }}>Unit</th>}
+            {showListPrice && <th style={{ ...tableHead, width: '11%', textAlign: 'right' }}>List Price</th>}
+            {showDiscount && <th style={{ ...tableHead, width: '9%', textAlign: 'left' }}>Discount</th>}
+            {showRate && <th style={{ ...tableHead, width: '11.5%', textAlign: 'right' }}>Price</th>}
+            {showTotal && <th style={{ ...tableHead, width: '15.0%', textAlign: 'right', borderRight: 'none' }}>Amount(`)</th>}
           </tr>
         </thead>
         <tbody>
@@ -830,36 +903,39 @@ const ClassicTemplate = ({ invoice, company, client, bank, items, hasTax, isIntr
 
             return (
               <tr key={`${item.name || 'item'}-${index}`}>
-                <td style={{ ...tableCell, textAlign: 'right' }}>{item.name ? `${index + 1}.` : ''}</td>
-                <td style={tableCell}>
-                  <div style={{ fontSize: 14, lineHeight: 1.25 }}>{item.name}</div>
-                  {item.description && (
-                    <div style={{ fontSize: 13, lineHeight: 1.25, marginTop: 4, paddingLeft: 16, whiteSpace: 'pre-wrap' }}>
-                      {item.description}
-                    </div>
-                  )}
-                </td>
-                <td style={{ ...tableCell, fontSize: 13 }}>{item.hsnCode || ''}</td>
-                <td style={{ ...tableCell, textAlign: 'right', fontSize: 13 }}>{item.name ? qty.toFixed(2) : ''}</td>
-                <td style={{ ...tableCell, fontSize: 13 }}>{item.unit || ''}</td>
-                <td style={{ ...tableCell, textAlign: 'right', fontSize: 13 }}>{item.name ? fmt(listPrice) : ''}</td>
-                <td style={{ ...tableCell, fontSize: 13 }}>{item.name ? `${fmt(discountPct)}%` : ''}</td>
-                <td style={{ ...tableCell, textAlign: 'right', fontSize: 13 }}>{item.name ? fmt(netUnitPrice) : ''}</td>
-                <td style={{ ...tableCell, textAlign: 'right', fontSize: 13, borderRight: 'none' }}>{item.name ? fmt(lineAmount) : ''}</td>
+                {showSno && <td style={{ ...tableCell, textAlign: 'right' }}>{item.name ? `${index + 1}.` : ''}</td>}
+                {showItem && (
+                  <td style={tableCell}>
+                    {showName && <div style={{ fontSize: 14, lineHeight: 1.25 }}>{item.name}</div>}
+                    {showDesc && item.description && (
+                      <div style={{ fontSize: 13, lineHeight: 1.25, marginTop: 4, paddingLeft: 16, whiteSpace: 'pre-wrap' }}>
+                        {item.description}
+                      </div>
+                    )}
+                  </td>
+                )}
+                {showHsn && <td style={{ ...tableCell, fontSize: 13 }}>{item.hsnCode || ''}</td>}
+                {showQty && <td style={{ ...tableCell, textAlign: 'right', fontSize: 13 }}>{item.name ? qty.toFixed(2) : ''}</td>}
+                {showUnit && <td style={{ ...tableCell, fontSize: 13 }}>{item.unit || ''}</td>}
+                {showListPrice && <td style={{ ...tableCell, textAlign: 'right', fontSize: 13 }}>{item.name ? fmt(listPrice) : ''}</td>}
+                {showDiscount && <td style={{ ...tableCell, fontSize: 13 }}>{item.name ? `${fmt(discountPct)}%` : ''}</td>}
+                {showRate && <td style={{ ...tableCell, textAlign: 'right', fontSize: 13 }}>{item.name ? fmt(netUnitPrice) : ''}</td>}
+                {showTotal && <td style={{ ...tableCell, textAlign: 'right', fontSize: 13, borderRight: 'none' }}>{item.name ? fmt(lineAmount) : ''}</td>}
               </tr>
             );
           })}
           {fillerHeight > 0 && (
             <tr>
-              <td style={{ ...tableCell, height: fillerHeight }} />
-              <td style={{ ...tableCell, height: fillerHeight }} />
-              <td style={{ ...tableCell, height: fillerHeight }} />
-              <td style={{ ...tableCell, height: fillerHeight }} />
-              <td style={{ ...tableCell, height: fillerHeight }} />
-              <td style={{ ...tableCell, height: fillerHeight }} />
-              <td style={{ ...tableCell, height: fillerHeight }} />
-              <td style={{ ...tableCell, height: fillerHeight }} />
-              <td style={{ ...tableCell, height: fillerHeight, borderRight: 'none' }} />
+              {Array.from({ length: visibleClassicColCount }).map((_, fIdx) => (
+                <td
+                  key={`filler-${fIdx}`}
+                  style={{
+                    ...tableCell,
+                    height: fillerHeight,
+                    ...(fIdx === visibleClassicColCount - 1 ? { borderRight: 'none' } : {})
+                  }}
+                />
+              ))}
             </tr>
           )}
         </tbody>
@@ -1058,7 +1134,13 @@ const InvoicePrint = () => {
           api.get('/settings'),
         ]);
         if (invRes.status  === 'fulfilled') setInvoice(invRes.value.data);
-        if (settRes.status === 'fulfilled') setSettings(settRes.value.data);
+        if (settRes.status === 'fulfilled') {
+          const sData = settRes.value.data;
+          setSettings(sData);
+          if (sData?.invoiceTemplate?.defaultTemplate) {
+            setTemplate(sData.invoiceTemplate.defaultTemplate);
+          }
+        }
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     })();
@@ -1160,21 +1242,30 @@ const InvoicePrint = () => {
       />
 
       <div style={{ paddingBottom: '40px' }}>
-        {template === 'modern' ? (
-          <ModernTemplate 
-            invoice={invoice} company={company} client={client} bank={bank} items={items}
-            hasTax={hasTax} isIntra={isIntra} hasExcise={hasExcise} hasDiscount={hasDiscount}
-            grandTotal={grandTotal} amountDue={amountDue} rounded={rounded} balanceDue={balanceDue}
-            advancePaid={advancePaid} tds={tds} taxRate={taxRate} invType={invType}
-          />
-        ) : (
-          <ClassicTemplate 
-            invoice={invoice} company={company} client={client} bank={bank} items={items}
-            hasTax={hasTax} isIntra={isIntra} hasExcise={hasExcise} hasDiscount={hasDiscount}
-            grandTotal={grandTotal} amountDue={amountDue} rounded={rounded} balanceDue={balanceDue}
-            advancePaid={advancePaid} tds={tds} taxRate={taxRate} invType={invType}
-          />
-        )}
+        {(() => {
+          const invTplSettings = settings?.invoiceTemplate || {};
+          const templateColumnsConfig = template === 'classic'
+            ? { ...(invTplSettings.columns || {}), ...(invTplSettings.classicColumns || {}) }
+            : { ...(invTplSettings.columns || {}), ...(invTplSettings.modernColumns || {}) };
+
+          return template === 'modern' ? (
+            <ModernTemplate 
+              invoice={invoice} company={company} client={client} bank={bank} items={items}
+              hasTax={hasTax} isIntra={isIntra} hasExcise={hasExcise} hasDiscount={hasDiscount}
+              grandTotal={grandTotal} amountDue={amountDue} rounded={rounded} balanceDue={balanceDue}
+              advancePaid={advancePaid} tds={tds} taxRate={taxRate} invType={invType}
+              columnsConfig={templateColumnsConfig}
+            />
+          ) : (
+            <ClassicTemplate 
+              invoice={invoice} company={company} client={client} bank={bank} items={items}
+              hasTax={hasTax} isIntra={isIntra} hasExcise={hasExcise} hasDiscount={hasDiscount}
+              grandTotal={grandTotal} amountDue={amountDue} rounded={rounded} balanceDue={balanceDue}
+              advancePaid={advancePaid} tds={tds} taxRate={taxRate} invType={invType}
+              columnsConfig={templateColumnsConfig}
+            />
+          );
+        })()}
       </div>
 
       <style>{`

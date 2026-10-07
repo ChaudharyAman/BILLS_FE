@@ -10,6 +10,7 @@ import CsvUploader from '../components/CsvUploader';
 import ItemSelect from '../components/ItemSelect';
 import AttachmentUploader from '../components/AttachmentUploader';
 import SendInvoiceModal from '../components/SendInvoiceModal';
+import { PAYMENT_METHODS } from '../utils/paymentMethods';
 
 
 const INVOICE_TYPES = ['Invoice', 'Retail Invoice', 'Tax Invoice', 'Excise Invoice'];
@@ -482,23 +483,6 @@ const InvoiceForm = () => {
   const fetchInvoice = async (invoiceId) => {
     try {
       setLoading(true);
-
-      const savedDraft = localStorage.getItem(`flance_draft_invoice_edit_${invoiceId}`);
-      if (savedDraft) {
-        try {
-          const parsed = JSON.parse(savedDraft);
-          setFormData(parsed);
-          if (parsed.shippingCharges > 0) setShowShipping(true);
-          if (Number(parsed.packagingCharges) !== 0) setShowCustomAmount(true);
-          if (parsed.discountTotal > 0) setShowDiscountTotal(true);
-          if (parsed.advancePaid > 0) setShowAdvance(true);
-          setIsLoaded(true);
-          setLoading(false);
-          return;
-        } catch (e) {
-          console.error(e);
-        }
-      }
 
       const res = await api.get(`/invoices/${invoiceId}`);
       const inv = res.data;
@@ -1239,11 +1223,13 @@ const InvoiceForm = () => {
               <select className={inp} value={formData.paymentMode}
                 data-testid="invoice-payment-mode"
                 onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}>
-                <option value="">Select</option>
-                <option>Cash</option>
-                <option>Cheque</option>
-                <option>Bank Transfer</option>
-                <option>UPI</option>
+                <option value="">Select Payment Mode</option>
+                {PAYMENT_METHODS.map(method => (
+                  <option key={method} value={method}>{method}</option>
+                ))}
+                {formData.paymentMode && !PAYMENT_METHODS.includes(formData.paymentMode) && (
+                  <option value={formData.paymentMode}>{formData.paymentMode}</option>
+                )}
               </select>
             </div>
             <div>

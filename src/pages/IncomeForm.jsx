@@ -4,6 +4,7 @@ import api from '../api/axios';
 import { FaCalendarAlt, FaCheck, FaTimes, FaPlus } from 'react-icons/fa';
 import { buildPdfTransactionPatch } from '../utils/pdfTransactionImport';
 import AttachmentUploader from '../components/AttachmentUploader';
+import { PAYMENT_METHODS } from '../utils/paymentMethods';
 
 const gstStateMap = {
   '01': 'Jammu & Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab', '04': 'Chandigarh', 
@@ -560,12 +561,13 @@ const IncomeForm = () => {
                   value={formData.paymentMethod}
                   onChange={e => setFormData(p => ({ ...p, paymentMethod: e.target.value }))}
                 >
-                  <option value=""></option>
-                  <option value="Cash">Cash</option>
-                  <option value="Bank Transfer">Bank Transfer</option>
-                  <option value="Credit Card">Credit Card</option>
-                  <option value="Cheque">Cheque</option>
-                  <option value="UPI">UPI</option>
+                  <option value="">Select Payment Method</option>
+                  {PAYMENT_METHODS.map(method => (
+                    <option key={method} value={method}>{method}</option>
+                  ))}
+                  {formData.paymentMethod && !PAYMENT_METHODS.includes(formData.paymentMethod) && (
+                    <option value={formData.paymentMethod}>{formData.paymentMethod}</option>
+                  )}
                   </select>
                 </div>
               </div>

@@ -7,6 +7,7 @@ import ExportDropdown from '../components/ExportDropdown';
 import Modal from '../components/Modal';
 import PdfInvoiceImporter from '../components/PdfInvoiceImporter';
 import { getStoredFilter, setStoredFilters, clearStoredFilters } from '../utils/filterStorage';
+import { PAYMENT_METHODS } from '../utils/paymentMethods';
 
 const FILTER_STORAGE_KEY = 'flance_expenses_filters_pref';
 
@@ -25,6 +26,17 @@ const ExpenseList = () => {
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [isPdfScannerOpen, setIsPdfScannerOpen] = useState(false);
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
+  const [paymentModal, setPaymentModal] = useState({
+    isOpen: false,
+    item: null,
+    newStatus: 'PAID',
+    paymentMethod: 'Bank Transfer',
+    paymentDate: '',
+    amountPaid: 0,
+    reference: '',
+    submitting: false,
+    error: '',
+  });
 
   // Filters & Sorting State
   const [statusFilter, setStatusFilter] = useState(() => getStoredFilter(FILTER_STORAGE_KEY, 'statusFilter', ''));
@@ -105,6 +117,8 @@ const ExpenseList = () => {
           number: exp.expenseNumber,
           partyName: exp.vendor?.name || '—',
           clientOrMethod: exp.client?.name || exp.paymentMethod || '—',
+          paymentMethod: exp.paymentMethod || '',
+          paymentDate: exp.paymentDate || '',
           status: exp.status,
           amount: gross,
           taxTotal: tax,
@@ -132,6 +146,8 @@ const ExpenseList = () => {
           number: pr.employeeSnapshot?.employeeId || pr.employee?.employeeId || '—',
           partyName: empName,
           clientOrMethod: pr.paymentMethod || 'Bank Transfer',
+          paymentMethod: pr.paymentMethod || 'Bank Transfer',
+          paymentDate: pr.paymentDate || '',
           status: pr.status?.toUpperCase() || 'DRAFT',
           amount: totalGross,
           taxTotal: 0,
@@ -166,14 +182,151 @@ const ExpenseList = () => {
     }
   };
 
+  const openPaymentModal = (item, targetStatus = 'PAID') => {
+    const basePayable = item.rawItem?.reverseCharge
+      ? Math.max(0, Number(item.amount || 0) - Number(item.taxTotal || 0))
+      : Number(item.amount || 0);
+    const netPayable = item.rawItem?.net_vendor_payment !== undefined && item.rawItem?.net_vendor_payment !== null
+      ? Number(item.rawItem.net_vendor_payment)
+      : Math.max(0, basePayable - Number(item.tds || 0));
+
+    const fullPayable = item.balanceDue > 0 ? item.balanceDue : netPayable;
+    let initialPaid = fullPayable;
+    if (targetStatus === 'PARTIAL') {
+      initialPaid = item.amountPaid > 0 && item.amountPaid < netPayable
+        ? item.amountPaid
+        : Math.round((netPayable / 2) * 100) / 100;
+    }
+
+    setPaymentModal({
+      isOpen: true,
+      item,
+      newStatus: targetStatus,
+      paymentMethod: item.paymentMethod || item.rawItem?.paymentMethod || 'Bank Transfer',
+      paymentDate: item.paymentDate ? new Date(item.paymentDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      amountPaid: initialPaid,
+      reference: '',
+      submitting: false,
+      error: '',
+    });
+  };
+
+  const handleConfirmPayment = async (e) => {
+    if (e) e.preventDefault();
+    if (!paymentModal.item) return;
+
+    const { item, newStatus, paymentMethod, paymentDate, amountPaid, reference } = paymentModal;
+
+    if (!paymentMethod) {
+      setPaymentModal(prev => ({ ...prev, error: 'Please select a payment method.' }));
+      return;
+    }
+
+    const basePayable = item.rawItem?.reverseCharge
+      ? Math.max(0, Number(item.amount || 0) - Number(item.taxTotal || 0))
+      : Number(item.amount || 0);
+    const netPayable = item.rawItem?.net_vendor_payment !== undefined && item.rawItem?.net_vendor_payment !== null
+      ? Number(item.rawItem.net_vendor_payment)
+      : Math.max(0, basePayable - Number(item.tds || 0));
+
+    const numericAmount = Number(amountPaid) || 0;
+
+    if (newStatus === 'PARTIAL' && (numericAmount <= 0 || numericAmount >= netPayable)) {
+      setPaymentModal(prev => ({
+        ...prev,
+        error: `For partial payment, amount must be greater than 0 and less than ₹${fmt(netPayable)}.`
+      }));
+      return;
+    }
+
+    setPaymentModal(prev => ({ ...prev, submitting: true, error: '' }));
+    setUpdatingStatusId(item.id);
+
+    try {
+      if (item.type === 'salary') {
+        await api.post(`/payroll/${item.id}/mark-paid`, {
+          paymentMethod,
+          paymentDate,
+          transactionId: reference || undefined,
+        });
+
+        setCombinedItems(prev => prev.map(i => i.id === item.id ? {
+          ...i,
+          status: 'PAID',
+          paymentMethod,
+          paymentDate,
+          clientOrMethod: paymentMethod,
+          amountPaid: item.amount - item.tds,
+          balanceDue: 0,
+        } : i));
+      } else {
+        const payload = {
+          status: newStatus,
+          paymentMethod,
+          paymentDate,
+        };
+
+        if (newStatus === 'PARTIAL') {
+          payload.amountPaid = numericAmount;
+        } else {
+          payload.amountPaid = netPayable;
+        }
+
+        if (reference) {
+          const prevNotes = item.rawItem?.privateNotes || '';
+          payload.privateNotes = prevNotes ? `${prevNotes} | Payment Ref: ${reference}` : `Payment Ref: ${reference}`;
+        }
+
+        const res = await api.put(`/expenses/${item.id}`, payload);
+        const updatedDoc = res.data;
+
+        setCombinedItems(prev => prev.map(i => i.id === item.id ? {
+          ...i,
+          status: updatedDoc?.status || newStatus,
+          amountPaid: updatedDoc?.amountPaid !== undefined ? updatedDoc.amountPaid : payload.amountPaid,
+          balanceDue: updatedDoc?.balanceDue !== undefined ? updatedDoc.balanceDue : Math.max(0, netPayable - payload.amountPaid),
+          paymentMethod: updatedDoc?.paymentMethod || paymentMethod,
+          paymentDate: updatedDoc?.paymentDate || paymentDate,
+          clientOrMethod: updatedDoc?.client?.name || updatedDoc?.paymentMethod || paymentMethod,
+          rawItem: { ...i.rawItem, ...updatedDoc }
+        } : i));
+      }
+
+      setPaymentModal(prev => ({ ...prev, isOpen: false, submitting: false }));
+    } catch (err) {
+      console.error('Error confirming payment:', err);
+      setPaymentModal(prev => ({
+        ...prev,
+        submitting: false,
+        error: err.response?.data?.message || 'Failed to update payment status'
+      }));
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  };
+
   const handleStatusChange = async (item, newStatus) => {
     if (item.status === newStatus || item.status?.toLowerCase() === newStatus.toLowerCase()) return;
+
+    const normalizedStatus = newStatus.toUpperCase();
+
+    // If changing to PAID or PARTIAL, prompt for payment method and payment details
+    if (normalizedStatus === 'PAID' || normalizedStatus === 'PARTIAL') {
+      openPaymentModal(item, normalizedStatus);
+      return;
+    }
+
+    // If currently PAID or PARTIAL and changing to UNPAID, prompt confirmation
+    if (item.status === 'PAID' || item.status === 'PARTIAL') {
+      if (!window.confirm(`Marking this as ${normalizedStatus} will reset the recorded payment. Do you want to proceed?`)) {
+        return;
+      }
+    }
+
     try {
       setUpdatingStatusId(item.id);
       if (item.type === 'salary') {
-        if (newStatus.toLowerCase() === 'paid') {
-          await api.post(`/payroll/${item.id}/mark-paid`);
-        } else if (newStatus.toLowerCase() === 'draft') {
+        if (newStatus.toLowerCase() === 'draft') {
           await api.post(`/payroll/${item.id}/reopen`);
         } else {
           await api.put(`/payroll/${item.id}`, { status: newStatus.toLowerCase() });
@@ -187,6 +340,9 @@ const ExpenseList = () => {
           status: updatedDoc?.status || newStatus,
           amountPaid: updatedDoc?.amountPaid !== undefined ? updatedDoc.amountPaid : i.amountPaid,
           balanceDue: updatedDoc?.balanceDue !== undefined ? updatedDoc.balanceDue : i.balanceDue,
+          paymentMethod: updatedDoc?.paymentMethod !== undefined ? updatedDoc.paymentMethod : i.paymentMethod,
+          clientOrMethod: updatedDoc?.client?.name || updatedDoc?.paymentMethod || i.clientOrMethod,
+          rawItem: { ...i.rawItem, ...updatedDoc }
         } : i));
       }
     } catch (e) {
@@ -696,36 +852,56 @@ const ExpenseList = () => {
                   </td>
                   <td className="px-1.5 py-1.5 whitespace-nowrap">
                     {item.type === 'salary' ? (
-                      <select
-                        value={item.status.toUpperCase()}
-                        disabled={updatingStatusId === item.id}
-                        onChange={(e) => handleStatusChange(item, e.target.value)}
-                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all ${
-                          PAYROLL_STATUS_STYLES[item.status.toLowerCase()] || PAYROLL_STATUS_STYLES.draft
-                        }`}
-                        title="Click to change status"
-                      >
-                        <option value="DRAFT" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">DRAFT</option>
-                        <option value="PROCESSED" className="bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300">PROCESSED</option>
-                        <option value="APPROVED" className="bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300">APPROVED</option>
-                        <option value="PAID" className="bg-white dark:bg-slate-800 text-green-700 dark:text-green-300">PAID</option>
-                      </select>
+                      <div className="flex flex-col items-start gap-0.5">
+                        <select
+                          value={item.status.toUpperCase()}
+                          disabled={updatingStatusId === item.id}
+                          onChange={(e) => handleStatusChange(item, e.target.value)}
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all ${
+                            PAYROLL_STATUS_STYLES[item.status.toLowerCase()] || PAYROLL_STATUS_STYLES.draft
+                          }`}
+                          title="Click to change status"
+                        >
+                          <option value="DRAFT" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">DRAFT</option>
+                          <option value="PROCESSED" className="bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300">PROCESSED</option>
+                          <option value="APPROVED" className="bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300">APPROVED</option>
+                          <option value="PAID" className="bg-white dark:bg-slate-800 text-green-700 dark:text-green-300">PAID</option>
+                        </select>
+                        {item.status.toUpperCase() === 'PAID' && (
+                          <span className="text-[9px] text-gray-500 dark:text-slate-400 font-medium">
+                            via {item.paymentMethod || 'Bank Transfer'}
+                          </span>
+                        )}
+                      </div>
                     ) : (
-                      <select
-                        value={item.status}
-                        disabled={updatingStatusId === item.id}
-                        onChange={(e) => handleStatusChange(item, e.target.value)}
-                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all ${
-                          STATUS_STYLES[item.status] || STATUS_STYLES.DRAFT
-                        }`}
-                        title="Click to change status"
-                      >
-                        <option value="PAID" className="bg-white dark:bg-slate-800 text-green-700 dark:text-green-300">PAID</option>
-                        <option value="UNPAID" className="bg-white dark:bg-slate-800 text-red-700 dark:text-red-300">UNPAID</option>
-                        <option value="PARTIAL" className="bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-300">PARTIAL</option>
-                        <option value="DRAFT" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">DRAFT</option>
-                        <option value="CANCELLED" className="bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400">CANCELLED</option>
-                      </select>
+                      <div className="flex flex-col items-start gap-0.5">
+                        <select
+                          value={item.status}
+                          disabled={updatingStatusId === item.id}
+                          onChange={(e) => handleStatusChange(item, e.target.value)}
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all ${
+                            STATUS_STYLES[item.status] || STATUS_STYLES.DRAFT
+                          }`}
+                          title="Click to change status"
+                        >
+                          <option value="PAID" className="bg-white dark:bg-slate-800 text-green-700 dark:text-green-300">PAID</option>
+                          <option value="UNPAID" className="bg-white dark:bg-slate-800 text-red-700 dark:text-red-300">UNPAID</option>
+                          <option value="PARTIAL" className="bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-300">PARTIAL</option>
+                          <option value="DRAFT" className="bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200">DRAFT</option>
+                          <option value="CANCELLED" className="bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400">CANCELLED</option>
+                        </select>
+                        {(item.status === 'PAID' || item.status === 'PARTIAL') && (
+                          <button
+                            type="button"
+                            onClick={() => openPaymentModal(item, item.status)}
+                            title="Click to change payment method"
+                            className="text-[9px] text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium flex items-center gap-0.5 transition-colors cursor-pointer group"
+                          >
+                            <span>via {item.paymentMethod || item.rawItem?.paymentMethod || 'Method'}</span>
+                            <span className="text-[8px] opacity-60 group-hover:opacity-100">✏️</span>
+                          </button>
+                        )}
+                      </div>
                     )}
                   </td>
                   <td className="px-2 py-1.5 whitespace-nowrap text-right text-xs font-bold text-gray-900 dark:text-slate-100 font-mono">
@@ -885,6 +1061,181 @@ const ExpenseList = () => {
             </Link>
           </div>
         </div>
+      </Modal>
+
+      {/* Payment Method / Payment Details Modal */}
+      <Modal
+        isOpen={paymentModal.isOpen}
+        onClose={() => setPaymentModal(prev => ({ ...prev, isOpen: false }))}
+        title={
+          paymentModal.item
+            ? `${paymentModal.newStatus === paymentModal.item.status ? 'Update Payment Details' : 'Record Payment'} — ${paymentModal.item.number}`
+            : 'Record Payment'
+        }
+      >
+        {paymentModal.item && (() => {
+          const item = paymentModal.item;
+          const basePayable = item.rawItem?.reverseCharge
+            ? Math.max(0, Number(item.amount || 0) - Number(item.taxTotal || 0))
+            : Number(item.amount || 0);
+          const netPayable = item.rawItem?.net_vendor_payment !== undefined && item.rawItem?.net_vendor_payment !== null
+            ? Number(item.rawItem.net_vendor_payment)
+            : Math.max(0, basePayable - Number(item.tds || 0));
+          const currentPaid = paymentModal.newStatus === 'PAID' ? netPayable : Number(paymentModal.amountPaid || 0);
+          const remainingBal = Math.max(0, netPayable - currentPaid);
+
+          return (
+            <form onSubmit={handleConfirmPayment} className="space-y-4">
+              {/* Summary Card */}
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700/60 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-700 pb-2.5">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">
+                      {item.type === 'salary' ? 'Employee & Payroll ID' : (item.type === 'category' ? 'Category Expense' : 'Vendor & Expense Number')}
+                    </span>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>{item.number}</span>
+                      <span className="text-xs font-normal text-slate-500 dark:text-slate-400">({item.partyName})</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">Date</span>
+                    <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      {item.type === 'salary' ? item.periodStr : fmtDate(item.date)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Financial Numbers Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-left">
+                  <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Total Amount</div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-slate-100 font-mono">₹{fmt(item.amount)}</div>
+                  </div>
+                  {item.taxTotal > 0 && (
+                    <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm">
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Total GST</div>
+                      <div className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono">₹{fmt(item.taxTotal)}</div>
+                    </div>
+                  )}
+                  {item.tds > 0 && (
+                    <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm">
+                      <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                        TDS {item.tdsSection ? `(Sec ${item.tdsSection})` : ''}
+                      </div>
+                      <div className="text-sm font-bold text-amber-600 dark:text-amber-400 font-mono">-₹{fmt(item.tds)}</div>
+                    </div>
+                  )}
+                  <div className="bg-blue-50 dark:bg-blue-950/40 p-2.5 rounded-lg border border-blue-100 dark:border-blue-900/50 shadow-sm">
+                    <div className="text-[10px] text-blue-700 dark:text-blue-300 font-semibold">Net Vendor Payable</div>
+                    <div className="text-sm font-extrabold text-blue-800 dark:text-blue-200 font-mono">₹{fmt(netPayable)}</div>
+                  </div>
+                </div>
+              </div>
+
+              {paymentModal.error && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-300 rounded-lg text-xs font-medium">
+                  {paymentModal.error}
+                </div>
+              )}
+
+              {/* Form Input Controls */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Payment Method <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={paymentModal.paymentMethod}
+                    onChange={(e) => setPaymentModal(prev => ({ ...prev, paymentMethod: e.target.value, error: '' }))}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans cursor-pointer shadow-sm"
+                  >
+                    {PAYMENT_METHODS.map(method => (
+                      <option key={method} value={method}>{method}</option>
+                    ))}
+                    {paymentModal.paymentMethod && !PAYMENT_METHODS.includes(paymentModal.paymentMethod) && (
+                      <option value={paymentModal.paymentMethod}>{paymentModal.paymentMethod}</option>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Payment Date
+                  </label>
+                  <input
+                    type="date"
+                    value={paymentModal.paymentDate}
+                    onChange={(e) => setPaymentModal(prev => ({ ...prev, paymentDate: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans shadow-sm"
+                  />
+                </div>
+
+                {paymentModal.newStatus === 'PARTIAL' ? (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Amount Paid Now (₹) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      max={netPayable}
+                      value={paymentModal.amountPaid}
+                      onChange={(e) => setPaymentModal(prev => ({ ...prev, amountPaid: e.target.value, error: '' }))}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono shadow-sm"
+                      required
+                    />
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                      Remaining Due: <span className="font-bold text-amber-600 dark:text-amber-400 font-mono">₹{fmt(remainingBal)}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Amount to Record as Paid
+                    </label>
+                    <div className="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-lg text-xs font-bold text-emerald-700 dark:text-emerald-300 font-mono flex items-center justify-between">
+                      <span>₹{fmt(netPayable)}</span>
+                      <span className="text-[10px] font-normal text-emerald-600 dark:text-emerald-400">Full Net Vendor Payment</span>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Reference / Cheque / UTR No. (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. UTR12345678 or Cheque #98765"
+                    value={paymentModal.reference}
+                    onChange={(e) => setPaymentModal(prev => ({ ...prev, reference: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans shadow-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setPaymentModal(prev => ({ ...prev, isOpen: false }))}
+                  className="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={paymentModal.submitting}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  {paymentModal.submitting ? 'Recording...' : (paymentModal.newStatus === paymentModal.item.status ? 'Update Details' : `Confirm & Mark as ${paymentModal.newStatus}`)}
+                </button>
+              </div>
+            </form>
+          );
+        })()}
       </Modal>
 
       <PdfInvoiceImporter
