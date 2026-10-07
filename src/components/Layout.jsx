@@ -860,7 +860,7 @@ const Layout = ({ children }) => {
                 sessionStorage.clear();
                 localStorage.removeItem('isSharedViewOnly');
                 localStorage.removeItem('shareWatermark');
-                const hasExistingAuth = Boolean(localStorage.getItem('authToken'));
+                const hasExistingAuth = Boolean(sessionStorage.getItem('authToken'));
                 window.location.href = hasExistingAuth ? '/invoices' : '/login';
               }}
               onMouseEnter={(e) => showTooltip('Exit Workspace', e)}

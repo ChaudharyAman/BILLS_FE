@@ -13,6 +13,7 @@ import { getSidebarLayout, saveSidebarLayout, resetSidebarLayout } from '../util
 import usePermissions from '../hooks/usePermissions';
 import ClientProfileManagement from './ClientProfileManagement';
 import CompanyDocumentsVault from '../components/CompanyDocumentsVault';
+import InvoiceTemplateSettings from '../components/InvoiceTemplateSettings';
 
 const ICON_MAP = {
   dashboard: LucideIcons.Home,
@@ -90,7 +91,7 @@ const Settings = () => {
   const [tab, setTab] = useState(() => {
     try {
       const p = new URLSearchParams(window.location.search).get('tab');
-      if (p && ['company', 'software', 'sidebar', 'portal', 'workspaces', 'smtp', 'documents'].includes(p)) return p;
+      if (p && ['company', 'invoice_template', 'software', 'sidebar', 'portal', 'workspaces', 'smtp', 'documents'].includes(p)) return p;
     } catch {
       // fallback
     }
@@ -100,7 +101,7 @@ const Settings = () => {
   useEffect(() => {
     try {
       const p = new URLSearchParams(location.search).get('tab');
-      if (p && ['company', 'software', 'sidebar', 'portal', 'workspaces', 'smtp', 'documents'].includes(p)) {
+      if (p && ['company', 'invoice_template', 'software', 'sidebar', 'portal', 'workspaces', 'smtp', 'documents'].includes(p)) {
         setTab(prev => (prev !== p ? p : prev));
       }
     } catch {
@@ -857,6 +858,7 @@ const Settings = () => {
   // ── Tab configuration & Apple Liquid Glass Navigation ─────────────────────
   const SETTINGS_TABS = [
     { id: 'company', label: 'Company', icon: LucideIcons.Building2, testId: 'settings-company-tab' },
+    { id: 'invoice_template', label: 'Invoice Template', icon: LucideIcons.FileSpreadsheet, testId: 'settings-invoice-template-tab' },
     { id: 'documents', label: 'Documents', icon: LucideIcons.FolderArchive, testId: 'settings-documents-tab' },
     { id: 'software', label: 'Software', icon: LucideIcons.SlidersHorizontal, testId: 'settings-software-tab' },
     { id: 'workspaces', label: 'Workspaces', icon: LucideIcons.Briefcase, testId: 'settings-workspaces-tab' },
@@ -869,6 +871,11 @@ const Settings = () => {
       title: 'Company Settings',
       subtitle: 'Manage legal identity, GSTIN/PAN, bank accounts, and invoice branding',
       icon: LucideIcons.Building2,
+    },
+    invoice_template: {
+      title: 'Invoice Template & Columns',
+      subtitle: 'Customize default invoice template layout and item table column visibility for printing',
+      icon: LucideIcons.FileSpreadsheet,
     },
     documents: {
       title: 'Company Documents Vault',
@@ -937,7 +944,7 @@ const Settings = () => {
                 type="button"
                 onClick={() => { setTab(t.id); navigate(`/settings?tab=${t.id}`, { replace: true }); }}
                 data-testid={t.testId}
-                className={`flex-1 min-w-[110px] sm:min-w-0 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer select-none ${
+                className={`flex-1 min-w-fit px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer select-none ${
                   isActive
                     ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-[0_2px_8px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04),inset_0_1px_1px_rgba(255,255,255,1)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.15)] border border-slate-200/90 dark:border-white/10 font-bold'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/40 border border-transparent'
@@ -950,9 +957,6 @@ const Settings = () => {
                   }`}
                 />
                 <span>{t.label}</span>
-                {isActive && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shadow-[0_0_6px_rgba(20,184,166,0.8)] shrink-0" />
-                )}
               </button>
             );
           })}
@@ -983,11 +987,21 @@ const Settings = () => {
 
             {/* ── SECTION 1: BRANDING & DOCUMENT APPEARANCE ── */}
             <div className="border-b border-slate-100 dark:border-slate-800 pb-6 space-y-4">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Branding & Document Appearance</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Configure company logo, digital signature, and choose which documents they appear on.
-                </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Branding & Document Appearance</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Configure company logo, digital signature, and choose which documents they appear on.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setTab('invoice_template'); navigate('/settings?tab=invoice_template', { replace: true }); }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900/40 transition-colors cursor-pointer self-start sm:self-auto"
+                >
+                  <LucideIcons.FileSpreadsheet size={13} />
+                  <span>Customize Print Template & Columns →</span>
+                </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
@@ -1286,6 +1300,11 @@ const Settings = () => {
             </div>
           </form>
         </div>
+      )}
+
+      {/* ── INVOICE TEMPLATE & COLUMNS SETTINGS ── */}
+      {!pageLoading && tab === 'invoice_template' && (
+        <InvoiceTemplateSettings />
       )}
 
       {/* ── SOFTWARE / ACCOUNT SETTINGS ── */}

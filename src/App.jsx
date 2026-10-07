@@ -8,6 +8,12 @@ import api, { clearAuthSession, storeAuthSession } from './api/axios';
 import { Toaster } from 'react-hot-toast';
 import { initGlobalTheme } from './utils/theme';
 
+// Optional user-switcher plugin loader (100% isolated: resolves safely to {} if user-switcher folder is deleted)
+const userSwitcherModules = import.meta.glob('./user-switcher/index.jsx');
+const UserSwitcher = userSwitcherModules['./user-switcher/index.jsx']
+  ? lazy(userSwitcherModules['./user-switcher/index.jsx'])
+  : null;
+
 // Helper for resilient lazy loading with auto-reload on dynamic import failure
 const lazyRetry = (importFn) =>
   lazy(async () => {
@@ -427,6 +433,11 @@ function App() {
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Toaster position="top-right" />
+            {UserSwitcher && (
+              <Suspense fallback={null}>
+                <UserSwitcher />
+              </Suspense>
+            )}
             <Routes>
               {/* Auth Routes - No Layout */}
               <Route path="/login" element={<Login />} />

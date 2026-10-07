@@ -116,6 +116,7 @@ const ClassicBusinessDocumentPrint = ({
   terms,
   notes,
   hideTax,
+  columnsConfig = {},
 }) => {
   const border = '1px solid #000';
   const rowBorder = '1px solid #000';
@@ -141,6 +142,44 @@ const ClassicBusinessDocumentPrint = ({
     ? terms.split(/\r?\n/).filter(Boolean)
     : [];
   const taxSummaryRows = summarizeTaxes(safeItems);
+
+  const colCfg = {
+    sno: true,
+    name: true,
+    description: true,
+    hsnSac: true,
+    qty: true,
+    unit: true,
+    listPrice: true,
+    discount: true,
+    rate: true,
+    total: true,
+    ...columnsConfig,
+  };
+
+  const showSno = colCfg.sno !== false;
+  const showName = colCfg.name !== false;
+  const showDesc = colCfg.description !== false;
+  const showItem = showName || showDesc;
+  const showHsn = colCfg.hsnSac !== false && !hideTax;
+  const showQty = colCfg.qty !== false;
+  const showUnit = colCfg.unit !== false;
+  const showListPrice = colCfg.listPrice !== false;
+  const showDiscount = colCfg.discount !== false;
+  const showRate = colCfg.rate !== false;
+  const showTotal = colCfg.total !== false;
+  const visibleColCount = [
+    showSno,
+    showItem,
+    showHsn,
+    showQty,
+    showUnit,
+    showListPrice,
+    showDiscount,
+    showRate,
+    showTotal
+  ].filter(Boolean).length || 1;
+
   const adjustmentRows = [
     ...(showTax && isIntra ? [
       { label: 'Add', name: 'CGST', rate: uniformTaxRate ? `${fmt(uniformTaxRate / 2)} %` : '', amount: Number(totalCGST) || 0 },
@@ -239,15 +278,15 @@ const ClassicBusinessDocumentPrint = ({
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <thead>
           <tr>
-            <th style={{ ...th, width: '3.8%', textAlign: 'center' }}>S.N.</th>
-            <th style={{ ...th, width: '26.7%', textAlign: 'left' }}>Description of Goods</th>
-            {!hideTax && <th style={{ ...th, width: '10%', textAlign: 'left' }}>HSN/SAC<br />Code</th>}
-            <th style={{ ...th, width: '7%', textAlign: 'right' }}>Qty.</th>
-            <th style={{ ...th, width: '6%', textAlign: 'left' }}>Unit</th>
-            <th style={{ ...th, width: '11%', textAlign: 'right' }}>List Price</th>
-            <th style={{ ...th, width: '9%', textAlign: 'left' }}>Discount</th>
-            <th style={{ ...th, width: '11.5%', textAlign: 'right' }}>Price</th>
-            <th style={{ ...th, width: '15.0%', textAlign: 'right', borderRight: 'none' }}>Amount(`)</th>
+            {showSno && <th style={{ ...th, width: '3.8%', textAlign: 'center' }}>S.N.</th>}
+            {showItem && <th style={{ ...th, width: 'auto', textAlign: 'left' }}>Description of Goods</th>}
+            {showHsn && <th style={{ ...th, width: '10%', textAlign: 'left' }}>HSN/SAC<br />Code</th>}
+            {showQty && <th style={{ ...th, width: '7%', textAlign: 'right' }}>Qty.</th>}
+            {showUnit && <th style={{ ...th, width: '6%', textAlign: 'left' }}>Unit</th>}
+            {showListPrice && <th style={{ ...th, width: '11%', textAlign: 'right' }}>List Price</th>}
+            {showDiscount && <th style={{ ...th, width: '9%', textAlign: 'left' }}>Discount</th>}
+            {showRate && <th style={{ ...th, width: '11.5%', textAlign: 'right' }}>Price</th>}
+            {showTotal && <th style={{ ...th, width: '15.0%', textAlign: 'right', borderRight: 'none' }}>Amount(`)</th>}
           </tr>
         </thead>
         <tbody>
@@ -260,36 +299,39 @@ const ClassicBusinessDocumentPrint = ({
 
             return (
               <tr key={`${item.name || 'item'}-${index}`}>
-                <td style={{ ...td, textAlign: 'right' }}>{item.name ? `${index + 1}.` : ''}</td>
-                <td style={td}>
-                  <div style={{ fontSize: 14, lineHeight: 1.25 }}>{item.name}</div>
-                  {item.description && (
-                    <div style={{ fontSize: 13, lineHeight: 1.25, marginTop: 4, paddingLeft: 16, whiteSpace: 'pre-wrap' }}>
-                      {item.description}
-                    </div>
-                  )}
-                </td>
-                {!hideTax && <td style={{ ...td, fontSize: 13 }}>{item.hsnCode || ''}</td>}
-                <td style={{ ...td, textAlign: 'right', fontSize: 13 }}>{item.name ? qty.toFixed(2) : ''}</td>
-                <td style={{ ...td, fontSize: 13 }}>{item.unit || ''}</td>
-                <td style={{ ...td, textAlign: 'right', fontSize: 13 }}>{item.name ? fmt(listPrice) : ''}</td>
-                <td style={{ ...td, fontSize: 13 }}>{item.name ? `${fmt(discount)}%` : ''}</td>
-                <td style={{ ...td, textAlign: 'right', fontSize: 13 }}>{item.name ? fmt(price) : ''}</td>
-                <td style={{ ...td, textAlign: 'right', fontSize: 13, borderRight: 'none' }}>{item.name ? fmt(taxable) : ''}</td>
+                {showSno && <td style={{ ...td, textAlign: 'right' }}>{item.name ? `${index + 1}.` : ''}</td>}
+                {showItem && (
+                  <td style={td}>
+                    {showName && <div style={{ fontSize: 14, lineHeight: 1.25 }}>{item.name}</div>}
+                    {showDesc && item.description && (
+                      <div style={{ fontSize: 13, lineHeight: 1.25, marginTop: 4, paddingLeft: 16, whiteSpace: 'pre-wrap' }}>
+                        {item.description}
+                      </div>
+                    )}
+                  </td>
+                )}
+                {showHsn && <td style={{ ...td, fontSize: 13 }}>{item.hsnCode || ''}</td>}
+                {showQty && <td style={{ ...td, textAlign: 'right', fontSize: 13 }}>{item.name ? qty.toFixed(2) : ''}</td>}
+                {showUnit && <td style={{ ...td, fontSize: 13 }}>{item.unit || ''}</td>}
+                {showListPrice && <td style={{ ...td, textAlign: 'right', fontSize: 13 }}>{item.name ? fmt(listPrice) : ''}</td>}
+                {showDiscount && <td style={{ ...td, fontSize: 13 }}>{item.name ? `${fmt(discount)}%` : ''}</td>}
+                {showRate && <td style={{ ...td, textAlign: 'right', fontSize: 13 }}>{item.name ? fmt(price) : ''}</td>}
+                {showTotal && <td style={{ ...td, textAlign: 'right', fontSize: 13, borderRight: 'none' }}>{item.name ? fmt(taxable) : ''}</td>}
               </tr>
             );
           })}
           {fillerHeight > 0 && (
             <tr>
-              <td style={{ ...td, height: fillerHeight }} />
-              <td style={{ ...td, height: fillerHeight }} />
-              {!hideTax && <td style={{ ...td, height: fillerHeight }} />}
-              <td style={{ ...td, height: fillerHeight }} />
-              <td style={{ ...td, height: fillerHeight }} />
-              <td style={{ ...td, height: fillerHeight }} />
-              <td style={{ ...td, height: fillerHeight }} />
-              <td style={{ ...td, height: fillerHeight }} />
-              <td style={{ ...td, height: fillerHeight, borderRight: 'none' }} />
+              {Array.from({ length: visibleColCount }).map((_, fIdx) => (
+                <td
+                  key={`filler-${fIdx}`}
+                  style={{
+                    ...td,
+                    height: fillerHeight,
+                    ...(fIdx === visibleColCount - 1 ? { borderRight: 'none' } : {})
+                  }}
+                />
+              ))}
             </tr>
           )}
         </tbody>
