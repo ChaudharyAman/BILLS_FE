@@ -14,6 +14,7 @@ import usePermissions from '../hooks/usePermissions';
 import ClientProfileManagement from './ClientProfileManagement';
 import CompanyDocumentsVault from '../components/CompanyDocumentsVault';
 import InvoiceTemplateSettings from '../components/InvoiceTemplateSettings';
+import { INDUSTRIES } from '../industries';
 
 const ICON_MAP = {
   dashboard: LucideIcons.Home,
@@ -551,6 +552,7 @@ const Settings = () => {
   const [formData, setFormData] = useState({
     companyName: '',
     contactName: '',
+    industry: 'General',
     address: { line1: '', line2: '', city: '', state: '', zip: '', country: '' },
     gstin: '',
     pan: '',
@@ -596,6 +598,7 @@ const Settings = () => {
         setFormData({
           companyName: d.companyName || '',
           contactName: d.contactName || '',
+          industry: d.industry || 'General',
           address: {
             line1: d.address?.line1 || '',
             line2: d.address?.line2 || '',
@@ -737,6 +740,7 @@ const Settings = () => {
       const data = new FormData();
       data.append('companyName', formData.companyName);
       data.append('contactName', formData.contactName);
+      data.append('industry', formData.industry || 'General');
       data.append('address[line1]', formData.address.line1);
       data.append('address[line2]', formData.address.line2);
       data.append('address[city]', formData.address.city);
@@ -1172,6 +1176,41 @@ const Settings = () => {
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Company Information</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2 bg-gradient-to-r from-blue-50/80 to-indigo-50/60 dark:from-slate-800/80 dark:to-slate-800/40 p-3.5 rounded-xl border border-blue-200/80 dark:border-slate-700">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1.5">
+                    <label className="block text-sm font-bold text-slate-800 dark:text-slate-200">
+                      🏢 Industry / Business Vertical
+                    </label>
+                    {(() => {
+                      const activeInd = INDUSTRIES.find(ind => ind.id === (formData.industry || 'General'));
+                      return activeInd?.badge ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">
+                          {activeInd.badge}
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
+                  <select
+                    name="industry"
+                    data-testid="settings-industry"
+                    value={formData.industry || 'General'}
+                    onChange={handleChange}
+                    className={`${inputCls} font-medium`}
+                  >
+                    {INDUSTRIES.map(ind => (
+                      <option key={ind.id} value={ind.id}>{ind.label}</option>
+                    ))}
+                  </select>
+                  {(() => {
+                    const activeInd = INDUSTRIES.find(ind => ind.id === (formData.industry || 'General'));
+                    return activeInd?.description ? (
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                        {activeInd.description}
+                      </p>
+                    ) : null;
+                  })()}
+                </div>
+
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Company Name</label>
                   <input type="text" name="companyName" value={formData.companyName}
