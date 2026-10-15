@@ -5,6 +5,8 @@ import { FaPrint, FaArrowLeft, FaPaperPlane } from 'react-icons/fa';
 import Skeleton from '../components/Skeleton';
 import SendInvoiceModal from '../components/SendInvoiceModal';
 import usePermissions from '../hooks/usePermissions';
+import { LogisticsPrintTemplate } from '../industries/logistics';
+import { isIndustryActive } from '../industries';
 
 // ── Helpers ─────────────────────────────────────────────────────
 function numberToWords(num) {
@@ -1116,6 +1118,9 @@ const ClassicTemplate = ({ invoice, company, client, bank, items, hasTax, isIntr
   );
 };
 
+// LogisticsPrintTemplate is imported modularly from '../industries/logistics'
+
+
 const InvoicePrint = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -1133,11 +1138,19 @@ const InvoicePrint = () => {
           api.get(`/invoices/${id}`),
           api.get('/settings'),
         ]);
-        if (invRes.status  === 'fulfilled') setInvoice(invRes.value.data);
+        if (invRes.status  === 'fulfilled') {
+          const invData = invRes.value.data;
+          setInvoice(invData);
+          if (isIndustryActive('logistics', null, invData)) {
+            setTemplate('logistics');
+          }
+        }
         if (settRes.status === 'fulfilled') {
           const sData = settRes.value.data;
           setSettings(sData);
-          if (sData?.invoiceTemplate?.defaultTemplate) {
+          if (isIndustryActive('logistics', sData)) {
+            setTemplate('logistics');
+          } else if (sData?.invoiceTemplate?.defaultTemplate) {
             setTemplate(sData.invoiceTemplate.defaultTemplate);
           }
         }
@@ -1209,6 +1222,7 @@ const InvoicePrint = () => {
           >
             <option value="modern">Modern Template</option>
             <option value="classic">Classic GST Template</option>
+            <option value="logistics">Logistics & Freight Template</option>
           </select>
 
           {can('invoices', 'email') && (
@@ -1247,6 +1261,18 @@ const InvoicePrint = () => {
           const templateColumnsConfig = template === 'classic'
             ? { ...(invTplSettings.columns || {}), ...(invTplSettings.classicColumns || {}) }
             : { ...(invTplSettings.columns || {}), ...(invTplSettings.modernColumns || {}) };
+
+          if (template === 'logistics') {
+            return (
+              <LogisticsPrintTemplate 
+                invoice={invoice} company={company} client={client} bank={bank} items={items}
+                hasTax={hasTax} isIntra={isIntra} hasExcise={hasExcise} hasDiscount={hasDiscount}
+                grandTotal={grandTotal} amountDue={amountDue} rounded={rounded} balanceDue={balanceDue}
+                advancePaid={advancePaid} tds={tds} taxRate={taxRate} invType={invType}
+                columnsConfig={templateColumnsConfig}
+              />
+            );
+          }
 
           return template === 'modern' ? (
             <ModernTemplate 
@@ -1289,7 +1315,7 @@ const InvoicePrint = () => {
             background: #fff !important;
           }
           .print\\:hidden { display: none !important; }
-          #invoice-print-modern, #invoice-print-classic, #doc-print { 
+          #invoice-print-modern, #invoice-print-classic, #invoice-print-logistics, #doc-print { 
             box-shadow: none !important; 
             page-break-inside: avoid;
             width: 100% !important;

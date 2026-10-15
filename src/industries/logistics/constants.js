@@ -1,0 +1,86 @@
+/**
+ * Logistics Industry Constants & Helpers
+ */
+
+export const LOGISTICS_CURRENCIES = [
+  { code: 'INR', label: 'INR (₹)' },
+  { code: 'USD', label: 'USD ($)' },
+  { code: 'EUR', label: 'EUR (€)' },
+  { code: 'GBP', label: 'GBP (£)' },
+  { code: 'AED', label: 'AED (د.إ)' },
+  { code: 'SGD', label: 'SGD (S$)' },
+  { code: 'CNY', label: 'CNY (¥)' },
+  { code: 'JPY', label: 'JPY (¥)' },
+];
+
+export const DEFAULT_LOGISTICS_DATA = {
+  enabled: false,
+  shipperName: '',
+  shipperAddress: '',
+  shipperCountry: '',
+  mblNo: '',
+  mblDate: '',
+  hblNo: '',
+  hblDate: '',
+  sbNo: '',
+  sbDate: '',
+  exporterInvNo: '',
+  exporterInvDate: '',
+  deliveryNote: '',
+  otherReferences: '',
+  vehicleNo: '',
+  vesselName: '',
+  flightNo: '',
+  portOfLoading: '',
+  portOfDischarge: '',
+  finalDestination: '',
+  despatchedThrough: '',
+  termsOfDelivery: '',
+  jobRef: '',
+  shippingLine: '',
+  packages: '',
+  grossWeight: '',
+  chargeableWeight: '',
+  netWeight: '',
+  cbm: '',
+  containerNo: '',
+  cargoDescription: '',
+};
+
+export const mapInvoiceToLogistics = (inv = {}, fmt = (d) => d) => {
+  const l = inv.logistics || {};
+  const t = inv.transport || {};
+  return {
+    enabled: Boolean(l.enabled || t.shipperName || t.mblNo || t.jobRef),
+    shipperName: l.shipperName || t.shipperName || '',
+    shipperAddress: l.shipperAddress || t.shipperAddress || '',
+    shipperCountry: l.shipperCountry || t.shipperCountry || '',
+    mblNo: l.mblNo || t.mblNo || '',
+    mblDate: fmt(l.mblDate || t.mblDate),
+    hblNo: l.hblNo || t.hblNo || '',
+    hblDate: fmt(l.hblDate || t.hblDate),
+    sbNo: l.sbNo || t.sbNo || '',
+    sbDate: fmt(l.sbDate || t.sbDate),
+    exporterInvNo: l.exporterInvNo || t.exporterInvNo || '',
+    exporterInvDate: fmt(l.exporterInvDate || t.exporterInvDate),
+    deliveryNote: l.deliveryNote || t.deliveryNote || '',
+    otherReferences: l.otherReferences || t.otherReferences || '',
+    vehicleNo: l.vehicleNo || t.vehicleNumber || t.vehicleNo || '',
+    vesselName: l.vesselName || t.vesselName || '',
+    flightNo: l.flightNo || t.flightNo || '',
+    portOfLoading: l.portOfLoading || t.portOfLoading || '',
+    portOfDischarge: l.portOfDischarge || t.portOfDischarge || '',
+    finalDestination: l.finalDestination || t.finalDestination || '',
+    despatchedThrough: l.despatchedThrough || t.despatchedThrough || '',
+    termsOfDelivery: l.termsOfDelivery || t.termsOfDelivery || '',
+    jobRef: l.jobRef || t.jobRef || '',
+    shippingLine: l.shippingLine || t.shippingLine || '',
+    packages: l.packages || t.packages || '',
+    grossWeight: l.grossWeight || t.grossWeight || '',
+    chargeableWeight: l.chargeableWeight || t.chargeableWeight || '',
+    netWeight: l.netWeight || t.netWeight || '',
+    cbm: l.cbm || t.cbm || '',
+    containerNo: l.containerNo || t.containerNo || '',
+    cargoDescription: l.cargoDescription || t.cargoDescription || '',
+  };
+};

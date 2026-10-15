@@ -11,6 +11,13 @@ import ItemSelect from '../components/ItemSelect';
 import AttachmentUploader from '../components/AttachmentUploader';
 import SendInvoiceModal from '../components/SendInvoiceModal';
 import { PAYMENT_METHODS } from '../utils/paymentMethods';
+import {
+  LogisticsFormSection,
+  LogisticsItemExtension,
+  LogisticsModeToggle,
+  DEFAULT_LOGISTICS_DATA,
+  mapInvoiceToLogistics,
+} from '../industries/logistics';
 
 
 const INVOICE_TYPES = ['Invoice', 'Retail Invoice', 'Tax Invoice', 'Excise Invoice'];
@@ -49,6 +56,8 @@ const SHOW_EXCISE = {
 const emptyItem = () => ({
   name: '', description: '', hsnCode: '', unit: 'pcs',
   qty: 1, rate: 0, discount: 0, taxRate: 0,
+  currency: 'INR', exRate: 1, foreignRate: 0,
+  taxableAmount: undefined, isTaxExempt: false,
   bedPercent: 0, sedPercent: 0, cessPercent: 0,
   amount: 0, isCustom: false,
 });
@@ -216,6 +225,7 @@ const InvoiceForm = () => {
       notes: '',
       terms: '',
       transport: { mode: 'Road', vehicleNumber: '', eWayBillNo: '' },
+      logistics: { ...DEFAULT_LOGISTICS_DATA },
       shippingAddress: { line1: '', line2: '', city: '', state: '', zip: '', country: 'India' },
       bankDetails: {
         accountName: '',
@@ -250,6 +260,9 @@ const InvoiceForm = () => {
   const hasTax = TAX_TYPES[invoiceType];
   const hasHSN = SHOW_HSN[invoiceType];
   const hasExcise = SHOW_EXCISE[invoiceType];
+  const isLogisticsIndustry = id
+    ? Boolean(formData.logistics?.enabled || settings?.industry === 'Logistics')
+    : (settings?.industry === 'Logistics');
 
   useEffect(() => {
     fetchDependencies();
@@ -457,23 +470,25 @@ const InvoiceForm = () => {
         gstin: sr.data?.gstin || '',
       });
       
-      // If creating a NEW invoice, pre-fill bank details from settings
+      // If creating a NEW invoice, set logistics mode strictly based on company Industry
       if (!id) {
-        if (sr.data?.bankDetails) {
-          const saved = localStorage.getItem('flance_draft_invoice_new');
-          if (!saved) {
-            setFormData(prev => ({
-              ...prev,
-              bankDetails: {
-                accountName: sr.data.bankDetails.accountName || '',
-                bankName: sr.data.bankDetails.bankName || '',
-                accountNumber: sr.data.bankDetails.accountNumber || '',
-                branch: sr.data.bankDetails.branch || '',
-                ifscCode: sr.data.bankDetails.ifscCode || '',
-              }
-            }));
-          }
-        }
+        const isLogisticsCo = sr.data?.industry === 'Logistics';
+        setFormData(prev => ({
+          ...prev,
+          logistics: {
+            ...prev.logistics,
+            enabled: isLogisticsCo,
+          },
+          ...(sr.data?.bankDetails ? {
+            bankDetails: {
+              accountName: sr.data.bankDetails.accountName || '',
+              bankName: sr.data.bankDetails.bankName || '',
+              accountNumber: sr.data.bankDetails.accountNumber || '',
+              branch: sr.data.bankDetails.branch || '',
+              ifscCode: sr.data.bankDetails.ifscCode || '',
+            }
+          } : {})
+        }));
         setIsLoaded(true);
       }
     } catch (e) { console.error(e); }
@@ -519,6 +534,7 @@ const InvoiceForm = () => {
           vehicleNumber: inv.transport?.vehicleNumber || '',
           eWayBillNo: inv.transport?.eWayBillNo || '',
         },
+        logistics: mapInvoiceToLogistics(inv, fmt),
         shippingAddress: {
           line1: inv.shippingAddress?.line1 || '',
           line2: inv.shippingAddress?.line2 || '',
@@ -564,6 +580,11 @@ const InvoiceForm = () => {
           unit: i.unit || 'pcs',
           qty: i.qty || 0,
           rate: i.rate || 0,
+          currency: i.currency || 'INR',
+          exRate: Number(i.exRate) || 1,
+          foreignRate: Number(i.foreignRate) || 0,
+          taxableAmount: i.taxableAmount !== undefined ? i.taxableAmount : undefined,
+          isTaxExempt: Boolean(i.isTaxExempt),
           discount: i.discount || 0,
           taxRate: sanitizeGstRate(i.taxRate),
           bedPercent: i.bedPercent || 0,
@@ -586,38 +607,59 @@ const InvoiceForm = () => {
   };
 
   // ── Calculations ──────────────────────────────────────────────
-  // Returns taxable value for a row (before tax)
+  const getItemEffectiveRate = (item) => {
+    const foreignRate = Number(item.foreignRate) || 0;
+    const exRate = Number(item.exRate) > 0 ? Number(item.exRate) : 1;
+    if (foreignRate > 0 && exRate !== 1) {
+      return roundTwo(foreignRate * exRate);
+    }
+    return Number(item.rate) || 0;
+  };
+
+  // Returns base line amount before taxes
   const calcTaxableRow = (item) => {
     const qty = Number(item.qty) || 0;
-    const rate = Number(item.rate) || 0;
+    const rate = getItemEffectiveRate(item);
     const disc = Math.min(100, Math.max(0, Number(item.discount) || 0));
     return roundTwo(qty * rate * (1 - disc / 100));
   };
 
+  // Returns GST taxable base (supports zero-tax / exempt logistics lines)
+  const calcGstTaxableBase = (item) => {
+    const isExempt = Boolean(item.isTaxExempt) || (item.taxableAmount === 0 && Number(item.taxRate) === 0);
+    if (isExempt) return 0;
+    if (item.taxableAmount !== undefined && item.taxableAmount !== null && item.taxableAmount !== '' && Number(item.taxableAmount) >= 0) {
+      return roundTwo(Number(item.taxableAmount));
+    }
+    return calcTaxableRow(item);
+  };
+
   // Returns full row amount including tax/excise (for display in the items table)
   const calcRow = (item) => {
-    const taxable = calcTaxableRow(item);
-    const gstRate = sanitizeGstRate(item.taxRate);
-    const gst = hasTax ? roundTwo(taxable * (gstRate / 100)) : 0;
+    const baseAmt = calcTaxableRow(item);
+    const gstBase = calcGstTaxableBase(item);
+    const isExempt = Boolean(item.isTaxExempt) || (item.taxableAmount === 0 && Number(item.taxRate) === 0);
+    const gstRate = (hasTax && !isExempt) ? sanitizeGstRate(item.taxRate) : 0;
+    const gst = roundTwo(gstBase * (gstRate / 100));
     let excise = 0;
     if (hasExcise) {
-      const bed = roundTwo(taxable * (Number(item.bedPercent) / 100 || 0));
-      const sed = roundTwo(taxable * (Number(item.sedPercent) / 100 || 0));
+      const bed = roundTwo(gstBase * (Number(item.bedPercent) / 100 || 0));
+      const sed = roundTwo(gstBase * (Number(item.sedPercent) / 100 || 0));
       const cess = roundTwo((bed + sed) * (Number(item.cessPercent) / 100 || 0));
       excise = roundTwo(bed + sed + cess);
     }
-    return roundTwo(taxable + gst + excise);
+    return roundTwo(baseAmt + gst + excise);
   };
 
-  // Subtotal = sum of taxable values only (pre-tax)
+  // Subtotal = sum of base values (pre-tax)
   const getSubTotal = () => roundTwo(formData.items.reduce((a, i) => a + calcTaxableRow(i), 0));
 
   const getExciseTotal = () => {
     if (!hasExcise) return 0;
     return roundTwo(formData.items.reduce((total, item) => {
-      const taxable = calcTaxableRow(item);
-      const bed = roundTwo(taxable * (Number(item.bedPercent) / 100 || 0));
-      const sed = roundTwo(taxable * (Number(item.sedPercent) / 100 || 0));
+      const gstBase = calcGstTaxableBase(item);
+      const bed = roundTwo(gstBase * (Number(item.bedPercent) / 100 || 0));
+      const sed = roundTwo(gstBase * (Number(item.sedPercent) / 100 || 0));
       const cess = roundTwo((bed + sed) * (Number(item.cessPercent) / 100 || 0));
       return total + bed + sed + cess;
     }, 0));
@@ -633,8 +675,10 @@ const InvoiceForm = () => {
       companyTaxProfile.gstin
     );
     formData.items.forEach(item => {
-      const taxable = calcTaxableRow(item);
-      const tax = roundTwo(taxable * (sanitizeGstRate(item.taxRate) / 100));
+      const isExempt = Boolean(item.isTaxExempt) || (item.taxableAmount === 0 && Number(item.taxRate) === 0);
+      if (isExempt) return;
+      const gstBase = calcGstTaxableBase(item);
+      const tax = roundTwo(gstBase * (sanitizeGstRate(item.taxRate) / 100));
       if (isInterState) {
         igst = roundTwo(igst + tax);
       } else {
@@ -812,7 +856,14 @@ const InvoiceForm = () => {
       client_will_deduct_tds: formData.client_will_deduct_tds || formData.tdsApplicable,
       tds_receivable_amount: activeTdsAmount,
       expected_receipt: activeNetPayable,
-      transport: { ...formData.transport, poNumber: formData.poNumber, poDate: formData.poDate },
+      transport: {
+        ...formData.transport,
+        poNumber: formData.poNumber,
+        poDate: formData.poDate,
+        ...(formData.logistics || {}),
+        vehicleNumber: formData.logistics?.vehicleNo || formData.transport?.vehicleNumber || '',
+      },
+      logistics: formData.logistics,
     };
     try {
       if (id) {
@@ -936,6 +987,13 @@ const InvoiceForm = () => {
               </button>
             ))}
           </div>
+
+          {/* Logistics Mode Toggle (Modular Industry Component) */}
+          <LogisticsModeToggle
+            isLogisticsIndustry={isLogisticsIndustry}
+            formData={formData}
+            setFormData={setFormData}
+          />
         </div>
         <div className="flex items-center gap-2.5">
           {id && (
@@ -1289,6 +1347,15 @@ const InvoiceForm = () => {
           </div>
         )}
 
+        {/* ── Industry Specific Form Section (Plug-and-play modular architecture) ── */}
+        <LogisticsFormSection
+          formData={formData}
+          setFormData={setFormData}
+          isLogisticsIndustry={isLogisticsIndustry}
+          lbl={lbl}
+          inp={inp}
+        />
+
         {/* ── Items Table ── */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
@@ -1462,6 +1529,16 @@ const InvoiceForm = () => {
                     <FaTrash size={14} />
                   </button>
                 </div>
+
+                {/* Logistics Multi-Currency & GST Exemption Bar (Modular Industry Extension) */}
+                <LogisticsItemExtension
+                  item={item}
+                  index={index}
+                  formData={formData}
+                  setFormData={setFormData}
+                  updateItem={updateItem}
+                  isActive={isLogisticsIndustry}
+                />
               </div>
             ))}
 
