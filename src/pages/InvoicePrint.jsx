@@ -1138,21 +1138,26 @@ const InvoicePrint = () => {
           api.get(`/invoices/${id}`),
           api.get('/settings'),
         ]);
+        let invData = null;
+        let sData = null;
         if (invRes.status  === 'fulfilled') {
-          const invData = invRes.value.data;
+          invData = invRes.value.data;
           setInvoice(invData);
-          if (isIndustryActive('logistics', null, invData)) {
-            setTemplate('logistics');
-          }
         }
         if (settRes.status === 'fulfilled') {
-          const sData = settRes.value.data;
+          sData = settRes.value.data;
           setSettings(sData);
-          if (isIndustryActive('logistics', sData)) {
-            setTemplate('logistics');
-          } else if (sData?.invoiceTemplate?.defaultTemplate) {
-            setTemplate(sData.invoiceTemplate.defaultTemplate);
-          }
+        }
+
+        const isLogisticsSelected = isIndustryActive('logistics', sData);
+
+        if (isLogisticsSelected) {
+          setTemplate('logistics');
+        } else if (sData?.invoiceTemplate?.defaultTemplate) {
+          const defTpl = sData.invoiceTemplate.defaultTemplate;
+          setTemplate(defTpl === 'logistics' ? 'modern' : defTpl);
+        } else {
+          setTemplate('modern');
         }
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
@@ -1184,7 +1189,12 @@ const InvoicePrint = () => {
   if (!company.companyName && company.name) company.companyName = company.name;
   if (!company.logoUrl && company.logo) company.logoUrl = company.logo;
   const client      = invoice.client || {};
-  const bank        = invoice.bankDetails || {};
+  const hasBankInfo = (b) => Boolean(b && (b.bankName || b.accountNumber || b.ifscCode));
+  const bank        = hasBankInfo(invoice.bankDetails)
+    ? invoice.bankDetails
+    : (hasBankInfo(company.bankDetails)
+        ? company.bankDetails
+        : (hasBankInfo(settings?.bankDetails) ? settings.bankDetails : {}));
   const items       = invoice.items  || [];
   const invType     = invoice.invoiceType || 'Tax Invoice';
   const hasTax      = invType === 'Tax Invoice' || invType === 'Excise Invoice';
@@ -1204,6 +1214,9 @@ const InvoicePrint = () => {
   const amountDue   = advancePaid > 0 ? Math.max(0, grandTotal - advancePaid) : grandTotal;
 
   // ── Render ───────────────────────────────────────────────────────
+  const isLogisticsIndustryActive = isIndustryActive('logistics', settings);
+  const activeTemplate = isLogisticsIndustryActive ? template : (template === 'logistics' ? (settings?.invoiceTemplate?.defaultTemplate || 'modern') : template);
+
   return (
     <div className="print-page-container" style={{ background: '#eee', minHeight: '100vh', padding: '0', fontFamily: 'Calibri, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
       {/* Screen toolbar */}
@@ -1216,13 +1229,15 @@ const InvoicePrint = () => {
         
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <select 
-            value={template} 
+            value={activeTemplate} 
             onChange={e => setTemplate(e.target.value)}
             style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid #d0d0d0', fontSize: '13px', outline: 'none', cursor: 'pointer', background: '#fff' }}
           >
             <option value="modern">Modern Template</option>
             <option value="classic">Classic GST Template</option>
-            <option value="logistics">Logistics & Freight Template</option>
+            {isLogisticsIndustryActive && (
+              <option value="logistics">Logistics & Freight Template</option>
+            )}
           </select>
 
           {can('invoices', 'email') && (
@@ -1249,7 +1264,7 @@ const InvoicePrint = () => {
         onClose={() => setEmailModalOpen(false)}
         invoice={invoice}
         settings={settings}
-        template={template}
+        template={activeTemplate}
         onEmailSent={() => {
           setInvoice(prev => prev ? { ...prev, status: 'SENT' } : prev);
         }}
@@ -1258,11 +1273,11 @@ const InvoicePrint = () => {
       <div style={{ paddingBottom: '40px' }}>
         {(() => {
           const invTplSettings = settings?.invoiceTemplate || {};
-          const templateColumnsConfig = template === 'classic'
+          const templateColumnsConfig = activeTemplate === 'classic'
             ? { ...(invTplSettings.columns || {}), ...(invTplSettings.classicColumns || {}) }
             : { ...(invTplSettings.columns || {}), ...(invTplSettings.modernColumns || {}) };
 
-          if (template === 'logistics') {
+          if (activeTemplate === 'logistics') {
             return (
               <LogisticsPrintTemplate 
                 invoice={invoice} company={company} client={client} bank={bank} items={items}
@@ -1274,7 +1289,7 @@ const InvoicePrint = () => {
             );
           }
 
-          return template === 'modern' ? (
+          return activeTemplate === 'modern' ? (
             <ModernTemplate 
               invoice={invoice} company={company} client={client} bank={bank} items={items}
               hasTax={hasTax} isIntra={isIntra} hasExcise={hasExcise} hasDiscount={hasDiscount}
