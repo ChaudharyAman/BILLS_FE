@@ -567,30 +567,30 @@ const InvoiceList = () => {
       <div className="bg-white dark:bg-slate-900 shadow-sm rounded-xl border border-gray-200 dark:border-slate-800 overflow-hidden transition-colors">
         
         {/* Table Toolbar & Filters */}
-        <div className="p-3 border-b border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 flex flex-col gap-2.5">
-             <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="p-2 border-b border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 flex flex-col gap-2">
+             <div className="flex flex-wrap items-center justify-between gap-2.5">
                  <div className="relative max-w-xs w-full">
                      <input 
                         type="text" 
                         placeholder="Search invoices..." 
-                        className="w-full pl-3 pr-3 py-1.5 border border-gray-300 dark:border-slate-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm font-sans"
+                        className="w-full pl-2.5 pr-2.5 py-1 border border-gray-300 dark:border-slate-700 rounded-lg text-[11px] h-7 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 shadow-xs font-sans"
                         value={searchTerm}
                         onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                      />
                  </div>
-                 <div className="text-xs text-gray-500 dark:text-slate-400 font-medium">
+                 <div className="text-[11px] text-gray-500 dark:text-slate-400 font-medium">
                      Showing {displayedInvoices.length} of {totalRecords} results
                  </div>
              </div>
 
              {/* Filters Bar */}
-             <div className="flex flex-wrap items-center gap-2.5 bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-gray-100 dark:border-slate-800 shadow-sm text-xs">
-                 <div className="flex flex-col min-w-[120px]">
-                     <span className="text-[9px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">Status</span>
+             <div className="flex flex-wrap items-center gap-1.5 bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-gray-100 dark:border-slate-800 shadow-xs text-xs">
+                 <div className="flex flex-col min-w-[90px] max-w-[105px]">
+                     <span className="text-[8.5px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">Status</span>
                      <select
                         value={statusFilter}
                         onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                        className="border border-gray-200 dark:border-slate-700 rounded-md px-2 py-1 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer font-sans"
+                        className="border border-gray-200 dark:border-slate-700 rounded-md px-1.5 py-0.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-[11px] h-6.5 cursor-pointer font-sans"
                      >
                         <option value="">All Statuses</option>
                         <option value="DRAFT">DRAFT</option>
@@ -602,12 +602,12 @@ const InvoiceList = () => {
                      </select>
                  </div>
 
-                 <div className="flex flex-col min-w-[120px]">
-                     <span className="text-[9px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">Type</span>
+                 <div className="flex flex-col min-w-[90px] max-w-[105px]">
+                     <span className="text-[8.5px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">Type</span>
                      <select
                         value={typeFilter}
                         onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-                        className="border border-gray-200 dark:border-slate-700 rounded-md px-2 py-1 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer font-sans"
+                        className="border border-gray-200 dark:border-slate-700 rounded-md px-1.5 py-0.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-[11px] h-6.5 cursor-pointer font-sans"
                      >
                         <option value="">All Types</option>
                         <option value="Tax Invoice">Tax Invoice</option>
@@ -617,12 +617,12 @@ const InvoiceList = () => {
                      </select>
                  </div>
 
-                 <div className="flex flex-col min-w-[130px]">
-                      <span className="text-[9px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">Business Unit</span>
+                 <div className="flex flex-col min-w-[105px] max-w-[125px]">
+                      <span className="text-[8.5px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">Business Unit</span>
                       <select
                          value={businessUnitFilter}
                          onChange={(e) => { setBusinessUnitFilter(e.target.value); setPage(1); }}
-                         className="border border-gray-200 dark:border-slate-700 rounded-md px-2 py-1 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer font-sans"
+                         className="border border-gray-200 dark:border-slate-700 rounded-md px-1.5 py-0.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-[11px] h-6.5 cursor-pointer font-sans"
                       >
                          <option value="">All Business Units</option>
                          {businessUnits.map((bu) => (
@@ -633,40 +633,40 @@ const InvoiceList = () => {
                       </select>
                   </div>
 
-                 <div className="flex flex-col min-w-[105px]">
-                     <span className="text-[9px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">Date Type</span>
+                 <div className="flex flex-col min-w-[80px] max-w-[95px]">
+                     <span className="text-[8.5px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">Date Type</span>
                      <select
                         value={dateTypeFilter}
                         onChange={(e) => { setDateTypeFilter(e.target.value); setPage(1); }}
-                        className="border border-gray-200 dark:border-slate-700 rounded-md px-2 py-1 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer font-sans"
+                        className="border border-gray-200 dark:border-slate-700 rounded-md px-1.5 py-0.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-[11px] h-6.5 cursor-pointer font-sans"
                      >
                         <option value="date">Issue Date</option>
                         <option value="dueDate">Due Date</option>
                      </select>
                  </div>
 
-                 <div className="flex flex-col min-w-[115px]">
-                     <span className="text-[9px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">From Date</span>
+                 <div className="flex flex-col min-w-[95px] max-w-[110px]">
+                     <span className="text-[8.5px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">From Date</span>
                      <input
                         type="date"
                         value={startDate}
                         onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
-                        className="border border-gray-200 dark:border-slate-700 rounded-md px-2 py-0.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer font-sans"
+                        className="border border-gray-200 dark:border-slate-700 rounded-md px-1.5 py-0.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-[11px] h-6.5 cursor-pointer font-sans"
                      />
                  </div>
 
-                 <div className="flex flex-col min-w-[115px]">
-                     <span className="text-[9px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">To Date</span>
+                 <div className="flex flex-col min-w-[95px] max-w-[110px]">
+                     <span className="text-[8.5px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">To Date</span>
                      <input
                         type="date"
                         value={endDate}
                         onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
-                        className="border border-gray-200 dark:border-slate-700 rounded-md px-2 py-0.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer font-sans"
+                        className="border border-gray-200 dark:border-slate-700 rounded-md px-1.5 py-0.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-[11px] h-6.5 cursor-pointer font-sans"
                      />
                  </div>
 
-                 <div className="flex flex-col min-w-[130px]">
-                      <span className="text-[9px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">Sort By</span>
+                 <div className="flex flex-col min-w-[105px] max-w-[125px]">
+                      <span className="text-[8.5px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-0.5 tracking-wider">Sort By</span>
                       <select
                          value={`${sortBy}-${sortOrder}`}
                          onChange={(e) => {
@@ -675,7 +675,7 @@ const InvoiceList = () => {
                              setSortOrder(order);
                              setPage(1);
                          }}
-                         className="border border-gray-200 dark:border-slate-700 rounded-md px-2 py-1 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer font-sans"
+                         className="border border-gray-200 dark:border-slate-700 rounded-md px-1.5 py-0.5 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-[11px] h-6.5 cursor-pointer font-sans"
                       >
                          <option value="createdAt-desc">Created (Latest)</option>
                          <option value="createdAt-asc">Created (Oldest)</option>
@@ -708,7 +708,7 @@ const InvoiceList = () => {
                               localStorage.removeItem(FILTER_STORAGE_KEY);
                             } catch (e) {}
                         }}
-                        className="self-end px-3 py-1 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-700 dark:hover:text-red-300 rounded-md text-xs font-semibold transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+                        className="self-end px-2.5 py-0.5 h-6.5 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-700 dark:hover:text-red-300 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
                      >
                         Clear Filters
                      </button>
@@ -721,15 +721,15 @@ const InvoiceList = () => {
             <thead className="bg-gray-50 dark:bg-slate-800/60">
               <tr>
                 {can('invoices', 'delete') && (
-                  <th className="px-2 py-2 w-8 text-center">
+                  <th className="px-1.5 py-1.5 w-7 text-center">
                     <button onClick={toggleSelectAll} className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
-                      {selectedInvoices.length === invoices.length && invoices.length > 0 ? <FaCheckSquare size={14} /> : <FaRegSquare size={14} />}
+                      {selectedInvoices.length === invoices.length && invoices.length > 0 ? <FaCheckSquare size={13} /> : <FaRegSquare size={13} />}
                     </button>
                   </th>
                 )}
                 <th 
                   onClick={() => handleSort('invoiceNo')}
-                  className="px-2 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-1.5 py-1.5 text-left text-[9.5px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Invoice {renderSortIcon('invoiceNo')}
@@ -737,7 +737,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('invoiceType')}
-                  className="px-1.5 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-1 py-1.5 text-left text-[9.5px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Type {renderSortIcon('invoiceType')}
@@ -745,7 +745,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('clientName')}
-                  className="px-2 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-1.5 py-1.5 text-left text-[9.5px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Client {renderSortIcon('clientName')}
@@ -753,7 +753,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('date')}
-                  className="px-2 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-1.5 py-1.5 text-left text-[9.5px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Date {renderSortIcon('date')}
@@ -761,7 +761,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('dueDate')}
-                  className="px-2 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-1.5 py-1.5 text-left text-[9.5px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Due Date {renderSortIcon('dueDate')}
@@ -769,7 +769,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('status')}
-                  className="px-1.5 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-1 py-1.5 text-left text-[9.5px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center">
                     Status {renderSortIcon('status')}
@@ -777,7 +777,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('grandTotal')}
-                  className="px-2 py-2 text-right text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-1.5 py-1.5 text-right text-[9.5px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center justify-end">
                     Amount {renderSortIcon('grandTotal')}
@@ -785,7 +785,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('taxTotal')}
-                  className="px-2 py-2 text-right text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-1.5 py-1.5 text-right text-[9.5px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center justify-end">
                     Total GST {renderSortIcon('taxTotal')}
@@ -793,7 +793,7 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('tds')}
-                  className="px-2 py-2 text-right text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-1.5 py-1.5 text-right text-[9.5px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center justify-end">
                     TDS {renderSortIcon('tds')}
@@ -801,13 +801,13 @@ const InvoiceList = () => {
                 </th>
                 <th 
                   onClick={() => handleSort('balanceDue')}
-                  className="px-2 py-2 text-right text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
+                  className="px-1.5 py-1.5 text-right text-[9.5px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors select-none group"
                 >
                   <div className="flex items-center justify-end">
                     Receivable {renderSortIcon('balanceDue')}
                   </div>
                 </th>
-                <th className="px-1.5 py-2 text-center text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none">
+                <th className="px-1 py-1.5 text-center text-[9.5px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider select-none w-10">
                   Actions
                 </th>
               </tr>
@@ -816,21 +816,21 @@ const InvoiceList = () => {
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
-                     {can('invoices', 'delete') && <td className="px-2 py-1.5 text-center"><Skeleton width="14px" height="14px" className="mx-auto" /></td>}
-                     <td className="px-2 py-1.5"><Skeleton width="70px" height="14px" /></td>
-                     <td className="px-1.5 py-1.5"><Skeleton width="50px" height="14px" /></td>
-                     <td className="px-2 py-1.5">
-                        <Skeleton width="90px" height="14px" className="mb-1" />
-                        <Skeleton width="50px" height="10px" />
+                     {can('invoices', 'delete') && <td className="px-1.5 py-1 text-center"><Skeleton width="13px" height="13px" className="mx-auto" /></td>}
+                     <td className="px-1.5 py-1"><Skeleton width="65px" height="13px" /></td>
+                     <td className="px-1 py-1"><Skeleton width="45px" height="13px" /></td>
+                     <td className="px-1.5 py-1">
+                        <Skeleton width="85px" height="13px" className="mb-0.5" />
+                        <Skeleton width="45px" height="9px" />
                      </td>
-                     <td className="px-2 py-1.5"><Skeleton width="50px" height="14px" /></td>
-                     <td className="px-2 py-1.5"><Skeleton width="50px" height="14px" /></td>
-                     <td className="px-1.5 py-1.5"><Skeleton width="45px" height="16px" className="rounded-full" /></td>
-                     <td className="px-2 py-1.5"><Skeleton width="50px" height="14px" className="ml-auto" /></td>
-                     <td className="px-2 py-1.5"><Skeleton width="45px" height="14px" className="ml-auto" /></td>
-                     <td className="px-2 py-1.5"><Skeleton width="45px" height="14px" className="ml-auto" /></td>
-                     <td className="px-2 py-1.5"><Skeleton width="50px" height="14px" className="ml-auto" /></td>
-                     <td className="px-1.5 py-1.5 text-center"><Skeleton width="50px" height="14px" className="mx-auto" /></td>
+                     <td className="px-1.5 py-1"><Skeleton width="48px" height="13px" /></td>
+                     <td className="px-1.5 py-1"><Skeleton width="48px" height="13px" /></td>
+                     <td className="px-1 py-1"><Skeleton width="40px" height="14px" className="rounded-full" /></td>
+                     <td className="px-1.5 py-1"><Skeleton width="48px" height="13px" className="ml-auto" /></td>
+                     <td className="px-1.5 py-1"><Skeleton width="42px" height="13px" className="ml-auto" /></td>
+                     <td className="px-1.5 py-1"><Skeleton width="42px" height="13px" className="ml-auto" /></td>
+                     <td className="px-1.5 py-1"><Skeleton width="48px" height="13px" className="ml-auto" /></td>
+                     <td className="px-1 py-1 text-center"><Skeleton width="20px" height="13px" className="mx-auto" /></td>
                   </tr>
                 ))
               ) : displayedInvoices.length === 0 ? (
@@ -850,41 +850,41 @@ const InvoiceList = () => {
                   return (
                     <tr key={inv._id} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors group">
                       {can('invoices', 'delete') && (
-                        <td className="px-2 py-1.5 text-center">
+                        <td className="px-1.5 py-1 text-center">
                           <button onClick={() => toggleSelect(inv._id)} className={`${selectedInvoices.includes(inv._id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-400 dark:hover:text-slate-500'}`}>
-                             {selectedInvoices.includes(inv._id) ? <FaCheckSquare size={14} /> : <FaRegSquare size={14} />}
+                             {selectedInvoices.includes(inv._id) ? <FaCheckSquare size={13} /> : <FaRegSquare size={13} />}
                          </button>
                         </td>
                       )}
                       
                       {/* Invoice No */}
-                      <td className="px-2 py-1.5 whitespace-nowrap">
-                          <Link to={`/invoices/${inv._id}/print`} className="text-blue-600 dark:text-blue-400 text-xs font-semibold hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
+                      <td className="px-1.5 py-1 whitespace-nowrap">
+                          <Link to={`/invoices/${inv._id}/print`} className="text-blue-600 dark:text-blue-400 text-[11px] font-semibold hover:text-blue-800 dark:hover:text-blue-300 hover:underline">
                               {inv.invoiceNo}
                           </Link>
                       </td>
                       {/* Type */}
-                      <td className="px-1.5 py-1.5 whitespace-nowrap">
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900/50">
+                      <td className="px-1 py-1 whitespace-nowrap">
+                          <span className="px-1.5 py-0.2 rounded text-[8.5px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900/50">
                               {inv.invoiceType || 'Tax Invoice'}
                           </span>
                       </td>
                       
                       {/* Client */}
-                      <td className="px-2 py-1.5 whitespace-nowrap max-w-[160px]">
-                          <div className="text-xs font-semibold text-gray-900 dark:text-slate-100 truncate max-w-[160px]" title={inv.client?.name}>
+                      <td className="px-1.5 py-1 whitespace-nowrap max-w-[130px]">
+                          <div className="text-[11px] font-semibold text-gray-900 dark:text-slate-100 truncate max-w-[130px]" title={inv.client?.name}>
                             {inv.client?.name}
                           </div>
-                          {inv.client?.gstin && <div className="text-[9px] text-gray-400 dark:text-slate-400 font-mono truncate">{inv.client.gstin}</div>}
+                          {inv.client?.gstin && <div className="text-[8.5px] text-gray-400 dark:text-slate-400 font-mono truncate">{inv.client.gstin}</div>}
                       </td>
    
                       {/* Date */}
-                      <td className="px-2 py-1.5 whitespace-nowrap text-[11px] text-gray-500 dark:text-slate-400">
+                      <td className="px-1.5 py-1 whitespace-nowrap text-[10.5px] text-gray-500 dark:text-slate-400">
                           {formatDate(inv.date)}
                       </td>
    
                       {/* Due Date */}
-                      <td className="px-2 py-1.5 whitespace-nowrap text-[11px] text-gray-500 dark:text-slate-400">
+                      <td className="px-1.5 py-1 whitespace-nowrap text-[10.5px] text-gray-500 dark:text-slate-400">
                           {inv.dueDate ? (
                             <span className={new Date(inv.dueDate) < new Date() && !isSettled ? 'text-red-500 font-medium font-sans' : ''}>
                               {formatDate(inv.dueDate)}
@@ -893,7 +893,7 @@ const InvoiceList = () => {
                       </td>
    
                       {/* Status */}
-                      <td className="px-1.5 py-1.5 whitespace-nowrap">
+                      <td className="px-1 py-1 whitespace-nowrap">
                           <select
                              value={inv.status === 'PAID' ? 'RECEIVED' : (inv.status || (isSettled ? 'RECEIVED' : 'SENT'))}
                              onChange={async (e) => {
@@ -905,7 +905,7 @@ const InvoiceList = () => {
                                      alert(err.response?.data?.message || 'Failed to update status');
                                  }
                              }}
-                             className={`px-1.5 py-0.5 rounded text-[9px] font-bold border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent transition-colors text-center appearance-none ${
+                             className={`px-1 py-0.5 rounded text-[8.5px] font-bold border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent transition-colors text-center appearance-none ${
                                  (inv.status === 'RECEIVED' || inv.status === 'PAID' || (!inv.status && isSettled)) ? 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800/60' :
                                  inv.status === 'DRAFT' ? 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700' :
                                  (inv.status === 'SENT' || (!inv.status && !isSettled)) ? 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60' :
@@ -926,50 +926,50 @@ const InvoiceList = () => {
                       </td>
    
                       {/* Amount */}
-                      <td className="px-2 py-1.5 whitespace-nowrap text-right text-xs font-bold text-gray-900 dark:text-slate-100 font-mono">
+                      <td className="px-1.5 py-1 whitespace-nowrap text-right text-[11px] font-bold text-gray-900 dark:text-slate-100 font-mono">
                           ₹{grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
 
                       {/* Total GST */}
-                      <td className="px-2 py-1.5 whitespace-nowrap text-right text-xs">
+                      <td className="px-1.5 py-1 whitespace-nowrap text-right text-[10.5px]">
                           {totalGst > 0 ? (
                             <div>
-                              <span className="font-semibold text-slate-700 dark:text-slate-200 font-mono text-[11px]">
+                              <span className="font-semibold text-slate-700 dark:text-slate-200 font-mono text-[10.5px]">
                                 ₹{totalGst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </span>
                               {inv.totalIGST > 0 ? (
-                                <span className="text-[9px] text-gray-400 dark:text-slate-500 block">IGST</span>
+                                <span className="text-[8px] text-gray-400 dark:text-slate-500 block leading-tight">IGST</span>
                               ) : (inv.totalCGST > 0 || inv.totalSGST > 0) ? (
-                                <span className="text-[9px] text-gray-400 dark:text-slate-500 block">CGST+SGST</span>
+                                <span className="text-[8px] text-gray-400 dark:text-slate-500 block leading-tight">CGST+SGST</span>
                               ) : null}
                             </div>
                           ) : (
-                            <span className="text-gray-400 dark:text-slate-500 font-mono text-[11px]">—</span>
+                            <span className="text-gray-400 dark:text-slate-500 font-mono text-[10.5px]">—</span>
                           )}
                       </td>
 
                       {/* TDS */}
-                      <td className="px-2 py-1.5 whitespace-nowrap text-right text-xs">
+                      <td className="px-1.5 py-1 whitespace-nowrap text-right text-[10.5px]">
                           {tdsVal > 0 ? (
                             <div>
-                              <span className="font-semibold text-amber-600 dark:text-amber-400 font-mono text-[11px]">
+                              <span className="font-semibold text-amber-600 dark:text-amber-400 font-mono text-[10.5px]">
                                 ₹{tdsVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </span>
                               {inv.tdsSection && (
-                                <span className="text-[8px] text-gray-400 dark:text-slate-500 block">
+                                <span className="text-[7.5px] text-gray-400 dark:text-slate-500 block leading-tight">
                                   Sec {inv.tdsSection}{inv.tdsRate ? ` (${inv.tdsRate}%)` : ''}
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <span className="text-gray-400 dark:text-slate-500 font-mono text-[11px]">—</span>
+                            <span className="text-gray-400 dark:text-slate-500 font-mono text-[10.5px]">—</span>
                           )}
                       </td>
    
                       {/* Receivable */}
-                      <td className="px-2 py-1.5 whitespace-nowrap text-right text-xs">
+                      <td className="px-1.5 py-1 whitespace-nowrap text-right text-[11px]">
                           <div className="flex flex-col items-end">
-                            <span className={`font-bold font-mono text-xs ${
+                            <span className={`font-bold font-mono text-[11px] ${
                               isSettled 
                                 ? 'text-emerald-600 dark:text-emerald-400' 
                                 : (inv.dueDate && new Date(inv.dueDate) < new Date() ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')
@@ -977,12 +977,12 @@ const InvoiceList = () => {
                               ₹{pendingReceivable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </span>
                             {advancePaid > 0 && (
-                              <span className="text-[9px] text-gray-400 dark:text-slate-500">
+                              <span className="text-[8px] text-gray-400 dark:text-slate-500 leading-tight">
                                 Rec&apos;d: ₹{advancePaid.toLocaleString('en-IN')}
                               </span>
                             )}
                             {advancePaid === 0 && tdsVal > 0 && (
-                              <span className="text-[9px] text-gray-400 dark:text-slate-500">
+                              <span className="text-[8px] text-gray-400 dark:text-slate-500 leading-tight">
                                 Net: ₹{netReceivable.toLocaleString('en-IN')}
                               </span>
                             )}
@@ -990,7 +990,7 @@ const InvoiceList = () => {
                       </td>
    
                       {/* Actions 3-Dot Menu */}
-                      <td className="px-1.5 py-1.5 whitespace-nowrap text-center text-xs font-medium relative">
+                      <td className="px-1 py-1 whitespace-nowrap text-center text-xs font-medium relative">
                         <div className="relative inline-block text-left" ref={actionMenuId === inv._id ? actionMenuRef : null}>
                           <button
                             type="button"
@@ -998,10 +998,10 @@ const InvoiceList = () => {
                               e.stopPropagation();
                               setActionMenuId(prev => prev === inv._id ? null : inv._id);
                             }}
-                            className={`p-1.5 rounded-lg text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors focus:outline-none ${actionMenuId === inv._id ? 'bg-gray-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm' : ''}`}
+                            className={`p-1 rounded-md text-gray-400 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors focus:outline-none ${actionMenuId === inv._id ? 'bg-gray-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-2xs' : ''}`}
                             title="Actions"
                           >
-                            <FaEllipsisV size={13} />
+                            <FaEllipsisV size={12} />
                           </button>
 
                           {actionMenuId === inv._id && (
