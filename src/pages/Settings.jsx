@@ -752,11 +752,11 @@ const Settings = () => {
       data.append('email', formData.email);
       data.append('phone', formData.phone);
       data.append('website', formData.website);
-      data.append('bankDetails[accountName]', formData.bankDetails.accountName);
-      data.append('bankDetails[bankName]', formData.bankDetails.bankName);
-      data.append('bankDetails[accountNumber]', formData.bankDetails.accountNumber);
-      data.append('bankDetails[branch]', formData.bankDetails.branch);
-      data.append('bankDetails[ifscCode]', formData.bankDetails.ifscCode);
+      data.append('bankDetails[accountName]', formData.bankDetails?.accountName || '');
+      data.append('bankDetails[bankName]', formData.bankDetails?.bankName || '');
+      data.append('bankDetails[accountNumber]', formData.bankDetails?.accountNumber || '');
+      data.append('bankDetails[branch]', formData.bankDetails?.branch || '');
+      data.append('bankDetails[ifscCode]', (formData.bankDetails?.ifscCode || '').toUpperCase());
 
       data.append('signatureEnabled', formData.signatureEnabled);
       data.append('showSignatureOnInvoices', formData.showSignatureOnInvoices);

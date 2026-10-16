@@ -18,6 +18,7 @@ import {
   DEFAULT_LOGISTICS_DATA,
   mapInvoiceToLogistics,
 } from '../industries/logistics';
+import { isIndustryActive } from '../industries';
 
 
 const INVOICE_TYPES = ['Invoice', 'Retail Invoice', 'Tax Invoice', 'Excise Invoice'];
@@ -261,8 +262,8 @@ const InvoiceForm = () => {
   const hasHSN = SHOW_HSN[invoiceType];
   const hasExcise = SHOW_EXCISE[invoiceType];
   const isLogisticsIndustry = id
-    ? Boolean(formData.logistics?.enabled || settings?.industry === 'Logistics')
-    : (settings?.industry === 'Logistics');
+    ? Boolean(formData.logistics?.enabled || isIndustryActive('logistics', settings))
+    : isIndustryActive('logistics', settings);
 
   useEffect(() => {
     fetchDependencies();
@@ -472,14 +473,14 @@ const InvoiceForm = () => {
       
       // If creating a NEW invoice, set logistics mode strictly based on company Industry
       if (!id) {
-        const isLogisticsCo = sr.data?.industry === 'Logistics';
+        const isLogisticsCo = isIndustryActive('logistics', sr.data);
         setFormData(prev => ({
           ...prev,
           logistics: {
             ...prev.logistics,
             enabled: isLogisticsCo,
           },
-          ...(sr.data?.bankDetails ? {
+          ...((sr.data?.bankDetails && (sr.data.bankDetails.bankName || sr.data.bankDetails.accountNumber || sr.data.bankDetails.ifscCode)) ? {
             bankDetails: {
               accountName: sr.data.bankDetails.accountName || '',
               bankName: sr.data.bankDetails.bankName || '',
@@ -490,6 +491,24 @@ const InvoiceForm = () => {
           } : {})
         }));
         setIsLoaded(true);
+      } else if (sr.data?.bankDetails && (sr.data.bankDetails.bankName || sr.data.bankDetails.accountNumber || sr.data.bankDetails.ifscCode)) {
+        // If editing an invoice that has blank bank details, populate from company settings
+        setFormData(prev => {
+          const hasCurrentBank = Boolean(prev.bankDetails?.bankName || prev.bankDetails?.accountNumber || prev.bankDetails?.ifscCode);
+          if (!hasCurrentBank) {
+            return {
+              ...prev,
+              bankDetails: {
+                accountName: sr.data.bankDetails.accountName || '',
+                bankName: sr.data.bankDetails.bankName || '',
+                accountNumber: sr.data.bankDetails.accountNumber || '',
+                branch: sr.data.bankDetails.branch || '',
+                ifscCode: sr.data.bankDetails.ifscCode || '',
+              }
+            };
+          }
+          return prev;
+        });
       }
     } catch (e) { console.error(e); }
     finally { setCatalogReady(true); }

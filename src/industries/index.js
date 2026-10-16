@@ -92,10 +92,14 @@ export const getIndustry = (idOrName) => {
 export const isIndustryActive = (industryId, settings = {}, invoice = {}) => {
   if (!industryId) return false;
   const target = industryId.toLowerCase();
-  const settingsInd = (settings?.industry || '').toLowerCase();
+  const settingsInd = String(settings?.industry || '').trim().toLowerCase();
   
   if (target === 'logistics') {
-    return settingsInd === 'logistics' || Boolean(invoice?.logistics?.enabled);
+    return (
+      settingsInd === 'logistics' ||
+      settingsInd.includes('logistics') ||
+      settingsInd.includes('freight')
+    );
   }
   return settingsInd === target;
 };
