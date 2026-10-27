@@ -96,7 +96,17 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
 
   // Preview Modal State
   const [previewDoc, setPreviewDoc] = useState(null);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewBlobUrl) {
+        window.URL.revokeObjectURL(previewBlobUrl);
+      }
+    };
+  }, [previewBlobUrl]);
 
   // Send Email State
   const [emailDoc, setEmailDoc] = useState(null);
@@ -353,8 +363,41 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
       });
   };
 
-  const openPreview = (doc) => {
+  const closePreview = () => {
+    if (previewBlobUrl) {
+      window.URL.revokeObjectURL(previewBlobUrl);
+    }
+    setPreviewBlobUrl(null);
+    setPreviewDoc(null);
+    setPreviewLoading(false);
+  };
+
+  const openPreview = async (doc) => {
+    if (previewBlobUrl) {
+      window.URL.revokeObjectURL(previewBlobUrl);
+      setPreviewBlobUrl(null);
+    }
     setPreviewDoc(doc);
+    const isImage = doc.mimeType?.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(doc.originalName || '');
+    const isPdf = doc.mimeType === 'application/pdf' || /\.pdf$/i.test(doc.originalName || '');
+
+    if (isImage || isPdf) {
+      setPreviewLoading(true);
+      try {
+        const res = await api.get(`/company-documents/${doc._id}/view`, {
+          responseType: 'blob',
+        });
+        const contentType = doc.mimeType || (isPdf ? 'application/pdf' : 'application/octet-stream');
+        const blob = new Blob([res.data], { type: contentType });
+        const objectUrl = window.URL.createObjectURL(blob);
+        setPreviewBlobUrl(objectUrl);
+      } catch (err) {
+        console.error('Failed to load document preview:', err);
+        toast.error('Failed to preview document. You can download it directly.');
+      } finally {
+        setPreviewLoading(false);
+      }
+    }
   };
 
   return (
@@ -375,15 +418,6 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
               </p>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setIsUploadOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white text-xs font-bold shadow-md shadow-teal-500/25 transition-all cursor-pointer shrink-0 self-start sm:self-auto"
-          >
-            <LucideIcons.Plus size={15} />
-            <span>+ Upload Company Doc</span>
-          </button>
         </div>
       )}
 
@@ -828,7 +862,7 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
       {previewDoc && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-150"
-          onClick={() => setPreviewDoc(null)}
+          onClick={closePreview}
         >
           <div
             className="w-full max-w-4xl h-[85vh] flex flex-col bg-white dark:bg-slate-900 rounded-3xl border border-white/20 shadow-2xl overflow-hidden"
@@ -848,6 +882,17 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
+                {previewBlobUrl && (
+                  <button
+                    type="button"
+                    onClick={() => window.open(previewBlobUrl, '_blank')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold cursor-pointer transition-colors"
+                    title="Open in new window / full screen"
+                  >
+                    <LucideIcons.ExternalLink size={13} />
+                    <span className="hidden sm:inline">Open in Tab</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => downloadFile(previewDoc._id, previewDoc.originalName)}
@@ -858,7 +903,7 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPreviewDoc(null)}
+                  onClick={closePreview}
                   className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 flex items-center justify-center cursor-pointer"
                 >
                   ✕
@@ -867,18 +912,27 @@ export default function CompanyDocumentsVault({ isCompact = false, hideBanner = 
             </div>
 
             <div className="flex-1 bg-slate-100 dark:bg-slate-950/50 p-2 overflow-auto flex items-center justify-center">
-              {previewDoc.mimeType?.startsWith('image/') ? (
-                <img
-                  src={`${api.defaults.baseURL || '/api'}/company-documents/${previewDoc._id}/view`}
-                  alt={previewDoc.title}
-                  className="max-h-full max-w-full object-contain rounded-xl shadow-md"
-                />
-              ) : previewDoc.mimeType === 'application/pdf' ? (
-                <iframe
-                  src={`${api.defaults.baseURL || '/api'}/company-documents/${previewDoc._id}/view`}
-                  title={previewDoc.title}
-                  className="w-full h-full rounded-xl border border-slate-200 dark:border-white/10"
-                />
+              {previewLoading ? (
+                <div className="flex flex-col items-center justify-center space-y-3 p-8">
+                  <div className="w-8 h-8 border-3 border-teal-500/20 border-t-teal-500 rounded-full animate-spin" />
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    Loading secure preview...
+                  </p>
+                </div>
+              ) : previewBlobUrl ? (
+                previewDoc.mimeType?.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(previewDoc.originalName || '') ? (
+                  <img
+                    src={previewBlobUrl}
+                    alt={previewDoc.title}
+                    className="max-h-full max-w-full object-contain rounded-xl shadow-md"
+                  />
+                ) : (
+                  <iframe
+                    src={previewBlobUrl}
+                    title={previewDoc.title}
+                    className="w-full h-full rounded-xl border border-slate-200 dark:border-white/10"
+                  />
+                )
               ) : (
                 <div className="text-center space-y-3 p-8">
                   <LucideIcons.File size={48} className="mx-auto text-slate-400" />
