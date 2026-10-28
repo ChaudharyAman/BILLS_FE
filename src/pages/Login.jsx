@@ -7,14 +7,19 @@ const Login = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
-    password: ''
+    password: '',
+    rememberMe: false
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -36,6 +41,7 @@ const Login = () => {
       const response = await api.post('/auth/login', {
         username: usernameVal,
         password: passwordVal,
+        rememberMe: Boolean(formData.rememberMe),
       });
       storeAuthSession(response.data);
       navigate('/invoices');
@@ -174,6 +180,10 @@ const Login = () => {
               <label className="flex items-center gap-2.5 text-xs text-slate-600 font-medium cursor-pointer select-none">
                 <input
                   type="checkbox"
+                  name="rememberMe"
+                  checked={formData.rememberMe}
+                  onChange={handleChange}
+                  data-testid="login-remember-me"
                   className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
                 Remember me for 30 days
@@ -197,11 +207,6 @@ const Login = () => {
               ) : 'Sign in'}
             </button>
           </form>
-
-          <p className="text-center text-xs font-semibold text-slate-400">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-blue-600 hover:text-blue-700 transition-colors">Sign up</Link>
-          </p>
         </div>
       </div>
     </div>
