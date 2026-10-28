@@ -404,8 +404,9 @@ function App() {
         return;
       }
       const rawUser = localStorage.getItem('user');
+      const hasSessionToken = Boolean(sessionStorage.getItem('authToken'));
 
-      if (rawUser) return;
+      if (rawUser && hasSessionToken) return;
 
       try {
         const response = await api.get('/auth/me');
@@ -441,7 +442,7 @@ function App() {
             <Routes>
               {/* Auth Routes - No Layout */}
               <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
+              <Route path="/signup" element={<Navigate to="/login" replace />} />
               <Route path="/accept-invite" element={<AcceptInvite />} />
 
               {/* Public Submission Portal — no auth, no sidebar */}
