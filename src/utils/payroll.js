@@ -657,11 +657,20 @@ export const buildMasterSalaryStructure = (source = {}, configInput = {}) => {
             amount = roundAmount(basicMaster * pct);
           } else if (c.linkedTo === 'fixed') {
             let val = src[c.id] !== undefined ? src[c.id] : (src.salaryStructure?.[c.id] !== undefined ? src.salaryStructure[c.id] : 0);
-            if (c.id === 'medical' && val === 0) {
+            if (c.id === 'medical' && (val === 0 || val === undefined)) {
               val = src.medicalAllowance !== undefined ? src.medicalAllowance : (src.salaryStructure?.medicalAllowance !== undefined ? src.salaryStructure.medicalAllowance : 0);
             }
-            if (c.id === 'flexi' && val === 0) {
-              val = src.flexiAmount !== undefined ? src.flexiAmount : (src.salaryStructure?.flexiAmount !== undefined ? src.salaryStructure.flexiAmount : 0);
+            if (c.id === 'flexi' && (val === 0 || val === undefined)) {
+              val = src.flexiAmount !== undefined ? src.flexiAmount : (src.salaryStructure?.flexiAmount !== undefined ? src.salaryStructure.flexiAmount : (src.salaryStructure?.flexi !== undefined ? src.salaryStructure.flexi : 0));
+            }
+            if (c.id === 'broadband' && (val === 0 || val === undefined)) {
+              val = src.broadband !== undefined ? src.broadband : (src.salaryStructure?.broadband !== undefined ? src.salaryStructure.broadband : 0);
+            }
+            if (c.id === 'petrol' && (val === 0 || val === undefined)) {
+              val = src.petrol !== undefined ? src.petrol : (src.salaryStructure?.petrol !== undefined ? src.salaryStructure.petrol : 0);
+            }
+            if (c.id === 'lta' && (val === 0 || val === undefined)) {
+              val = src.lta !== undefined ? src.lta : (src.salaryStructure?.lta !== undefined ? src.salaryStructure.lta : 0);
             }
             amount = roundAmount(val);
           }
