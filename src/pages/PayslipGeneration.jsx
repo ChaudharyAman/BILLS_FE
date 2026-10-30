@@ -43,7 +43,18 @@ const PayslipGeneration = () => {
       try {
         setLoading(true);
         const res = await api.get(`/payroll/${id}/generate-payslip`, { signal: controller.signal });
-        setSlip(res.data.payslip);
+        let payslipData = res.data.payslip;
+        if (!payslipData.salaryComponents || payslipData.salaryComponents.length === 0) {
+          try {
+            const cfgRes = await api.get('/payroll/config', { signal: controller.signal });
+            if (cfgRes.data?.config?.salaryComponents) {
+              payslipData = { ...payslipData, salaryComponents: cfgRes.data.config.salaryComponents };
+            }
+          } catch (e) {
+            // ignore fallback error
+          }
+        }
+        setSlip(payslipData);
       } catch (error) {
         if (error.name === 'CanceledError' || error.name === 'AbortError') return;
         console.error(error);
@@ -104,16 +115,43 @@ const PayslipGeneration = () => {
 
     const emp = slip.employee || {};
     const structure = emp.salaryStructure || {};
+    const salaryComponents = slip.salaryComponents || [];
+
+    const findCompName = (idOrKey) => {
+      if (!idOrKey) return null;
+      const clean = String(idOrKey).toLowerCase().trim();
+      const comp = salaryComponents.find(c => {
+        if (!c) return false;
+        const cId = String(c.id || '').toLowerCase().trim();
+        const cName = String(c.name || '').toLowerCase().trim();
+        return cId === clean || cName === clean || clean.replace(/^custom_/, '') === cId.replace(/^custom_/, '');
+      });
+      return comp?.name || null;
+    };
+
+    const genericLabels = [
+      'Custom Component', 'Custom Allowance', 'Component Deduction', 'Custom Deduction',
+      'Core Basic Earnings', 'Housing Exemption Component', 'Special Component',
+      'Flexible Component', 'Internet Allowance', 'Travel Reimbursement',
+      'Travel Concession', 'Commute Allowance', 'Medical Cover'
+    ];
     
     // Earnings list with: name, rate (base monthly CTC rate), monthly (actual prorated paid)
     let earnings = [];
     if (Array.isArray(slip.earningsLineItems) && slip.earningsLineItems.length > 0) {
-      earnings = slip.earningsLineItems.map(item => ({
-        name: item.name,
-        rate: item.amount,
-        monthly: item.amount,
-        arrear: item.details || '-'
-      }));
+      earnings = slip.earningsLineItems.map(item => {
+        const resolvedName = findCompName(item.id) || findCompName(item.name) || item.name;
+        const arrearVal = item.arrear && item.arrear !== '-'
+          ? item.arrear
+          : (item.details && !genericLabels.includes(item.details) ? item.details : '-');
+
+        return {
+          name: resolvedName,
+          rate: item.amount,
+          monthly: item.amount,
+          arrear: arrearVal
+        };
+      });
     } else {
       // ── NOTE: Source of Truth for Compensation Row Specifications ────────────────
       // Backend source of truth: MBB/utils/payrollMath/compensationRowSpec.js
@@ -124,15 +162,35 @@ const PayslipGeneration = () => {
       const periodInput = slip.periodInput || {};
 
       if (['monthly_salary', 'attendance_based', 'salary_plus_commission'].includes(compType)) {
-        if (slip.earnings?.basic > 0) earnings.push({ name: 'Basic Salary', rate: structure.basic || slip.earnings.basic, monthly: slip.earnings.basic, arrear: '-' });
-        if (slip.earnings?.hra > 0) earnings.push({ name: 'House Rent Allowance (HRA)', rate: structure.hra || slip.earnings.hra, monthly: slip.earnings.hra, arrear: '-' });
-        if (slip.earnings?.specialAllowance > 0) earnings.push({ name: 'Special Allowance', rate: structure.specialAllowance || slip.earnings.specialAllowance, monthly: slip.earnings.specialAllowance, arrear: '-' });
-        if (slip.earnings?.flexiAmount > 0) earnings.push({ name: 'Flexi Allowance', rate: slip.earnings.flexiAmount, monthly: slip.earnings.flexiAmount, arrear: '-' });
-        if (slip.earnings?.broadband > 0) earnings.push({ name: 'Broadband Allowance', rate: slip.earnings.broadband, monthly: slip.earnings.broadband, arrear: '-' });
-        if (slip.earnings?.petrol > 0) earnings.push({ name: 'Fuel/Petrol Allowance', rate: slip.earnings.petrol, monthly: slip.earnings.petrol, arrear: '-' });
-        if (slip.earnings?.lta > 0) earnings.push({ name: 'Leave Travel Allowance (LTA)', rate: slip.earnings.lta, monthly: slip.earnings.lta, arrear: '-' });
-        if (slip.earnings?.conveyance > 0) earnings.push({ name: 'Conveyance Allowance', rate: slip.earnings.conveyance, monthly: slip.earnings.conveyance, arrear: '-' });
-        if (slip.earnings?.medicalAllowance > 0) earnings.push({ name: 'Medical Allowance', rate: slip.earnings.medicalAllowance, monthly: slip.earnings.medicalAllowance, arrear: '-' });
+        if (slip.earnings?.basic > 0) earnings.push({ name: findCompName('basic') || 'Basic Salary', rate: structure.basic || slip.earnings.basic, monthly: slip.earnings.basic, arrear: '-' });
+        if (slip.earnings?.hra > 0) earnings.push({ name: findCompName('hra') || 'House Rent Allowance (HRA)', rate: structure.hra || slip.earnings.hra, monthly: slip.earnings.hra, arrear: '-' });
+        if (slip.earnings?.specialAllowance > 0) earnings.push({ name: findCompName('special') || 'Special Allowance', rate: structure.specialAllowance || slip.earnings.specialAllowance, monthly: slip.earnings.specialAllowance, arrear: '-' });
+        if (slip.earnings?.flexiAmount > 0) earnings.push({ name: findCompName('flexi') || 'Flexi Allowance', rate: slip.earnings.flexiAmount, monthly: slip.earnings.flexiAmount, arrear: '-' });
+        if (slip.earnings?.broadband > 0) earnings.push({ name: findCompName('broadband') || 'Broadband Allowance', rate: slip.earnings.broadband, monthly: slip.earnings.broadband, arrear: '-' });
+        if (slip.earnings?.petrol > 0) earnings.push({ name: findCompName('petrol') || 'Fuel/Petrol Allowance', rate: slip.earnings.petrol, monthly: slip.earnings.petrol, arrear: '-' });
+        if (slip.earnings?.lta > 0) earnings.push({ name: findCompName('lta') || 'Leave Travel Allowance (LTA)', rate: slip.earnings.lta, monthly: slip.earnings.lta, arrear: '-' });
+        if (slip.earnings?.conveyance > 0) earnings.push({ name: findCompName('conveyance') || 'Conveyance Allowance', rate: slip.earnings.conveyance, monthly: slip.earnings.conveyance, arrear: '-' });
+        if (slip.earnings?.medicalAllowance > 0) earnings.push({ name: findCompName('medical') || 'Medical Allowance', rate: slip.earnings.medicalAllowance, monthly: slip.earnings.medicalAllowance, arrear: '-' });
+
+        // Dynamic components in earningsMap
+        if (slip.earnings?.earningsMap && typeof slip.earnings.earningsMap === 'object') {
+          const standardKeys = [
+            'basic', 'hra', 'special', 'specialAllowance', 'flexi', 'flexiAmount',
+            'broadband', 'petrol', 'lta', 'conveyance', 'medical', 'medicalAllowance'
+          ];
+          Object.entries(slip.earnings.earningsMap).forEach(([k, v]) => {
+            if (!standardKeys.includes(k) && Number(v) > 0) {
+              const name = findCompName(k) || k.replace(/^custom_/, '').replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+              earnings.push({
+                name,
+                rate: Number(v),
+                monthly: Number(v),
+                arrear: '-'
+              });
+            }
+          });
+        }
+
         (slip.earnings?.otherEarnings || []).forEach(item => {
           if (Number(item.amount) > 0) earnings.push({ name: item.name || 'Other Allowance', rate: item.amount, monthly: item.amount, arrear: '-' });
         });
@@ -225,20 +283,38 @@ const PayslipGeneration = () => {
     // Deductions list
     let deductions = [];
     if (Array.isArray(slip.deductionsLineItems) && slip.deductionsLineItems.length > 0) {
-      deductions = slip.deductionsLineItems.map(item => ({
-        name: item.name + (item.details ? ` (${item.details})` : ''),
-        amount: item.amount
-      }));
+      deductions = slip.deductionsLineItems.map(item => {
+        const resolvedName = findCompName(item.id) || findCompName(item.name) || item.name;
+        const detailPart = (item.details && !genericLabels.includes(item.details)) ? ` (${item.details})` : '';
+        return {
+          name: resolvedName + detailPart,
+          amount: item.amount
+        };
+      });
     } else {
       deductions = [
-        { name: 'PF - Employees', amount: slip.deductions?.pfEmployee || 0 },
-        { name: 'ESIC Deduction', amount: slip.deductions?.esiEmployee || 0 },
-        { name: 'Prof Tax Deduction', amount: slip.deductions?.professionalTax || 0 },
+        { name: 'PF - Employees', amount: slip.deductions?.pfEmployee || slip.deductions?.pf || 0 },
+        { name: 'ESIC Deduction', amount: slip.deductions?.esiEmployee || slip.deductions?.esi || 0 },
+        { name: 'Prof Tax Deduction', amount: slip.deductions?.professionalTax || slip.deductions?.pt || 0 },
         { name: 'Income Tax', amount: slip.deductions?.tds || 0 },
         { name: 'Advance Deduction', amount: slip.deductions?.advanceDeduction || 0 },
-        { name: 'Insurance Deduction', amount: slip.deductions?.insuranceEmployee || 0 },
-        { name: 'Employer PF', amount: slip.employerContributions?.pfEmployer || 0 }
+        { name: 'Insurance Deduction', amount: slip.deductions?.insuranceEmployee || slip.deductions?.insurance || 0 },
+        { name: 'LWF Deduction', amount: slip.deductions?.lwfEmployee || slip.deductions?.lwf || 0 }
       ];
+
+      if (slip.deductions?.deductionsMap && typeof slip.deductions.deductionsMap === 'object') {
+        const standardKeys = ['pfEmployee', 'esiEmployee', 'professionalTax', 'tds', 'insuranceEmployee', 'lwfEmployee', 'advanceDeduction'];
+        Object.entries(slip.deductions.deductionsMap).forEach(([k, v]) => {
+          if (!standardKeys.includes(k) && Number(v) > 0) {
+            const label = findCompName(k) || (k === 'lta' ? 'Leave Travel Allowance (LTA)' : k.replace(/^custom_/, '').replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
+            deductions.push({ name: label, amount: Number(v) });
+          }
+        });
+      }
+
+      (slip.deductions?.otherDeductions || []).forEach(d => {
+        if (Number(d.amount) > 0) deductions.push({ name: d.name || 'Other Deduction', amount: Number(d.amount) });
+      });
 
       if (Array.isArray(slip.deductions?.loanRepayments) && slip.deductions.loanRepayments.length > 0) {
         slip.deductions.loanRepayments.forEach(lr => {
@@ -253,6 +329,45 @@ const PayslipGeneration = () => {
       deductions = deductions.filter(d => d.amount > 0);
     }
 
+    // Employer Contributions & CTC details
+    let employerContributions = [];
+    if (Array.isArray(slip.employerContributionsLineItems) && slip.employerContributionsLineItems.length > 0) {
+      employerContributions = slip.employerContributionsLineItems.map(item => ({
+        name: item.name,
+        amount: Number(item.amount) || 0,
+        details: item.details || '-'
+      }));
+    } else {
+      const empContrib = slip.employerContributions || {};
+      const pfEmpContrib = Number(empContrib.pfEmployer) || 0;
+      if (pfEmpContrib > 0) {
+        employerContributions.push({ name: 'Provident Fund (Employer PF)', amount: pfEmpContrib, details: 'Employer PF Contribution' });
+      }
+      const insEmpContrib = Number(empContrib.insuranceEmployer) || Number(slip.insurance) || Number(emp.insuranceAmount) || 0;
+      if (insEmpContrib > 0) {
+        employerContributions.push({ name: 'Insurance Amount', amount: insEmpContrib, details: 'Group / Medical Insurance' });
+      }
+      const esiEmpContrib = Number(empContrib.esiEmployer) || 0;
+      if (esiEmpContrib > 0) {
+        employerContributions.push({ name: 'ESI (Employer Share)', amount: esiEmpContrib, details: 'Employee State Insurance' });
+      }
+      const gratContrib = Number(empContrib.gratuity) || 0;
+      if (gratContrib > 0) {
+        employerContributions.push({ name: 'Gratuity Provision', amount: gratContrib, details: 'Retirement Gratuity' });
+      }
+      const lwfEmpContrib = Number(empContrib.lwfEmployer) || 0;
+      if (lwfEmpContrib > 0) {
+        employerContributions.push({ name: 'Labour Welfare Fund (Employer)', amount: lwfEmpContrib, details: 'LWF Contribution' });
+      }
+      const npsEmpContrib = Number(empContrib.nps) || 0;
+      if (npsEmpContrib > 0) {
+        employerContributions.push({ name: 'Employer NPS', amount: npsEmpContrib, details: 'National Pension Scheme' });
+      }
+    }
+
+    const totalEmployerContributions = employerContributions.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    const monthlyCTC = Number(slip.monthlyCTC) || Number(emp.monthlyCTC) || Number(slip.employerContributions?.grossTotalSalary) || (totalEarningMonthly + totalEmployerContributions);
+
     // Determine how many rows to render so the table is aligned
     const maxRows = Math.max(earnings.length, deductions.length, 8);
     
@@ -264,11 +379,14 @@ const PayslipGeneration = () => {
     return {
       earnings,
       deductions,
+      employerContributions,
+      totalEmployerContributions,
+      monthlyCTC,
       maxRows,
       totalEarningRate,
       totalEarningMonthly,
       totalDeductions,
-      netTakeHome: totalEarningMonthly - totalDeductions
+      netTakeHome: (slip.netSalary !== undefined && slip.netSalary !== null) ? Number(slip.netSalary) : (totalEarningMonthly - totalDeductions)
     };
   }, [slip]);
 
@@ -503,7 +621,7 @@ const PayslipGeneration = () => {
 
         {/* CTC / Totals Row */}
         <div className="grid grid-cols-12 border-b border-black font-bold py-1 bg-gray-50 items-center">
-          <div className="col-span-2 border-r border-black text-left px-1.5">CTC</div>
+          <div className="col-span-2 border-r border-black text-left px-1.5">Gross Earnings</div>
           <div className="col-span-1 border-r border-black text-right px-1">{fmtVal(tableData.totalEarningMonthly)}</div>
           <div className="col-span-1 border-r border-black text-right px-1">{fmtVal(tableData.totalEarningMonthly)}</div>
           <div className="col-span-1 border-r border-black text-center">-</div>
@@ -517,6 +635,38 @@ const PayslipGeneration = () => {
           <span className="uppercase tracking-wider">NET TAKE HOME FOR THE MONTH</span>
           <span className="text-xs font-black">{fmtVal(tableData.netTakeHome)}</span>
         </div>
+
+        {/* ----------------- EMPLOYER CONTRIBUTIONS & BENEFITS ----------------- */}
+        {tableData.employerContributions && tableData.employerContributions.length > 0 && (
+          <div>
+            <div className="border-b border-black text-center font-bold py-1 bg-gray-50 uppercase tracking-wider text-[9.5px]">
+              Employer Contributions & Benefits (Cost to Company)
+            </div>
+            <div className="grid grid-cols-12 border-b border-black font-bold text-center text-[9px] bg-white">
+              <div className="col-span-5 border-r border-black py-0.5 text-left px-1.5">Contribution / Benefit Head</div>
+              <div className="col-span-3 border-r border-black py-0.5 text-right px-1.5">Monthly Amount</div>
+              <div className="col-span-4 py-0.5 text-left px-1.5">Description</div>
+            </div>
+            <div className="divide-y divide-black border-b border-black text-[9px]">
+              {tableData.employerContributions.map((contrib, cIdx) => (
+                <div key={cIdx} className="grid grid-cols-12 py-0.5 items-center bg-white">
+                  <div className="col-span-5 border-r border-black text-left px-1.5 font-medium">{contrib.name}</div>
+                  <div className="col-span-3 border-r border-black text-right px-1.5 font-semibold">{fmtVal(contrib.amount)}</div>
+                  <div className="col-span-4 text-left px-1.5 text-gray-700">{contrib.details}</div>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-12 border-b border-black font-bold py-1 bg-gray-50 items-center text-[9px]">
+              <div className="col-span-5 border-r border-black text-left px-1.5">Total Employer Contributions</div>
+              <div className="col-span-3 border-r border-black text-right px-1.5 font-black">{fmtVal(tableData.totalEmployerContributions)}</div>
+              <div className="col-span-4 text-left px-1.5 text-gray-600">Benefits included in CTC</div>
+            </div>
+            <div className="flex justify-between items-center font-bold border-b border-black px-4 py-1.5 bg-slate-100 text-[10px]">
+              <span className="uppercase tracking-wider">TOTAL COST TO COMPANY (MONTHLY CTC)</span>
+              <span className="text-xs font-black">{fmtVal(tableData.monthlyCTC)}</span>
+            </div>
+          </div>
+        )}
 
         {/* ----------------- INCOME TAX WORKSHEET (DARK BLUE BAR) ----------------- */}
         <div className="border-b border-black text-center font-bold py-1 bg-[#0f2d59] text-white uppercase tracking-wider text-[10px]">
@@ -543,9 +693,6 @@ const PayslipGeneration = () => {
                   <div className="col-span-3 text-right px-1">{fmtVal(row.taxable)}</div>
                 </div>
               ))}
-              <div className="grid grid-cols-12 py-0.5"><div className="col-span-5 border-r border-black px-1">Other</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-3 text-center">-</div></div>
-              <div className="grid grid-cols-12 py-0.5"><div className="col-span-5 border-r border-black px-1">Bonus</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-3 text-center">-</div></div>
-              <div className="grid grid-cols-12 py-0.5"><div className="col-span-5 border-r border-black px-1">Arrear</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-3 text-center">-</div></div>
               <div className="grid grid-cols-12 py-0.5 border-t border-black font-bold bg-gray-50">
                 <div className="col-span-5 border-r border-black px-1">Gross Salary</div>
                 <div className="col-span-2 border-r border-black text-right px-1">{fmtVal(annualGross)}</div>
@@ -663,11 +810,11 @@ const PayslipGeneration = () => {
             <div className="col-span-2 border-r border-black">{fmtVal(hraCalc.actualHRA || ((worksheetEarnings.find(e => e.name.toLowerCase().includes('hra'))?.gross) || 0))}</div>
             <div className="col-span-2 border-r border-black">{fmtVal(hraCalc.basicPercent || (((worksheetEarnings.find(e => e.name.toLowerCase().includes('basic'))?.gross) || 0) * 0.4))}</div>
             <div className="col-span-2 border-r border-black">{fmtVal(hraCalc.rentMinusBasic10)}</div>
-            <div className="col-span-2 font-bold bg-gray-50">{fmtVal(hraCalc.exemptHRA || ((worksheetEarnings.find(e => e.name.toLowerCase().includes('hra'))?.gross) || 0))}</div>
+            <div className="col-span-2 font-bold bg-gray-50">{fmtVal(hraCalc.exemptHRA !== undefined && hraCalc.exemptHRA !== null ? hraCalc.exemptHRA : 0)}</div>
           </div>
           <div className="grid grid-cols-12 text-center text-[9px] py-0.5 font-bold bg-gray-50">
             <div className="col-span-2 border-r border-black text-center font-bold">Total</div>
-            <div className="col-span-10 text-center">-</div>
+            <div className="col-span-10 text-center">{fmtVal(hraCalc.exemptHRA !== undefined && hraCalc.exemptHRA !== null ? hraCalc.exemptHRA : 0)}</div>
           </div>
         </div>
 

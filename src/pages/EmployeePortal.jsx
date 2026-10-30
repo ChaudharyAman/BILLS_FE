@@ -533,11 +533,13 @@ const EmployeePortal = () => {
     const namePart = cleanName.slice(0, 4).padEnd(4, 'X');
     
     const dateRef = employee.dateOfBirth ? new Date(employee.dateOfBirth) : (employee.joiningDate ? new Date(employee.joiningDate) : new Date());
-    const day = String(dateRef.getDate()).padStart(2, '0');
-    const month = String(dateRef.getMonth() + 1).padStart(2, '0');
-    const expectedPassword = `${namePart}${day}${month}`;
+    const utcDay = String(dateRef.getUTCDate ? dateRef.getUTCDate() : dateRef.getDate()).padStart(2, '0');
+    const utcMonth = String((dateRef.getUTCMonth ? dateRef.getUTCMonth() : dateRef.getMonth()) + 1).padStart(2, '0');
+    const localDay = String(dateRef.getDate()).padStart(2, '0');
+    const localMonth = String(dateRef.getMonth() + 1).padStart(2, '0');
+    const expectedPasswords = [`${namePart}${utcDay}${utcMonth}`, `${namePart}${localDay}${localMonth}`];
 
-    if (unlockPassword.trim().toUpperCase() === expectedPassword) {
+    if (expectedPasswords.includes(unlockPassword.trim().toUpperCase())) {
       try {
         toast.success('Payslip unlocked! Downloading encrypted PDF...');
         setShowUnlockModal(false);
