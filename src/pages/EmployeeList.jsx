@@ -24,6 +24,7 @@ const EmployeeList = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState(null);
 
   useEffect(() => {
     setStoredFilters(FILTER_STORAGE_KEY, { search, status, department });
@@ -111,6 +112,7 @@ const EmployeeList = () => {
         setEmployees(res.data.data || []);
         setTotalPages(res.data.totalPages || 1);
         setTotal(res.data.total || 0);
+        if (res.data.summary) setSummary(res.data.summary);
       } catch (error) {
         if (error.name === 'CanceledError' || error.name === 'AbortError') return;
         console.error(error);
@@ -395,11 +397,11 @@ const EmployeeList = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-2xs flex flex-col justify-between transition-colors">
           <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Headcount</div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">{total}</div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">{summary?.totalHeadcount !== undefined ? summary.totalHeadcount : total}</div>
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-2xs flex flex-col justify-between transition-colors">
           <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active Workforce</div>
-          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">{activeCount}</div>
+          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">{summary?.activeCount !== undefined ? summary.activeCount : activeCount}</div>
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-2xs flex flex-col justify-between transition-colors">
           <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Departments</div>
@@ -407,7 +409,7 @@ const EmployeeList = () => {
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-2xs flex flex-col justify-between transition-colors">
           <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Monthly CTC Outflow</div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">{fmtMoney(totalMonthlyCTC)}</div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">{fmtMoney(summary?.totalMonthlyCTC !== undefined ? summary.totalMonthlyCTC : totalMonthlyCTC)}</div>
         </div>
       </div>
 
