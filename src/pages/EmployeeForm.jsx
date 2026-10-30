@@ -247,12 +247,12 @@ const EmployeeForm = () => {
           includePfInCTC: data.includePfInCTC === true,
           includeGratuityInCTC: data.includeGratuityInCTC !== false,
           componentFrequencies: data.componentFrequencies || {},
-          flexiAmount: Number(data.flexiAmount !== undefined && data.flexiAmount !== null ? data.flexiAmount : (data.salaryStructure?.flexi ?? data.salaryStructure?.flexiAmount ?? 0)) || 0,
-          broadband: Number(data.broadband !== undefined && data.broadband !== null ? data.broadband : (data.salaryStructure?.broadband ?? 0)) || 0,
-          petrol: Number(data.petrol !== undefined && data.petrol !== null ? data.petrol : (data.salaryStructure?.petrol ?? 0)) || 0,
-          lta: Number(data.lta !== undefined && data.lta !== null ? data.lta : (data.salaryStructure?.lta ?? 0)) || 0,
-          insuranceAmount: Number(data.insuranceAmount !== undefined && data.insuranceAmount !== null ? data.insuranceAmount : (data.salaryStructure?.insuranceAmount ?? 0)) || 0,
-          employerNPS: Number(data.employerNPS !== undefined && data.employerNPS !== null ? data.employerNPS : (data.salaryStructure?.employerNPS ?? 0)) || 0,
+          flexiAmount: Number(data.flexiAmount !== undefined && data.flexiAmount !== null ? data.flexiAmount : (data.salaryStructure?.flexi ?? data.salaryStructure?.flexiAmount ?? data.deductions?.flexi ?? data.deductions?.flexiAmount ?? 0)) || 0,
+          broadband: Number(data.broadband !== undefined && data.broadband !== null ? data.broadband : (data.salaryStructure?.broadband ?? data.deductions?.broadband ?? 0)) || 0,
+          petrol: Number(data.petrol !== undefined && data.petrol !== null ? data.petrol : (data.salaryStructure?.petrol ?? data.deductions?.petrol ?? 0)) || 0,
+          lta: Number(data.lta !== undefined && data.lta !== null ? data.lta : (data.salaryStructure?.lta ?? data.deductions?.lta ?? 0)) || 0,
+          insuranceAmount: Number(data.insuranceAmount !== undefined && data.insuranceAmount !== null ? data.insuranceAmount : (data.salaryStructure?.insuranceAmount ?? data.deductions?.insuranceAmount ?? 0)) || 0,
+          employerNPS: Number(data.employerNPS !== undefined && data.employerNPS !== null ? data.employerNPS : (data.salaryStructure?.employerNPS ?? data.deductions?.employerNPS ?? 0)) || 0,
         });
       } catch (error) {
         if (error.name === 'CanceledError' || error.name === 'AbortError') return;
@@ -533,6 +533,12 @@ const EmployeeForm = () => {
           esi: formData.esiEnabled !== false ? (Number(localPreview.esiEmployee) || 0) : 0,
           professionalTax: formData.ptEnabled !== false ? (Number(localPreview.professionalTax) || 0) : 0,
           tds: Number(formData.deductions.tds) || 0,
+          ...(localPreview.deductionsMap || {}),
+          lta: Number(formData.lta) || 0,
+          broadband: Number(formData.broadband) || 0,
+          petrol: Number(formData.petrol) || 0,
+          flexi: Number(formData.flexiAmount) || 0,
+          flexiAmount: Number(formData.flexiAmount) || 0,
           otherDeductions: (formData.deductions?.otherDeductions || []).map((d) => ({
             name: d.name,
             amount: Number(d.amount) || 0,
