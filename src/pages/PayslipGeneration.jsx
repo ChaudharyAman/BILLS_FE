@@ -693,9 +693,6 @@ const PayslipGeneration = () => {
                   <div className="col-span-3 text-right px-1">{fmtVal(row.taxable)}</div>
                 </div>
               ))}
-              <div className="grid grid-cols-12 py-0.5"><div className="col-span-5 border-r border-black px-1">Other</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-3 text-center">-</div></div>
-              <div className="grid grid-cols-12 py-0.5"><div className="col-span-5 border-r border-black px-1">Bonus</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-3 text-center">-</div></div>
-              <div className="grid grid-cols-12 py-0.5"><div className="col-span-5 border-r border-black px-1">Arrear</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-2 border-r border-black text-center">-</div><div className="col-span-3 text-center">-</div></div>
               <div className="grid grid-cols-12 py-0.5 border-t border-black font-bold bg-gray-50">
                 <div className="col-span-5 border-r border-black px-1">Gross Salary</div>
                 <div className="col-span-2 border-r border-black text-right px-1">{fmtVal(annualGross)}</div>
@@ -813,11 +810,11 @@ const PayslipGeneration = () => {
             <div className="col-span-2 border-r border-black">{fmtVal(hraCalc.actualHRA || ((worksheetEarnings.find(e => e.name.toLowerCase().includes('hra'))?.gross) || 0))}</div>
             <div className="col-span-2 border-r border-black">{fmtVal(hraCalc.basicPercent || (((worksheetEarnings.find(e => e.name.toLowerCase().includes('basic'))?.gross) || 0) * 0.4))}</div>
             <div className="col-span-2 border-r border-black">{fmtVal(hraCalc.rentMinusBasic10)}</div>
-            <div className="col-span-2 font-bold bg-gray-50">{fmtVal(hraCalc.exemptHRA || ((worksheetEarnings.find(e => e.name.toLowerCase().includes('hra'))?.gross) || 0))}</div>
+            <div className="col-span-2 font-bold bg-gray-50">{fmtVal(hraCalc.exemptHRA !== undefined && hraCalc.exemptHRA !== null ? hraCalc.exemptHRA : 0)}</div>
           </div>
           <div className="grid grid-cols-12 text-center text-[9px] py-0.5 font-bold bg-gray-50">
             <div className="col-span-2 border-r border-black text-center font-bold">Total</div>
-            <div className="col-span-10 text-center">-</div>
+            <div className="col-span-10 text-center">{fmtVal(hraCalc.exemptHRA !== undefined && hraCalc.exemptHRA !== null ? hraCalc.exemptHRA : 0)}</div>
           </div>
         </div>
 
