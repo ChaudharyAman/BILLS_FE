@@ -63,15 +63,72 @@ const emptyItem = () => ({
   amount: 0, isCustom: false,
 });
 
+const STATE_NAME_TO_CODE = {
+  'jammu and kashmir': '01',
+  'jammu & kashmir': '01',
+  'himachal pradesh': '02',
+  'punjab': '03',
+  'chandigarh': '04',
+  'uttarakhand': '05',
+  'uttaranchal': '05',
+  'haryana': '06',
+  'delhi': '07',
+  'new delhi': '07',
+  'nct of delhi': '07',
+  'rajasthan': '08',
+  'uttar pradesh': '09',
+  'bihar': '10',
+  'sikkim': '11',
+  'arunachal pradesh': '12',
+  'nagaland': '13',
+  'manipur': '14',
+  'mizoram': '15',
+  'tripura': '16',
+  'meghalaya': '17',
+  'assam': '18',
+  'west bengal': '19',
+  'jharkhand': '20',
+  'odisha': '21',
+  'orissa': '21',
+  'chhattisgarh': '22',
+  'madhya pradesh': '23',
+  'gujarat': '24',
+  'daman and diu': '25',
+  'daman & diu': '25',
+  'dadra and nagar haveli': '26',
+  'dadra & nagar haveli': '26',
+  'maharashtra': '27',
+  'andhra pradesh': '37',
+  'karnataka': '29',
+  'goa': '30',
+  'lakshadweep': '31',
+  'kerala': '32',
+  'tamil nadu': '33',
+  'tamilnadu': '33',
+  'puducherry': '34',
+  'pondicherry': '34',
+  'andaman and nicobar islands': '35',
+  'andaman & nicobar': '35',
+  'telangana': '36',
+  'ladakh': '38',
+  'other territory': '97',
+  'centre jurisdiction': '99',
+};
+
 const extractStateCode = (value = '') => {
   const text = String(value || '').trim();
   if (!text) return '';
+
+  if (/^\d{2}$/.test(text)) return text;
 
   const prefixMatch = text.match(/^(\d{2})\s*[-(]/);
   if (prefixMatch) return prefixMatch[1];
 
   const parenMatch = text.match(/\((\d{2})\)/);
   if (parenMatch) return parenMatch[1];
+
+  const gstinMatch = text.match(/^(\d{2})[A-Z0-9]{13}$/i);
+  if (gstinMatch) return gstinMatch[1];
 
   return '';
 };
@@ -82,14 +139,26 @@ const normalizeStateName = (value = '') => String(value || '')
   .trim()
   .toLowerCase();
 
+const resolveStateCode = (value = '') => {
+  const directCode = extractStateCode(value);
+  if (directCode) return directCode;
+
+  const normalized = normalizeStateName(value);
+  if (normalized && STATE_NAME_TO_CODE[normalized]) {
+    return STATE_NAME_TO_CODE[normalized];
+  }
+
+  return '';
+};
+
 const isInterStateSupply = (placeOfSupply, companyState, companyGstin) => {
   const supply = String(placeOfSupply || '').trim();
   if (!supply) return false;
 
-  const supplyStateCode = extractStateCode(supply);
-  const companyStateCode = String(companyGstin || '').trim().slice(0, 2);
+  const supplyStateCode = resolveStateCode(supply);
+  const companyStateCode = resolveStateCode(companyGstin) || resolveStateCode(companyState);
 
-  if (supplyStateCode && /^\d{2}$/.test(companyStateCode)) {
+  if (supplyStateCode && companyStateCode) {
     return supplyStateCode !== companyStateCode;
   }
 
@@ -659,7 +728,25 @@ const InvoiceForm = () => {
     const gstBase = calcGstTaxableBase(item);
     const isExempt = Boolean(item.isTaxExempt) || (item.taxableAmount === 0 && Number(item.taxRate) === 0);
     const gstRate = (hasTax && !isExempt) ? sanitizeGstRate(item.taxRate) : 0;
-    const gst = roundTwo(gstBase * (gstRate / 100));
+    let gst = 0;
+    if (gstRate > 0) {
+      const effectivePlaceOfSupply = formData.placeOfSupply ||
+        clients.find(c => c._id === formData.clientRef)?.placeOfSupply ||
+        clients.find(c => c._id === formData.clientRef)?.billingAddress?.state ||
+        '';
+      const isInter = isInterStateSupply(
+        effectivePlaceOfSupply,
+        companyTaxProfile.state,
+        companyTaxProfile.gstin
+      );
+      if (isInter) {
+        gst = roundTwo(gstBase * (gstRate / 100));
+      } else {
+        const itemCgst = roundTwo(gstBase * ((gstRate / 2) / 100));
+        const itemSgst = roundTwo(gstBase * ((gstRate / 2) / 100));
+        gst = roundTwo(itemCgst + itemSgst);
+      }
+    }
     let excise = 0;
     if (hasExcise) {
       const bed = roundTwo(gstBase * (Number(item.bedPercent) / 100 || 0));
@@ -688,8 +775,12 @@ const InvoiceForm = () => {
     let cgst = 0, sgst = 0, igst = 0;
     let isInterState = false;
     if (!hasTax) return { cgst, sgst, igst, isInterState };
+    const effectivePlaceOfSupply = formData.placeOfSupply ||
+      clients.find(c => c._id === formData.clientRef)?.placeOfSupply ||
+      clients.find(c => c._id === formData.clientRef)?.billingAddress?.state ||
+      '';
     isInterState = isInterStateSupply(
-      formData.placeOfSupply,
+      effectivePlaceOfSupply,
       companyTaxProfile.state,
       companyTaxProfile.gstin
     );
@@ -697,12 +788,16 @@ const InvoiceForm = () => {
       const isExempt = Boolean(item.isTaxExempt) || (item.taxableAmount === 0 && Number(item.taxRate) === 0);
       if (isExempt) return;
       const gstBase = calcGstTaxableBase(item);
-      const tax = roundTwo(gstBase * (sanitizeGstRate(item.taxRate) / 100));
+      const rate = sanitizeGstRate(item.taxRate);
+      if (rate <= 0) return;
       if (isInterState) {
-        igst = roundTwo(igst + tax);
+        const itemIgst = roundTwo(gstBase * (rate / 100));
+        igst = roundTwo(igst + itemIgst);
       } else {
-        cgst = roundTwo(cgst + roundTwo(tax / 2));
-        sgst = roundTwo(sgst + roundTwo(tax / 2));
+        const itemCgst = roundTwo(gstBase * ((rate / 2) / 100));
+        const itemSgst = roundTwo(gstBase * ((rate / 2) / 100));
+        cgst = roundTwo(cgst + itemCgst);
+        sgst = roundTwo(sgst + itemSgst);
       }
     });
     return { cgst, sgst, igst, isInterState };
@@ -1071,9 +1166,13 @@ const InvoiceForm = () => {
                       const selectedClient = clients.find(c => c._id === clientId);
                       if (selectedClient) {
                         const tdsApp = isPro ? !!selectedClient.tds_applicable : false;
+                        const clientState = selectedClient.placeOfSupply || selectedClient.billingAddress?.state || '';
                         setFormData(prev => ({
                           ...prev,
                           clientRef: clientId,
+                          clientName: selectedClient.name || prev.clientName,
+                          clientGST: selectedClient.gstin || prev.clientGST,
+                          placeOfSupply: clientState || prev.placeOfSupply,
                           tdsApplicable: tdsApp,
                           tdsSection: tdsApp ? (selectedClient.tds_default_section || selectedClient.default_tds_section || '194J') : '',
                           tdsRate: tdsApp ? (selectedClient.tds_default_rate || selectedClient.default_tds_rate || 10) : 0
