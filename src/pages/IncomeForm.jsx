@@ -21,6 +21,7 @@ const gstStateMap = {
 const extractStateCode = (value = '') => {
   const text = String(value || '').trim();
   if (!text) return '';
+  if (/^\d{2}$/.test(text)) return text;
   const prefixMatch = text.match(/^(\d{2})\s*[-(]/);
   if (prefixMatch) return prefixMatch[1];
   const parenMatch = text.match(/\((\d{2})\)/);
